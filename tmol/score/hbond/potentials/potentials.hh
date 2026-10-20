@@ -4,7 +4,6 @@
 #include <tmol/utility/portable/matrix.hh>
 #include <tmol/utility/portable/metal_view.hh>
 
-
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/polynomial.hh>
 #include <tmol/score/common/tuple.hh>
@@ -36,7 +35,8 @@ struct AcceptorHybridization {
 };
 
 template <typename Real, typename PolyReal>
-def AH_dist_V_dV(Real3 A, Real3 H, TMOL_DEVICE_REF(HBondPoly<PolyReal> const) AHdist_poly)
+def AH_dist_V_dV(
+    Real3 A, Real3 H, TMOL_DEVICE_REF(HBondPoly<PolyReal> const) AHdist_poly)
     -> tuple<Real, Real3, Real3> {
   auto dist = distance<Real>::V_dV(A, H);
   auto poly = bound_poly<11, Real, PolyReal, PolyReal>::V_dV(
@@ -46,7 +46,9 @@ def AH_dist_V_dV(Real3 A, Real3 H, TMOL_DEVICE_REF(HBondPoly<PolyReal> const) AH
 }
 
 template <typename Real, typename PolyReal>
-def AH_dist_V(Real3 A, Real3 H, TMOL_DEVICE_REF(HBondPoly<PolyReal> const) AHdist_poly) -> Real {
+def AH_dist_V(
+    Real3 A, Real3 H, TMOL_DEVICE_REF(HBondPoly<PolyReal> const) AHdist_poly)
+    -> Real {
   Real dist = distance<Real>::V(A, H);
   return bound_poly<11, Real, PolyReal, PolyReal>::V(
       dist, AHdist_poly.coeffs, AHdist_poly.range, AHdist_poly.bound);
@@ -54,7 +56,10 @@ def AH_dist_V(Real3 A, Real3 H, TMOL_DEVICE_REF(HBondPoly<PolyReal> const) AHdis
 
 template <typename Real, typename PolyReal>
 def AHD_angle_V_dV(
-    Real3 A, Real3 H, Real3 D, TMOL_DEVICE_REF(HBondPoly<PolyReal> const) cosAHD_poly)
+    Real3 A,
+    Real3 H,
+    Real3 D,
+    TMOL_DEVICE_REF(HBondPoly<PolyReal> const) cosAHD_poly)
     -> tuple<Real, Real3, Real3, Real3> {
   // In non-cos space
   auto AHD = pt_interior_angle<Real>::V_dV(A, H, D);
@@ -69,8 +74,11 @@ def AHD_angle_V_dV(
 }
 
 template <typename Real, typename PolyReal>
-def AHD_angle_V(Real3 A, Real3 H, Real3 D, TMOL_DEVICE_REF(HBondPoly<PolyReal> const) cosAHD_poly)
-    -> Real {
+def AHD_angle_V(
+    Real3 A,
+    Real3 H,
+    Real3 D,
+    TMOL_DEVICE_REF(HBondPoly<PolyReal> const) cosAHD_poly) -> Real {
   // In non-cos space
   Real AHD = pt_interior_angle<Real>::V(A, H, D);
   return bound_poly<11, Real, PolyReal, PolyReal>::V(
@@ -79,7 +87,10 @@ def AHD_angle_V(Real3 A, Real3 H, Real3 D, TMOL_DEVICE_REF(HBondPoly<PolyReal> c
 
 template <typename Real, typename PolyReal>
 def _BAH_angle_base_form_V_dV(
-    Real3 B, Real3 A, Real3 H, TMOL_DEVICE_REF(HBondPoly<PolyReal> const) cosBAH_poly)
+    Real3 B,
+    Real3 A,
+    Real3 H,
+    TMOL_DEVICE_REF(HBondPoly<PolyReal> const) cosBAH_poly)
     -> tuple<Real, Real3, Real3, Real3> {
   Real3 AH = H - A;
   Real3 BA = A - B;
@@ -97,7 +108,10 @@ def _BAH_angle_base_form_V_dV(
 
 template <typename Real, typename PolyReal>
 def _BAH_angle_base_form_V(
-    Real3 B, Real3 A, Real3 H, TMOL_DEVICE_REF(HBondPoly<PolyReal> const) cosBAH_poly) -> Real {
+    Real3 B,
+    Real3 A,
+    Real3 H,
+    TMOL_DEVICE_REF(HBondPoly<PolyReal> const) cosBAH_poly) -> Real {
   Real3 AH = H - A;
   Real3 BA = A - B;
 

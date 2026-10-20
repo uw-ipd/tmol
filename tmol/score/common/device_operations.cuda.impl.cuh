@@ -262,7 +262,11 @@ struct DeviceOperations<tmol::Device::CUDA> {
     return dst_scan_t;
   }
 
-  template <int N_T, int WIDTH, typename T, tmol::Device LaneD = tmol::Device::CUDA>
+  template <
+      int N_T,
+      int WIDTH,
+      typename T,
+      tmol::Device LaneD = tmol::Device::CUDA>
   __device__ static void copy_contiguous_data(
       T* __restrict__ dst,
       T* __restrict__ src,
@@ -321,8 +325,8 @@ struct DeviceOperations<tmol::Device::CUDA> {
       typename T,
       typename OP,
       tmol::Device LaneD = tmol::Device::CUDA>
-  __device__ static T shuffle_reduce_in_workgroup(T val, OP op,
-      WorkgroupLane<LaneD> = {}) {
+  __device__ static T shuffle_reduce_in_workgroup(
+      T val, OP op, WorkgroupLane<LaneD> = {}) {
     assert(N_T <= 32);
     auto g = cooperative_groups::coalesced_threads();
     return tmol::score::common::reduce<tmol::Device::CUDA, T>::reduce_to_head(
@@ -335,8 +339,8 @@ struct DeviceOperations<tmol::Device::CUDA> {
       typename T,
       typename OP,
       tmol::Device LaneD = tmol::Device::CUDA>
-  __device__ static T shuffle_reduce_and_broadcast_in_workgroup(T val, OP op,
-      WorkgroupLane<LaneD> = {}) {
+  __device__ static T shuffle_reduce_and_broadcast_in_workgroup(
+      T val, OP op, WorkgroupLane<LaneD> = {}) {
     assert(N_T <= 32);
     auto g = cooperative_groups::coalesced_threads();
     return tmol::score::common::reduce<tmol::Device::CUDA, T>::reduce_to_all(

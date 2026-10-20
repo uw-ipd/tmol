@@ -16,10 +16,8 @@ namespace lk_ball {
 namespace potentials {
 
 template <typename Real, typename Int, tmol::Device D>
-using WaterGenCtx = WaterGenCtxT<
-    tmol::score::common::TViewBinder<D>::template View,
-    Real,
-    Int>;
+using WaterGenCtx =
+    WaterGenCtxT<tmol::score::common::TViewBinder<D>::template View, Real, Int>;
 
 template <typename Real, typename Int, tmol::Device D>
 using WaterGenDerivCtx = WaterGenDerivCtxT<

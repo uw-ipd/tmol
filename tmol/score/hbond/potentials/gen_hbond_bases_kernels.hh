@@ -26,8 +26,8 @@ namespace score {
 namespace hbond {
 namespace potentials {
 
-using tmol::score::common::WorkgroupLane;
 using tmol::portable::Vec;
+using tmol::score::common::WorkgroupLane;
 
 // Per-residue data carried in stack registers while a workgroup processes one
 // rotamer. The tile pointers address the shared block below, so they carry the

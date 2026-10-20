@@ -107,20 +107,25 @@ using tmol::portable::Vec;
 //    coords (TView<Vec<Real, 3>, 2, D>)
 //    block_type_atom_types (TView<Int, 2, D>)
 //    type_params (TView<LJLKTypeParams<Real>, 1, D>)
-#define LOAD_BLOCK_COORDS_AND_PARAMS_INTO_SHARED                            \
-  TMOL_DEVICE_FUNC(                                                         \
-      int pose_ind,                                                         \
-      LJLKSingleResData<Real>& r_dat,                                       \
-      int n_atoms_to_load,                                                  \
-      int start_atom) {                                                     \
-    ljlk_load_block_coords_and_params_into_shared<DeviceOperations, D, nt, Real, Int>( \
-        rot_coords,                                                         \
-        block_type_atom_types,                                              \
-        type_params,                                                        \
-        pose_ind,                                                           \
-        r_dat,                                                              \
-        n_atoms_to_load,                                                    \
-        start_atom);                                                        \
+#define LOAD_BLOCK_COORDS_AND_PARAMS_INTO_SHARED   \
+  TMOL_DEVICE_FUNC(                                \
+      int pose_ind,                                \
+      LJLKSingleResData<Real>& r_dat,              \
+      int n_atoms_to_load,                         \
+      int start_atom) {                            \
+    ljlk_load_block_coords_and_params_into_shared< \
+        DeviceOperations,                          \
+        D,                                         \
+        nt,                                        \
+        Real,                                      \
+        Int>(                                      \
+        rot_coords,                                \
+        block_type_atom_types,                     \
+        type_params,                               \
+        pose_ind,                                  \
+        r_dat,                                     \
+        n_atoms_to_load,                           \
+        start_atom);                               \
   }
 
 // LOAD_BLOCK_INTO_SHARED
@@ -129,25 +134,31 @@ using tmol::portable::Vec;
 //    block_type_atom_types (TView<Int, 2, D>)
 //    type_params (TView<LJLKTypeParams<Real>, 1, D>)
 //    block_type_path_distance (TView<Int, 3, D>)
-#define LOAD_BLOCK_INTO_SHARED                                       \
-  TMOL_DEVICE_FUNC(                                                  \
-      int pose_ind,                                                  \
-      LJLKSingleResData<Real>& r_dat,                                \
-      int n_atoms_to_load,                                           \
-      int start_atom,                                                \
-      bool count_pair_striking_dist,                                 \
-      unsigned char* __restrict__ conn_ats) {                        \
-    ljlk_load_block_into_shared<DeviceOperations, D, nt, TILE_SIZE, Real, Int>( \
-        rot_coords,                                                  \
-        block_type_atom_types,                                       \
-        type_params,                                                 \
-        block_type_path_distance,                                    \
-        pose_ind,                                                    \
-        r_dat,                                                       \
-        n_atoms_to_load,                                             \
-        start_atom,                                                  \
-        count_pair_striking_dist,                                    \
-        conn_ats);                                                   \
+#define LOAD_BLOCK_INTO_SHARED                \
+  TMOL_DEVICE_FUNC(                           \
+      int pose_ind,                           \
+      LJLKSingleResData<Real>& r_dat,         \
+      int n_atoms_to_load,                    \
+      int start_atom,                         \
+      bool count_pair_striking_dist,          \
+      unsigned char* __restrict__ conn_ats) { \
+    ljlk_load_block_into_shared<              \
+        DeviceOperations,                     \
+        D,                                    \
+        nt,                                   \
+        TILE_SIZE,                            \
+        Real,                                 \
+        Int>(                                 \
+        rot_coords,                           \
+        block_type_atom_types,                \
+        type_params,                          \
+        block_type_path_distance,             \
+        pose_ind,                             \
+        r_dat,                                \
+        n_atoms_to_load,                      \
+        start_atom,                           \
+        count_pair_striking_dist,             \
+        conn_ats);                            \
   }
 
 // LOAD_TILE_INVARIANT_INTERRES_DATA
@@ -159,38 +170,43 @@ using tmol::portable::Vec;
 //    pose_stack_inter_block_bondsep (TView<int8_t, 5, D>)
 //    global_params (TView<LJGlobalParams<Real>, 1, D>)
 //    max_important_bond_separation (int)
-#define LOAD_TILE_INVARIANT_INTERRES_DATA                            \
-  TMOL_DEVICE_FUNC(                                                  \
-      int pose_ind,                                                  \
-      int rot_ind1,                                                  \
-      int rot_ind2,                                                  \
-      int block_ind1,                                                \
-      int block_ind2,                                                \
-      int block_type1,                                               \
-      int block_type2,                                               \
-      int n_atoms1,                                                  \
-      int n_atoms2,                                                  \
-      LJLKScoringData<Real>& inter_dat,                              \
-      shared_mem_union& shared) {                                    \
-    ljlk_load_tile_invariant_interres_data<DeviceOperations, D, nt, Int, Real>( \
-        rot_coord_offset,                                            \
-        pose_stack_near_blocks,                                      \
-        block_type_n_interblock_bonds,                               \
-        block_type_atoms_forming_chemical_bonds,                     \
-        pose_stack_inter_block_bondsep,                              \
-        global_params,                                               \
-        max_important_bond_separation,                               \
-        pose_ind,                                                    \
-        rot_ind1,                                                    \
-        rot_ind2,                                                    \
-        block_ind1,                                                  \
-        block_ind2,                                                  \
-        block_type1,                                                 \
-        block_type2,                                                 \
-        n_atoms1,                                                    \
-        n_atoms2,                                                    \
-        inter_dat,                                                   \
-        shared.m);                                                   \
+#define LOAD_TILE_INVARIANT_INTERRES_DATA        \
+  TMOL_DEVICE_FUNC(                              \
+      int pose_ind,                              \
+      int rot_ind1,                              \
+      int rot_ind2,                              \
+      int block_ind1,                            \
+      int block_ind2,                            \
+      int block_type1,                           \
+      int block_type2,                           \
+      int n_atoms1,                              \
+      int n_atoms2,                              \
+      LJLKScoringData<Real>& inter_dat,          \
+      shared_mem_union& shared) {                \
+    ljlk_load_tile_invariant_interres_data<      \
+        DeviceOperations,                        \
+        D,                                       \
+        nt,                                      \
+        Int,                                     \
+        Real>(                                   \
+        rot_coord_offset,                        \
+        pose_stack_near_blocks,                  \
+        block_type_n_interblock_bonds,           \
+        block_type_atoms_forming_chemical_bonds, \
+        pose_stack_inter_block_bondsep,          \
+        global_params,                           \
+        max_important_bond_separation,           \
+        pose_ind,                                \
+        rot_ind1,                                \
+        rot_ind2,                                \
+        block_ind1,                              \
+        block_ind2,                              \
+        block_type1,                             \
+        block_type2,                             \
+        n_atoms1,                                \
+        n_atoms2,                                \
+        inter_dat,                               \
+        shared.m);                               \
   }
 
 // LOAD_INTERRES1_TILE_DATA_TO_SHARED
@@ -199,23 +215,30 @@ using tmol::portable::Vec;
 //    block_type_atom_types (TView<Int, 2, D>)
 //    type_params (TView<LJLKTypeParams<Real>, 1, D>)
 //    block_type_path_distance (TView<Int, 3, D>)
-#define LOAD_INTERRES1_TILE_DATA_TO_SHARED                            \
-  TMOL_DEVICE_FUNC(                                                   \
-      int tile_ind,                                                   \
-      int start_atom1,                                                \
-      int n_atoms_to_load1,                                           \
-      LJLKScoringData<Real>& inter_dat,                               \
-      shared_mem_union& shared) {                                     \
-    ljlk_load_interres1_tile_data_to_shared<DeviceOperations, D, nt, TILE_SIZE, MAX_N_CONN, Real, Int>( \
-        rot_coords,                                                   \
-        block_type_atom_types,                                        \
-        type_params,                                                  \
-        block_type_path_distance,                                     \
-        tile_ind,                                                     \
-        start_atom1,                                                  \
-        n_atoms_to_load1,                                             \
-        inter_dat,                                                    \
-        shared.m);                                                    \
+#define LOAD_INTERRES1_TILE_DATA_TO_SHARED   \
+  TMOL_DEVICE_FUNC(                          \
+      int tile_ind,                          \
+      int start_atom1,                       \
+      int n_atoms_to_load1,                  \
+      LJLKScoringData<Real>& inter_dat,      \
+      shared_mem_union& shared) {            \
+    ljlk_load_interres1_tile_data_to_shared< \
+        DeviceOperations,                    \
+        D,                                   \
+        nt,                                  \
+        TILE_SIZE,                           \
+        MAX_N_CONN,                          \
+        Real,                                \
+        Int>(                                \
+        rot_coords,                          \
+        block_type_atom_types,               \
+        type_params,                         \
+        block_type_path_distance,            \
+        tile_ind,                            \
+        start_atom1,                         \
+        n_atoms_to_load1,                    \
+        inter_dat,                           \
+        shared.m);                           \
   }
 
 // LOAD_INTERRES2_TILE_DATA_TO_SHARED
@@ -225,23 +248,30 @@ using tmol::portable::Vec;
 //    block_type_atom_types (TView<Int, 2, D>)
 //    type_params (TView<LJLKTypeParams<Real>, 1, D>)
 //    block_type_path_distance (TView<Int, 3, D>)
-#define LOAD_INTERRES2_TILE_DATA_TO_SHARED                            \
-  TMOL_DEVICE_FUNC(                                                   \
-      int tile_ind,                                                   \
-      int start_atom2,                                                \
-      int n_atoms_to_load2,                                           \
-      LJLKScoringData<Real>& inter_dat,                               \
-      shared_mem_union& shared) {                                     \
-    ljlk_load_interres2_tile_data_to_shared<DeviceOperations, D, nt, TILE_SIZE, MAX_N_CONN, Real, Int>( \
-        rot_coords,                                                   \
-        block_type_atom_types,                                        \
-        type_params,                                                  \
-        block_type_path_distance,                                     \
-        tile_ind,                                                     \
-        start_atom2,                                                  \
-        n_atoms_to_load2,                                             \
-        inter_dat,                                                    \
-        shared.m);                                                    \
+#define LOAD_INTERRES2_TILE_DATA_TO_SHARED   \
+  TMOL_DEVICE_FUNC(                          \
+      int tile_ind,                          \
+      int start_atom2,                       \
+      int n_atoms_to_load2,                  \
+      LJLKScoringData<Real>& inter_dat,      \
+      shared_mem_union& shared) {            \
+    ljlk_load_interres2_tile_data_to_shared< \
+        DeviceOperations,                    \
+        D,                                   \
+        nt,                                  \
+        TILE_SIZE,                           \
+        MAX_N_CONN,                          \
+        Real,                                \
+        Int>(                                \
+        rot_coords,                          \
+        block_type_atom_types,               \
+        type_params,                         \
+        block_type_path_distance,            \
+        tile_ind,                            \
+        start_atom2,                         \
+        n_atoms_to_load2,                    \
+        inter_dat,                           \
+        shared.m);                           \
   }
 
 // LOAD_INTERRES_DATA_FROM_SHARED
@@ -271,9 +301,9 @@ using tmol::portable::Vec;
               start_atom2,                                                  \
               score_inter_ljlk_atom_pair,                                   \
               inter_dat);                                                   \
-      inter_dat.total_ljatr += tmol::portable::get<0>(LJLK);                           \
-      inter_dat.total_ljrep += tmol::portable::get<1>(LJLK);                           \
-      inter_dat.total_lk += tmol::portable::get<2>(LJLK);                              \
+      inter_dat.total_ljatr += tmol::portable::get<0>(LJLK);                \
+      inter_dat.total_ljrep += tmol::portable::get<1>(LJLK);                \
+      inter_dat.total_lk += tmol::portable::get<2>(LJLK);                   \
     });                                                                     \
     DeviceOperations<D>::template for_each_in_workgroup<nt>(                \
         eval_scores_for_atom_pairs);                                        \
@@ -288,8 +318,8 @@ using tmol::portable::Vec;
   TMOL_DEVICE_FUNC(                                                           \
       LJLKScoringData<Real>& score_dat, shared_mem_union& shared) {           \
     auto reduce_energies = ([&](int tid) {                                    \
-      (void)cpu_pose_accum;  /* nvcc: first-capture outside the */   \
-      /* constexpr-if below, which may not introduce a capture */   \
+      (void)cpu_pose_accum; /* nvcc: first-capture outside the */             \
+      /* constexpr-if below, which may not introduce a capture */             \
       Real const cta_total_ljatr =                                            \
           DeviceOperations<D>::template reduce_in_workgroup<nt>(              \
               score_dat.total_ljatr, shared, tmol::portable::plus_t<Real>()); \
@@ -356,26 +386,31 @@ using tmol::portable::Vec;
 //    pose_stack_block_coord_offset (TView<Int, 2, D>)
 //    global_params (TView<LJGlobalParams<Real>, 1, D>)
 //    max_important_bond_separation (int)
-#define LOAD_TILE_INVARIANT_INTRARES_DATA                            \
-  TMOL_DEVICE_FUNC(                                                  \
-      int pose_ind,                                                  \
-      int rot_ind1,                                                  \
-      int block_ind1,                                                \
-      int block_type1,                                               \
-      int n_atoms1,                                                  \
-      LJLKScoringData<Real>& intra_dat,                              \
-      shared_mem_union& shared) {                                    \
-    ljlk_load_tile_invariant_intrares_data<DeviceOperations, D, nt, Int, Real>( \
-        rot_coord_offset,                                            \
-        global_params,                                               \
-        max_important_bond_separation,                               \
-        pose_ind,                                                    \
-        rot_ind1,                                                    \
-        block_ind1,                                                  \
-        block_type1,                                                 \
-        n_atoms1,                                                    \
-        intra_dat,                                                   \
-        shared.m);                                                   \
+#define LOAD_TILE_INVARIANT_INTRARES_DATA   \
+  TMOL_DEVICE_FUNC(                         \
+      int pose_ind,                         \
+      int rot_ind1,                         \
+      int block_ind1,                       \
+      int block_type1,                      \
+      int n_atoms1,                         \
+      LJLKScoringData<Real>& intra_dat,     \
+      shared_mem_union& shared) {           \
+    ljlk_load_tile_invariant_intrares_data< \
+        DeviceOperations,                   \
+        D,                                  \
+        nt,                                 \
+        Int,                                \
+        Real>(                              \
+        rot_coord_offset,                   \
+        global_params,                      \
+        max_important_bond_separation,      \
+        pose_ind,                           \
+        rot_ind1,                           \
+        block_ind1,                         \
+        block_type1,                        \
+        n_atoms1,                           \
+        intra_dat,                          \
+        shared.m);                          \
   }
 
 // LOAD_INTRARES1_TILE_DATA_TO_SHARED
@@ -383,22 +418,29 @@ using tmol::portable::Vec;
 //    coords (TView<Vec<Real, 3>, 2, D>)
 //    block_type_atom_types (TView<Int, 2, D>)
 //    type_params (TView<LJLKTypeParams<Real>, 1, D>)
-#define LOAD_INTRARES1_TILE_DATA_TO_SHARED                            \
-  TMOL_DEVICE_FUNC(                                                   \
-      int tile_ind,                                                   \
-      int start_atom1,                                                \
-      int n_atoms_to_load1,                                           \
-      LJLKScoringData<Real>& intra_dat,                               \
-      shared_mem_union& shared) {                                     \
-    ljlk_load_intrares1_tile_data_to_shared<DeviceOperations, D, nt, TILE_SIZE, MAX_N_CONN, Real, Int>( \
-        rot_coords,                                                   \
-        block_type_atom_types,                                        \
-        type_params,                                                  \
-        tile_ind,                                                     \
-        start_atom1,                                                  \
-        n_atoms_to_load1,                                             \
-        intra_dat,                                                    \
-        shared.m);                                                    \
+#define LOAD_INTRARES1_TILE_DATA_TO_SHARED   \
+  TMOL_DEVICE_FUNC(                          \
+      int tile_ind,                          \
+      int start_atom1,                       \
+      int n_atoms_to_load1,                  \
+      LJLKScoringData<Real>& intra_dat,      \
+      shared_mem_union& shared) {            \
+    ljlk_load_intrares1_tile_data_to_shared< \
+        DeviceOperations,                    \
+        D,                                   \
+        nt,                                  \
+        TILE_SIZE,                           \
+        MAX_N_CONN,                          \
+        Real,                                \
+        Int>(                                \
+        rot_coords,                          \
+        block_type_atom_types,               \
+        type_params,                         \
+        tile_ind,                            \
+        start_atom1,                         \
+        n_atoms_to_load1,                    \
+        intra_dat,                           \
+        shared.m);                           \
   }
 
 // LOAD_INTRARES2_TILE_DATA_TO_SHARED
@@ -407,22 +449,29 @@ using tmol::portable::Vec;
 //    coords (TView<Vec<Real, 3>, 2, D>)
 //    block_type_atom_types (TView<Int, 2, D>)
 //    type_params (TView<LJLKTypeParams<Real>, 1, D>)
-#define LOAD_INTRARES2_TILE_DATA_TO_SHARED                            \
-  TMOL_DEVICE_FUNC(                                                   \
-      int tile_ind,                                                   \
-      int start_atom2,                                                \
-      int n_atoms_to_load2,                                           \
-      LJLKScoringData<Real>& intra_dat,                               \
-      shared_mem_union& shared) {                                     \
-    ljlk_load_intrares2_tile_data_to_shared<DeviceOperations, D, nt, TILE_SIZE, MAX_N_CONN, Real, Int>( \
-        rot_coords,                                                   \
-        block_type_atom_types,                                        \
-        type_params,                                                  \
-        tile_ind,                                                     \
-        start_atom2,                                                  \
-        n_atoms_to_load2,                                             \
-        intra_dat,                                                    \
-        shared.m);                                                    \
+#define LOAD_INTRARES2_TILE_DATA_TO_SHARED   \
+  TMOL_DEVICE_FUNC(                          \
+      int tile_ind,                          \
+      int start_atom2,                       \
+      int n_atoms_to_load2,                  \
+      LJLKScoringData<Real>& intra_dat,      \
+      shared_mem_union& shared) {            \
+    ljlk_load_intrares2_tile_data_to_shared< \
+        DeviceOperations,                    \
+        D,                                   \
+        nt,                                  \
+        TILE_SIZE,                           \
+        MAX_N_CONN,                          \
+        Real,                                \
+        Int>(                                \
+        rot_coords,                          \
+        block_type_atom_types,               \
+        type_params,                         \
+        tile_ind,                            \
+        start_atom2,                         \
+        n_atoms_to_load2,                    \
+        intra_dat,                           \
+        shared.m);                           \
   }
 
 // LOAD_INTRARES_DATA_FROM_SHARED
@@ -457,9 +506,9 @@ using tmol::portable::Vec;
               start_atom2,                                                  \
               score_intra_ljlk_atom_pair,                                   \
               intra_dat);                                                   \
-      intra_dat.total_ljatr += tmol::portable::get<0>(LJLK);                           \
-      intra_dat.total_ljrep += tmol::portable::get<1>(LJLK);                           \
-      intra_dat.total_lk += tmol::portable::get<2>(LJLK);                              \
+      intra_dat.total_ljatr += tmol::portable::get<0>(LJLK);                \
+      intra_dat.total_ljrep += tmol::portable::get<1>(LJLK);                \
+      intra_dat.total_lk += tmol::portable::get<2>(LJLK);                   \
     });                                                                     \
     DeviceOperations<D>::template for_each_in_workgroup<nt>(                \
         eval_scores_for_atom_pairs);                                        \
@@ -886,7 +935,8 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
       score::common::pose_total_reduce<DeviceOperations, D, Real>::f(
           mgr, cells_t.view, output_t.view);
     }
-  } else if (!output_block_pair_energies && use_shared_compact_block_neighbors) {
+  } else if (
+      !output_block_pair_energies && use_shared_compact_block_neighbors) {
     if (require_gradient) {
       score::common::sphere_overlap::launch_precomputed_block_neighbors<
           DeviceOperations,

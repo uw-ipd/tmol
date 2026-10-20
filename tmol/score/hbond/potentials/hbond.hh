@@ -594,11 +594,7 @@ void TMOL_DEVICE_FUNC hbond_load_intrares1_tile_data_to_shared(
   });
   DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(
       store_n_don_n_acc1, lane);
-  hbond_load_block_coords_and_params_into_shared<
-      DeviceDispatch,
-      Dev,
-      nt,
-      Real>(
+  hbond_load_block_coords_and_params_into_shared<DeviceDispatch, Dev, nt, Real>(
       coords,
       block_type_tile_donH_inds,
       block_type_tile_acc_inds,
@@ -667,11 +663,7 @@ void TMOL_DEVICE_FUNC hbond_load_intrares2_tile_data_to_shared(
   });
   DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(
       store_n_don_n_acc2, lane);
-  hbond_load_block_coords_and_params_into_shared<
-      DeviceDispatch,
-      Dev,
-      nt,
-      Real>(
+  hbond_load_block_coords_and_params_into_shared<DeviceDispatch, Dev, nt, Real>(
       coords,
       block_type_tile_donH_inds,
       block_type_tile_acc_inds,
@@ -879,12 +871,9 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs(
     Real3 Bxyz = derived_coords[A_pose_atom_ind][1];
     Real3 B0xyz = derived_coords[A_pose_atom_ind][2];
 
-    int const D_pose_atom_ind =
-        derived_atom_inds[H_pose_atom_ind][0];
-    int const B_pose_atom_ind =
-        derived_atom_inds[A_pose_atom_ind][1];
-    int const B0_pose_atom_ind =
-        derived_atom_inds[A_pose_atom_ind][2];
+    int const D_pose_atom_ind = derived_atom_inds[H_pose_atom_ind][0];
+    int const B_pose_atom_ind = derived_atom_inds[A_pose_atom_ind][1];
+    int const B0_pose_atom_ind = derived_atom_inds[A_pose_atom_ind][2];
 
     unsigned char dt = don_dat.donH_type[donH_ind];
     unsigned char at = acc_dat.acc_type[acc_ind];
@@ -981,12 +970,9 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
     Real3 Bxyz = derived_coords[A_pose_atom_ind][1];
     Real3 B0xyz = derived_coords[A_pose_atom_ind][2];
 
-    int const D_pose_atom_ind =
-        derived_atom_inds[H_pose_atom_ind][0];
-    int const B_pose_atom_ind =
-        derived_atom_inds[A_pose_atom_ind][1];
-    int const B0_pose_atom_ind =
-        derived_atom_inds[A_pose_atom_ind][2];
+    int const D_pose_atom_ind = derived_atom_inds[H_pose_atom_ind][0];
+    int const B_pose_atom_ind = derived_atom_inds[A_pose_atom_ind][1];
+    int const B0_pose_atom_ind = derived_atom_inds[A_pose_atom_ind][2];
 
     unsigned char dt = don_dat.donH_type[donH_ind];
     unsigned char at = acc_dat.acc_type[acc_ind];

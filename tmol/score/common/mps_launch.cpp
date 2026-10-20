@@ -114,8 +114,9 @@ struct MetaCache {
             .device(tmol::native::kCPU));
     std::memcpy(
         meta_cpu.data_ptr(), meta.data(), meta.size() * sizeof(int64_t));
-    tmol::native::Tensor meta_mps(torch::stable::to(
-        meta_cpu.handle(), torch::stable::Device(tmol::native::kMPS)));
+    tmol::native::Tensor meta_mps(
+        torch::stable::to(
+            meta_cpu.handle(), torch::stable::Device(tmol::native::kMPS)));
 
     if (entries.size() >= max_entries) {
       entries.clear();
@@ -236,12 +237,13 @@ void mps_launch(
       wrappers.emplace_back(meta_mps);
       continue;
     }
-    wrappers.emplace_back(torch::stable::from_blob(
-        buffer.data,
-        torch::headeronly::IntHeaderOnlyArrayRef(&size, 1),
-        torch::headeronly::IntHeaderOnlyArrayRef(&stride, 1),
-        mps,
-        torch::headeronly::ScalarType::Byte));
+    wrappers.emplace_back(
+        torch::stable::from_blob(
+            buffer.data,
+            torch::headeronly::IntHeaderOnlyArrayRef(&size, 1),
+            torch::headeronly::IntHeaderOnlyArrayRef(&stride, 1),
+            mps,
+            torch::headeronly::ScalarType::Byte));
   }
 
   auto function = shader_cache().get(shader_source, kernel_name);
@@ -279,8 +281,9 @@ void mps_launch(
       "dispatch");
   if (timing) {
     // Dispatch only enqueues, so the kernel has to be waited on to be timed.
-    tmol::native::Tensor probe(torch::stable::to(
-        meta_mps.handle(), torch::stable::Device(tmol::native::kCPU)));
+    tmol::native::Tensor probe(
+        torch::stable::to(
+            meta_mps.handle(), torch::stable::Device(tmol::native::kCPU)));
     (void)probe;
     std::chrono::duration<double, std::milli> const elapsed =
         std::chrono::steady_clock::now() - start;

@@ -98,7 +98,8 @@ template <
 class InterResBlockEvaluation {
  public:
   template <typename AtomPairFunc>
-  static TMOL_DEVICE_FUNC tmol::portable::array<Real, NTERMS> eval_interres_atom_pair(
+  static TMOL_DEVICE_FUNC tmol::portable::array<Real, NTERMS>
+  eval_interres_atom_pair(
       int tid,
       int start_atom1,
       int start_atom2,
@@ -121,7 +122,8 @@ class InterResBlockEvaluation {
       tmol::portable::array<Real, NTERMS> score_i = f(
           start_atom1, start_atom2, atom_tile_ind1, atom_tile_ind2, inter_dat);
       for_<NTERMS>([&](auto i) {
-        tmol::portable::get<i.value>(score_total) += tmol::portable::get<i.value>(score_i);
+        tmol::portable::get<i.value>(score_total) +=
+            tmol::portable::get<i.value>(score_i);
       });
     }
     return score_total;
@@ -145,7 +147,8 @@ template <
 class IntraResBlockEvaluation {
  public:
   template <typename AtomPairFunc>
-  static TMOL_DEVICE_FUNC tmol::portable::array<Real, NTERMS> eval_intrares_atom_pairs(
+  static TMOL_DEVICE_FUNC tmol::portable::array<Real, NTERMS>
+  eval_intrares_atom_pairs(
       int tid,
       int start_atom1,
       int start_atom2,
@@ -175,7 +178,8 @@ class IntraResBlockEvaluation {
       tmol::portable::array<Real, NTERMS> score_i = f(
           start_atom1, start_atom2, atom_tile_ind1, atom_tile_ind2, intra_dat);
       for_<NTERMS>([&](auto i) {
-        tmol::portable::get<i.value>(score_total) += tmol::portable::get<i.value>(score_i);
+        tmol::portable::get<i.value>(score_total) +=
+            tmol::portable::get<i.value>(score_i);
       });
     }
     return score_total;

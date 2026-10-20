@@ -38,8 +38,7 @@ struct launch_t_cpu {
 #if TMOL_PORTABLE_METAL
 // One lane per Metal thread. 32 matches the simdgroup width on Apple silicon,
 // so a workgroup reduction is a single simd_sum with no threadgroup traffic.
-#define TMOL_LAUNCH_NT \
-  tmol::score::common::TMOL_MPS_THREADGROUP_SIZE
+#define TMOL_LAUNCH_NT tmol::score::common::TMOL_MPS_THREADGROUP_SIZE
 #else
 #define TMOL_LAUNCH_NT 1
 #endif

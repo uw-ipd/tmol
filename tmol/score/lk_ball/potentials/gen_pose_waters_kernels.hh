@@ -96,8 +96,7 @@ TMOL_HD void water_gen_build_waters_for_rot(
   // Step 2: iterate accross tiles of atoms for this block
   int const n_iterations = (n_atoms - 1) / TILE_SIZE + 1;
   for (int tile_ind = 0; tile_ind < n_iterations; ++tile_ind) {
-    int const n_atoms_to_load =
-        min(TILE_SIZE, n_atoms - TILE_SIZE * tile_ind);
+    int const n_atoms_to_load = min(TILE_SIZE, n_atoms - TILE_SIZE * tile_ind);
 
     if (tile_ind != 0) {
       DeviceOps<Dev>::synchronize_workgroup(lane);
@@ -130,8 +129,8 @@ TMOL_HD void water_gen_build_waters_for_rot(
       // locations; the number of donor hydrogens must also be accounted
       // for when building waters for acceptors because some acceptors
       // are also donors
-      int const n_waters = water_gen_dat.r_dat.n_donH
-                           + water_gen_dat.r_dat.n_acc * MAX_N_WATER;
+      int const n_waters =
+          water_gen_dat.r_dat.n_donH + water_gen_dat.r_dat.n_acc * MAX_N_WATER;
       for (int i = tid; i < n_waters; i += nt) {
         bool building_donor_water = i < water_gen_dat.r_dat.n_donH;
         if (building_donor_water) {
@@ -142,10 +141,8 @@ TMOL_HD void water_gen_build_waters_for_rot(
               i  // i is the index of the polar H within this tile
           );
         } else {
-          int const acc_ind =
-              (i - water_gen_dat.r_dat.n_donH) / MAX_N_WATER;
-          int const water_ind =
-              (i - water_gen_dat.r_dat.n_donH) % MAX_N_WATER;
+          int const acc_ind = (i - water_gen_dat.r_dat.n_donH) / MAX_N_WATER;
+          int const water_ind = (i - water_gen_dat.r_dat.n_donH) % MAX_N_WATER;
           build_water_for_acc<TILE_SIZE, Dev>(
               ctx.sp2_water_tors,
               ctx.sp3_water_tors,
@@ -159,8 +156,7 @@ TMOL_HD void water_gen_build_waters_for_rot(
       }
     });
     // Step 4: ...before performing the work for each tile
-    DeviceOps<Dev>::template for_each_in_workgroup<nt>(
-        gen_tile_waters, lane);
+    DeviceOps<Dev>::template for_each_in_workgroup<nt>(gen_tile_waters, lane);
   }
 }
 
@@ -176,7 +172,8 @@ struct WaterTorsRow {
 };
 
 template <typename TableView>
-TMOL_HD auto water_tors_row(TMOL_THREAD TableView const& table, int which, int n)
+TMOL_HD auto water_tors_row(
+    TMOL_THREAD TableView const& table, int which, int n)
     -> WaterTorsRow<decltype(table[which])> {
   return WaterTorsRow<decltype(table[which])>{table[which], n};
 }
@@ -245,8 +242,7 @@ TMOL_HD void water_gen_build_water_derivs_for_rot(
   // Step 2: iterate accross tiles of atoms for this block
   int const n_iterations = (n_atoms - 1) / TILE_SIZE + 1;
   for (int tile_ind = 0; tile_ind < n_iterations; ++tile_ind) {
-    int const n_atoms_to_load =
-        min(TILE_SIZE, n_atoms - TILE_SIZE * tile_ind);
+    int const n_atoms_to_load = min(TILE_SIZE, n_atoms - TILE_SIZE * tile_ind);
 
     if (tile_ind != 0) {
       DeviceOps<Dev>::synchronize_workgroup(lane);
@@ -279,8 +275,8 @@ TMOL_HD void water_gen_build_water_derivs_for_rot(
       // locations; the number of donor hydrogens must also be accounted
       // for when building waters for acceptors because some acceptors
       // are also donors
-      int const n_waters = water_gen_dat.r_dat.n_donH
-                           + water_gen_dat.r_dat.n_acc * MAX_N_WATER;
+      int const n_waters =
+          water_gen_dat.r_dat.n_donH + water_gen_dat.r_dat.n_acc * MAX_N_WATER;
       for (int i = tid; i < n_waters; i += nt) {
         bool building_donor_water = i < water_gen_dat.r_dat.n_donH;
         if (building_donor_water) {
@@ -292,10 +288,8 @@ TMOL_HD void water_gen_build_water_derivs_for_rot(
               i  // i is the index of the polar H within this tile
           );
         } else {
-          int const acc_ind =
-              (i - water_gen_dat.r_dat.n_donH) / MAX_N_WATER;
-          int const water_ind =
-              (i - water_gen_dat.r_dat.n_donH) % MAX_N_WATER;
+          int const acc_ind = (i - water_gen_dat.r_dat.n_donH) / MAX_N_WATER;
+          int const water_ind = (i - water_gen_dat.r_dat.n_donH) % MAX_N_WATER;
           d_build_water_for_acc<TILE_SIZE, Dev>(
               water_tors_row(ctx.water_tors, 0, ctx.n_sp2_water_tors),
               water_tors_row(ctx.water_tors, 1, ctx.n_sp3_water_tors),
@@ -310,8 +304,7 @@ TMOL_HD void water_gen_build_water_derivs_for_rot(
       }
     });
     // Step 4: ...before performing the work for each tile
-    DeviceOps<Dev>::template for_each_in_workgroup<nt>(
-        gen_tile_waters, lane);
+    DeviceOps<Dev>::template for_each_in_workgroup<nt>(gen_tile_waters, lane);
   }
 }
 

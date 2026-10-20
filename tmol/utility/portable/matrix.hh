@@ -48,9 +48,7 @@ struct Mat {
   // does -- cannot be indexed through them. These overloads cover the other
   // address spaces tmol actually stores matrices in. They exist nowhere else;
   // on the host and under nvcc there is only one address space to name.
-  TMOL_HD device Real& operator()(int i, int j) device {
-    return v[i + j * R];
-  }
+  TMOL_HD device Real& operator()(int i, int j) device { return v[i + j * R]; }
   TMOL_HD Real operator()(int i, int j) const device { return v[i + j * R]; }
   TMOL_HD device Real& operator[](int i) device { return v[i]; }
   TMOL_HD Real operator[](int i) const device { return v[i]; }
@@ -256,15 +254,16 @@ TMOL_HD Vec<Real, N> vec_from(TMOL_THREAD Real const* p) {
   return r;
 }
 
-#define TMOL_MAT_BINOP(op)                                  \
-  template <typename Real, int R, int C>                    \
-  TMOL_HD Mat<Real, R, C> operator op(                      \
-      TMOL_THREAD Mat<Real, R, C> const& a, TMOL_THREAD Mat<Real, R, C> const& b) { \
-    Mat<Real, R, C> r{};                                    \
-    for (int i = 0; i < R * C; ++i) {                       \
-      r.v[i] = a.v[i] op b.v[i];                            \
-    }                                                       \
-    return r;                                               \
+#define TMOL_MAT_BINOP(op)                    \
+  template <typename Real, int R, int C>      \
+  TMOL_HD Mat<Real, R, C> operator op(        \
+      TMOL_THREAD Mat<Real, R, C> const& a,   \
+      TMOL_THREAD Mat<Real, R, C> const& b) { \
+    Mat<Real, R, C> r{};                      \
+    for (int i = 0; i < R * C; ++i) {         \
+      r.v[i] = a.v[i] op b.v[i];              \
+    }                                         \
+    return r;                                 \
   }
 TMOL_MAT_BINOP(+)
 TMOL_MAT_BINOP(-)
@@ -309,7 +308,8 @@ TMOL_HD Mat<Real, R, C> operator/(
 // Eigen's small-matrix product uses.
 template <typename Real, int R, int K, int C>
 TMOL_HD Mat<Real, R, C> operator*(
-    TMOL_THREAD Mat<Real, R, K> const& a, TMOL_THREAD Mat<Real, K, C> const& b) {
+    TMOL_THREAD Mat<Real, R, K> const& a,
+    TMOL_THREAD Mat<Real, K, C> const& b) {
   Mat<Real, R, C> r{};
   for (int i = 0; i < R; ++i) {
     for (int j = 0; j < C; ++j) {
@@ -331,21 +331,24 @@ struct RowRef {
   TMOL_THREAD Mat<Real, R, C>* m;
   int i;
 
-  TMOL_HD TMOL_THREAD RowRef& operator=(TMOL_THREAD Mat<Real, C, 1> const& src) {
+  TMOL_HD TMOL_THREAD RowRef& operator=(
+      TMOL_THREAD Mat<Real, C, 1> const& src) {
     for (int j = 0; j < C; ++j) {
       (*m)(i, j) = src[j];
     }
     return *this;
   }
 
-  TMOL_HD TMOL_THREAD RowRef& operator+=(TMOL_THREAD Mat<Real, C, 1> const& src) {
+  TMOL_HD TMOL_THREAD RowRef& operator+=(
+      TMOL_THREAD Mat<Real, C, 1> const& src) {
     for (int j = 0; j < C; ++j) {
       (*m)(i, j) += src[j];
     }
     return *this;
   }
 
-  TMOL_HD TMOL_THREAD RowRef& operator-=(TMOL_THREAD Mat<Real, C, 1> const& src) {
+  TMOL_HD TMOL_THREAD RowRef& operator-=(
+      TMOL_THREAD Mat<Real, C, 1> const& src) {
     for (int k = 0; k < C; ++k) {
       (*m)(i, k) -= src[k];
     }
@@ -374,21 +377,24 @@ struct ColRef {
   TMOL_THREAD Mat<Real, R, C>* m;
   int j;
 
-  TMOL_HD TMOL_THREAD ColRef& operator=(TMOL_THREAD Mat<Real, R, 1> const& src) {
+  TMOL_HD TMOL_THREAD ColRef& operator=(
+      TMOL_THREAD Mat<Real, R, 1> const& src) {
     for (int i = 0; i < R; ++i) {
       (*m)(i, j) = src[i];
     }
     return *this;
   }
 
-  TMOL_HD TMOL_THREAD ColRef& operator+=(TMOL_THREAD Mat<Real, R, 1> const& src) {
+  TMOL_HD TMOL_THREAD ColRef& operator+=(
+      TMOL_THREAD Mat<Real, R, 1> const& src) {
     for (int i = 0; i < R; ++i) {
       (*m)(i, j) += src[i];
     }
     return *this;
   }
 
-  TMOL_HD TMOL_THREAD ColRef& operator-=(TMOL_THREAD Mat<Real, R, 1> const& src) {
+  TMOL_HD TMOL_THREAD ColRef& operator-=(
+      TMOL_THREAD Mat<Real, R, 1> const& src) {
     for (int k = 0; k < R; ++k) {
       (*m)(k, j) -= src[k];
     }

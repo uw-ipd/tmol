@@ -15,10 +15,8 @@ namespace pack {
 namespace compiled {
 
 template <typename Real, typename Int, tmol::Device D>
-using AnnealerCtx = AnnealerCtxT<
-    tmol::score::common::TViewBinder<D>::template View,
-    Real,
-    Int>;
+using AnnealerCtx =
+    AnnealerCtxT<tmol::score::common::TViewBinder<D>::template View, Real, Int>;
 
 }  // namespace compiled
 }  // namespace pack

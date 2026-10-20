@@ -46,7 +46,8 @@ struct WorkgroupLane<tmol::Device::MPS> {
 
   WorkgroupLane() = delete;
   WorkgroupLane(uint lane_, uint lanes_per_group_, threadgroup float* scratch)
-      : lane(lane_), lanes_per_group(lanes_per_group_),
+      : lane(lane_),
+        lanes_per_group(lanes_per_group_),
         reduce_scratch(scratch) {}
 };
 #endif

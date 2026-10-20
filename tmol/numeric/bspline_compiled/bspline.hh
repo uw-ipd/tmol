@@ -240,8 +240,7 @@ struct ndspline {
     constexpr bool cache_offsets = D == Device::CPU || NDIM <= 2;
     // A zero-row matrix is not a legal device variable, so the unused
     // instantiation keeps one dummy row rather than none.
-    tmol::portable::Mat<int64_t, cache_offsets ? NDIM : 1, DEGREE + 1>
-        offsets;
+    tmol::portable::Mat<int64_t, cache_offsets ? NDIM : 1, DEGREE + 1> offsets;
     if constexpr (cache_offsets) {
       for (int dim = 0; dim < NDIM; ++dim) {
         for (int tap = 0; tap <= DEGREE; ++tap) {

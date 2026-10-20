@@ -33,7 +33,8 @@ using BlockSpheresFromRotCtxMetal =
     BlockSpheresFromRotCtxT<tmol::portable::MetalView, Real, Int>;
 
 template <typename Real, typename Int>
-using RotPairListCtxMetal = RotPairListCtxT<tmol::portable::MetalView, Real, Int>;
+using RotPairListCtxMetal =
+    RotPairListCtxT<tmol::portable::MetalView, Real, Int>;
 
 // Build a context from the bound buffers. These two kernels have no launch
 // scalars beyond what the shared builder handles.

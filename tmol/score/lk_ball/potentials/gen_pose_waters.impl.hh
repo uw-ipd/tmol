@@ -142,8 +142,7 @@ struct GeneratePoseWaters {
     ctx.block_type_tile_n_acc = block_type_tile_n_acc;
     ctx.block_type_tile_donH_inds = block_type_tile_donH_inds;
     ctx.block_type_tile_don_hvy_inds = block_type_tile_don_hvy_inds;
-    ctx.block_type_tile_which_donH_for_hvy =
-        block_type_tile_which_donH_for_hvy;
+    ctx.block_type_tile_which_donH_for_hvy = block_type_tile_which_donH_for_hvy;
     ctx.block_type_tile_acc_inds = block_type_tile_acc_inds;
     ctx.block_type_tile_hybridization = block_type_tile_hybridization;
     ctx.block_type_tile_acc_n_attached_H = block_type_tile_acc_n_attached_H;
@@ -321,7 +320,11 @@ struct GeneratePoseWaters {
         }
 
         // Step 3: and load data for each tile into shared memory
-        water_gen_load_block_coords_and_params_into_shared<DeviceOps, Dev, nt, Int>(
+        water_gen_load_block_coords_and_params_into_shared<
+            DeviceOps,
+            Dev,
+            nt,
+            Int>(
             rot_coords,
             block_type_tile_n_donH,
             block_type_tile_n_acc,

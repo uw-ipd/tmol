@@ -28,9 +28,7 @@ template <
     typename Real>
 struct pose_total_reduce {
   static void f(
-      ContextManager& mgr,
-      TView<Real, 4, D> cells,
-      TView<Real, 4, D> totals) {
+      ContextManager& mgr, TView<Real, 4, D> cells, TView<Real, 4, D> totals) {
     LAUNCH_BOX_32;
     CTA_LAUNCH_T_PARAMS;
 

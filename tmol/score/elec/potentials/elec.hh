@@ -408,8 +408,8 @@ void TMOL_DEVICE_FUNC elec_load_tile_invariant_intrares_data(
   // shared-memory arrays. Note that these arrays will be reset
   // later because which shared memory arrays we will use depends on
   // which tile pair we are evaluating!
-  intra_dat.r1.coords = shared_m.coords1;    // depends on tile pair!
-  intra_dat.r2.coords = shared_m.coords2;    // depends on tile pair!
+  intra_dat.r1.coords = shared_m.coords1;  // depends on tile pair!
+  intra_dat.r2.coords = shared_m.coords2;  // depends on tile pair!
 
   // these count pair arrays are not going to be used
   intra_dat.r1.path_dist = 0;

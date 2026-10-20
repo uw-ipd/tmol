@@ -62,8 +62,7 @@ struct tuple<T, Ts...> {
   template <
       typename U,
       typename... Us,
-      typename =
-          typename enable_if<sizeof...(Us) == sizeof...(Ts)>::type>
+      typename = typename enable_if<sizeof...(Us) == sizeof...(Ts)>::type>
   TMOL_HD tuple(TMOL_THREAD U const& h, TMOL_THREAD Us const&... t)
       : head(T(h)), tail(t...) {}
 
@@ -115,8 +114,8 @@ TMOL_HD TMOL_THREAD typename detail::tuple_at<I, tuple<Ts...>>::type& get(
 }
 
 template <int I, typename... Ts>
-TMOL_HD TMOL_THREAD typename detail::tuple_at<I, tuple<Ts...>>::type const&
-get(TMOL_THREAD tuple<Ts...> const& t) {
+TMOL_HD TMOL_THREAD typename detail::tuple_at<I, tuple<Ts...>>::type const& get(
+    TMOL_THREAD tuple<Ts...> const& t) {
   return detail::tuple_at<I, tuple<Ts...>>::get(t);
 }
 

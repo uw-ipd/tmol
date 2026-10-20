@@ -136,14 +136,15 @@ struct lk_isotropic_pair {
 
     Real d_min = lj_sigma_ij * .89;
     if (is_cc_pair)
-      d_min = tmol::portable::math::fmax(d_min, Real(4.2));  // C-C modifypot flatten
+      d_min = tmol::portable::math::fmax(
+          d_min, Real(4.2));  // C-C modifypot flatten
 
     // close-spline knots lie on etable bins spaced 1/20 A^2 apart
     Real const n = tmol::portable::math::floor(Real(20) * d_min * d_min);
-    Real cpoly_close_dmin =
-        tmol::portable::math::sqrt(tmol::portable::math::fmax(Real(0), n - 29) / 20);
-    Real cpoly_close_dmax =
-        tmol::portable::math::sqrt(tmol::portable::math::fmin(n + 21, Real(405)) / 20);
+    Real cpoly_close_dmin = tmol::portable::math::sqrt(
+        tmol::portable::math::fmax(Real(0), n - 29) / 20);
+    Real cpoly_close_dmax = tmol::portable::math::sqrt(
+        tmol::portable::math::fmin(n + 21, Real(405)) / 20);
 
     if (dist > cpoly_close_dmax) {
       lk = f_desolv<Real>::V_precomputed(
@@ -188,14 +189,15 @@ struct lk_isotropic_pair {
     }
     Real d_min = lj_sigma_ij * .89;
     if (is_cc_pair)
-      d_min = tmol::portable::math::fmax(d_min, Real(4.2));  // C-C modifypot flatten
+      d_min = tmol::portable::math::fmax(
+          d_min, Real(4.2));  // C-C modifypot flatten
 
     // close-spline knots lie on etable bins spaced 1/20 A^2 apart
     Real const n = tmol::portable::math::floor(Real(20) * d_min * d_min);
-    Real cpoly_close_dmin =
-        tmol::portable::math::sqrt(tmol::portable::math::fmax(Real(0), n - 29) / 20);
-    Real cpoly_close_dmax =
-        tmol::portable::math::sqrt(tmol::portable::math::fmin(n + 21, Real(405)) / 20);
+    Real cpoly_close_dmin = tmol::portable::math::sqrt(
+        tmol::portable::math::fmax(Real(0), n - 29) / 20);
+    Real cpoly_close_dmax = tmol::portable::math::sqrt(
+        tmol::portable::math::fmin(n + 21, Real(405)) / 20);
 
     Real cpoly_far_dmax = max_dis;
     Real cpoly_far_dmin = max_dis - Real(1.5);
@@ -318,14 +320,15 @@ struct lk_isotropic_score {
     bool is_cc_pair = i.is_carbon_lk && j.is_carbon_lk;
     Real d_min = lj_sigma_ij * .89;
     if (is_cc_pair)
-      d_min = tmol::portable::math::fmax(d_min, Real(4.2));  // C-C modifypot flatten
+      d_min = tmol::portable::math::fmax(
+          d_min, Real(4.2));  // C-C modifypot flatten
 
     // close-spline knots lie on etable bins spaced 1/20 A^2 apart
     Real const n = tmol::portable::math::floor(Real(20) * d_min * d_min);
-    Real cpoly_close_dmin =
-        tmol::portable::math::sqrt(tmol::portable::math::fmax(Real(0), n - 29) / 20);
-    Real cpoly_close_dmax =
-        tmol::portable::math::sqrt(tmol::portable::math::fmin(n + 21, Real(405)) / 20);
+    Real cpoly_close_dmin = tmol::portable::math::sqrt(
+        tmol::portable::math::fmax(Real(0), n - 29) / 20);
+    Real cpoly_close_dmax = tmol::portable::math::sqrt(
+        tmol::portable::math::fmin(n + 21, Real(405)) / 20);
 
     if (dist > cpoly_close_dmax) {
       lk = f_desolv<Real>::V_precomputed(

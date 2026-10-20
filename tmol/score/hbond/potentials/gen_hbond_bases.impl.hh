@@ -107,8 +107,7 @@ auto GenerateHBondBases<DeviceOps, Dev, Real, Int>::forward(
     // Metal cannot launch a device lambda, so the identical body is reached
     // through a named entry instead. Each rotamer writes only its own atoms'
     // rows, so there is nothing to make deterministic.
-    hbond_bases_mps_launch_if<Dev>(
-        "hbond_bases_gen_f32", ctx, int64_t(n_rots));
+    hbond_bases_mps_launch_if<Dev>("hbond_bases_gen_f32", ctx, int64_t(n_rots));
   } else {
     DeviceOps<Dev>::template foreach_workgroup<launch_t>(
         mgr, n_rots, f_basesgen);

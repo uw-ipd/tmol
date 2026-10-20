@@ -103,16 +103,18 @@ class WaterGenSingleResData {
   unsigned char n_donH;
   unsigned char n_acc;
   TMOL_SHARED_PTR(unsigned char) donH_tile_inds;
-  TMOL_SHARED_PTR(unsigned char) don_hvy_inds;  // block-type index of heavy atom to which a
-                                // given donH binds; this is not the tile index.
-                                // The donor heavy atom may be in a different
-                                // tile NOTE: limit of 256 atoms per block.
   TMOL_SHARED_PTR(unsigned char)
-      which_donH_for_hvy;  // for the given donH, what's its index in
-                           // the list of H's bound to its heavy atom?
+  don_hvy_inds;  // block-type index of heavy atom to which a
+                 // given donH binds; this is not the tile index.
+                 // The donor heavy atom may be in a different
+                 // tile NOTE: limit of 256 atoms per block.
+  TMOL_SHARED_PTR(unsigned char)
+  which_donH_for_hvy;  // for the given donH, what's its index in
+                       // the list of H's bound to its heavy atom?
   TMOL_SHARED_PTR(unsigned char) acc_tile_inds;
   TMOL_SHARED_PTR(unsigned char) acc_hybridization;
-  TMOL_SHARED_PTR(unsigned char) acc_n_attached_H;  // for the given acc, how many H's it have?
+  TMOL_SHARED_PTR(unsigned char)
+  acc_n_attached_H;  // for the given acc, how many H's it have?
 };
 
 // Templated on the view so the field list is declared exactly once: the host
@@ -293,7 +295,8 @@ void TMOL_DEVICE_FUNC water_gen_load_tile_invariant_data(
     BlockTypeAllBondsView block_type_all_bonds,
     BlockTypeAtomAllBondRangesView block_type_atom_all_bond_ranges,
     BlockTypeNInterblockBondsView block_type_n_interblock_bonds,
-    BlockTypeAtomsFormingChemicalBondsView block_type_atoms_forming_chemical_bonds,
+    BlockTypeAtomsFormingChemicalBondsView
+        block_type_atoms_forming_chemical_bonds,
     BlockTypeAtomIsHydrogenView block_type_atom_is_hydrogen,
     GlobalParamsView global_params,
 
@@ -354,10 +357,7 @@ void TMOL_DEVICE_FUNC water_gen_load_tile_invariant_data(
 // The rot_coords offset of the copy of bcat's block that goes with this
 // rotamer: its own, the matching conformer of a lockstep group, or else the
 // block's first rotamer in this pose. Coordinates and derivatives both use it.
-template <
-    template <typename, int> class View,
-    typename Real,
-    typename Int>
+template <template <typename, int> class View, typename Real, typename Int>
 TMOL_DEVICE_FUNC int rot_coord_offset_for(
     bonded_atom::BlockCentricAtom<Int> bcat,
     TMOL_THREAD WaterGenSingleResData<Real> const& single_res_dat,

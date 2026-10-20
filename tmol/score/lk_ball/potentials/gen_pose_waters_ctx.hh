@@ -165,7 +165,6 @@ struct WaterGenDerivCtxT {
   View<LKBallWaterGenGlobalParams<Real>, 1> global_params;
   View<Real, 2> water_tors;
 
-
   // Backward outputs
   View<Vec<Real, 3>, 2> dE_dWxyz;
   View<Vec<Real, 3>, 1> dE_d_pose_coords;

@@ -44,10 +44,8 @@ struct accumulate<
 
   template <class A>
   static def add_two_dim_one_dst(
-      TMOL_THREAD A& target,
-      int ind0,
-      int ind1,
-      TMOL_THREAD const T& val) -> void {
+      TMOL_THREAD A& target, int ind0, int ind1, TMOL_THREAD const T& val)
+      -> void {
     target[ind0][ind1] += val;
   }
 };
@@ -164,7 +162,6 @@ struct accumulate<
     add(target[ind0][ind1], val);
   }
 };
-
 
 // Vectors accumulate component-wise, as elsewhere, but the target lives in a
 // device buffer so the address space has to be named. This is more
@@ -310,10 +307,8 @@ struct accumulate<
   // ind0s.
   template <class A>
   static def add_two_dim_one_dst(
-      TMOL_THREAD A& target,
-      int ind0,
-      int ind1,
-      TMOL_THREAD const T& val) -> void {
+      TMOL_THREAD A& target, int ind0, int ind1, TMOL_THREAD const T& val)
+      -> void {
     // basically
     // target[ind0][ind1] += val;
     // where all threads have the same ind1 and may have different ind0s

@@ -820,7 +820,8 @@ void TMOL_DEVICE_FUNC lk_ball_load_block_into_shared(
     }
   });
   if (count_pair_striking_dist) {
-    DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(copy_path_dists, lane);
+    DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(
+        copy_path_dists, lane);
   }
 }
 
@@ -848,7 +849,8 @@ void TMOL_DEVICE_FUNC lk_ball_load_tile_invariant_interres_data(
     PoseStackNearBlocksView pose_stack_near_blocks,
     PoseStackInterBlockBondsepView pose_stack_inter_block_bondsep,
     BlockTypeNInterblockBondsView block_type_n_interblock_bonds,
-    BlockTypeAtomsFormingChemicalBondsView block_type_atoms_forming_chemical_bonds,
+    BlockTypeAtomsFormingChemicalBondsView
+        block_type_atoms_forming_chemical_bonds,
     GlobalParamsView global_params,
     int const max_important_bond_separation,
     int pose_ind,
@@ -861,11 +863,12 @@ void TMOL_DEVICE_FUNC lk_ball_load_tile_invariant_interres_data(
     int n_atoms1,
     int n_atoms2,
     TMOL_THREAD LKBallScoringData<Real>& inter_dat,
-    TMOL_SHARED_REF(LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>)
+    TMOL_SHARED_REF(
+        LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>)
         shared_m,
-        // Trailing lane handle: empty and omissible on CPU and CUDA, required
-        // by the Metal backend. See workgroup_lane.hh.
-        WorkgroupLane<Dev> lane = {}) {
+    // Trailing lane handle: empty and omissible on CPU and CUDA, required
+    // by the Metal backend. See workgroup_lane.hh.
+    WorkgroupLane<Dev> lane = {}) {
   inter_dat.pair_data.pose_ind = pose_ind;
   inter_dat.r1.rot_ind = rot_ind1;
   inter_dat.r2.rot_ind = rot_ind2;
@@ -968,11 +971,12 @@ void TMOL_DEVICE_FUNC lk_ball_load_interres1_tile_data_to_shared(
     int start_atom1,
     int n_atoms_to_load1,
     TMOL_THREAD LKBallScoringData<Real>& inter_dat,
-    TMOL_SHARED_REF(LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>)
+    TMOL_SHARED_REF(
+        LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>)
         shared_m,
-        // Trailing lane handle: empty and omissible on CPU and CUDA, required
-        // by the Metal backend. See workgroup_lane.hh.
-        WorkgroupLane<Dev> lane = {}) {
+    // Trailing lane handle: empty and omissible on CPU and CUDA, required
+    // by the Metal backend. See workgroup_lane.hh.
+    WorkgroupLane<Dev> lane = {}) {
   auto store_n_pol_n_occ1 = ([&](int tid) {
     int n_pol =
         block_type_tile_n_polar_atoms[inter_dat.r1.block_type][tile_ind];
@@ -985,7 +989,8 @@ void TMOL_DEVICE_FUNC lk_ball_load_interres1_tile_data_to_shared(
       shared_m.n_occluders1 = n_occ;
     }
   });
-  DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(store_n_pol_n_occ1, lane);
+  DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(
+      store_n_pol_n_occ1, lane);
 
   lk_ball_load_block_into_shared<
       DeviceDispatch,
@@ -1037,11 +1042,12 @@ void TMOL_DEVICE_FUNC lk_ball_load_interres2_tile_data_to_shared(
     int start_atom2,
     int n_atoms_to_load2,
     TMOL_THREAD LKBallScoringData<Real>& inter_dat,
-    TMOL_SHARED_REF(LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>)
+    TMOL_SHARED_REF(
+        LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>)
         shared_m,
-        // Trailing lane handle: empty and omissible on CPU and CUDA, required
-        // by the Metal backend. See workgroup_lane.hh.
-        WorkgroupLane<Dev> lane = {}) {
+    // Trailing lane handle: empty and omissible on CPU and CUDA, required
+    // by the Metal backend. See workgroup_lane.hh.
+    WorkgroupLane<Dev> lane = {}) {
   auto store_n_pol_n_occ2 = ([&](int tid) {
     int n_pol =
         block_type_tile_n_polar_atoms[inter_dat.r2.block_type][tile_ind];
@@ -1054,7 +1060,8 @@ void TMOL_DEVICE_FUNC lk_ball_load_interres2_tile_data_to_shared(
       shared_m.n_occluders2 = n_occ;
     }
   });
-  DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(store_n_pol_n_occ2, lane);
+  DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(
+      store_n_pol_n_occ2, lane);
 
   lk_ball_load_block_into_shared<
       DeviceDispatch,
@@ -1101,7 +1108,8 @@ void TMOL_DEVICE_FUNC lk_ball_load_tile_invariant_intrares_data(
     int block_type1,
     int n_atoms1,
     TMOL_THREAD LKBallScoringData<Real>& intra_dat,
-    TMOL_SHARED_REF(LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>)
+    TMOL_SHARED_REF(
+        LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>)
         shared_m,
     // Unused here -- this loader reaches no workgroup primitive -- but taken
     // for uniformity with its siblings, whose call sites in
@@ -1177,11 +1185,12 @@ void TMOL_DEVICE_FUNC lk_ball_load_intrares1_tile_data_to_shared(
     int start_atom1,
     int n_atoms_to_load1,
     TMOL_THREAD LKBallScoringData<Real>& intra_dat,
-    TMOL_SHARED_REF(LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>)
+    TMOL_SHARED_REF(
+        LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>)
         shared_m,
-        // Trailing lane handle: empty and omissible on CPU and CUDA, required
-        // by the Metal backend. See workgroup_lane.hh.
-        WorkgroupLane<Dev> lane = {}) {
+    // Trailing lane handle: empty and omissible on CPU and CUDA, required
+    // by the Metal backend. See workgroup_lane.hh.
+    WorkgroupLane<Dev> lane = {}) {
   auto store_n_pol_n_occ1 = ([&](int tid) {
     int n_pol =
         block_type_tile_n_polar_atoms[intra_dat.r1.block_type][tile_ind];
@@ -1194,7 +1203,8 @@ void TMOL_DEVICE_FUNC lk_ball_load_intrares1_tile_data_to_shared(
       shared_m.n_occluders1 = n_occ;
     }
   });
-  DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(store_n_pol_n_occ1, lane);
+  DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(
+      store_n_pol_n_occ1, lane);
   lk_ball_load_block_coords_and_params_into_shared<
       DeviceDispatch,
       Dev,
@@ -1239,11 +1249,12 @@ void TMOL_DEVICE_FUNC lk_ball_load_intrares2_tile_data_to_shared(
     int start_atom2,
     int n_atoms_to_load2,
     TMOL_THREAD LKBallScoringData<Real>& intra_dat,
-    TMOL_SHARED_REF(LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>)
+    TMOL_SHARED_REF(
+        LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>)
         shared_m,
-        // Trailing lane handle: empty and omissible on CPU and CUDA, required
-        // by the Metal backend. See workgroup_lane.hh.
-        WorkgroupLane<Dev> lane = {}) {
+    // Trailing lane handle: empty and omissible on CPU and CUDA, required
+    // by the Metal backend. See workgroup_lane.hh.
+    WorkgroupLane<Dev> lane = {}) {
   // A prior same-tile lk_ball_load_intrares_data_from_shared call may have
   // aliased r2's pointers to the "1" shared-memory arrays. Reset them to
   // the "2" arrays so the load below writes to the correct destination.
@@ -1261,7 +1272,8 @@ void TMOL_DEVICE_FUNC lk_ball_load_intrares2_tile_data_to_shared(
       shared_m.n_occluders2 = n_occ;
     }
   });
-  DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(store_n_pol_n_occ2, lane);
+  DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(
+      store_n_pol_n_occ2, lane);
   lk_ball_load_block_coords_and_params_into_shared<
       DeviceDispatch,
       Dev,
@@ -1289,7 +1301,8 @@ template <
 void TMOL_DEVICE_FUNC lk_ball_load_intrares_data_from_shared(
     int tile_ind1,
     int tile_ind2,
-    TMOL_SHARED_REF(LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>)
+    TMOL_SHARED_REF(
+        LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>)
         shared_m,
     TMOL_THREAD LKBallScoringData<Real>& intra_dat) {
   // set the pointers in intra_dat to point at the shared-memory arrays
@@ -1451,18 +1464,19 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
           block_pair_dat.global_params,
           dTdV);
 
-  auto accum_derivs = ([&] TMOL_DEVICE_FUNC(
-                           TMOL_THREAD LKBallSingleResData<Real> const& block_dat,
-                           int atom_ind,
-                           TMOL_THREAD Real3 const& derivs) {
-    for (int j = 0; j < 3; ++j) {
-      if (derivs[j] != 0) {
-        accumulate_grad<Dev, Real>::add(
-            dV_d_pose_coords[block_dat.rot_coord_offset + atom_ind][j],
-            derivs[j]);
-      }
-    }
-  });
+  auto accum_derivs =
+      ([&] TMOL_DEVICE_FUNC(
+           TMOL_THREAD LKBallSingleResData<Real> const& block_dat,
+           int atom_ind,
+           TMOL_THREAD Real3 const& derivs) {
+        for (int j = 0; j < 3; ++j) {
+          if (derivs[j] != 0) {
+            accumulate_grad<Dev, Real>::add(
+                dV_d_pose_coords[block_dat.rot_coord_offset + atom_ind][j],
+                derivs[j]);
+          }
+        }
+      });
 
   auto water_accum_derivs =
       ([&] TMOL_DEVICE_FUNC(

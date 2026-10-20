@@ -21,11 +21,9 @@ template <typename Real, typename Int, int OutRank>
 using LJLKCtxMetal = LJLKCtxT<tmol::portable::MetalView, Real, Int, OutRank>;
 
 template <typename Ctx>
-Ctx ljlk_build_metal_ctx(
-    device void* const* ptrs, device const int64_t* meta) {
+Ctx ljlk_build_metal_ctx(device void* const* ptrs, device const int64_t* meta) {
   Ctx ctx = tmol::score::common::mps_build_ctx<Ctx>(ptrs, meta);
-  device const int64_t* scalars =
-      tmol::score::common::mps_scalars<Ctx>(meta);
+  device const int64_t* scalars = tmol::score::common::mps_scalars<Ctx>(meta);
   ctx.max_n_blocks = int(scalars[Ctx::scalar_max_n_blocks]);
   ctx.max_n_upper_triangle_inds =
       int(scalars[Ctx::scalar_max_n_upper_triangle_inds]);
@@ -34,8 +32,8 @@ Ctx ljlk_build_metal_ctx(
   ctx.use_shared_compact_block_neighbors =
       scalars[Ctx::scalar_use_shared_compact_block_neighbors] != 0;
   ctx.require_gradient = scalars[Ctx::scalar_require_gradient] != 0;
-  ctx.max_dis = tmol::score::common::tmol_unpack_float(
-      scalars[Ctx::scalar_max_dis]);
+  ctx.max_dis =
+      tmol::score::common::tmol_unpack_float(scalars[Ctx::scalar_max_dis]);
   return ctx;
 }
 

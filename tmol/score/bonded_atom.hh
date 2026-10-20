@@ -67,13 +67,13 @@ struct BlockCentricAtom {
   Int block_type;
   Int atom;
 
-  TMOL_HD bool operator==(TMOL_THREAD BlockCentricAtom<Int> const& other)
-      const {
+  TMOL_HD bool operator==(
+      TMOL_THREAD BlockCentricAtom<Int> const& other) const {
     return block == other.block && block_type == other.block_type
            && atom == other.atom;
   }
-  TMOL_HD bool operator!=(TMOL_THREAD BlockCentricAtom<Int> const& other)
-      const {
+  TMOL_HD bool operator!=(
+      TMOL_THREAD BlockCentricAtom<Int> const& other) const {
     return !(*this == other);
   }
 };
@@ -125,8 +125,7 @@ struct BlockCentricIndexedBonds {
         // neighbor block. 5. Look up the atom index for the connection atom
         // on the neighbor, nbr_conn_atom.
         Int conn_id = parent.block_type_all_bonds[block_type][bidx][2];
-        Int nbr_conn_id =
-            parent.inter_block_connections[block][conn_id][1];
+        Int nbr_conn_id = parent.inter_block_connections[block][conn_id][1];
         if (nbr_conn_id == -1) {
           // We have an undefined connection.
           // This is how we treat non-termini residues where

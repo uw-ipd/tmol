@@ -15,8 +15,7 @@ namespace pack {
 namespace compiled {
 
 template <typename Real, typename Int>
-using AnnealerCtxMetal =
-    AnnealerCtxT<tmol::portable::MetalView, Real, Int>;
+using AnnealerCtxMetal = AnnealerCtxT<tmol::portable::MetalView, Real, Int>;
 
 // Build a context from the bound buffers, then unpack the launch scalars that
 // follow the view metadata. They are carried in the metadata buffer rather
@@ -38,8 +37,10 @@ Ctx build_annealer_metal_ctx(
   // Temperatures travel as scaled integers: the metadata buffer is int64 and
   // mps_float_scalar is the project's convention for getting a float through
   // it without a second buffer.
-  ctx.high_temp = tmol::score::common::tmol_unpack_float(s[Ctx::scalar_high_temp]);
-  ctx.low_temp = tmol::score::common::tmol_unpack_float(s[Ctx::scalar_low_temp]);
+  ctx.high_temp =
+      tmol::score::common::tmol_unpack_float(s[Ctx::scalar_high_temp]);
+  ctx.low_temp =
+      tmol::score::common::tmol_unpack_float(s[Ctx::scalar_low_temp]);
   ctx.cooling_factor =
       tmol::score::common::tmol_unpack_float(s[Ctx::scalar_cooling_factor]);
   return ctx;

@@ -38,14 +38,12 @@
 #include <chrono>
 #include <type_traits>
 
-
 namespace tmol {
 namespace score {
 namespace hbond {
 namespace potentials {
 
 using tmol::portable::Vec;
-
 
 template <
     template <tmol::Device> class DeviceDispatch,
@@ -348,21 +346,17 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 
   using PairMode = common::TilePairMode;
 #ifdef __NVCC__
-  auto eval_energies_impl =
-      ([=] TMOL_DEVICE_FUNC(
-           int cta, auto derivative_tag, auto pair_mode_tag) {
-        constexpr auto Mode = decltype(pair_mode_tag)::value;
-        typedef HBondSharedMem<Real, TILE_SIZE, MAX_N_CONN, launch_t>
-            shared_mem_union;
-        SHARED_MEMORY shared_mem_union shared;
-        hbond_pose_eval_energies<
-            DeviceDispatch,
-            Dev,
-            Real,
-            Int,
-            launch_t,
-            Mode>(ctx, shared, cta, derivative_tag);
-      });
+  auto eval_energies_impl = ([=] TMOL_DEVICE_FUNC(
+                                 int cta,
+                                 auto derivative_tag,
+                                 auto pair_mode_tag) {
+    constexpr auto Mode = decltype(pair_mode_tag)::value;
+    typedef HBondSharedMem<Real, TILE_SIZE, MAX_N_CONN, launch_t>
+        shared_mem_union;
+    SHARED_MEMORY shared_mem_union shared;
+    hbond_pose_eval_energies<DeviceDispatch, Dev, Real, Int, launch_t, Mode>(
+        ctx, shared, cta, derivative_tag);
+  });
 #else
   auto eval_energies = ([=] TMOL_DEVICE_FUNC(int cta) {
     typedef HBondSharedMem<Real, TILE_SIZE, MAX_N_CONN, launch_t>

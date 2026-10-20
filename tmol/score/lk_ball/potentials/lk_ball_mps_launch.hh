@@ -36,8 +36,7 @@ void lk_ball_mps_launch_if(
     namespace sc = tmol::score::common;
     auto args = sc::mps_collect(ctx);
     args.set_scalar(Ctx::n_views, Ctx::scalar_max_n_blocks, ctx.max_n_blocks);
-    args.set_scalar(
-        Ctx::n_views, Ctx::scalar_n_block_pairs, ctx.n_block_pairs);
+    args.set_scalar(Ctx::n_views, Ctx::scalar_n_block_pairs, ctx.n_block_pairs);
     args.set_scalar(
         Ctx::n_views,
         Ctx::scalar_block_pair_scoring,

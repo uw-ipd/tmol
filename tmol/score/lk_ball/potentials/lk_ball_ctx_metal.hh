@@ -17,7 +17,8 @@ namespace lk_ball {
 namespace potentials {
 
 template <typename Real, typename Int, int OutRank>
-using LKBallCtxMetal = LKBallCtxT<tmol::portable::MetalView, Real, Int, OutRank>;
+using LKBallCtxMetal =
+    LKBallCtxT<tmol::portable::MetalView, Real, Int, OutRank>;
 
 template <typename Ctx>
 Ctx lk_ball_build_metal_ctx(

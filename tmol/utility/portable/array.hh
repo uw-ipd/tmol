@@ -17,9 +17,7 @@ struct array {
   T elems[N];
 
   TMOL_HD TMOL_THREAD T& operator[](int i) { return elems[i]; }
-  TMOL_HD TMOL_THREAD T const& operator[](int i) const {
-    return elems[i];
-  }
+  TMOL_HD TMOL_THREAD T const& operator[](int i) const { return elems[i]; }
   TMOL_HD static constexpr int size() { return N; }
 };
 

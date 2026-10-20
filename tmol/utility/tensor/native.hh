@@ -255,10 +255,10 @@ using c10::DeviceType;
 using torch::GradMode;
 using torch::kCPU;
 using torch::kCUDA;
-using torch::kMPS;
 using torch::kFloat32;
 using torch::kFloat64;
 using torch::kInt32;
+using torch::kMPS;
 namespace autograd = torch::autograd;
 inline ScalarType scalar_type_from_options(const TensorOptions& o) {
   return c10::typeMetaToScalarType(o.dtype());

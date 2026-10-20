@@ -48,7 +48,6 @@ inline void record_host_phase(char const* name, double ms) {
 #endif
 }
 
-
 using tmol::portable::Vec;
 
 inline bool should_compact_block_neighbors(
@@ -95,7 +94,10 @@ struct compute_rot_spheres {
     // One context, three backends: the generic launch captures it in a device
     // lambda, the Metal launch binds its views as buffers, and both reach the
     // same body in sphere_overlap_kernels.hh.
-    RotSpheresCtxT<tmol::score::common::TViewBinder<D>::template View, Real, Int>
+    RotSpheresCtxT<
+        tmol::score::common::TViewBinder<D>::template View,
+        Real,
+        Int>
         ctx;
     ctx.rot_coords = rot_coords;
     ctx.rot_coord_offset = rot_coord_offset;
@@ -1078,8 +1080,8 @@ struct rot_neighbor_indices_from_block_neighbors {
       auto const t0 = std::chrono::steady_clock::now();
       auto host_counts =
           counts_t.tensor.to(tmol::native::Device(tmol::native::kCPU));
-      auto host_offsets_t = TPack<Int, 1, tmol::Device::CPU>::empty(
-          {int64_t(n_candidates)});
+      auto host_offsets_t =
+          TPack<Int, 1, tmol::Device::CPU>::empty({int64_t(n_candidates)});
       Int const* counts = host_counts.template data_ptr<Int>();
       Int* offsets = host_offsets_t.tensor.template data_ptr<Int>();
       Int running = 0;
@@ -1199,7 +1201,8 @@ struct rot_neighbor_indices_from_block_neighbors {
       record_host_phase("HOST rot_pair overflow+sum sync", dt.count());
     }
 
-    auto pair_offsets_t = exclusive_scan_counts(mgr, pair_counts_t, n_candidates);
+    auto pair_offsets_t =
+        exclusive_scan_counts(mgr, pair_counts_t, n_candidates);
 
     // Step 3: allocate output [3, total]
     auto indices_t = TPack<Int, 2, D>::full({3, total}, -1);

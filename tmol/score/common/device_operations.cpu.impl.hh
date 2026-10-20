@@ -251,7 +251,11 @@ struct DeviceOperations<tmol::Device::CPU> {
     return dst_t;
   }
 
-  template <int N_T, int WIDTH, typename T, tmol::Device LaneD = tmol::Device::CPU>
+  template <
+      int N_T,
+      int WIDTH,
+      typename T,
+      tmol::Device LaneD = tmol::Device::CPU>
   static void copy_contiguous_data(
       T* __restrict__ dst,
       T* __restrict__ src,
@@ -282,8 +286,7 @@ struct DeviceOperations<tmol::Device::CPU> {
   // because the Metal backend has no implicit way to learn a thread's index.
   // See workgroup_lane.hh.
   template <int N_T, typename Func, tmol::Device LaneD = tmol::Device::CPU>
-  static void for_each_in_workgroup(
-      Func f, WorkgroupLane<LaneD> = {}) {
+  static void for_each_in_workgroup(Func f, WorkgroupLane<LaneD> = {}) {
     for (int i = 0; i < N_T; ++i) {
       f(i);
     }
@@ -296,8 +299,7 @@ struct DeviceOperations<tmol::Device::CPU> {
       typename S,
       typename OP,
       tmol::Device LaneD = tmol::Device::CPU>
-  static T reduce_in_workgroup(
-      T val, S, OP, WorkgroupLane<LaneD> = {}) {
+  static T reduce_in_workgroup(T val, S, OP, WorkgroupLane<LaneD> = {}) {
     return val;
   }
 
@@ -306,8 +308,7 @@ struct DeviceOperations<tmol::Device::CPU> {
       typename T,
       typename OP,
       tmol::Device LaneD = tmol::Device::CPU>
-  static T shuffle_reduce_in_workgroup(T val, OP,
-      WorkgroupLane<LaneD> = {}) {
+  static T shuffle_reduce_in_workgroup(T val, OP, WorkgroupLane<LaneD> = {}) {
     return val;
   }
 
@@ -317,8 +318,8 @@ struct DeviceOperations<tmol::Device::CPU> {
       typename T,
       typename OP,
       tmol::Device LaneD = tmol::Device::CPU>
-  static T shuffle_reduce_and_broadcast_in_workgroup(T val, OP op,
-      WorkgroupLane<LaneD> = {}) {
+  static T shuffle_reduce_and_broadcast_in_workgroup(
+      T val, OP op, WorkgroupLane<LaneD> = {}) {
     return val;
   }
 

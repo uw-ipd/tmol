@@ -42,7 +42,9 @@ void annealer_mps_launch_if(Ctx& ctx, int64_t n_units) {
     args.set_scalar(Ctx::n_views, Ctx::scalar_seed_hi, ctx.seed_hi);
     args.set_scalar(Ctx::n_views, Ctx::scalar_phase, ctx.phase);
     args.set_scalar(
-        Ctx::n_views, Ctx::scalar_high_temp, sc::tmol_pack_float(ctx.high_temp));
+        Ctx::n_views,
+        Ctx::scalar_high_temp,
+        sc::tmol_pack_float(ctx.high_temp));
     args.set_scalar(
         Ctx::n_views, Ctx::scalar_low_temp, sc::tmol_pack_float(ctx.low_temp));
     args.set_scalar(

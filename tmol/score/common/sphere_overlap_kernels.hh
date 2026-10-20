@@ -168,7 +168,6 @@ TMOL_HD void detect_block_neighbors_body(
   }
 }
 
-
 // ---------------------------------------------------------------------------
 // Rotamer-pair dispatch.
 //

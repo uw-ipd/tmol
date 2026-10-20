@@ -3,9 +3,9 @@
 // Simulated annealing on Metal: the host half.
 //
 // The kernel body lives in annealer_kernels.hh (Metal only; CPU and CUDA keep
-// their own annealers); this file does what only the host can -- build the graph's
-// transposed offset table, and drive the three rounds of the funnel, ranking
-// between them.
+// their own annealers); this file does what only the host can -- build the
+// graph's transposed offset table, and drive the three rounds of the funnel,
+// ranking between them.
 //
 // The funnel is CUDA's: many short high-temperature trajectories, the best
 // quarter of which each seed several low-temperature trajectories, the best
@@ -90,7 +90,6 @@ inline TPack<int32_t, 2, tmol::Device::CPU> rank_trajectories(
   }
   return ranking_t;
 }
-
 
 // The graph is fixed for the whole run, so resolve the transposed chunk-table
 // offsets once per edge rather than binary-searching a neighbour row for
@@ -185,7 +184,8 @@ inline std::tuple<tmol::native::Tensor, tmol::native::Tensor> anneal_mps(
 
   // The transposed chunk-offset table, built once on the host from the
   // neighbour arrays. They are small beside the energy tables.
-  TPack<int64_t, 1, Cpu> const row_offsets_cpu(neighbor_row_offsets.to(cpu_device));
+  TPack<int64_t, 1, Cpu> const row_offsets_cpu(
+      neighbor_row_offsets.to(cpu_device));
   TPack<int32_t, 1, Cpu> const blocks_cpu(neighbor_blocks.to(cpu_device));
   TPack<int64_t, 1, Cpu> const chunk_offset_offsets_cpu(
       neighbor_chunk_offset_offsets.to(cpu_device));
@@ -201,7 +201,8 @@ inline std::tuple<tmol::native::Tensor, tmol::native::Tensor> anneal_mps(
   // than that launches fewer units and leaves the tail untouched; the views
   // carry their own strides, so indexing does not depend on the width in use.
   auto scores_t = TPack<float, 2, Dev>::zeros({n_poses, n_traj_max});
-  auto current_t = TPack<int32_t, 3, Dev>::zeros({n_poses, n_traj_max, max_n_res});
+  auto current_t =
+      TPack<int32_t, 3, Dev>::zeros({n_poses, n_traj_max, max_n_res});
   auto best_t = TPack<int32_t, 3, Dev>::zeros({n_poses, n_traj_max, max_n_res});
   auto seed_t = TPack<int32_t, 3, Dev>::zeros({n_poses, n_traj_max, max_n_res});
   auto ranking_t = TPack<int32_t, 2, Dev>::zeros({n_poses, n_traj_max});
@@ -262,7 +263,8 @@ inline std::tuple<tmol::native::Tensor, tmol::native::Tensor> anneal_mps(
 
   // Round 2: the best quarter each seed `lotemp_expansions` trajectories at
   // low temperature.
-  rank_and_seed(n_hitemp, int(n_hitemp * sched.round1_cut), sched.lotemp_expansions);
+  rank_and_seed(
+      n_hitemp, int(n_hitemp * sched.round1_cut), sched.lotemp_expansions);
   ctx.phase = kAnnealPhaseLotemp;
   ctx.n_traj = n_lotemp;
   ctx.n_outer_iterations = sched.outer_lotemp;
@@ -295,8 +297,7 @@ inline std::tuple<tmol::native::Tensor, tmol::native::Tensor> anneal_mps(
     }
     out_scores.view[pose][0] = final_scores_cpu.view[pose][argbest];
     for (int i = 0; i < max_n_res; ++i) {
-      out_assignments.view[pose][0][i] =
-          final_best_cpu.view[pose][argbest][i];
+      out_assignments.view[pose][0][i] = final_best_cpu.view[pose][argbest][i];
     }
   }
 

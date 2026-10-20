@@ -120,7 +120,8 @@ template <typename Real>
 void bind_potentials(pybind11::module& m) {
   using namespace pybind11::literals;
 
-  m.def("AH_dist_V_dV", &AH_dist_V_dV<Real, Real>, "A"_a, "H"_a, "AHdist_poly"_a);
+  m.def(
+      "AH_dist_V_dV", &AH_dist_V_dV<Real, Real>, "A"_a, "H"_a, "AHdist_poly"_a);
 
   m.def(
       "AHD_angle_V_dV",

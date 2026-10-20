@@ -40,84 +40,84 @@
 // Shared between this file and gen_pose_waters.impl.hh
 #include <tmol/score/lk_ball/potentials/constants.hh>
 
-#define LOAD_TILE_INVARIANT_INTERRES_DATA                               \
-  TMOL_DEVICE_FUNC(                                                     \
-      int pose_ind,                                                     \
-      int rot_ind1,                                                     \
-      int rot_ind2,                                                     \
-      int block_ind1,                                                   \
-      int block_ind2,                                                   \
-      int block_type1,                                                  \
-      int block_type2,                                                  \
-      int n_atoms1,                                                     \
-      int n_atoms2,                                                     \
-      LKBallScoringData<Real>& inter_dat,                               \
-      shared_mem_union& shared) {                                       \
+#define LOAD_TILE_INVARIANT_INTERRES_DATA                                    \
+  TMOL_DEVICE_FUNC(                                                          \
+      int pose_ind,                                                          \
+      int rot_ind1,                                                          \
+      int rot_ind2,                                                          \
+      int block_ind1,                                                        \
+      int block_ind2,                                                        \
+      int block_type1,                                                       \
+      int block_type2,                                                       \
+      int n_atoms1,                                                          \
+      int n_atoms2,                                                          \
+      LKBallScoringData<Real>& inter_dat,                                    \
+      shared_mem_union& shared) {                                            \
     lk_ball_load_tile_invariant_interres_data<DeviceDispatch, Dev, nt, Int>( \
-        rot_coord_offset,                                               \
-        block_type_ind_for_rot,                                         \
-        pose_stack_inter_residue_connections,                           \
-        pose_stack_near_blocks,                                         \
-        pose_stack_inter_block_bondsep,                                 \
-        block_type_n_interblock_bonds,                                  \
-        block_type_atoms_forming_chemical_bonds,                        \
-        global_params,                                                  \
-        max_important_bond_separation,                                  \
-        pose_ind,                                                       \
-        rot_ind1,                                                       \
-        rot_ind2,                                                       \
-        block_ind1,                                                     \
-        block_ind2,                                                     \
-        block_type1,                                                    \
-        block_type2,                                                    \
-        n_atoms1,                                                       \
-        n_atoms2,                                                       \
-        inter_dat,                                                      \
-        shared.m);                                                      \
+        rot_coord_offset,                                                    \
+        block_type_ind_for_rot,                                              \
+        pose_stack_inter_residue_connections,                                \
+        pose_stack_near_blocks,                                              \
+        pose_stack_inter_block_bondsep,                                      \
+        block_type_n_interblock_bonds,                                       \
+        block_type_atoms_forming_chemical_bonds,                             \
+        global_params,                                                       \
+        max_important_bond_separation,                                       \
+        pose_ind,                                                            \
+        rot_ind1,                                                            \
+        rot_ind2,                                                            \
+        block_ind1,                                                          \
+        block_ind2,                                                          \
+        block_type1,                                                         \
+        block_type2,                                                         \
+        n_atoms1,                                                            \
+        n_atoms2,                                                            \
+        inter_dat,                                                           \
+        shared.m);                                                           \
   }
 
-#define LOAD_INTERRES1_TILE_DATA_TO_SHARED                               \
-  TMOL_DEVICE_FUNC(                                                      \
-      int tile_ind,                                                      \
-      int start_atom1,                                                   \
-      int n_atoms_to_load1,                                              \
-      LKBallScoringData<Real>& inter_dat,                                \
-      shared_mem_union& shared) {                                        \
+#define LOAD_INTERRES1_TILE_DATA_TO_SHARED                                    \
+  TMOL_DEVICE_FUNC(                                                           \
+      int tile_ind,                                                           \
+      int start_atom1,                                                        \
+      int n_atoms_to_load1,                                                   \
+      LKBallScoringData<Real>& inter_dat,                                     \
+      shared_mem_union& shared) {                                             \
     lk_ball_load_interres1_tile_data_to_shared<DeviceDispatch, Dev, nt, Int>( \
-        rot_coords,                                                      \
-        water_coords,                                                    \
-        block_type_tile_n_polar_atoms,                                   \
-        block_type_tile_n_occluder_atoms,                                \
-        block_type_tile_pol_occ_inds,                                    \
-        block_type_tile_lk_ball_params,                                  \
-        block_type_path_distance,                                        \
-        tile_ind,                                                        \
-        start_atom1,                                                     \
-        n_atoms_to_load1,                                                \
-        inter_dat,                                                       \
-        shared.m);                                                       \
+        rot_coords,                                                           \
+        water_coords,                                                         \
+        block_type_tile_n_polar_atoms,                                        \
+        block_type_tile_n_occluder_atoms,                                     \
+        block_type_tile_pol_occ_inds,                                         \
+        block_type_tile_lk_ball_params,                                       \
+        block_type_path_distance,                                             \
+        tile_ind,                                                             \
+        start_atom1,                                                          \
+        n_atoms_to_load1,                                                     \
+        inter_dat,                                                            \
+        shared.m);                                                            \
   }
 
-#define LOAD_INTERRES2_TILE_DATA_TO_SHARED                               \
-  TMOL_DEVICE_FUNC(                                                      \
-      int tile_ind,                                                      \
-      int start_atom2,                                                   \
-      int n_atoms_to_load2,                                              \
-      LKBallScoringData<Real>& inter_dat,                                \
-      shared_mem_union& shared) {                                        \
+#define LOAD_INTERRES2_TILE_DATA_TO_SHARED                                    \
+  TMOL_DEVICE_FUNC(                                                           \
+      int tile_ind,                                                           \
+      int start_atom2,                                                        \
+      int n_atoms_to_load2,                                                   \
+      LKBallScoringData<Real>& inter_dat,                                     \
+      shared_mem_union& shared) {                                             \
     lk_ball_load_interres2_tile_data_to_shared<DeviceDispatch, Dev, nt, Int>( \
-        rot_coords,                                                      \
-        water_coords,                                                    \
-        block_type_tile_n_polar_atoms,                                   \
-        block_type_tile_n_occluder_atoms,                                \
-        block_type_tile_pol_occ_inds,                                    \
-        block_type_tile_lk_ball_params,                                  \
-        block_type_path_distance,                                        \
-        tile_ind,                                                        \
-        start_atom2,                                                     \
-        n_atoms_to_load2,                                                \
-        inter_dat,                                                       \
-        shared.m);                                                       \
+        rot_coords,                                                           \
+        water_coords,                                                         \
+        block_type_tile_n_polar_atoms,                                        \
+        block_type_tile_n_occluder_atoms,                                     \
+        block_type_tile_pol_occ_inds,                                         \
+        block_type_tile_lk_ball_params,                                       \
+        block_type_path_distance,                                             \
+        tile_ind,                                                             \
+        start_atom2,                                                          \
+        n_atoms_to_load2,                                                     \
+        inter_dat,                                                            \
+        shared.m);                                                            \
   }
 
 #define LOAD_INTERRES_DATA_FROM_SHARED \
@@ -240,70 +240,70 @@
     DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(reduce_energies); \
   }
 
-#define LOAD_TILE_INVARIANT_INTRARES_DATA                               \
-  TMOL_DEVICE_FUNC(                                                     \
-      int pose_ind,                                                     \
-      int rot_ind1,                                                     \
-      int block_ind1,                                                   \
-      int block_type1,                                                  \
-      int n_atoms1,                                                     \
-      LKBallScoringData<Real>& intra_dat,                               \
-      shared_mem_union& shared) {                                       \
+#define LOAD_TILE_INVARIANT_INTRARES_DATA                                    \
+  TMOL_DEVICE_FUNC(                                                          \
+      int pose_ind,                                                          \
+      int rot_ind1,                                                          \
+      int block_ind1,                                                        \
+      int block_type1,                                                       \
+      int n_atoms1,                                                          \
+      LKBallScoringData<Real>& intra_dat,                                    \
+      shared_mem_union& shared) {                                            \
     lk_ball_load_tile_invariant_intrares_data<DeviceDispatch, Dev, nt, Int>( \
-        rot_coord_offset,                                               \
-        block_type_ind_for_rot,                                         \
-        global_params,                                                  \
-        max_important_bond_separation,                                  \
-        pose_ind,                                                       \
-        rot_ind1,                                                       \
-        block_ind1,                                                     \
-        block_type1,                                                    \
-        n_atoms1,                                                       \
-        intra_dat,                                                      \
-        shared.m);                                                      \
+        rot_coord_offset,                                                    \
+        block_type_ind_for_rot,                                              \
+        global_params,                                                       \
+        max_important_bond_separation,                                       \
+        pose_ind,                                                            \
+        rot_ind1,                                                            \
+        block_ind1,                                                          \
+        block_type1,                                                         \
+        n_atoms1,                                                            \
+        intra_dat,                                                           \
+        shared.m);                                                           \
   }
 
-#define LOAD_INTRARES1_TILE_DATA_TO_SHARED                               \
-  TMOL_DEVICE_FUNC(                                                      \
-      int tile_ind,                                                      \
-      int start_atom1,                                                   \
-      int n_atoms_to_load1,                                              \
-      LKBallScoringData<Real>& intra_dat,                                \
-      shared_mem_union& shared) {                                        \
+#define LOAD_INTRARES1_TILE_DATA_TO_SHARED                                    \
+  TMOL_DEVICE_FUNC(                                                           \
+      int tile_ind,                                                           \
+      int start_atom1,                                                        \
+      int n_atoms_to_load1,                                                   \
+      LKBallScoringData<Real>& intra_dat,                                     \
+      shared_mem_union& shared) {                                             \
     lk_ball_load_intrares1_tile_data_to_shared<DeviceDispatch, Dev, nt, Int>( \
-        rot_coords,                                                      \
-        water_coords,                                                    \
-        block_type_tile_n_polar_atoms,                                   \
-        block_type_tile_n_occluder_atoms,                                \
-        block_type_tile_pol_occ_inds,                                    \
-        block_type_tile_lk_ball_params,                                  \
-                                                                         \
-        tile_ind,                                                        \
-        start_atom1,                                                     \
-        n_atoms_to_load1,                                                \
-        intra_dat,                                                       \
-        shared.m);                                                       \
+        rot_coords,                                                           \
+        water_coords,                                                         \
+        block_type_tile_n_polar_atoms,                                        \
+        block_type_tile_n_occluder_atoms,                                     \
+        block_type_tile_pol_occ_inds,                                         \
+        block_type_tile_lk_ball_params,                                       \
+                                                                              \
+        tile_ind,                                                             \
+        start_atom1,                                                          \
+        n_atoms_to_load1,                                                     \
+        intra_dat,                                                            \
+        shared.m);                                                            \
   }
 
-#define LOAD_INTRARES2_TILE_DATA_TO_SHARED                               \
-  TMOL_DEVICE_FUNC(                                                      \
-      int tile_ind,                                                      \
-      int start_atom2,                                                   \
-      int n_atoms_to_load2,                                              \
-      LKBallScoringData<Real>& intra_dat,                                \
-      shared_mem_union& shared) {                                        \
+#define LOAD_INTRARES2_TILE_DATA_TO_SHARED                                    \
+  TMOL_DEVICE_FUNC(                                                           \
+      int tile_ind,                                                           \
+      int start_atom2,                                                        \
+      int n_atoms_to_load2,                                                   \
+      LKBallScoringData<Real>& intra_dat,                                     \
+      shared_mem_union& shared) {                                             \
     lk_ball_load_intrares2_tile_data_to_shared<DeviceDispatch, Dev, nt, Int>( \
-        rot_coords,                                                      \
-        water_coords,                                                    \
-        block_type_tile_n_polar_atoms,                                   \
-        block_type_tile_n_occluder_atoms,                                \
-        block_type_tile_pol_occ_inds,                                    \
-        block_type_tile_lk_ball_params,                                  \
-        tile_ind,                                                        \
-        start_atom2,                                                     \
-        n_atoms_to_load2,                                                \
-        intra_dat,                                                       \
-        shared.m);                                                       \
+        rot_coords,                                                           \
+        water_coords,                                                         \
+        block_type_tile_n_polar_atoms,                                        \
+        block_type_tile_n_occluder_atoms,                                     \
+        block_type_tile_pol_occ_inds,                                         \
+        block_type_tile_lk_ball_params,                                       \
+        tile_ind,                                                             \
+        start_atom2,                                                          \
+        n_atoms_to_load2,                                                     \
+        intra_dat,                                                            \
+        shared.m);                                                            \
   }
 
 #define LOAD_INTRARES_DATA_FROM_SHARED              \
@@ -1348,7 +1348,12 @@ class LKBallRotamerScoreDispatch {
     ctx.use_shared_compact_block_neighbors = false;
 
     auto eval_energies_by_block = ([=] TMOL_DEVICE_FUNC(int cta) {
-      typedef LKBallSharedMem<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN, launch_t>
+      typedef LKBallSharedMem<
+          Real,
+          TILE_SIZE,
+          MAX_N_WATER,
+          MAX_N_CONN,
+          launch_t>
           shared_mem_union;
       SHARED_MEMORY shared_mem_union shared;
       lk_ball_eval_rotamer_energies_by_block<

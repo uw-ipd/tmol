@@ -66,8 +66,7 @@ template <typename T, int N>
 struct type_caster<tmol::portable::array<T, N>> {
   using Type = tmol::portable::array<T, N>;
 
-  PYBIND11_TYPE_CASTER(
-      Type, _("Tuple[") + make_caster<T>::name + _(", ...]"));
+  PYBIND11_TYPE_CASTER(Type, _("Tuple[") + make_caster<T>::name + _(", ...]"));
 
   bool load(handle, bool) { return false; }
 

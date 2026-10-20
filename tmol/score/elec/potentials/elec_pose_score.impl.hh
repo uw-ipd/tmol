@@ -307,7 +307,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     }
   } else
 #endif
-  if (D == tmol::Device::MPS) {
+      if (D == tmol::Device::MPS) {
     // Metal cannot launch a device lambda -- there is nowhere for a closure
     // to live, and entry points are compiled by a separate toolchain -- so
     // the same kernel body is reached through a named entry rather than

@@ -318,7 +318,8 @@ void kernel_segscan(
         lbs.merge_range.a_count());
 
     // Store the values back to shared memory for segmented scan
-    mgpu::reg_to_shared_strided<nt, vt>(strided_values, tid, shared.mysegscan.values);
+    mgpu::reg_to_shared_strided<nt, vt>(
+        strided_values, tid, shared.mysegscan.values);
 
     // Split the flags.
     mgpu::array_t<bool, vt + 1> merge_bits;

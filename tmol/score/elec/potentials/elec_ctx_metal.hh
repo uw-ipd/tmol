@@ -24,16 +24,14 @@ namespace elec {
 namespace potentials {
 
 template <typename Real, typename Int, int OutRank>
-using ElecCtxMetal =
-    ElecCtxT<tmol::portable::MetalView, Real, Int, OutRank>;
+using ElecCtxMetal = ElecCtxT<tmol::portable::MetalView, Real, Int, OutRank>;
 
 // Build a context from the bound buffers and the metadata.
 //
 // The view rebuilding itself is shared; only the scalar unpacking is
 // per-term, because each kernel family names its own launch constants.
 template <typename Ctx>
-Ctx tmol_build_metal_ctx(
-    device void* const* ptrs, device const int64_t* meta) {
+Ctx tmol_build_metal_ctx(device void* const* ptrs, device const int64_t* meta) {
   Ctx ctx = tmol::score::common::mps_build_ctx<Ctx>(ptrs, meta);
   device const int64_t* scalars = tmol::score::common::mps_scalars<Ctx>(meta);
   ctx.max_n_blocks = int(scalars[Ctx::scalar_max_n_blocks]);

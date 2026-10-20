@@ -82,7 +82,6 @@ void block_neighbors_mps_launch_if(Ctx& ctx, int64_t n_block_pairs) {
   }
 }
 
-
 // ---------------------------------------------------------------------------
 // Rotamer-pair dispatch.
 
@@ -156,8 +155,7 @@ void rot_pair_list_mps_launch_if(
 
     int64_t const group = TMOL_MPS_THREADGROUP_SIZE;
     int64_t const rounded = ((n_candidates + group - 1) / group) * group;
-    mps_launch(
-        kSphereOverlapMetalShaderSource, entry, args, rounded, group);
+    mps_launch(kSphereOverlapMetalShaderSource, entry, args, rounded, group);
 #else
     throw std::runtime_error(
         "tmol: an MPS tensor reached sphere_overlap, but this build has no "

@@ -62,11 +62,7 @@ void ljlk_mps_launch_if(
 
     int64_t const group = sc::TMOL_MPS_THREADGROUP_SIZE;
     sc::mps_launch(
-        kLJLKMetalShaderSource,
-        kernel_name,
-        args,
-        n_workgroups * group,
-        group);
+        kLJLKMetalShaderSource, kernel_name, args, n_workgroups * group, group);
 #else
     throw std::runtime_error(
         "tmol: an MPS tensor reached the LJ/LK term, but this build has no "

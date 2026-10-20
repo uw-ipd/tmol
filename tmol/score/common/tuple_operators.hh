@@ -14,7 +14,9 @@ namespace common {
 namespace internal {
 
 template <typename T, typename T2, int... Is>
-def iadd(TMOL_THREAD T const& t1, TMOL_THREAD const T2& t2, index_sequence<Is...>) -> void {
+def iadd(
+    TMOL_THREAD T const& t1, TMOL_THREAD const T2& t2, index_sequence<Is...>)
+    -> void {
   auto l = {(get<Is>(t1) += get<Is>(t2), 0)...};
   (void)l;
 }
@@ -24,8 +26,7 @@ def iadd(TMOL_THREAD T const& t1, TMOL_THREAD const T2& t2, index_sequence<Is...
 // lhs is a tie() bundle: a pack of pointers to the variables being updated.
 template <typename... Ps, typename... T2>
 def iadd(
-    tmol::portable::ref_tuple<Ps...> lhs,
-    TMOL_THREAD const tuple<T2...>& rhs)
+    tmol::portable::ref_tuple<Ps...> lhs, TMOL_THREAD const tuple<T2...>& rhs)
     -> void {
   internal::iadd(lhs, rhs, index_sequence_for<Ps...>{});
 }
@@ -34,7 +35,9 @@ def iadd(
 namespace internal {
 
 template <typename T, typename T2, int... Is>
-def assign(TMOL_THREAD T const& t1, TMOL_THREAD const T2& t2, index_sequence<Is...>) -> void {
+def assign(
+    TMOL_THREAD T const& t1, TMOL_THREAD const T2& t2, index_sequence<Is...>)
+    -> void {
   auto l = {(get<Is>(t1) = get<Is>(t2), 0)...};
   (void)l;
 }
@@ -43,8 +46,7 @@ def assign(TMOL_THREAD T const& t1, TMOL_THREAD const T2& t2, index_sequence<Is.
 
 template <typename... Ps, typename... T2>
 def assign(
-    tmol::portable::ref_tuple<Ps...> lhs,
-    TMOL_THREAD const tuple<T2...>& rhs)
+    tmol::portable::ref_tuple<Ps...> lhs, TMOL_THREAD const tuple<T2...>& rhs)
     -> void {
   internal::assign(lhs, rhs, index_sequence_for<Ps...>{});
 }
@@ -58,7 +60,10 @@ def add_i(TMOL_THREAD const tuple<T...>& a, TMOL_THREAD const tuple<T2...>& b)
 }
 
 template <typename... T, typename... T2, int... I>
-def add(TMOL_THREAD const tuple<T...>& a, TMOL_THREAD const tuple<T2...>& b, index_sequence<I...>) {
+def add(
+    TMOL_THREAD const tuple<T...>& a,
+    TMOL_THREAD const tuple<T2...>& b,
+    index_sequence<I...>) {
   return make_tuple(add_i<I>(a, b)...);
 }
 }  // namespace internal
@@ -69,7 +74,8 @@ def add(TMOL_THREAD const tuple<T...>& a, TMOL_THREAD const tuple<T2...>& b) {
 }
 
 template <typename... T, typename... T2>
-def operator+(TMOL_THREAD const tuple<T...>& a, TMOL_THREAD const tuple<T2...>& b) {
+def operator+(
+    TMOL_THREAD const tuple<T...>& a, TMOL_THREAD const tuple<T2...>& b) {
   return internal::add(a, b, index_sequence_for<T...>{});
 }
 

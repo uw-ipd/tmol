@@ -29,8 +29,8 @@ namespace potentials {
 // the entry's threadgroup_position_in_grid, which is the same index
 // foreach_pose_workgroup hands the CPU and CUDA lambdas.
 template <tmol::Device D, typename Ctx>
-void elec_mps_launch_if(char const* kernel_name, Ctx& ctx,
-                        int64_t n_workgroups) {
+void elec_mps_launch_if(
+    char const* kernel_name, Ctx& ctx, int64_t n_workgroups) {
   if constexpr (D == tmol::Device::MPS) {
 #ifdef WITH_MPS
     namespace sc = tmol::score::common;
@@ -51,11 +51,7 @@ void elec_mps_launch_if(char const* kernel_name, Ctx& ctx,
 
     int64_t const group = sc::TMOL_MPS_THREADGROUP_SIZE;
     sc::mps_launch(
-        kElecMetalShaderSource,
-        kernel_name,
-        args,
-        n_workgroups * group,
-        group);
+        kElecMetalShaderSource, kernel_name, args, n_workgroups * group, group);
 #else
     throw std::runtime_error(
         "tmol: an MPS tensor reached the elec term, but this build has no "
