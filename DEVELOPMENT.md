@@ -51,6 +51,7 @@ CMake build options:
 | `TMOL_BUILD_TESTS` | `OFF` | Build test-only C++/CUDA extensions |
 | `TMOL_NVCC_THREADS` | `4` | Threads per nvcc invocation |
 | `TMOL_ENABLE_CUDA` | `ON` | Set to `OFF` for CPU-only build (no `nvcc` needed) |
+| `TMOL_ENABLE_MPS` | `ON` on Apple | Build the Metal (MPS) kernels that CPU scoring offloads to the Apple GPU; shaders compile at runtime, so no Metal toolchain is needed |
 | `MAX_JOBS` | auto | Max parallel compilation jobs |
 
 ## Extension Loading: AOT vs JIT
@@ -59,7 +60,7 @@ tmol's C++/CUDA kernels can be loaded in two ways:
 
 - **AOT (Ahead-Of-Time)**: Pre-compiled `.so` libraries are bundled inside the installed package (e.g., from a wheel). Operations are registered in `torch.ops.tmol_*` namespaces. This is the default and requires no compiler at runtime.
 
-- **JIT (Just-In-Time)**: Source files (`.cpp`, `.cu`) are compiled on first use via `torch.utils.cpp_extension.load()`. This requires a C++ compiler and `ninja`; `nvcc` is needed only for CUDA kernels. On CPU-only platforms, including Apple Silicon, CUDA sources are omitted automatically. Useful for kernel development where you want to edit and reload C++/CUDA code without rebuilding the whole package.
+- **JIT (Just-In-Time)**: Source files (`.cpp`, `.cu`) are compiled on first use via `torch.utils.cpp_extension.load()`. This requires a C++ compiler and `ninja`; `nvcc` is needed only for CUDA kernels. On platforms without CUDA, including Apple Silicon, CUDA sources are omitted automatically. JIT builds do not compile the Metal (MPS) kernels, so the Apple GPU offload is unavailable there; use an AOT build for it. Useful for kernel development where you want to edit and reload C++/CUDA code without rebuilding the whole package.
 
 Two environment variables control which path is taken:
 

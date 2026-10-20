@@ -20,8 +20,7 @@
 // is the case plain Kahan gets wrong.
 //
 // Metal has no float64, so this is how a GPU backend gets a trustworthy total.
-// It is also the machinery hbond's degree-10 polynomials would need; see
-// MPS_PORT_NOTES.md.
+// It is also the machinery hbond's degree-10 polynomials would need.
 
 #include "qualifiers.hh"
 

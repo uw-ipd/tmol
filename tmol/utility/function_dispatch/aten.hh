@@ -41,30 +41,6 @@
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <iostream>
 
-// The Apple Metal backend. Enabled only on macOS builds; elsewhere an MPS
-// tensor is a user error rather than a missing feature, so the branch reports
-// that instead of silently falling through to the CPU path.
-#ifdef WITH_MPS
-
-#define TMOL_MPS_FLOATING_BRANCH(TYPE, NAME, ...)                           \
-  constexpr tmol::Device device_t = tmol::Device::MPS;                      \
-  AT_DISPATCH_FLOATING_TYPES(                                               \
-      tmol::native::scalar_type_from_options(TYPE), NAME, __VA_ARGS__)
-
-#define TMOL_MPS_INDEX_BRANCH(TYPE, NAME, ...)                              \
-  constexpr tmol::Device device_t = tmol::Device::MPS;                      \
-  AT_DISPATCH_INDEX_TYPES(                                                  \
-      tmol::native::scalar_type_from_options(TYPE), NAME, __VA_ARGS__)
-
-#else
-
-#define TMOL_MPS_FLOATING_BRANCH(TYPE, NAME, ...) \
-  AT_ERROR("Unsupported mps tensor, non-mps build.")
-#define TMOL_MPS_INDEX_BRANCH(TYPE, NAME, ...) \
-  AT_ERROR("Unsupported mps tensor, non-mps build.")
-
-#endif
-
 #ifdef WITH_CUDA
 
 #define TMOL_DISPATCH_FLOATING_DEVICE(TYPE, NAME, ...)                      \
@@ -77,9 +53,8 @@
       constexpr tmol::Device device_t = tmol::Device::CUDA;                 \
       AT_DISPATCH_FLOATING_TYPES(                                           \
           tmol::native::scalar_type_from_options(TYPE), NAME, __VA_ARGS__); \
-    } else if (                                                             \
-        TYPE.device().type() == tmol::native::DeviceType::MPS) {            \
-      AT_ERROR(NAME, ": this term has no MPS backend yet.");              \
+    } else if (TYPE.device().type() == tmol::native::DeviceType::MPS) {     \
+      AT_ERROR(NAME, ": this term has no MPS backend yet.");                \
     } else {                                                                \
       AT_ERROR("Unsupported tensor device type.");                          \
     }                                                                       \
@@ -95,9 +70,8 @@
           tmol::native::scalar_type_from_options(TYPE), NAME, __VA_ARGS__); \
     } else if (TYPE.device().is_cuda()) {                                   \
       AT_ERROR("Unsupported cuda tensor, non-cuda build.");                 \
-    } else if (                                                             \
-        TYPE.device().type() == tmol::native::DeviceType::MPS) {            \
-      AT_ERROR(NAME, ": this term has no MPS backend yet.");              \
+    } else if (TYPE.device().type() == tmol::native::DeviceType::MPS) {     \
+      AT_ERROR(NAME, ": this term has no MPS backend yet.");                \
     } else {                                                                \
       AT_ERROR("Unsupported device type.");                                 \
     }                                                                       \
@@ -117,9 +91,8 @@
       constexpr tmol::Device device_t = tmol::Device::CUDA;                 \
       AT_DISPATCH_INDEX_TYPES(                                              \
           tmol::native::scalar_type_from_options(TYPE), NAME, __VA_ARGS__); \
-    } else if (                                                             \
-        TYPE.device().type() == tmol::native::DeviceType::MPS) {            \
-      AT_ERROR(NAME, ": this term has no MPS backend yet.");              \
+    } else if (TYPE.device().type() == tmol::native::DeviceType::MPS) {     \
+      AT_ERROR(NAME, ": this term has no MPS backend yet.");                \
     } else {                                                                \
       AT_ERROR("Unsupported tensor device type.");                          \
     }                                                                       \
@@ -135,9 +108,8 @@
           tmol::native::scalar_type_from_options(TYPE), NAME, __VA_ARGS__); \
     } else if (TYPE.device().is_cuda()) {                                   \
       AT_ERROR("Unsupported cuda tensor, non-cuda build.");                 \
-    } else if (                                                             \
-        TYPE.device().type() == tmol::native::DeviceType::MPS) {            \
-      AT_ERROR(NAME, ": this term has no MPS backend yet.");              \
+    } else if (TYPE.device().type() == tmol::native::DeviceType::MPS) {     \
+      AT_ERROR(NAME, ": this term has no MPS backend yet.");                \
     } else {                                                                \
       AT_ERROR("Unsupported device type.");                                 \
     }                                                                       \
@@ -161,8 +133,7 @@
       constexpr tmol::Device device_t = tmol::Device::CPU;                  \
       AT_DISPATCH_FLOATING_TYPES(                                           \
           tmol::native::scalar_type_from_options(TYPE), NAME, __VA_ARGS__); \
-    } else if (                                                             \
-        TYPE.device().type() == tmol::native::DeviceType::MPS) {            \
+    } else if (TYPE.device().type() == tmol::native::DeviceType::MPS) {     \
       constexpr tmol::Device device_t = tmol::Device::MPS;                  \
       /* Metal has no double, so only float32 reaches the GPU. */           \
       if (tmol::native::scalar_type_from_options(TYPE)                      \

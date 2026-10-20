@@ -1,8 +1,8 @@
 #pragma once
 
-// Conversions between tmol::portable::Mat and Eigen, used by the files that
-// still rely on Eigen expression templates (4x4 transform algebra in
-// kinematics, comma-initializers in cartbonded). Metal never includes this.
+// Conversions between tmol::portable::Mat and Eigen, and the layout
+// guarantees that let TView reinterpret the same storage as either. Used by the
+// portable equivalence tests; Metal never includes this.
 
 #include <Eigen/Core>
 

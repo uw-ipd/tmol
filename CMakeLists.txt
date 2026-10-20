@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.24...3.31)
 
 set(TMOL_OPS_CUDA "" CACHE STRING "Build an optional CUDA ops package: 12 or 13")
-option(TMOL_ENABLE_CUDA "Build CUDA extensions (disable for CPU-only)" OFF)
+option(TMOL_ENABLE_CUDA "Build CUDA extensions (Metal is TMOL_ENABLE_MPS)" OFF)
 set(_TMOL_NATIVE_PACKAGE tmol)
 if(TMOL_OPS_CUDA)
   if(NOT TMOL_OPS_CUDA MATCHES "^(12|13)$")
@@ -348,7 +348,7 @@ function(tmol_add_pybind_cpp_ext TARGET_NAME INSTALL_DIR EXT_NAME)
 endfunction()
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 1. Native CPU or CUDA operator module
+# 1. Native CPU, CUDA, or Metal (MPS) operator module
 # ═══════════════════════════════════════════════════════════════════════════════
 
 set(_C_SOURCES

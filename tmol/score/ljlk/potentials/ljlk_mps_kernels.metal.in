@@ -69,8 +69,6 @@ typedef LJLKSharedMem<float, TILE_SIZE, MAX_N_CONN, launch_t> LJLKShared;
     Lane lane(tid, n_threads, reduce_scratch);                               \
     /* The CPU-only per-pose accumulator has no counterpart here; an int      \
        keeps the parameter dependent so `if constexpr` discards its branch */ \
-    /* The CPU-only per-pose accumulator has no counterpart here; an int      \
-       keeps the parameter dependent so `if constexpr` discards its branch */ \
     BODY<DeviceOperations, tmol::Device::MPS, float, int32_t, launch_t>(      \
         ctx, shared, int(cta), 0, lane);                                     \
   }

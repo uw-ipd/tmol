@@ -36,7 +36,8 @@ class Philox4x32_10 {
     uint32_t x, y, z, w;
   };
 
-  TMOL_HD Philox4x32_10() : key0_(0), key1_(0), c0_(0), c1_(0), c2_(0), c3_(0) {}
+  TMOL_HD Philox4x32_10()
+      : key0_(0), key1_(0), c0_(0), c1_(0), c2_(0), c3_(0) {}
 
   // One stream per (seed, stream_id). counter_start lets a caller skip ahead.
   TMOL_HD Philox4x32_10(uint64_t seed, uint64_t stream_id, uint64_t counter = 0)
@@ -90,8 +91,9 @@ class Philox4x32_10 {
     return buf_.w;
   }
 
-  // In (0, 1], matching curand_uniform's conversion so the two backends can
-  // be compared draw for draw if that is ever wanted.
+  // In (0, 1], matching curand_uniform's conversion so the CUDA (cuRAND) and
+  // Metal (Philox) annealers can be compared draw for draw if that is ever
+  // wanted.
   TMOL_HD float next_uniform() {
     return float(next()) * 2.3283064365386963e-10f + 1.1641532182693481e-10f;
   }
@@ -114,7 +116,10 @@ class Philox4x32_10 {
   }
 
   TMOL_HD static void mulhilo(
-      uint32_t a, uint32_t b, TMOL_THREAD uint32_t& hi, TMOL_THREAD uint32_t& lo) {
+      uint32_t a,
+      uint32_t b,
+      TMOL_THREAD uint32_t& hi,
+      TMOL_THREAD uint32_t& lo) {
     hi = mul_high(a, b);
     lo = a * b;  // wraps mod 2^32, which is what the algorithm wants
   }

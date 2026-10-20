@@ -42,8 +42,8 @@ TMOL_HD EvalReal horner_step(EvalReal v, Real x, CoeffReal c) {
 // the CPU and CUDA instantiations are unchanged.
 //
 // They come apart for Metal, which has no float64: hbond's degree-10 fits need
-// better-than-float32 coefficients or they lose their sign (see
-// MPS_PORT_NOTES.md), so that backend instantiates
+// better-than-float32 coefficients or they lose their sign, so that backend
+// instantiates
 // `poly<11, float, DoubleFloat<float>, DoubleFloat<float>>` -- float in, float
 // out, and the coefficients and accumulator carried as hi + lo pairs.
 template <
@@ -72,8 +72,7 @@ struct poly {
     return (Real)v;
   }
 
-  static def V_dV(
-      Real X, TMOL_DEVICE_REF(Vec<CoeffReal, POrd> const) coeffs)
+  static def V_dV(Real X, TMOL_DEVICE_REF(Vec<CoeffReal, POrd> const) coeffs)
       -> V_dV_T {
     static_assert(POrd >= 2, "");
     EvalReal v = EvalReal(coeffs(0));

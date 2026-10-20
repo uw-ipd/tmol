@@ -64,7 +64,9 @@ a new scorer after changing the budget.
 
 Packing, minimization, and FastRelax call the same scoring machinery and inherit
 the same process budget. CUDA kernels do not use this CPU thread count, although
-structure preparation and other host-side work still can.
+structure preparation and other host-side work still can. On Apple silicon, the
+work offloaded to the GPU (the pairwise score terms, interaction-graph
+accumulation, and annealing) does not use it either.
 
 ## Choose a practical value
 

@@ -46,15 +46,6 @@ namespace compiled {
 using tmol::portable::Philox4x32_10;
 using tmol::score::common::WorkgroupLane;
 
-enum {
-  // Trajectories per workgroup, and the residue count below which a
-  // trajectory's assignments are cached in threadgroup memory. Both match the
-  // CUDA annealer: a 128-thread block of four 32-wide trajectories, caching
-  // when every residue fits in 128 slots.
-  kAnnealTrajPerGroup = 4,
-  kAnnealMaxCachedRes = 128
-};
-
 // Phase selector, mirroring the three rounds of the CUDA funnel.
 enum {
   kAnnealPhaseHitemp = 0,  // random start, high temperature, track best
@@ -118,7 +109,8 @@ TMOL_HD void annealer_run_trajectory(
       (uint64_t(uint32_t(ctx.seed_hi)) << 32) | uint64_t(uint32_t(ctx.seed_lo));
   // Distinct stream per (unit, phase); the phase occupies the low two bits so
   // a trajectory's three rounds never replay one another's draws.
-  Philox4x32_10 rng(seed, (uint64_t(uint32_t(unit)) << 2) | uint64_t(phase & 3));
+  Philox4x32_10 rng(
+      seed, (uint64_t(uint32_t(unit)) << 2) | uint64_t(phase & 3));
 
   auto current = ctx.current_assignments[pose][traj];
   auto best = ctx.best_assignments[pose][traj];
@@ -197,8 +189,7 @@ TMOL_HD void annealer_run_trajectory(
       int global_candidate;
       float accept_roll;
       if (quench) {
-        global_candidate =
-            (quench_start + step * quench_stride) % n_rotamers;
+        global_candidate = (quench_start + step * quench_stride) % n_rotamers;
         accept_roll = 0.0f;
       } else {
         global_candidate = rng.next_below(n_rotamers);
@@ -229,7 +220,7 @@ TMOL_HD void annealer_run_trajectory(
       } else {
         accept = delta < Real(0)
                  || accept_roll < tmol::portable::math::exp(
-                                      float(-delta) / temperature);
+                        float(-delta) / temperature);
       }
       if (!accept) continue;
 

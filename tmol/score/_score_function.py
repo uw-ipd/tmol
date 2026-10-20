@@ -2220,9 +2220,10 @@ class RotamerScoringModule:
     def _compatible_dispatch(term, dispatch_by_key, device_type):
         """Return the narrowest previously built compatible term layout.
 
-        CUDA may reuse a larger-cutoff sphere-overlap layout because the
-        consumer's native potential still applies its own distance cutoff.
-        CPU reuse remains exact-cutoff only, as favored by measurements.
+        The GPU backends (CUDA and MPS) may reuse a larger-cutoff
+        sphere-overlap layout because the consumer's native potential still
+        applies its own distance cutoff. CPU reuse remains exact-cutoff only,
+        as favored by measurements.
         """
         cutoff = getattr(term, "block_neighbor_cutoff", None)
         dispatch_key = getattr(term, "rotamer_dispatch_key", None)

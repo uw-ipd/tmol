@@ -13,7 +13,7 @@
 // still 1.96; float32 x with float64 coefficients is 2.2e-03. So carrying the
 // coefficients and the Horner accumulator as hi + lo float32 pairs recovers
 // float64-coefficient accuracy exactly -- it lands on the same 2.2e-03, the
-// floor set by having a float32 argument at all. See MPS_PORT_NOTES.md.
+// floor set by having a float32 argument at all.
 //
 // Not device-specific: on CPU and CUDA this is as valid as it is on Metal, and
 // score/common/polynomial.hh already separates the accumulator type from the
@@ -59,7 +59,8 @@ TMOL_HD void two_sum(Real a, Real b, TMOL_THREAD Real& s, TMOL_THREAD Real& e) {
 // Dekker's two-product via fma: p is the rounded product and e the exact
 // rounding error.
 template <typename Real>
-TMOL_HD void two_prod(Real a, Real b, TMOL_THREAD Real& p, TMOL_THREAD Real& e) {
+TMOL_HD void two_prod(
+    Real a, Real b, TMOL_THREAD Real& p, TMOL_THREAD Real& e) {
   p = a * b;
   e = tmol::portable::math::fma(a, b, -p);
 }
@@ -122,7 +123,7 @@ TMOL_HD DoubleFloat<Real> horner_step(
 // which is where a degree-10 fit cancels. This is the cheap configuration --
 // two operations a step against eighteen -- and whether it is accurate enough
 // is a question about a particular polynomial family, not a general one, so
-// the caller chooses. See MPS_PORT_NOTES.md for hbond's measurement.
+// the caller chooses; hbond measured it and chose the accurate one.
 template <typename Real>
 TMOL_HD Real horner_step(Real v, Real x, DoubleFloat<Real> c) {
   return tmol::portable::math::fma(v, x, c.hi) + c.lo;

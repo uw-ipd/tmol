@@ -119,22 +119,6 @@ struct AnnealerCtxT {
 
   // ── portable interaction-graph accessors ───────────────────────────────
 
-  // First edge index for (pose, block) whose neighbour is >= `neighbor`.
-  TMOL_HD int64_t find_neighbor_edge(int pose, int block, int neighbor) const {
-    int const row = pose * max_n_res + block;
-    int64_t lower = neighbor_row_offsets[row];
-    int64_t upper = neighbor_row_offsets[row + 1];
-    while (lower < upper) {
-      int64_t const middle = lower + (upper - lower) / 2;
-      if (neighbor_blocks[middle] < neighbor) {
-        lower = middle + 1;
-      } else {
-        upper = middle;
-      }
-    }
-    return lower;
-  }
-
   // The two-body energy for (ires, irot) against (jres, jrot), or 0 when the
   // chunk pair carries no support. Factored out because the total energy and
   // the per-move delta both need exactly this lookup.
@@ -223,10 +207,9 @@ struct AnnealerCtxT {
 
     int const new_chunk = new_rot / chunk_size;
     int const new_in_chunk = new_rot - chunk_size * new_chunk;
-    int const new_chunk_size =
-        chunk_size < res_n_rots - chunk_size * new_chunk
-            ? chunk_size
-            : res_n_rots - chunk_size * new_chunk;
+    int const new_chunk_size = chunk_size < res_n_rots - chunk_size * new_chunk
+                                   ? chunk_size
+                                   : res_n_rots - chunk_size * new_chunk;
 
     int const prev_chunk = prev_rot / chunk_size;
     int const prev_in_chunk = prev_rot - chunk_size * prev_chunk;
@@ -236,9 +219,8 @@ struct AnnealerCtxT {
             : res_n_rots - chunk_size * prev_chunk;
 
     int const base = oneb_offsets[pose][res];
-    Real dE = (lane == 0)
-                  ? energy1b[new_rot + base] - energy1b[prev_rot + base]
-                  : Real(0);
+    Real dE = (lane == 0) ? energy1b[new_rot + base] - energy1b[prev_rot + base]
+                          : Real(0);
 
     int const row = pose * max_n_res + res;
     int64_t const row_begin = neighbor_row_offsets[row];
@@ -270,7 +252,8 @@ struct AnnealerCtxT {
       Real prev_contrib = Real(0);
       if (k_prev_chunk_offset >= 0) {
         prev_contrib = energy2b
-            [k_prev_chunk_offset + prev_chunk_size * k_in_chunk + prev_in_chunk];
+            [k_prev_chunk_offset + prev_chunk_size * k_in_chunk
+             + prev_in_chunk];
       }
 
       dE += new_contrib - prev_contrib;

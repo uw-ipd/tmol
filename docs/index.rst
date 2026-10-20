@@ -5,7 +5,8 @@ TMol documentation
 
    TMol provides all-atom scoring, packing, and minimization in
    PyTorch. Run batched calculations on CPU or CUDA and differentiate scores
-   with respect to atom coordinates.
+   with respect to atom coordinates. On Apple silicon, CPU runs move their
+   heaviest work onto the GPU automatically.
 
 Start with :doc:`quickstart` to load, score, repack, and relax a protein.
 Explore the :doc:`Glossary <terminology>` for visual explanations, or try the

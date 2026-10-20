@@ -17,7 +17,6 @@ namespace tmol {
 namespace pack {
 namespace compiled {
 
-
 template <
     template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
@@ -79,9 +78,9 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   // A negative bound means the caller is handing over a table it knows to be
   // free of duplicate (pose, rot1, rot2) keys -- a coalesced one -- so the
   // parallel passes may cover all of it.
-  int64_t const n_unique =
-      n_unique_entries < 0 ? int64_t(n_sparse_entries_dispatch)
-                           : n_unique_entries;
+  int64_t const n_unique = n_unique_entries < 0
+                               ? int64_t(n_sparse_entries_dispatch)
+                               : n_unique_entries;
   int const n_pose_block_cells = score::common::checked_dispatch_product(
       n_poses, max_n_blocks, "interaction-graph block dispatch");
 
@@ -345,9 +344,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     DeviceDispatch<D>::template forall_independent<launch_t>(
         mgr, n_unique, record_energies_in_energy1b_and_energy2b);
     DeviceDispatch<D>::template forall<launch_t>(
-        mgr,
-        n_sparse_entries_dispatch - n_unique,
-        record_duplicate_energies);
+        mgr, n_sparse_entries_dispatch - n_unique, record_duplicate_energies);
 
     // Mark the chunk_pair_offset_for_block_pair that are not adjacent w/ -1s
     // Mark the chunk_pair_offsets that are not adjacent w/ -1s
@@ -1052,8 +1049,8 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
 
   // Entries whose destination cell no other entry writes. See the two-pass
   // note at the dispatch below.
-  auto record_energies_into_disjoint_cells =
-      ([=] TMOL_DEVICE_FUNC(int64_t index) {
+  auto record_energies_into_disjoint_cells = ([=] TMOL_DEVICE_FUNC(
+                                                  int64_t index) {
     int const pose = sparse_inds[0][index];
     int const rot1 = sparse_inds[1][index];
     int const rot2 = sparse_inds[2][index];
@@ -1139,53 +1136,54 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   // whose partner's block went to the background. Serial by necessity.
   auto record_energies_into_shared_cells =
       ([=] TMOL_DEVICE_FUNC(int64_t index) {
-    int const pose = sparse_inds[0][index];
-    int const rot1 = sparse_inds[1][index];
-    int const rot2 = sparse_inds[2][index];
-    int const kept_rot1 = keep_rotamer[rot1];
-    int const kept_rot2 = keep_rotamer[rot2];
-    int const block1 = block_ind_for_rot[rot1];
-    int const block2 = block_ind_for_rot[rot2];
-    int const kept_block1 = keep_block[pose][block1];
-    int const kept_block2 = keep_block[pose][block2];
+        int const pose = sparse_inds[0][index];
+        int const rot1 = sparse_inds[1][index];
+        int const rot2 = sparse_inds[2][index];
+        int const kept_rot1 = keep_rotamer[rot1];
+        int const kept_rot2 = keep_rotamer[rot2];
+        int const block1 = block_ind_for_rot[rot1];
+        int const block2 = block_ind_for_rot[rot2];
+        int const kept_block1 = keep_block[pose][block1];
+        int const kept_block2 = keep_block[pose][block2];
 
-    if (kept_block1 && kept_block2) {
-      // Handled by the disjoint pass, whichever branch it took.
-      return;
-    }
+        if (kept_block1 && kept_block2) {
+          // Handled by the disjoint pass, whichever branch it took.
+          return;
+        }
 
-    Real const energy = sparse_energies[index];
+        Real const energy = sparse_energies[index];
 
-    if (!kept_block1 && !kept_block2) {
-      if (rot1 == rotamer_for_nonmolten_block[pose][block1]
-          && rot2 == rotamer_for_nonmolten_block[pose][block2]) {
-        // A background/background interaction. It stays out of the
-        // interaction graph, but the pose's total energy still needs it.
-        score::common::accumulate<D, Real>::add(bg_bg_energies[pose], energy);
-      }
-      return;
-    }
+        if (!kept_block1 && !kept_block2) {
+          if (rot1 == rotamer_for_nonmolten_block[pose][block1]
+              && rot2 == rotamer_for_nonmolten_block[pose][block2]) {
+            // A background/background interaction. It stays out of the
+            // interaction graph, but the pose's total energy still needs it.
+            score::common::accumulate<D, Real>::add(
+                bg_bg_energies[pose], energy);
+          }
+          return;
+        }
 
-    if (!kept_rot1 && !kept_rot2) {
-      return;
-    }
+        if (!kept_rot1 && !kept_rot2) {
+          return;
+        }
 
-    if (!kept_block1) {
-      // Block 1 is background. If this is the rotamer it was assigned, the
-      // interaction becomes part of the other rotamer's one-body energy.
-      if (rot1 == rotamer_for_nonmolten_block[pose][block1]) {
-        score::common::accumulate<D, Real>::add(
-            energy1b[old_to_new_rotamer_index[rot2]], energy);
-      }
-      return;
-    }
+        if (!kept_block1) {
+          // Block 1 is background. If this is the rotamer it was assigned, the
+          // interaction becomes part of the other rotamer's one-body energy.
+          if (rot1 == rotamer_for_nonmolten_block[pose][block1]) {
+            score::common::accumulate<D, Real>::add(
+                energy1b[old_to_new_rotamer_index[rot2]], energy);
+          }
+          return;
+        }
 
-    // Block 2 is background, by the same argument.
-    if (rot2 == rotamer_for_nonmolten_block[pose][block2]) {
-      score::common::accumulate<D, Real>::add(
-          energy1b[old_to_new_rotamer_index[rot1]], energy);
-    }
-  });
+        // Block 2 is background, by the same argument.
+        if (rot2 == rotamer_for_nonmolten_block[pose][block2]) {
+          score::common::accumulate<D, Real>::add(
+              energy1b[old_to_new_rotamer_index[rot1]], energy);
+        }
+      });
 
   // Two passes, because the write set is only partly disjoint.
   //
@@ -1235,7 +1233,8 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     // between a 1098 ms pass and a ~100 ms one.
     //
     // CPU only: the CUDA accumulator is atomic, so both passes already run in
-    // parallel there and this would just add three sweeps and a scan.
+    // parallel there and this would just add three sweeps and a scan. MPS
+    // builds its graph with the atomic streaming kernels instead.
     auto folds_into_shared_cell_tp =
         TPack<int32_t, 1, D>::zeros({n_sparse_entries_dispatch});
     auto folds_into_shared_cell = folds_into_shared_cell_tp.view;

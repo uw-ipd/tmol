@@ -169,8 +169,3 @@ tmol/tests/data/protein_ligand_test/*.packmin.cif
 *.flat.metal
 *.metal.d
 
-# Compiled helpers in dev/mps_scratch (built from the .mm sources beside them)
-dev/mps_scratch/msl_probe
-dev/mps_scratch/msl_occupancy
-dev/mps_scratch/torch_shader_probe
-dev/mps_scratch/mslstub

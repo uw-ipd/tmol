@@ -12,7 +12,7 @@
 // hard, and float32 coefficients cost a *relative* error of 1.96, enough to
 // flip the sign of a near-zero value. Metal carries them as an unevaluated
 // hi + lo float32 pair instead, which measures identical to float64
-// coefficients. See MPS_PORT_NOTES.md.
+// coefficients.
 
 #include <tmol/utility/portable/device.hh>
 #include <tmol/utility/portable/qualifiers.hh>

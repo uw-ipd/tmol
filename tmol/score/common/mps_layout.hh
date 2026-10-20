@@ -26,7 +26,8 @@ enum { TMOL_VIEW_META_STRIDE = 2 * TMOL_MAX_VIEW_RANK };
 //
 // Real-valued scalars travel as the bit pattern of a float, because the
 // buffer is typed int64 and Metal has no double anyway. tmol_pack_float and
-// tmol_unpack_float below are the only sanctioned way to read and write them.
+// tmol_unpack_float, in mps_float_scalar.hh, are the only sanctioned way to
+// read and write them.
 // The annealer carries eleven: the launch shape, the schedule and the phase.
 enum { TMOL_MAX_SCALARS = 16 };
 

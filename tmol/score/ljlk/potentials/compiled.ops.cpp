@@ -72,9 +72,11 @@ class LJLKPoseScoreOp
 
     using Int = int32_t;
 
-    // The whole-pose forward is the path with a Metal backend; see
-    // ljlk_pose_score.mps.cpp. The other dispatch sites in this file stay
-    // CPU/CUDA-only until their kernels are ported.
+    // The whole-pose forward, the rotamer-pair score, and the fused LJ/LK +
+    // elec rotamer dispatch and weighted score have Metal backends; see
+    // ljlk_pose_score.mps.cpp and ljlk_elec_pose_score.mps.cpp. The remaining
+    // dispatch sites in this file stay CPU/CUDA-only until their kernels are
+    // ported.
     TMOL_DISPATCH_FLOATING_DEVICE_MPS(
         rot_coords.options(), "ljlk_pose_score_op", ([&] {
           using Real = scalar_t;

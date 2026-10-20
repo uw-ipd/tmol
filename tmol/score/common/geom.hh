@@ -44,8 +44,7 @@ struct distance {
     if (V != 0) {
       // One reciprocal rather than six divisions. A division on Metal is an
       // IEEE-correct multi-instruction sequence under MTLMathModeSafe, and
-      // this runs per atom pair in the derivative kernels; see
-      // MPS_PORT_NOTES.md.
+      // this runs per atom pair in the derivative kernels.
       Real const inv_V = Real(1) / V;
       return {V, delta * inv_V, -delta * inv_V};
     } else {

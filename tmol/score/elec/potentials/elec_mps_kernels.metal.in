@@ -103,7 +103,5 @@ typedef ElecSharedMem<float, TILE_SIZE, MAX_N_CONN, launch_t> ElecShared;
 TMOL_ELEC_ENTRY(
     elec_eval_energies_by_block_2_f32, elec_eval_energies_by_block_2, PoseCtx)
 TMOL_ELEC_ENTRY(elec_eval_energies_f32, elec_eval_energies, PoseCtx)
-TMOL_ELEC_ENTRY(elec_eval_derivs_2_f32, elec_eval_derivs_2, PoseCtx)
 TMOL_ELEC_ENTRY(
     elec_eval_energies_by_block_f32, elec_eval_energies_by_block, RotCtx)
-TMOL_ELEC_ENTRY(elec_eval_derivs_f32, elec_eval_derivs, RotCtx)

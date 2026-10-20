@@ -70,11 +70,11 @@ class PoseWaterGen : public tmol::native::autograd::Function<PoseWaterGen> {
 
     using Int = int32_t;
 
-    // Water generation and the whole-pose forward are the two paths with a
-    // Metal backend; see gen_pose_waters.mps.cpp and
+    // Water generation, the whole-pose forward and backward, and the
+    // rotamer-pair score have Metal backends; see gen_pose_waters.mps.cpp and
     // lk_ball_pose_score.mps.cpp. The scoring module calls watergen itself,
-    // so both have to be on the GPU or neither is. The other dispatch sites
-    // in this file stay CPU/CUDA-only until their kernels are ported.
+    // so it has to be on the GPU whenever scoring is. The remaining dispatch
+    // sites in this file stay CPU/CUDA-only until their kernels are ported.
     TMOL_DISPATCH_FLOATING_DEVICE_MPS(
         rot_coords.options(), "watergen_op", ([&] {
           using Real = scalar_t;
@@ -239,21 +239,19 @@ class PoseWaterGen : public tmol::native::autograd::Function<PoseWaterGen> {
           ring_water_tors.size(0)};
       int64_t max_len = 0;
       for (int64_t n : lengths) max_len = n > max_len ? n : max_len;
-      packed_water_tors = tmol::native::zeros(
-          {3, max_len}, sp2_water_tors.options());
+      packed_water_tors =
+          tmol::native::zeros({3, max_len}, sp2_water_tors.options());
       tmol::native::Tensor const* rows[3] = {
           &sp2_water_tors, &sp3_water_tors, &ring_water_tors};
       for (int row = 0; row < 3; ++row) {
         if (lengths[row] == 0) continue;
-        auto dst =
-            packed_water_tors.select(0, row).narrow(0, 0, lengths[row]);
+        auto dst = packed_water_tors.select(0, row).narrow(0, 0, lengths[row]);
         auto dst_handle = dst.handle();
         auto src_handle = rows[row]->handle();
         torch::stable::copy_(dst_handle, src_handle);
       }
     } else {
-      packed_water_tors = tmol::native::empty(
-          {3, 0}, sp2_water_tors.options());
+      packed_water_tors = tmol::native::empty({3, 0}, sp2_water_tors.options());
     }
 
     TMOL_DISPATCH_FLOATING_DEVICE_MPS(

@@ -1,11 +1,21 @@
 """Run a CPU score function's Metal-capable terms on the Apple GPU.
 
-On Apple silicon the poses, the packer and the minimizer stay on the host --
-they have no Metal kernels -- but the pairwise terms that dominate scoring do.
-A CPU ``ScoreFunction`` therefore renders those terms against a Metal copy of
-the poses and the rest on the host, and sums the two halves. Memory is
-unified, so moving coordinates across costs little, and the halves run
-concurrently: the Metal work is committed before the host half starts.
+MPS is an overlay on the CPU backend, not a device poses are placed on. The
+caller works with CPU tensors throughout: poses, coordinates, rotamer sets,
+the packer's bookkeeping and the minimizer's degrees of freedom all live on
+the host, and every result handed back is a host tensor. Only the expensive
+operations run on Metal -- the pairwise score terms, the interaction-graph
+energy accumulation and simulated annealing -- and their inputs are copied to
+the GPU when each one runs, with only results copied back. Nothing asks the
+caller to move anything, and ``TMOL_MPS_OFFLOAD=0`` removes the overlay
+without changing a result's device or shape.
+
+The pairwise terms that dominate scoring have Metal kernels; the rest of the
+machinery does not. A CPU ``ScoreFunction`` therefore renders those terms
+against a Metal copy of the poses and the rest on the host, and sums the two
+halves. Memory is unified, so moving coordinates across costs little, and the
+halves run concurrently: the Metal work is committed before the host half
+starts.
 
 Placement is per term and per use, because a Metal kernel is not always the
 faster one. Whole-pose scoring offloads LJ/LK and electrostatics only: lk_ball's
@@ -66,7 +76,7 @@ def to_mps(obj, _memo=None):
         moved = type(obj)(to_mps(v, _memo) for v in obj)
     elif isinstance(obj, dict):
         moved = {k: to_mps(v, _memo) for k, v in obj.items()}
-    elif type(obj).__name__ in ("RefinedResidueType", "ResidueType"):
+    elif type(obj).__name__ == "RefinedResidueType":
         moved = obj
     elif attr.has(type(obj)):
         changes = {}
@@ -188,7 +198,7 @@ class OffloadedWholePoseScoringModule:
             return gpu if host is None else host + gpu
         return self.plan.unsplit_lanes(host, gpu)
 
-    def unweighted_scores(self, coords, *, fused_score_weights=None):
+    def unweighted_scores(self, coords):
         def call(module, c):
             return module.unweighted_scores(c)
 

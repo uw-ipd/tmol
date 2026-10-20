@@ -18,9 +18,8 @@
 //
 // The host launchers (foreach_workgroup and friends) come along with the base
 // and would run the kernel bodies on the CPU if anything called them. Nothing
-// does -- the MPS code path branches to the Metal launcher before reaching
-// them -- and TMOL_MPS_UNREACHABLE below documents the few places that rely
-// on that.
+// does: the MPS code path branches to the Metal launcher before reaching
+// them.
 
 #include <tmol/score/common/device_operations.cpu.impl.hh>
 

@@ -45,7 +45,7 @@ TMOL_MATH_UNARY(sqrt)
 // Relaxed-precision exp and log, for call sites that have been measured.
 //
 // Metal compiles with MTLMathModeSafe and the shader API gives us no
-// MTLCompileOptions to change it (see MPS_PORT_NOTES.md), so ::metal::exp is
+// MTLCompileOptions to change it, so ::metal::exp is
 // the correctly-rounded version. metal::fast:: trades the last couple of ulps
 // for a shorter hardware sequence.
 //

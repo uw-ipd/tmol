@@ -170,14 +170,12 @@ class HBondParamResolver(ValidateAttrs):
         def tensor(values, dtype):
             return torch.tensor(values, dtype=dtype, device=device)
 
-        # MPS has no float64, so the polynomial tables cannot live there. They
-        # are held on the host instead. Nothing is lost: only the hbond energy
-        # term reads them, and it has no Metal backend -- these degree-10 fits
-        # reach |V| ~ 1e7 inside their own range, so rounding the coefficients
-        # to float32 costs up to 0.1 kcal/mol in the ordinary hydrogen-bond
-        # window. LK-ball, which is the term that pulls this resolver onto a
-        # GPU, reads only the donor/acceptor listings and never the
-        # polynomials. See MPS_PORT_NOTES.md.
+        # MPS has no float64, so these float64 polynomial tables stay on the
+        # host. Rounding them to float32 instead would cost up to 0.1 kcal/mol
+        # in the ordinary hydrogen-bond window -- these degree-10 fits reach
+        # |V| ~ 1e7 inside their own range. The hbond Metal kernels read the
+        # packed pair table built below, which crosses to the GPU as hi + lo
+        # float32 pairs; LK-ball reads only the donor/acceptor listings.
         poly_device = torch.device("cpu") if device.type == "mps" else device
 
         def poly_tensor(values, dtype):
@@ -354,7 +352,7 @@ class CompactedHBondDatabase(ValidateAttrs):
             # same eight bytes a double occupied, so the struct keeps its
             # footprint. Rounding to plain float32 instead costs a relative
             # error of 1.96 on these degree-10 fits, enough to flip the sign
-            # of a near-zero value; see MPS_PORT_NOTES.md.
+            # of a near-zero value.
             hi = packed.to(torch.float32)
             lo = (packed - hi.to(torch.float64)).to(torch.float32)
             packed = torch.stack([hi, lo], dim=-1).reshape(

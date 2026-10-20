@@ -105,7 +105,7 @@ struct build_coordinate {
     // derivation and make no attempt to share anything. The host compiler
     // common-subexpression-eliminates them; Metal's does not, across a block
     // this size, and the cost is extreme -- computing this derivative is 1.8x
-    // the forward on the CPU and was 17x on Metal. See MPS_PORT_NOTES.md.
+    // the forward on the CPU and was 17x on Metal.
     Real const norm_abxcb = tmol::portable::math::sqrt(abxcb2 / a_m_b2);
     Real const abxcb2_norm_abxcb = abxcb2 * norm_abxcb;
     Real const a_m_b4 = a_m_b2 * a_m_b2;
@@ -119,7 +119,7 @@ struct build_coordinate {
     // 250 times. Metal compiles with MTLMathModeSafe by default, so each of
     // those is an IEEE-correct division -- a multi-instruction sequence, not
     // one op -- which is why this derivative costs 17x its forward there
-    // against 1.8x on the host. See MPS_PORT_NOTES.md.
+    // against 1.8x on the host.
     //
     // Reciprocal-then-multiply is not bit-identical to division; it is
     // accurate to about one ulp, which is far below the 2^-13 grid the Metal
@@ -132,12 +132,12 @@ struct build_coordinate {
     Real const inv_a_m_b2_norm = Real(1) / (a_m_b2 * norm_abxcb);
     Real const inv_a_m_b_norm = Real(1) / (a_m_b * norm_abxcb);
     Real const inv_a_m_b3 = Real(1) / (a_m_b * a_m_b2);
-    Real const inv_two_a_m_b2_abxcb2_norm = Real(1) / (2 * a_m_b2 * abxcb2_norm_abxcb);
+    Real const inv_two_a_m_b2_abxcb2_norm =
+        Real(1) / (2 * a_m_b2 * abxcb2_norm_abxcb);
 
     dV_t dcoord;
     dcoord.dp(0, 0) =
-        (-ABXCB[0] * AB[0] * dist * sin_a * sin_t
-             * inv_a_m_b3_norm
+        (-ABXCB[0] * AB[0] * dist * sin_a * sin_t * inv_a_m_b3_norm
          + ABXCB[0] * a_m_b * dist * sin_a * sin_t
                * (-(-ABXCB[1] * (2 * C[2] - 2 * B[2])
                     + ABXCB[2] * (2 * C[1] - 2 * B[1]))
@@ -154,12 +154,10 @@ struct build_coordinate {
          - cos_t * dist * sin_a * (AB[1] * CB[1] + AB[2] * CB[2])
                * inv_a_m_b2_norm
          - cos_t * dist * sin_a * (-2 * A[0] + 2 * B[0])
-               * (-ABXCB[1] * AB[2] + ABXCB[2] * AB[1])
-               * inv_a_m_b4_norm
+               * (-ABXCB[1] * AB[2] + ABXCB[2] * AB[1]) * inv_a_m_b4_norm
          + cos_a * dist * inv_a_m_b);
     dcoord.dp(0, 1) =
-        (-ABXCB[1] * AB[0] * dist * sin_a * sin_t
-             * inv_a_m_b3_norm
+        (-ABXCB[1] * AB[0] * dist * sin_a * sin_t * inv_a_m_b3_norm
          + ABXCB[1] * a_m_b * dist * sin_a * sin_t
                * (-(-ABXCB[1] * (2 * C[2] - 2 * B[2])
                     + ABXCB[2] * (2 * C[1] - 2 * B[1]))
@@ -167,8 +165,7 @@ struct build_coordinate {
                   - abxcb2 * (-2 * A[0] + 2 * B[0]) * inv_two_a_m_b4)
                * inv_abxcb2_norm
          - AB[0] * AB[1] * cos_a * dist * inv_a_m_b3
-         - CB[2] * dist * sin_a * sin_t
-               * inv_a_m_b_norm
+         - CB[2] * dist * sin_a * sin_t * inv_a_m_b_norm
          + cos_t * dist * sin_a * (-ABXCB[0] * AB[2] + ABXCB[2] * AB[0])
                * (-(-ABXCB[1] * (2 * C[2] - 2 * B[2])
                     + ABXCB[2] * (2 * C[1] - 2 * B[1]))
@@ -178,11 +175,9 @@ struct build_coordinate {
          + cos_t * dist * sin_a * (2 * AB[0] * CB[1] - AB[1] * CB[0])
                * inv_a_m_b2_norm
          + cos_t * dist * sin_a * (-2 * A[0] + 2 * B[0])
-               * (-ABXCB[0] * AB[2] + ABXCB[2] * AB[0])
-               * inv_a_m_b4_norm);
+               * (-ABXCB[0] * AB[2] + ABXCB[2] * AB[0]) * inv_a_m_b4_norm);
     dcoord.dp(0, 2) =
-        (-ABXCB[2] * AB[0] * dist * sin_a * sin_t
-             * inv_a_m_b3_norm
+        (-ABXCB[2] * AB[0] * dist * sin_a * sin_t * inv_a_m_b3_norm
          + ABXCB[2] * a_m_b * dist * sin_a * sin_t
                * (-(-ABXCB[1] * (2 * C[2] - 2 * B[2])
                     + ABXCB[2] * (2 * C[1] - 2 * B[1]))
@@ -190,8 +185,7 @@ struct build_coordinate {
                   - abxcb2 * (-2 * A[0] + 2 * B[0]) * inv_two_a_m_b4)
                * inv_abxcb2_norm
          - AB[0] * AB[2] * cos_a * dist * inv_a_m_b3
-         + CB[1] * dist * sin_a * sin_t
-               * inv_a_m_b_norm
+         + CB[1] * dist * sin_a * sin_t * inv_a_m_b_norm
          + cos_t * dist * sin_a * (ABXCB[0] * AB[1] - ABXCB[1] * AB[0])
                * (-(-ABXCB[1] * (2 * C[2] - 2 * B[2])
                     + ABXCB[2] * (2 * C[1] - 2 * B[1]))
@@ -201,11 +195,9 @@ struct build_coordinate {
          + cos_t * dist * sin_a * (2 * AB[0] * CB[2] - AB[2] * CB[0])
                * inv_a_m_b2_norm
          + cos_t * dist * sin_a * (-2 * A[0] + 2 * B[0])
-               * (ABXCB[0] * AB[1] - ABXCB[1] * AB[0])
-               * inv_a_m_b4_norm);
+               * (ABXCB[0] * AB[1] - ABXCB[1] * AB[0]) * inv_a_m_b4_norm);
     dcoord.dp(1, 0) =
-        (-ABXCB[0] * AB[1] * dist * sin_a * sin_t
-             * inv_a_m_b3_norm
+        (-ABXCB[0] * AB[1] * dist * sin_a * sin_t * inv_a_m_b3_norm
          + ABXCB[0] * a_m_b * dist * sin_a * sin_t
                * (-(ABXCB[0] * (2 * C[2] - 2 * B[2])
                     + ABXCB[2] * (-2 * C[0] + 2 * B[0]))
@@ -213,8 +205,7 @@ struct build_coordinate {
                   - abxcb2 * (-2 * A[1] + 2 * B[1]) * inv_two_a_m_b4)
                * inv_abxcb2_norm
          - AB[0] * AB[1] * cos_a * dist * inv_a_m_b3
-         + CB[2] * dist * sin_a * sin_t
-               * inv_a_m_b_norm
+         + CB[2] * dist * sin_a * sin_t * inv_a_m_b_norm
          - cos_t * dist * sin_a * (-ABXCB[1] * AB[2] + ABXCB[2] * AB[1])
                * (-(ABXCB[0] * (2 * C[2] - 2 * B[2])
                     + ABXCB[2] * (-2 * C[0] + 2 * B[0]))
@@ -224,11 +215,9 @@ struct build_coordinate {
          - cos_t * dist * sin_a * (AB[0] * CB[1] - 2 * AB[1] * CB[0])
                * inv_a_m_b2_norm
          - cos_t * dist * sin_a * (-2 * A[1] + 2 * B[1])
-               * (-ABXCB[1] * AB[2] + ABXCB[2] * AB[1])
-               * inv_a_m_b4_norm);
+               * (-ABXCB[1] * AB[2] + ABXCB[2] * AB[1]) * inv_a_m_b4_norm);
     dcoord.dp(1, 1) =
-        (-ABXCB[1] * AB[1] * dist * sin_a * sin_t
-             * inv_a_m_b3_norm
+        (-ABXCB[1] * AB[1] * dist * sin_a * sin_t * inv_a_m_b3_norm
          + ABXCB[1] * a_m_b * dist * sin_a * sin_t
                * (-(ABXCB[0] * (2 * C[2] - 2 * B[2])
                     + ABXCB[2] * (-2 * C[0] + 2 * B[0]))
@@ -245,12 +234,10 @@ struct build_coordinate {
          + cos_t * dist * sin_a * (-AB[0] * CB[0] - AB[2] * CB[2])
                * inv_a_m_b2_norm
          + cos_t * dist * sin_a * (-2 * A[1] + 2 * B[1])
-               * (-ABXCB[0] * AB[2] + ABXCB[2] * AB[0])
-               * inv_a_m_b4_norm
+               * (-ABXCB[0] * AB[2] + ABXCB[2] * AB[0]) * inv_a_m_b4_norm
          + cos_a * dist * inv_a_m_b);
     dcoord.dp(1, 2) =
-        (-ABXCB[2] * AB[1] * dist * sin_a * sin_t
-             * inv_a_m_b3_norm
+        (-ABXCB[2] * AB[1] * dist * sin_a * sin_t * inv_a_m_b3_norm
          + ABXCB[2] * a_m_b * dist * sin_a * sin_t
                * (-(ABXCB[0] * (2 * C[2] - 2 * B[2])
                     + ABXCB[2] * (-2 * C[0] + 2 * B[0]))
@@ -258,8 +245,7 @@ struct build_coordinate {
                   - abxcb2 * (-2 * A[1] + 2 * B[1]) * inv_two_a_m_b4)
                * inv_abxcb2_norm
          - AB[1] * AB[2] * cos_a * dist * inv_a_m_b3
-         - CB[0] * dist * sin_a * sin_t
-               * inv_a_m_b_norm
+         - CB[0] * dist * sin_a * sin_t * inv_a_m_b_norm
          + cos_t * dist * sin_a * (ABXCB[0] * AB[1] - ABXCB[1] * AB[0])
                * (-(ABXCB[0] * (2 * C[2] - 2 * B[2])
                     + ABXCB[2] * (-2 * C[0] + 2 * B[0]))
@@ -269,11 +255,9 @@ struct build_coordinate {
          + cos_t * dist * sin_a * (2 * AB[1] * CB[2] - AB[2] * CB[1])
                * inv_a_m_b2_norm
          + cos_t * dist * sin_a * (-2 * A[1] + 2 * B[1])
-               * (ABXCB[0] * AB[1] - ABXCB[1] * AB[0])
-               * inv_a_m_b4_norm);
+               * (ABXCB[0] * AB[1] - ABXCB[1] * AB[0]) * inv_a_m_b4_norm);
     dcoord.dp(2, 0) =
-        (-ABXCB[0] * AB[2] * dist * sin_a * sin_t
-             * inv_a_m_b3_norm
+        (-ABXCB[0] * AB[2] * dist * sin_a * sin_t * inv_a_m_b3_norm
          + ABXCB[0] * a_m_b * dist * sin_a * sin_t
                * (-(ABXCB[0] * (-2 * C[1] + 2 * B[1])
                     - ABXCB[1] * (-2 * C[0] + 2 * B[0]))
@@ -281,8 +265,7 @@ struct build_coordinate {
                   - abxcb2 * (-2 * A[2] + 2 * B[2]) * inv_two_a_m_b4)
                * inv_abxcb2_norm
          - AB[0] * AB[2] * cos_a * dist * inv_a_m_b3
-         - CB[1] * dist * sin_a * sin_t
-               * inv_a_m_b_norm
+         - CB[1] * dist * sin_a * sin_t * inv_a_m_b_norm
          - cos_t * dist * sin_a * (-ABXCB[1] * AB[2] + ABXCB[2] * AB[1])
                * (-(ABXCB[0] * (-2 * C[1] + 2 * B[1])
                     - ABXCB[1] * (-2 * C[0] + 2 * B[0]))
@@ -292,11 +275,9 @@ struct build_coordinate {
          - cos_t * dist * sin_a * (AB[0] * CB[2] - 2 * AB[2] * CB[0])
                * inv_a_m_b2_norm
          - cos_t * dist * sin_a * (-2 * A[2] + 2 * B[2])
-               * (-ABXCB[1] * AB[2] + ABXCB[2] * AB[1])
-               * inv_a_m_b4_norm);
+               * (-ABXCB[1] * AB[2] + ABXCB[2] * AB[1]) * inv_a_m_b4_norm);
     dcoord.dp(2, 1) =
-        (-ABXCB[1] * AB[2] * dist * sin_a * sin_t
-             * inv_a_m_b3_norm
+        (-ABXCB[1] * AB[2] * dist * sin_a * sin_t * inv_a_m_b3_norm
          + ABXCB[1] * a_m_b * dist * sin_a * sin_t
                * (-(ABXCB[0] * (-2 * C[1] + 2 * B[1])
                     - ABXCB[1] * (-2 * C[0] + 2 * B[0]))
@@ -304,8 +285,7 @@ struct build_coordinate {
                   - abxcb2 * (-2 * A[2] + 2 * B[2]) * inv_two_a_m_b4)
                * inv_abxcb2_norm
          - AB[1] * AB[2] * cos_a * dist * inv_a_m_b3
-         + CB[0] * dist * sin_a * sin_t
-               * inv_a_m_b_norm
+         + CB[0] * dist * sin_a * sin_t * inv_a_m_b_norm
          + cos_t * dist * sin_a * (-ABXCB[0] * AB[2] + ABXCB[2] * AB[0])
                * (-(ABXCB[0] * (-2 * C[1] + 2 * B[1])
                     - ABXCB[1] * (-2 * C[0] + 2 * B[0]))
@@ -315,11 +295,9 @@ struct build_coordinate {
          + cos_t * dist * sin_a * (-AB[1] * CB[2] + 2 * AB[2] * CB[1])
                * inv_a_m_b2_norm
          + cos_t * dist * sin_a * (-2 * A[2] + 2 * B[2])
-               * (-ABXCB[0] * AB[2] + ABXCB[2] * AB[0])
-               * inv_a_m_b4_norm);
+               * (-ABXCB[0] * AB[2] + ABXCB[2] * AB[0]) * inv_a_m_b4_norm);
     dcoord.dp(2, 2) =
-        (-ABXCB[2] * AB[2] * dist * sin_a * sin_t
-             * inv_a_m_b3_norm
+        (-ABXCB[2] * AB[2] * dist * sin_a * sin_t * inv_a_m_b3_norm
          + ABXCB[2] * a_m_b * dist * sin_a * sin_t
                * (-(ABXCB[0] * (-2 * C[1] + 2 * B[1])
                     - ABXCB[1] * (-2 * C[0] + 2 * B[0]))
@@ -336,13 +314,11 @@ struct build_coordinate {
          + cos_t * dist * sin_a * (-AB[0] * CB[0] - AB[1] * CB[1])
                * inv_a_m_b2_norm
          + cos_t * dist * sin_a * (-2 * A[2] + 2 * B[2])
-               * (ABXCB[0] * AB[1] - ABXCB[1] * AB[0])
-               * inv_a_m_b4_norm
+               * (ABXCB[0] * AB[1] - ABXCB[1] * AB[0]) * inv_a_m_b4_norm
          + cos_a * dist * inv_a_m_b);
 
     dcoord.dgp(0, 0) =
-        (ABXCB[0] * AB[0] * dist * sin_a * sin_t
-             * inv_a_m_b3_norm
+        (ABXCB[0] * AB[0] * dist * sin_a * sin_t * inv_a_m_b3_norm
          + ABXCB[0] * a_m_b * dist * sin_a * sin_t
                * (-(-ABXCB[1] * (2 * A[2] - 2 * C[2])
                     + ABXCB[2] * (2 * A[1] - 2 * C[1]))
@@ -360,12 +336,10 @@ struct build_coordinate {
                * (AB[1] * (A[1] - C[1]) + AB[2] * (A[2] - C[2]))
                * inv_a_m_b2_norm
          - cos_t * dist * sin_a * (2 * A[0] - 2 * B[0])
-               * (-ABXCB[1] * AB[2] + ABXCB[2] * AB[1])
-               * inv_a_m_b4_norm
+               * (-ABXCB[1] * AB[2] + ABXCB[2] * AB[1]) * inv_a_m_b4_norm
          - cos_a * dist * inv_a_m_b);
     dcoord.dgp(0, 1) =
-        (ABXCB[1] * AB[0] * dist * sin_a * sin_t
-             * inv_a_m_b3_norm
+        (ABXCB[1] * AB[0] * dist * sin_a * sin_t * inv_a_m_b3_norm
          + ABXCB[1] * a_m_b * dist * sin_a * sin_t
                * (-(-ABXCB[1] * (2 * A[2] - 2 * C[2])
                     + ABXCB[2] * (2 * A[1] - 2 * C[1]))
@@ -382,13 +356,10 @@ struct build_coordinate {
          + cos_t * dist * sin_a * (-ABXCB[2] + AB[0] * (A[1] - C[1]))
                * inv_a_m_b2_norm
          + cos_t * dist * sin_a * (2 * A[0] - 2 * B[0])
-               * (-ABXCB[0] * AB[2] + ABXCB[2] * AB[0])
-               * inv_a_m_b4_norm
-         + dist * sin_a * sin_t * (-A[2] + C[2])
-               * inv_a_m_b_norm);
+               * (-ABXCB[0] * AB[2] + ABXCB[2] * AB[0]) * inv_a_m_b4_norm
+         + dist * sin_a * sin_t * (-A[2] + C[2]) * inv_a_m_b_norm);
     dcoord.dgp(0, 2) =
-        (ABXCB[2] * AB[0] * dist * sin_a * sin_t
-             * inv_a_m_b3_norm
+        (ABXCB[2] * AB[0] * dist * sin_a * sin_t * inv_a_m_b3_norm
          + ABXCB[2] * a_m_b * dist * sin_a * sin_t
                * (-(-ABXCB[1] * (2 * A[2] - 2 * C[2])
                     + ABXCB[2] * (2 * A[1] - 2 * C[1]))
@@ -405,13 +376,10 @@ struct build_coordinate {
          + cos_t * dist * sin_a * (ABXCB[1] + AB[0] * (A[2] - C[2]))
                * inv_a_m_b2_norm
          + cos_t * dist * sin_a * (2 * A[0] - 2 * B[0])
-               * (ABXCB[0] * AB[1] - ABXCB[1] * AB[0])
-               * inv_a_m_b4_norm
-         + dist * sin_a * sin_t * (A[1] - C[1])
-               * inv_a_m_b_norm);
+               * (ABXCB[0] * AB[1] - ABXCB[1] * AB[0]) * inv_a_m_b4_norm
+         + dist * sin_a * sin_t * (A[1] - C[1]) * inv_a_m_b_norm);
     dcoord.dgp(1, 0) =
-        (ABXCB[0] * AB[1] * dist * sin_a * sin_t
-             * inv_a_m_b3_norm
+        (ABXCB[0] * AB[1] * dist * sin_a * sin_t * inv_a_m_b3_norm
          + ABXCB[0] * a_m_b * dist * sin_a * sin_t
                * (-(ABXCB[0] * (2 * A[2] - 2 * C[2])
                     + ABXCB[2] * (-2 * A[0] + 2 * C[0]))
@@ -428,13 +396,10 @@ struct build_coordinate {
          - cos_t * dist * sin_a * (-ABXCB[2] + AB[1] * (-A[0] + C[0]))
                * inv_a_m_b2_norm
          - cos_t * dist * sin_a * (2 * A[1] - 2 * B[1])
-               * (-ABXCB[1] * AB[2] + ABXCB[2] * AB[1])
-               * inv_a_m_b4_norm
-         + dist * sin_a * sin_t * (A[2] - C[2])
-               * inv_a_m_b_norm);
+               * (-ABXCB[1] * AB[2] + ABXCB[2] * AB[1]) * inv_a_m_b4_norm
+         + dist * sin_a * sin_t * (A[2] - C[2]) * inv_a_m_b_norm);
     dcoord.dgp(1, 1) =
-        (ABXCB[1] * AB[1] * dist * sin_a * sin_t
-             * inv_a_m_b3_norm
+        (ABXCB[1] * AB[1] * dist * sin_a * sin_t * inv_a_m_b3_norm
          + ABXCB[1] * a_m_b * dist * sin_a * sin_t
                * (-(ABXCB[0] * (2 * A[2] - 2 * C[2])
                     + ABXCB[2] * (-2 * A[0] + 2 * C[0]))
@@ -452,12 +417,10 @@ struct build_coordinate {
                * (AB[0] * (-A[0] + C[0]) - AB[2] * (A[2] - C[2]))
                * inv_a_m_b2_norm
          + cos_t * dist * sin_a * (2 * A[1] - 2 * B[1])
-               * (-ABXCB[0] * AB[2] + ABXCB[2] * AB[0])
-               * inv_a_m_b4_norm
+               * (-ABXCB[0] * AB[2] + ABXCB[2] * AB[0]) * inv_a_m_b4_norm
          - cos_a * dist * inv_a_m_b);
     dcoord.dgp(1, 2) =
-        (ABXCB[2] * AB[1] * dist * sin_a * sin_t
-             * inv_a_m_b3_norm
+        (ABXCB[2] * AB[1] * dist * sin_a * sin_t * inv_a_m_b3_norm
          + ABXCB[2] * a_m_b * dist * sin_a * sin_t
                * (-(ABXCB[0] * (2 * A[2] - 2 * C[2])
                     + ABXCB[2] * (-2 * A[0] + 2 * C[0]))
@@ -474,13 +437,10 @@ struct build_coordinate {
          + cos_t * dist * sin_a * (-ABXCB[0] + AB[1] * (A[2] - C[2]))
                * inv_a_m_b2_norm
          + cos_t * dist * sin_a * (2 * A[1] - 2 * B[1])
-               * (ABXCB[0] * AB[1] - ABXCB[1] * AB[0])
-               * inv_a_m_b4_norm
-         + dist * sin_a * sin_t * (-A[0] + C[0])
-               * inv_a_m_b_norm);
+               * (ABXCB[0] * AB[1] - ABXCB[1] * AB[0]) * inv_a_m_b4_norm
+         + dist * sin_a * sin_t * (-A[0] + C[0]) * inv_a_m_b_norm);
     dcoord.dgp(2, 0) =
-        (ABXCB[0] * AB[2] * dist * sin_a * sin_t
-             * inv_a_m_b3_norm
+        (ABXCB[0] * AB[2] * dist * sin_a * sin_t * inv_a_m_b3_norm
          + ABXCB[0] * a_m_b * dist * sin_a * sin_t
                * (-(ABXCB[0] * (-2 * A[1] + 2 * C[1])
                     - ABXCB[1] * (-2 * A[0] + 2 * C[0]))
@@ -497,13 +457,10 @@ struct build_coordinate {
          - cos_t * dist * sin_a * (ABXCB[1] + AB[2] * (-A[0] + C[0]))
                * inv_a_m_b2_norm
          - cos_t * dist * sin_a * (2 * A[2] - 2 * B[2])
-               * (-ABXCB[1] * AB[2] + ABXCB[2] * AB[1])
-               * inv_a_m_b4_norm
-         + dist * sin_a * sin_t * (-A[1] + C[1])
-               * inv_a_m_b_norm);
+               * (-ABXCB[1] * AB[2] + ABXCB[2] * AB[1]) * inv_a_m_b4_norm
+         + dist * sin_a * sin_t * (-A[1] + C[1]) * inv_a_m_b_norm);
     dcoord.dgp(2, 1) =
-        (ABXCB[1] * AB[2] * dist * sin_a * sin_t
-             * inv_a_m_b3_norm
+        (ABXCB[1] * AB[2] * dist * sin_a * sin_t * inv_a_m_b3_norm
          + ABXCB[1] * a_m_b * dist * sin_a * sin_t
                * (-(ABXCB[0] * (-2 * A[1] + 2 * C[1])
                     - ABXCB[1] * (-2 * A[0] + 2 * C[0]))
@@ -520,13 +477,10 @@ struct build_coordinate {
          + cos_t * dist * sin_a * (ABXCB[0] - AB[2] * (-A[1] + C[1]))
                * inv_a_m_b2_norm
          + cos_t * dist * sin_a * (2 * A[2] - 2 * B[2])
-               * (-ABXCB[0] * AB[2] + ABXCB[2] * AB[0])
-               * inv_a_m_b4_norm
-         + dist * sin_a * sin_t * (A[0] - C[0])
-               * inv_a_m_b_norm);
+               * (-ABXCB[0] * AB[2] + ABXCB[2] * AB[0]) * inv_a_m_b4_norm
+         + dist * sin_a * sin_t * (A[0] - C[0]) * inv_a_m_b_norm);
     dcoord.dgp(2, 2) =
-        (ABXCB[2] * AB[2] * dist * sin_a * sin_t
-             * inv_a_m_b3_norm
+        (ABXCB[2] * AB[2] * dist * sin_a * sin_t * inv_a_m_b3_norm
          + ABXCB[2] * a_m_b * dist * sin_a * sin_t
                * (-(ABXCB[0] * (-2 * A[1] + 2 * C[1])
                     - ABXCB[1] * (-2 * A[0] + 2 * C[0]))
@@ -544,8 +498,7 @@ struct build_coordinate {
                * (AB[0] * (-A[0] + C[0]) + AB[1] * (-A[1] + C[1]))
                * inv_a_m_b2_norm
          + cos_t * dist * sin_a * (2 * A[2] - 2 * B[2])
-               * (ABXCB[0] * AB[1] - ABXCB[1] * AB[0])
-               * inv_a_m_b4_norm
+               * (ABXCB[0] * AB[1] - ABXCB[1] * AB[0]) * inv_a_m_b4_norm
          - cos_a * dist * inv_a_m_b);
 
     dcoord.dggp(0, 0) =
@@ -564,10 +517,8 @@ struct build_coordinate {
              * (-ABXCB[1] * (-2 * A[2] + 2 * B[2])
                 + ABXCB[2] * (-2 * A[1] + 2 * B[1]))
              * inv_two_a_m_b_abxcb2_norm
-         - AB[0] * AB[1] * cos_t * dist * sin_a
-               * inv_a_m_b2_norm
-         + AB[2] * dist * sin_a * sin_t
-               * inv_a_m_b_norm
+         - AB[0] * AB[1] * cos_t * dist * sin_a * inv_a_m_b2_norm
+         + AB[2] * dist * sin_a * sin_t * inv_a_m_b_norm
          - cos_t * dist * sin_a * (-ABXCB[0] * AB[2] + ABXCB[2] * AB[0])
                * (-ABXCB[1] * (-2 * A[2] + 2 * B[2])
                   + ABXCB[2] * (-2 * A[1] + 2 * B[1]))
@@ -577,10 +528,8 @@ struct build_coordinate {
              * (-ABXCB[1] * (-2 * A[2] + 2 * B[2])
                 + ABXCB[2] * (-2 * A[1] + 2 * B[1]))
              * inv_two_a_m_b_abxcb2_norm
-         - AB[0] * AB[2] * cos_t * dist * sin_a
-               * inv_a_m_b2_norm
-         - AB[1] * dist * sin_a * sin_t
-               * inv_a_m_b_norm
+         - AB[0] * AB[2] * cos_t * dist * sin_a * inv_a_m_b2_norm
+         - AB[1] * dist * sin_a * sin_t * inv_a_m_b_norm
          - cos_t * dist * sin_a * (ABXCB[0] * AB[1] - ABXCB[1] * AB[0])
                * (-ABXCB[1] * (-2 * A[2] + 2 * B[2])
                   + ABXCB[2] * (-2 * A[1] + 2 * B[1]))
@@ -590,10 +539,8 @@ struct build_coordinate {
              * (ABXCB[0] * (-2 * A[2] + 2 * B[2])
                 + ABXCB[2] * (2 * A[0] - 2 * B[0]))
              * inv_two_a_m_b_abxcb2_norm
-         - AB[0] * AB[1] * cos_t * dist * sin_a
-               * inv_a_m_b2_norm
-         - AB[2] * dist * sin_a * sin_t
-               * inv_a_m_b_norm
+         - AB[0] * AB[1] * cos_t * dist * sin_a * inv_a_m_b2_norm
+         - AB[2] * dist * sin_a * sin_t * inv_a_m_b_norm
          + cos_t * dist * sin_a
                * (ABXCB[0] * (-2 * A[2] + 2 * B[2])
                   + ABXCB[2] * (2 * A[0] - 2 * B[0]))
@@ -615,10 +562,8 @@ struct build_coordinate {
              * (ABXCB[0] * (-2 * A[2] + 2 * B[2])
                 + ABXCB[2] * (2 * A[0] - 2 * B[0]))
              * inv_two_a_m_b_abxcb2_norm
-         + AB[0] * dist * sin_a * sin_t
-               * inv_a_m_b_norm
-         - AB[1] * AB[2] * cos_t * dist * sin_a
-               * inv_a_m_b2_norm
+         + AB[0] * dist * sin_a * sin_t * inv_a_m_b_norm
+         - AB[1] * AB[2] * cos_t * dist * sin_a * inv_a_m_b2_norm
          - cos_t * dist * sin_a * (ABXCB[0] * AB[1] - ABXCB[1] * AB[0])
                * (ABXCB[0] * (-2 * A[2] + 2 * B[2])
                   + ABXCB[2] * (2 * A[0] - 2 * B[0]))
@@ -628,10 +573,8 @@ struct build_coordinate {
              * (ABXCB[0] * (2 * A[1] - 2 * B[1])
                 - ABXCB[1] * (2 * A[0] - 2 * B[0]))
              * inv_two_a_m_b_abxcb2_norm
-         - AB[0] * AB[2] * cos_t * dist * sin_a
-               * inv_a_m_b2_norm
-         + AB[1] * dist * sin_a * sin_t
-               * inv_a_m_b_norm
+         - AB[0] * AB[2] * cos_t * dist * sin_a * inv_a_m_b2_norm
+         + AB[1] * dist * sin_a * sin_t * inv_a_m_b_norm
          + cos_t * dist * sin_a
                * (ABXCB[0] * (2 * A[1] - 2 * B[1])
                   - ABXCB[1] * (2 * A[0] - 2 * B[0]))
@@ -642,10 +585,8 @@ struct build_coordinate {
              * (ABXCB[0] * (2 * A[1] - 2 * B[1])
                 - ABXCB[1] * (2 * A[0] - 2 * B[0]))
              * inv_two_a_m_b_abxcb2_norm
-         - AB[0] * dist * sin_a * sin_t
-               * inv_a_m_b_norm
-         - AB[1] * AB[2] * cos_t * dist * sin_a
-               * inv_a_m_b2_norm
+         - AB[0] * dist * sin_a * sin_t * inv_a_m_b_norm
+         - AB[1] * AB[2] * cos_t * dist * sin_a * inv_a_m_b2_norm
          - cos_t * dist * sin_a * (-ABXCB[0] * AB[2] + ABXCB[2] * AB[0])
                * (ABXCB[0] * (2 * A[1] - 2 * B[1])
                   - ABXCB[1] * (2 * A[0] - 2 * B[0]))

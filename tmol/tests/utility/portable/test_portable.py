@@ -1,4 +1,4 @@
-"""Guards for the portable math layer shared with the (future) Metal backend.
+"""Guards for the portable math layer shared with the Metal backend.
 
 These compile C++ in a subprocess rather than going through a pybind module:
 what they assert is a property of the *headers* -- that tmol's kernel-evaluated
@@ -86,12 +86,8 @@ def test_tensor_dependent_math_does_not_reach_eigen(tmp_path):
 def test_guard_trips_when_eigen_is_reintroduced(tmp_path):
     """The guard must actually fail -- a guard that cannot fail proves nothing."""
     src = tmp_path / "regressed.cc"
-    src.write_text(
-        "#include <Eigen/Core>\n" + (HERE / "portable_cone.cc").read_text()
-    )
-    proc = _compile(
-        src, tmp_path / "regressed", includes=[POISON]
-    )
+    src.write_text("#include <Eigen/Core>\n" + (HERE / "portable_cone.cc").read_text())
+    proc = _compile(src, tmp_path / "regressed", includes=[POISON])
     assert proc.returncode != 0
     assert "must stay portable" in proc.stderr
 
