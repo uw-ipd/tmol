@@ -1164,7 +1164,9 @@ def atom_array_from_pose_stack(
     Args:
         pose_stack: Pose stack to convert.
         co: Canonical ordering used for conversion. Provide the ordering that
-            was used when ligands or custom residue types are present.
+            was used when ligands or custom residue types are present. By
+            default it is built from the pose's own chemical database when
+            the pose holds types outside the standard ordering.
         merge_fragments: Restore fragmented ligands to their original residue
             identity. Set to False to keep fragment residues separate.
         include_virtual_atoms: Also write virtual atoms, such as a metal's
@@ -1179,7 +1181,7 @@ def atom_array_from_pose_stack(
         coordination typed COORDINATION.
     """
     if co is None:
-        co = canonical_ordering_for_biotite()
+        co = _canonical_ordering_for_pose_stack(pose_stack)
     cf = canonical_form_from_pose_stack(co, pose_stack)
     structure, block_for_atom = _biotite_from_canonical_form(
         cf, co, include_virtual_atoms
@@ -1204,6 +1206,20 @@ def atom_array_from_pose_stack(
 
         structure = recombine_fragmented_ligands(structure, pose_stack)
     return _renumbered_for_cif(structure)
+
+
+def _canonical_ordering_for_pose_stack(pose_stack: PoseStack) -> CanonicalOrdering:
+    """Default Biotite ordering, or one built from the pose's own chemical database.
+
+    Generated ligand and custom residue types are absent from the default
+    ordering, but the pose's packed block types carry the database they came from.
+    """
+    co = canonical_ordering_for_biotite()
+    known = set(co.restype_io_equiv_classes)
+    block_types = pose_stack.packed_block_types.active_block_types
+    if all(bt.io_equiv_class in known for bt in block_types):
+        return co
+    return CanonicalOrdering.from_chemdb(pose_stack.packed_block_types.chem_db)
 
 
 def _with_metals_rejoined(structure, block_for_atom, origins):
