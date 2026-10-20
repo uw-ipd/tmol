@@ -6,9 +6,6 @@
 
 #include <cooperative_groups.h>
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
-
 tmol::TPack<float, 1, tmol::Device::CUDA> gpu_warp_segreduce_full(
     tmol::TView<float, 1, tmol::Device::CUDA> values,
     tmol::TView<int, 1, tmol::Device::CUDA> flags) {
