@@ -480,8 +480,10 @@ so Colab downloads them;</p></li>
 <li><p>carry an Open In Colab badge linking to itself, and the <code class="docutils literal notranslate"><span class="pre">accelerator:</span> <span class="pre">GPU</span></code>
 notebook metadata. <code class="docutils literal notranslate"><span class="pre">smoke_tutorial_notebooks.py</span></code> rejects a notebook without
 them;</p></li>
-<li><p>opt into the CUDA smoke run in CI with <code class="docutils literal notranslate"><span class="pre">&quot;tmol&quot;:</span> <span class="pre">{&quot;gpu_smoke&quot;:</span> <span class="pre">true}</span></code> in the
-notebook metadata. Tag cells that need a GPU with <code class="docutils literal notranslate"><span class="pre">gpu-only</span></code>.</p></li>
+<li><p>set <code class="docutils literal notranslate"><span class="pre">&quot;tmol&quot;:</span> <span class="pre">{&quot;gpu_smoke&quot;:</span> <span class="pre">true}</span></code> in the notebook metadata. Every tutorial
+runs on CUDA in CI as well as on CPU, because CPU-only runs hide
+device-mismatch bugs; a test enforces it. Tag cells that need a GPU with
+<code class="docutils literal notranslate"><span class="pre">gpu-only</span></code>.</p></li>
 </ul>
 </section>
 </section>
