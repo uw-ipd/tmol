@@ -46,10 +46,10 @@ four-atom torsions.
 
 ## Missing side chains and hydrogens
 
-`pose_stack_from_biotite()` automatically routes blocks with missing heavy atoms
-through `build_missing_sidechains()`. With the default `no_optH=True`, it
-preserves finite supplied protein hydrogens and builds missing atoms. Pass
-`no_optH=False` to optimize supported hydrogen positions and NHQ flips.
+`pose_stack_from_atom_array()` automatically routes blocks with missing heavy
+atoms through `build_missing_sidechains()`. By default it also optimizes
+supported hydrogen positions and NHQ flips. Pass `no_optH=True` to preserve
+finite supplied protein hydrogens and build only missing atoms.
 
 For standard residues and the default parameter database, TMol automatically
 reuses the structure-independent construction and packing setup. If many
@@ -57,11 +57,10 @@ structures share prepared ligand definitions, explicitly reuse a
 `PoseBuildContext` as described in the ligand guide.
 
 ```python
-pose_stack = pose_stack_from_biotite(
+pose_stack = pose_stack_from_atom_array(
     structure,
     device,
     prepare_ligands=True,
-    no_optH=False,
 )
 ```
 
@@ -144,4 +143,4 @@ execution remains eager.
 
 ## Examples and reference
 
-{doc}`Minimization tutorial </tutorial/05_minimization_constraints_kinematics>` · {doc}`FastRelax tutorial </tutorial/06_fast_relax>` · {doc}`Optimization API </api/optimization>` · {doc}`Kinematics API </api/kinematics>`
+{doc}`Scoring and optimization tutorial </tutorial/02_scoring_and_optimization>` · {doc}`Advanced kinematics </tutorial/07_advanced_kinematics>` · {doc}`Optimization API </api/optimization>` · {doc}`Kinematics API </api/kinematics>`

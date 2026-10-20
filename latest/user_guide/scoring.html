@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=a395f30a"></script>
+    <script src="../_static/documentation_options.js?v=938c9ccc"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -60,7 +60,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.64" />
+  <meta name="docsearch:version" content="0.2.0" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -485,12 +485,12 @@
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">tmol</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_array_from_file</span><span class="p">,</span> <span class="n">pose_stack_from_biotite</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_array_from_file</span><span class="p">,</span> <span class="n">pose_stack_from_atom_array</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
 
 <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cuda"</span> <span class="k">if</span> <span class="n">tmol</span><span class="o">.</span><span class="n">has_cuda</span><span class="p">()</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">"cpu"</span><span class="p">)</span>
 <span class="n">structure</span> <span class="o">=</span> <span class="n">atom_array_from_file</span><span class="p">(</span><span class="s2">"1ubq.cif"</span><span class="p">)</span>
-<span class="n">pose_stack</span> <span class="o">=</span> <span class="n">pose_stack_from_biotite</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+<span class="n">pose_stack</span> <span class="o">=</span> <span class="n">pose_stack_from_atom_array</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
 
 <span class="n">sfxn</span> <span class="o">=</span> <span class="n">beta2016_score_function</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 <span class="n">scorer</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
@@ -593,7 +593,7 @@ adds overhead and changes the system by removing inter-fragment connections.</p>
 </section>
 <section id="examples-and-reference">
 <h2>Examples and reference<a class="headerlink" href="#examples-and-reference" title="Link to this heading">#</a></h2>
-<p><a class="reference internal" href="../tutorial/03_scoring_and_analysis.html"><span class="doc">Scoring tutorial</span></a> · <a class="reference internal" href="../api/score.html"><span class="doc">Scoring API</span></a> · <a class="reference internal" href="../api/score_terms.html"><span class="doc">Score terms</span></a></p>
+<p><a class="reference internal" href="../tutorial/02_scoring_and_optimization.html"><span class="doc">Scoring tutorial</span></a> · <a class="reference internal" href="../api/score.html"><span class="doc">Scoring API</span></a> · <a class="reference internal" href="../api/score_terms.html"><span class="doc">Score terms</span></a></p>
 </section>
 </section>
 

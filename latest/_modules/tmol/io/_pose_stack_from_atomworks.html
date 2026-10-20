@@ -38,7 +38,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=a395f30a"></script>
+    <script src="../../../_static/documentation_options.js?v=938c9ccc"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.64" />
+  <meta name="docsearch:version" content="0.2.0" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -409,9 +409,6 @@
     
     <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../io.html" class="nav-link">tmol.io</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.io._pose_stack_from_atomworks</span></li>
   </ul>
 </nav>
@@ -555,7 +552,7 @@
 <span class="sd">    over atomized inputs, where the same fixed topology is scored repeatedly as</span>
 <span class="sd">    coordinates move.</span>
 
-<span class="sd">    Build ``context`` once with :func:`build_context_from_biotite` (with</span>
+<span class="sd">    Build ``context`` once with :func:`build_context_from_atom_array` (with</span>
 <span class="sd">    ``prepare_ligands=True`` when ligands are present). For repeated diffusion</span>
 <span class="sd">    or search steps, bind the topology once with</span>
 <span class="sd">    :func:`prepare_atom37_pose_builder` and call the returned builder with</span>
@@ -578,22 +575,22 @@
 <span class="sd">    biotite_structure : biotite AtomArray</span>
 <span class="sd">        Reference topology carrying ``token_id`` and ``atom37_slot`` annotations.</span>
 <span class="sd">    context : PoseBuildContext</span>
-<span class="sd">        Structure-independent context from :func:`build_context_from_biotite`.</span>
+<span class="sd">        Structure-independent context from :func:`build_context_from_atom_array`.</span>
 <span class="sd">    no_optH : bool</span>
 <span class="sd">        Preserve finite input hydrogens and leave newly built hydrogens at ideal</span>
 <span class="sd">        positions when True (default). Pass False to run TMol's hydrogen</span>
 <span class="sd">        optimization pipeline.</span>
 <span class="sd">    **kwargs</span>
-<span class="sd">        Additional arguments forwarded to ``pose_stack_from_biotite``.</span>
+<span class="sd">        Additional arguments forwarded to ``pose_stack_from_atom_array``.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    PoseStack</span>
 <span class="sd">        Whose ``coords`` carry gradients back to ``atom37_coords``.</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_biotite</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_atom_array</span>
 
-    <span class="k">return</span> <span class="n">pose_stack_from_biotite</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">pose_stack_from_atom_array</span><span class="p">(</span>
         <span class="n">biotite_structure</span><span class="p">,</span>
         <span class="n">atom37_coords</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
         <span class="n">context</span><span class="o">=</span><span class="n">context</span><span class="p">,</span>

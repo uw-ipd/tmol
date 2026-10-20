@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=a395f30a"></script>
+    <script src="../_static/documentation_options.js?v=938c9ccc"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -60,7 +60,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.64" />
+  <meta name="docsearch:version" content="0.2.0" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -504,15 +504,14 @@ atoms at NaN:</p>
 </pre></div>
 </div>
 <p>Use <code class="docutils literal notranslate"><span class="pre">atom_array_from_file()</span></code> to inspect or select the parsed topology before
-passing it to <code class="docutils literal notranslate"><span class="pre">pose_stack_from_biotite()</span></code>. An existing AtomWorks or Biotite array
-uses that same constructor. Preserve its bond table and chemical annotations
-when selecting atoms. <code class="docutils literal notranslate"><span class="pre">pose_stack_from_pdb()</span></code> retains the PDB filename/lines,
-residue-slicing and supplied-hydrogen compatibility policy.</p>
+passing it to <code class="docutils literal notranslate"><span class="pre">pose_stack_from_atom_array()</span></code>. An existing AtomWorks or Biotite
+array uses that same constructor. Preserve its bond table and chemical
+annotations when selecting atoms.</p>
 <p>Parsing marks unresolved atoms; TMol reconstructs supported missing coordinates
 from chemical construction frames. An unresolved backbone or an underdetermined
 ligand requires an explicit input policy or additional geometry. The score
 function must use the pose’s device and prepared parameter database. See
-<a class="reference internal" href="../tutorial/07_ligand_and_params.html"><span class="doc">07 — Ligands and Parameter Files</span></a> for
+<a class="reference internal" href="../tutorial/04_ligands_and_ncaas.html"><span class="doc">Ligands and NCAAs</span></a> for
 preparation, strict errors and reusable parameter bundles.</p>
 </section>
 <section id="direct-prediction-tensors">
@@ -575,7 +574,7 @@ steps:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">build_context_from_biotite</span><span class="p">,</span>
+    <span class="n">build_context_from_atom_array</span><span class="p">,</span>
     <span class="n">prepare_atom37_pose_builder</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
@@ -584,7 +583,7 @@ steps:</p>
 <span class="c1"># integer array from the same unified encoding; use -1 for an unmapped atom.</span>
 <span class="n">atom_array</span><span class="o">.</span><span class="n">set_annotation</span><span class="p">(</span><span class="s2">"atom37_slot"</span><span class="p">,</span> <span class="n">atom37_slots</span><span class="p">)</span>
 
-<span class="n">context</span> <span class="o">=</span> <span class="n">build_context_from_biotite</span><span class="p">(</span>
+<span class="n">context</span> <span class="o">=</span> <span class="n">build_context_from_atom_array</span><span class="p">(</span>
     <span class="n">atom_array</span><span class="p">,</span>
     <span class="n">atom37_coords</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
     <span class="n">prepare_ligands</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>

@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=a395f30a"></script>
+    <script src="../_static/documentation_options.js?v=938c9ccc"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -60,7 +60,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.64" />
+  <meta name="docsearch:version" content="0.2.0" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -520,19 +520,18 @@ four-atom torsions.</p>
 </section>
 <section id="missing-side-chains-and-hydrogens">
 <h2>Missing side chains and hydrogens<a class="headerlink" href="#missing-side-chains-and-hydrogens" title="Link to this heading">#</a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">pose_stack_from_biotite()</span></code> automatically routes blocks with missing heavy atoms
-through <code class="docutils literal notranslate"><span class="pre">build_missing_sidechains()</span></code>. With the default <code class="docutils literal notranslate"><span class="pre">no_optH=True</span></code>, it
-preserves finite supplied protein hydrogens and builds missing atoms. Pass
-<code class="docutils literal notranslate"><span class="pre">no_optH=False</span></code> to optimize supported hydrogen positions and NHQ flips.</p>
+<p><code class="docutils literal notranslate"><span class="pre">pose_stack_from_atom_array()</span></code> automatically routes blocks with missing heavy
+atoms through <code class="docutils literal notranslate"><span class="pre">build_missing_sidechains()</span></code>. By default it also optimizes
+supported hydrogen positions and NHQ flips. Pass <code class="docutils literal notranslate"><span class="pre">no_optH=True</span></code> to preserve
+finite supplied protein hydrogens and build only missing atoms.</p>
 <p>For standard residues and the default parameter database, TMol automatically
 reuses the structure-independent construction and packing setup. If many
 structures share prepared ligand definitions, explicitly reuse a
 <code class="docutils literal notranslate"><span class="pre">PoseBuildContext</span></code> as described in the ligand guide.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pose_stack</span> <span class="o">=</span> <span class="n">pose_stack_from_biotite</span><span class="p">(</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pose_stack</span> <span class="o">=</span> <span class="n">pose_stack_from_atom_array</span><span class="p">(</span>
     <span class="n">structure</span><span class="p">,</span>
     <span class="n">device</span><span class="p">,</span>
     <span class="n">prepare_ligands</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">no_optH</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -607,7 +606,7 @@ execution remains eager.</p>
 </section>
 <section id="examples-and-reference">
 <h2>Examples and reference<a class="headerlink" href="#examples-and-reference" title="Link to this heading">#</a></h2>
-<p><a class="reference internal" href="../tutorial/05_minimization_constraints_kinematics.html"><span class="doc">Minimization tutorial</span></a> · <a class="reference internal" href="../tutorial/06_fast_relax.html"><span class="doc">FastRelax tutorial</span></a> · <a class="reference internal" href="../api/optimization.html"><span class="doc">Optimization API</span></a> · <a class="reference internal" href="../api/kinematics.html"><span class="doc">Kinematics API</span></a></p>
+<p><a class="reference internal" href="../tutorial/02_scoring_and_optimization.html"><span class="doc">Scoring and optimization tutorial</span></a> · <a class="reference internal" href="../tutorial/07_advanced_kinematics.html"><span class="doc">Advanced kinematics</span></a> · <a class="reference internal" href="../api/optimization.html"><span class="doc">Optimization API</span></a> · <a class="reference internal" href="../api/kinematics.html"><span class="doc">Kinematics API</span></a></p>
 </section>
 </section>
 

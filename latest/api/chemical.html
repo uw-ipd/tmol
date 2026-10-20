@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=a395f30a"></script>
+    <script src="../_static/documentation_options.js?v=938c9ccc"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -60,7 +60,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.64" />
+  <meta name="docsearch:version" content="0.2.0" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -545,6 +545,14 @@ contiguous).</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="tmol.chemical.chemical_bond_orders">
+<span class="sig-prename descclassname"><span class="pre">tmol.chemical.</span></span><span class="sig-name descname"><span class="pre">chemical_bond_orders</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chem_db</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/chemical/_bond_orders.html#chemical_bond_orders"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.chemical.chemical_bond_orders" title="Link to this definition">#</a></dt>
+<dd><p>One Lewis structure for a block type’s bonds, by atom-name pair: io_bond_orders,
+then non-ring AROMATIC: one double to a terminal heteroatom per atom, rest single.
+Ring AROMATIC bonds stay AROMATIC.</p>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="tmol.chemical.frame_from_coords">
 <span class="sig-prename descclassname"><span class="pre">tmol.chemical.</span></span><span class="sig-name descname"><span class="pre">frame_from_coords</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="types.html#tmol.types.NDArray" title="tmol.types._array.NDArray"><span class="pre">NDArray</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">p2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="types.html#tmol.types.NDArray" title="tmol.types._array.NDArray"><span class="pre">NDArray</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">p3</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="types.html#tmol.types.NDArray" title="tmol.types._array.NDArray"><span class="pre">NDArray</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="types.html#tmol.types.NDArray" title="tmol.types._array.NDArray"><span class="pre">NDArray</span></a><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">4</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">4</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/tmol/chemical/_ideal_coords.html#frame_from_coords"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.chemical.frame_from_coords" title="Link to this definition">#</a></dt>
 <dd><p>Construct a homogeneous frame from three Cartesian points.</p>
@@ -637,6 +645,7 @@ or None if not a valid three-letter code</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.chemical.bonds_and_bond_ranges"><code class="docutils literal notranslate"><span class="pre">bonds_and_bond_ranges()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.chemical.build_coords_from_icoors"><code class="docutils literal notranslate"><span class="pre">build_coords_from_icoors()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.chemical.build_ideal_coords"><code class="docutils literal notranslate"><span class="pre">build_ideal_coords()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.chemical.chemical_bond_orders"><code class="docutils literal notranslate"><span class="pre">chemical_bond_orders()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.chemical.frame_from_coords"><code class="docutils literal notranslate"><span class="pre">frame_from_coords()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.chemical.one2three"><code class="docutils literal notranslate"><span class="pre">one2three()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.chemical.three2one"><code class="docutils literal notranslate"><span class="pre">three2one()</span></code></a></li>

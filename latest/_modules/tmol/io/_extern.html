@@ -38,7 +38,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=a395f30a"></script>
+    <script src="../../../_static/documentation_options.js?v=938c9ccc"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.64" />
+  <meta name="docsearch:version" content="0.2.0" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -409,9 +409,6 @@
     
     <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../io.html" class="nav-link">tmol.io</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.io._extern</span></li>
   </ul>
 </nav>
@@ -439,6 +436,16 @@
 <span class="w">    </span><span class="sd">"""Download a PDB-format structure from the RCSB Protein Data Bank."""</span>
     <span class="k">return</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
         <span class="s2">"https://files.rcsb.org/download/</span><span class="si">%s</span><span class="s2">.pdb"</span> <span class="o">%</span> <span class="nb">str</span><span class="o">.</span><span class="n">upper</span><span class="p">(</span><span class="n">pdbid</span><span class="p">)</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">text</span></div>
+
+
+
+<div class="viewcode-block" id="fetch_cif">
+<a class="viewcode-back" href="../../../api/io.html#tmol.io.fetch_cif">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">fetch_cif</span><span class="p">(</span><span class="n">pdbid</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Download a CIF-format structure from the RCSB Protein Data Bank."""</span>
+    <span class="k">return</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+        <span class="s2">"https://files.rcsb.org/download/</span><span class="si">%s</span><span class="s2">.cif"</span> <span class="o">%</span> <span class="nb">str</span><span class="o">.</span><span class="n">upper</span><span class="p">(</span><span class="n">pdbid</span><span class="p">)</span>
     <span class="p">)</span><span class="o">.</span><span class="n">text</span></div>
 
 </pre></div>

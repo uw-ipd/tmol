@@ -38,7 +38,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=a395f30a"></script>
+    <script src="../../../_static/documentation_options.js?v=938c9ccc"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.64" />
+  <meta name="docsearch:version" content="0.2.0" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -449,7 +449,12 @@
     <span class="n">PoseStackKinematicsModule</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._util</span><span class="w"> </span><span class="kn">import</span> <span class="n">_measure_torsions</span><span class="p">,</span> <span class="n">_resolve_uaid</span><span class="p">,</span> <span class="n">_torsion_requests</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._util</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">_measure_torsions</span><span class="p">,</span>
+    <span class="n">_resolve_uaid</span><span class="p">,</span>
+    <span class="n">_torsion_requests</span><span class="p">,</span>
+    <span class="n">residue_label</span><span class="p">,</span>
+<span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_controlling_kfo_node</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">kmd</span><span class="p">,</span> <span class="n">kfo_for_atom</span><span class="p">,</span> <span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">tor_ind</span><span class="p">):</span>
@@ -468,6 +473,30 @@
     <span class="k">if</span> <span class="n">flat_atom</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
         <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
     <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">kfo_for_atom</span><span class="p">[</span><span class="n">flat_atom</span><span class="p">])</span>
+
+
+<div class="viewcode-block" id="torsion_labels">
+<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.torsion_labels">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">torsion_labels</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">kin_module</span><span class="p">,</span> <span class="n">pose</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Labels and kinforest nodes for the named torsions of one pose driven by a bond phi_c."""</span>
+    <span class="n">kmd</span> <span class="o">=</span> <span class="n">kin_module</span><span class="o">.</span><span class="n">kmd</span>
+    <span class="n">ids</span> <span class="o">=</span> <span class="n">kmd</span><span class="o">.</span><span class="n">forest</span><span class="o">.</span><span class="n">id</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">kfo_for_atom</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span> <span class="o">*</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_pose_atoms</span><span class="p">,),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span>
+    <span class="p">)</span>
+    <span class="n">kfo_for_atom</span><span class="p">[</span><span class="n">ids</span><span class="o">.</span><span class="n">cpu</span><span class="p">()]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ids</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">labels</span><span class="p">,</span> <span class="n">nodes</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">tor_ind</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">_torsion_requests</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">pose</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="n">_controlling_kfo_node</span><span class="p">(</span>
+            <span class="n">pose_stack</span><span class="p">,</span> <span class="n">kmd</span><span class="p">,</span> <span class="n">kfo_for_atom</span><span class="p">,</span> <span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">tor_ind</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">node</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">or</span> <span class="n">kmd</span><span class="o">.</span><span class="n">forest</span><span class="o">.</span><span class="n">doftype</span><span class="p">[</span><span class="n">node</span><span class="p">]</span> <span class="o">!=</span> <span class="n">NodeType</span><span class="o">.</span><span class="n">bond</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">residue_label</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span><span class="w"> </span><span class="n">pose</span><span class="p">,</span><span class="w"> </span><span class="n">block</span><span class="p">)</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">nodes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">labels</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">nodes</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span></div>
+
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_apply_torsion_deltas</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">requests</span><span class="p">,</span> <span class="n">deltas</span><span class="p">,</span> <span class="n">fold_forest</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
