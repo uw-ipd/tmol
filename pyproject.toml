@@ -21,7 +21,7 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
-version = "0.1.64"
+version = "0.2.0"
 
 dependencies = [
     # Core ML framework.
@@ -64,8 +64,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-cu12 = ["tmol-ops-cu12==0.1.64"]
-cu13 = ["tmol-ops-cu13==0.1.64"]
+cu12 = ["tmol-ops-cu12==0.2.0"]
+cu13 = ["tmol-ops-cu13==0.2.0"]
 dev = [
     # Linters & formatters
     # Keep formatter and linter pins in sync with .pre-commit-config.yaml.
