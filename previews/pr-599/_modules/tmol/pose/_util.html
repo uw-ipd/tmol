@@ -480,6 +480,29 @@
 
 
 
+<div class="viewcode-block" id="residue_label">
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.residue_label">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">residue_label</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">pose</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">block</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">""" "chain resnum name3" for one block."""</span>
+    <span class="n">info</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span>
+    <span class="n">name3</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type</span><span class="p">(</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">)</span><span class="o">.</span><span class="n">name3</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">info</span><span class="o">.</span><span class="n">chain_labels</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span><span class="w"> </span><span class="n">block</span><span class="p">]</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">info</span><span class="o">.</span><span class="n">residue_labels</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span><span class="w"> </span><span class="n">block</span><span class="p">])</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">name3</span><span class="si">}</span><span class="s2">"</span></div>
+
+
+
+<div class="viewcode-block" id="atom_label">
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.atom_label">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">atom_label</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">pose</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">atom</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">""" "chain resnum name3 atom" for a per-pose atom index."""</span>
+    <span class="n">real</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">[</span><span class="n">pose</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+    <span class="n">offsets</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset64</span><span class="p">[</span><span class="n">pose</span><span class="p">]</span>
+    <span class="n">block</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(((</span><span class="n">offsets</span> <span class="o">&lt;=</span> <span class="n">atom</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">real</span><span class="p">)</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">local</span> <span class="o">=</span> <span class="n">atom</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="n">offsets</span><span class="p">[</span><span class="n">block</span><span class="p">])</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type</span><span class="p">(</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">)</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="n">local</span><span class="p">]</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">residue_label</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span><span class="w"> </span><span class="n">pose</span><span class="p">,</span><span class="w"> </span><span class="n">block</span><span class="p">)</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span></div>
+
+
+
 <div class="viewcode-block" id="block_for_residue_label">
 <a class="viewcode-back" href="../../../api/pose.html#tmol.pose.block_for_residue_label">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">block_for_residue_label</span><span class="p">(</span>
