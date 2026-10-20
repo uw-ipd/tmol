@@ -28,6 +28,7 @@ def build_kinforest_network(
     ff: FoldForest,
     mm: MoveMap,
     verbose: bool = False,
+    cuda_graph: bool | str = False,
     kin_dtype: torch.dtype = torch.float32,
 ) -> KinForestSfxnNetwork:
     """Build a differentiable kinematic scoring network for a pose stack.
@@ -38,6 +39,8 @@ def build_kinforest_network(
         ff: Fold forest defining the kinematic tree.
         mm: Internal-coordinate degrees of freedom allowed to move.
         verbose: Print synchronized setup timings.
+        cuda_graph: Capture the fixed-shape CUDA DOF-to-score path; see
+            :class:`KinForestSfxnNetwork`.
         kin_dtype: Floating-point dtype for kinematic degrees of freedom.
 
     Returns:
@@ -61,7 +64,14 @@ def build_kinforest_network(
     end_time2 = time.perf_counter()
 
     kf_network = KinForestSfxnNetwork(
-        sfxn, pose_stack, kin_module, minimizer_map.dof_mask, kin_dtype=kin_dtype
+        sfxn,
+        pose_stack,
+        kin_module,
+        minimizer_map.dof_mask,
+        kin_dtype=kin_dtype,
+        cuda_graph=cuda_graph,
+        fold_forest=ff,
+        move_map=mm,
     )
     if verbose:
         synchronize_device(pose_stack.device)
@@ -162,6 +172,7 @@ def run_kin_min(
     optimizer_cls: type[torch.optim.Optimizer] = LBFGS_Armijo,
     optimizer_kwargs: dict[str, object] | None = None,
     verbose: bool = False,
+    cuda_graph: bool = False,
     kin_dtype: torch.dtype = torch.float32,
 ) -> PoseStack:
     """Run minimization on a PoseStack in internal DOF space.
@@ -176,20 +187,105 @@ def run_kin_min(
         optimizer_cls: Closure-based PyTorch optimizer class.
         optimizer_kwargs: Optional optimizer constructor arguments.
         verbose: Print synchronized setup and minimization timings.
+        cuda_graph: Capture the fixed-shape CUDA DOF-to-score forward/backward
+            path.
         kin_dtype: Floating-point dtype for kinematic degrees of freedom.
 
     Returns:
         A new pose stack containing the minimized coordinates.
     """
-    kf_network = build_kinforest_network(
-        pose_stack, sfxn, ff, mm, verbose, kin_dtype=kin_dtype
-    )
-    return run_min(
-        kf_network,
+    return KinematicMinimizer(cuda_graph=cuda_graph, kin_dtype=kin_dtype)(
+        pose_stack,
+        sfxn,
+        ff,
+        mm,
         optimizer_cls=optimizer_cls,
         optimizer_kwargs=optimizer_kwargs,
         verbose=verbose,
     )
+
+
+class KinematicMinimizer:
+    """Reusable Kinematic minimizer for pose stacks with stable topology.
+
+    Rendering a score function builds topology-dependent tensors and, when
+    requested, captures a CUDA graph.  Those are setup costs rather than part
+    of the numerical minimization.  This class retains that rendered network
+    across calls and resets only its coordinates when the score function,
+    topology, shape, and coordinate mask remain compatible.
+
+    Create one instance per reusable workflow.  A topology or score-function
+    change is detected automatically and safely rebuilds the network.
+
+    Args:
+        cuda_graph: Capture and replay the fixed-shape CUDA forward/backward
+            DOF-to-score path.  This has a one-time setup and memory cost and
+            requires CUDA, so it is most useful when the instance will be reused.
+        kin_dtype: Floating-point dtype for kinematic degrees of freedom.
+    """
+
+    def __init__(
+        self, cuda_graph: bool | str = False, kin_dtype: torch.dtype = torch.float32
+    ):
+        self.cuda_graph = cuda_graph
+        self.kin_dtype = kin_dtype
+        self.network: KinForestSfxnNetwork | None = None
+        self.optimizer: LBFGS_Armijo | None = None
+        self.last_optimizer_reused = False
+        self._lbfgs_factory = _ReusableLBFGSFactory()
+
+    def release_retained_state(self) -> None:
+        """Release topology-specific scoring and optimizer state.
+
+        The returned pose from :meth:`__call__` owns its coordinates, so callers
+        may drop the rendered scorer, CUDA graph pools, gradients, and L-BFGS
+        history before entering another memory-intensive phase.
+        """
+        self.network = None
+        self.optimizer = None
+        self.last_optimizer_reused = False
+        self._lbfgs_factory.optimizer = None
+        self._lbfgs_factory.parameter = None
+        self._lbfgs_factory.options = None
+        self._lbfgs_factory.last_reused = False
+
+    def __call__(
+        self,
+        pose_stack: PoseStack,
+        sfxn: ScoreFunction,
+        fold_forest: FoldForest,
+        move_map: MoveMap,
+        optimizer_cls: type[torch.optim.Optimizer] = LBFGS_Armijo,
+        optimizer_kwargs: dict[str, object] | None = None,
+        verbose: bool = False,
+    ) -> PoseStack:
+        """Minimize one pose stack, reusing compatible rendered state."""
+
+        if self.network is None or not self.network._reset(
+            sfxn, pose_stack, fold_forest, move_map
+        ):
+            self.network = build_kinforest_network(
+                pose_stack,
+                sfxn,
+                fold_forest,
+                move_map,
+                verbose=verbose,
+                cuda_graph="forward_backward" if self.cuda_graph else False,
+                kin_dtype=self.kin_dtype,
+            )
+
+        selected_optimizer = (
+            self._lbfgs_factory if optimizer_cls is LBFGS_Armijo else optimizer_cls
+        )
+        result = run_min(
+            self.network,
+            optimizer_cls=selected_optimizer,
+            optimizer_kwargs=optimizer_kwargs,
+            verbose=verbose,
+        )
+        self.optimizer = self._lbfgs_factory.optimizer
+        self.last_optimizer_reused = self._lbfgs_factory.last_reused
+        return result
 
 
 class _ReusableLBFGSFactory:

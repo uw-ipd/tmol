@@ -7,6 +7,7 @@ from ._lbfgs_armijo import (  # noqa: F401
 )  # noqa: F401
 from ._minimizers import (  # noqa: F401
     CartesianMinimizer,
+    KinematicMinimizer,
     build_kinforest_network,
     run_cart_min,
     run_kin_min,
@@ -21,5 +22,6 @@ __all__ = [
     "build_kinforest_network",
     "run_cart_min",
     "run_kin_min",
+    "KinematicMinimizer",
     "run_min",
 ]

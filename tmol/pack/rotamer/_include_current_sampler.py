@@ -3,10 +3,7 @@ import attr
 
 from typing import Tuple
 
-from tmol.types import (
-    Tensor,
-    validate_args,
-)
+from tmol.types import Tensor
 from tmol.chemical import RefinedResidueType
 from tmol.pose import (
     PackedBlockTypes,
@@ -24,15 +21,12 @@ class IncludeCurrentSampler(ConformerSampler):
     def sampler_name(cls):
         return "IncludeCurrentSampler"
 
-    @validate_args
     def annotate_residue_type(self, rt: RefinedResidueType):
         pass
 
-    @validate_args
     def annotate_packed_block_types(self, packed_block_types: PackedBlockTypes):
         pass
 
-    @validate_args
     def defines_rotamers_for_rt(self, rt: RefinedResidueType):
         return True
 
@@ -41,7 +35,6 @@ class IncludeCurrentSampler(ConformerSampler):
     ) -> Tensor[torch.bool]:
         return torch.ones_like(bt_inds, dtype=torch.bool)
 
-    @validate_args
     def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
         return (rt.default_jump_connection_atom,)
 
@@ -115,7 +108,6 @@ class IncludeCurrentSampler(ConformerSampler):
         conf_dofs_kto[dst + 1, :] = orig_dofs_kto[src + 1, :]
 
 
-# @validate_args
 def create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampler(
     poses: PoseStack,
     task: "SetPackerTask",  # noqa F821
