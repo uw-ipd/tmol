@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from tmol.optimization import lbfgs_two_loop
+from tmol.optimization._lbfgs_armijo import lbfgs_two_loop
 from tmol.tests import requires_cuda
 
 

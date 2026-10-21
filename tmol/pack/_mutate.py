@@ -1,12 +1,17 @@
 import torch
 
-from tmol.chemical import one2three
+from tmol.chemical._restypes import _one2three
 from tmol.database import ParameterDatabase
-from tmol.pose import PoseStack
-from tmol.score import ScoreFunction, beta2016_score_function
-from tmol.pack import PackerTask, PackerPalette, pack_rotamers
-from tmol.pack.rotamer import FixedAAChiSampler, IncludeCurrentSampler
-from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
+from tmol.pose._pose_stack import PoseStack
+from tmol.score._score_function import ScoreFunction
+from tmol.score import beta2016_score_function
+from tmol.pack._packer_task import PackerTask, PackerPalette
+from tmol.pack._pack_rotamers import pack_rotamers
+from tmol.pack.rotamer._fixed_aa_chi_sampler import FixedAAChiSampler
+from tmol.pack.rotamer._include_current_sampler import IncludeCurrentSampler
+from tmol.pack.rotamer.dunbrack._dunbrack_chi_sampler import (
+    create_dunbrack_sampler_from_database,
+)
 
 
 def _mutate_blocks(
@@ -128,7 +133,7 @@ def mutate_to_sequence(
 
     name3_by_block = {}
     for block, letter in zip(real_blocks, sequence):
-        new_name3 = one2three(letter)
+        new_name3 = _one2three(letter)
         if new_name3 is None:
             raise ValueError(f"{letter!r} is not a valid one-letter amino acid code")
         current_name3 = pbt.active_block_types[int(block_type_ind[block])].name3

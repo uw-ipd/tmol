@@ -15,19 +15,19 @@ from tmol.database.chemical import (
     Connection,
     VariantScope,
     VariantType,
-    ideal_distances,
-    is_metal_cluster,
-    metal_geometry_variant_index,
-    metal_table,
-    special_case_variant_index,
+    _ideal_distances,
+    _is_metal_cluster,
+    _metal_geometry_variant_index,
+    _metal_table,
+    _special_case_variant_index,
 )
 from tmol.io.details._metal_geometry import (
-    best_rotation,
-    choose_geometry,
-    fit_geometry,
-    unit,
+    _best_rotation,
+    _choose_geometry,
+    _fit_geometry,
+    _unit,
 )
-from tmol.pose import PackedBlockTypes
+from tmol.pose._packed_block_types import PackedBlockTypes
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +64,7 @@ class MetalSiteAssignment:
         return len(self.donors)
 
 
-def gather_candidates(
+def _gather_candidates(
     metal_xyz: numpy.ndarray,
     donor_xyz: numpy.ndarray,
     donor_elements: Sequence[str],
@@ -91,7 +91,7 @@ def gather_candidates(
     return keep, excess[keep]
 
 
-def assign_one(
+def _assign_one(
     metal_xyz: numpy.ndarray,
     ion: dict,
     donor_xyz: numpy.ndarray,
@@ -106,10 +106,10 @@ def assign_one(
     and are the last dropped when there are more donors than sites.
     """
     vertices_for = {g["name"]: g["vertices"] for g in table["geometries"]}
-    distances = ideal_distances(ion, table["donor_radii"])
+    distances = _ideal_distances(ion, table["donor_radii"])
     element, ox = ion["element"], ion["oxidation_state"]
 
-    keep, excess = gather_candidates(
+    keep, excess = _gather_candidates(
         metal_xyz, donor_xyz, donor_elements, distances, tolerance, required
     )
     directions = numpy.asarray(donor_xyz, dtype=numpy.float64)[keep] - numpy.asarray(
@@ -119,9 +119,9 @@ def assign_one(
     if geometry is not None:
         how = "declared"
         verts = vertices_for[geometry]
-        fit = fit_geometry(directions, numpy.asarray(verts)) if verts else None
+        fit = _fit_geometry(directions, numpy.asarray(verts)) if verts else None
     else:
-        fit, how = choose_geometry(directions, ion["geometries"], vertices_for)
+        fit, how = _choose_geometry(directions, ion["geometries"], vertices_for)
         geometry = fit.geometry if fit is not None else None
 
     if fit is None and how != "untemplated" and len(keep):
@@ -299,7 +299,7 @@ def _build_canonical_metal_tables(
             metal_atom_index[i] = index_of[sites[0].metal_atom]
             continue
         cluster = next(
-            (r for r in members.get(equiv_class, ()) if is_metal_cluster(r)),
+            (r for r in members.get(equiv_class, ()) if _is_metal_cluster(r)),
             None,
         )
         if cluster is not None:
@@ -340,7 +340,7 @@ def _cluster_sites(res, index_of, atom_type, table):
         first += len(site.site_connections)
     return ClusterSites(
         geometry=res.metal_sites[0].geometry,
-        variant=special_case_variant_index(res),
+        variant=_special_case_variant_index(res),
         metals=tuple(metals),
         metal_atoms=tuple(
             index_of[a.name] for a in res.atoms if a.atom_type in ion_for_atom_type
@@ -471,7 +471,7 @@ def _cluster_assignment(
         if not numpy.isfinite(frame).all() or not len(m.sites):
             rotations.append(None)
             continue
-        distances = ideal_distances(m.ion, table["donor_radii"])
+        distances = _ideal_distances(m.ion, table["donor_radii"])
         reach = max(distances.values()) + tolerance + 1e-3
         near = numpy.linalg.norm(donor_xyz - center, axis=1) <= reach
         order = []
@@ -494,10 +494,10 @@ def _cluster_assignment(
         rotation = _metal_rotation(m, xyz, donor_xyz[order])
         rotations.append(rotation)
         n_frame = 1 + len(m.satisfiers)
-        rays = unit((m.ideal[n_frame:] - m.ideal[0]) @ rotation)
+        rays = _unit((m.ideal[n_frame:] - m.ideal[0]) @ rotation)
         free = list(range(len(m.sites)))
         for i in order:
-            direction = unit(donor_xyz[i] - center)
+            direction = _unit(donor_xyz[i] - center)
             best = max(free, key=lambda k: float(rays[k] @ direction))
             free.remove(best)
             sites.append(m.sites[best])
@@ -529,11 +529,11 @@ def _metal_rotation(metal, xyz, donors, assigned=None):
         return None
     donors = numpy.asarray(donors, dtype=numpy.float64).reshape(-1, 3)
     placed = numpy.isfinite(donors).all(axis=1)
-    donors = unit(donors[placed] - center)
+    donors = _unit(donors[placed] - center)
     if assigned is not None:
         assigned = numpy.asarray(assigned, dtype=numpy.int64)[placed]
     a = metal.ideal[1:n_frame] - metal.ideal[0]
-    free = unit(metal.ideal[n_frame:] - metal.ideal[0])
+    free = _unit(metal.ideal[n_frame:] - metal.ideal[0])
     candidates = _frame_candidates(a, b, free, donors)
     if len(candidates) == 1 or not len(donors):
         return candidates[0]
@@ -560,8 +560,8 @@ def _frame_candidates(a, b, free, donors):
     u, s, vt = numpy.linalg.svd(a.T @ b)
     if s[1] < 1e-6 * s[0]:
         # collinear satisfiers fix an axis only
-        axis = unit(b[0])
-        return _spins(_aligning(unit(a[0]), axis), axis, free, donors)
+        axis = _unit(b[0])
+        return _spins(_aligning(_unit(a[0]), axis), axis, free, donors)
     if s[2] < 1e-6 * s[0]:
         # coplanar satisfiers leave a mirror through their plane: both sides are
         # candidates, and the caller scores them.
@@ -600,10 +600,10 @@ def _aligning(u, v):
             return numpy.eye(3)
         axis = numpy.cross(u, numpy.eye(3)[numpy.argmin(numpy.abs(u))])
         sin = 0.0
-    return _about(unit(axis), math.atan2(sin, float(u @ v))).T
+    return _about(_unit(axis), math.atan2(sin, float(u @ v))).T
 
 
-def find_metal_geometries(
+def _find_metal_geometries(
     canonical_ordering,
     chemical_db,
     res_types,
@@ -619,7 +619,7 @@ def find_metal_geometries(
     """Each residue's res_type_variant (0 unless a metal) and each metal's assignment.
     ``geometries``/``declared_sites`` fix geometry/sites; ``required_donors`` stay.
     """
-    table = metal_table() if table is None else table
+    table = _metal_table() if table is None else table
     table_vertices = {g["name"]: g["vertices"] for g in table["geometries"]}
     tables = build_canonical_metal_tables(canonical_ordering, chemical_db, table)
     variants = torch.zeros_like(res_types, dtype=torch.int32)
@@ -676,7 +676,7 @@ def find_metal_geometries(
             got = _declared_assignment(
                 int(res), ion, geometry, filled, metal_xyz, xyz[pose], table_vertices
             )
-            variants[pose, res] = metal_geometry_variant_index(geometry)
+            variants[pose, res] = _metal_geometry_variant_index(geometry)
             assignments.append(((int(pose), int(res)), got))
             continue
         wanted = (required_donors or {}).get((int(pose), int(res)), set())
@@ -696,7 +696,7 @@ def find_metal_geometries(
         required = [i for i, atom in enumerate(donor_atoms) if atom in wanted]
 
         declared = (geometries or {}).get((int(pose), int(res)))
-        got = assign_one(
+        got = _assign_one(
             metal_xyz,
             ion,
             numpy.asarray(donor_xyz).reshape(-1, 3),
@@ -718,7 +718,7 @@ def find_metal_geometries(
                 how_chosen=got.how_chosen + "; default geometry",
                 n_open_sites=n_sites - got.n_donors,
             )
-        variants[pose, res] = metal_geometry_variant_index(geometry)
+        variants[pose, res] = _metal_geometry_variant_index(geometry)
         got = attr.evolve(got, donor_atoms=tuple(donor_atoms[i] for i in got.donors))
         assignments.append(((int(pose), int(res)), got))
     return variants, assignments
@@ -731,8 +731,8 @@ def _declared_assignment(metal, ion, geometry, filled, metal_xyz, xyz, vertices_
     verts = numpy.asarray(vertices_for[geometry], dtype=numpy.float64)
     rotation = None
     if len(verts) and donor_atoms:
-        directions = unit(numpy.array([xyz[r, a] for r, a in donor_atoms]) - metal_xyz)
-        rotation = best_rotation(directions, unit(verts[list(sites)]))
+        directions = _unit(numpy.array([xyz[r, a] for r, a in donor_atoms]) - metal_xyz)
+        rotation = _best_rotation(directions, _unit(verts[list(sites)]))
     return MetalSiteAssignment(
         metal=metal,
         element=ion["element"],
@@ -748,7 +748,7 @@ def _declared_assignment(metal, ion, geometry, filled, metal_xyz, xyz, vertices_
     )
 
 
-def metal_donor_patch(base_name: str, atom: str, n_metals: int = 1) -> VariantType:
+def _metal_donor_patch(base_name: str, atom: str, n_metals: int = 1) -> VariantType:
     """A patch giving ``atom`` a connection per metal: metal_<atom>, metal2_<atom>, ...
     Named for its last connection, so a patched type's name is one of its connections.
     """
@@ -771,7 +771,7 @@ def metal_donor_patch(base_name: str, atom: str, n_metals: int = 1) -> VariantTy
     )
 
 
-def donor_patches(canonical_ordering, chemical_db, res_types, assignments):
+def _donor_patches(canonical_ordering, chemical_db, res_types, assignments):
     """One patch per (base type, atom, metal count) an assigned donor needs, on every
     base type of the class where that atom donates (the residue's is chosen later).
     """
@@ -804,11 +804,11 @@ def donor_patches(canonical_ordering, chemical_db, res_types, assignments):
             if any(
                 a.name == name and atom_type[a.atom_type].is_metal_donor for a in atoms
             ):
-                patches[(base.name, name, n)] = metal_donor_patch(base.name, name, n)
+                patches[(base.name, name, n)] = _metal_donor_patch(base.name, name, n)
     return tuple(patches.values())
 
 
-def with_donor_patches(pbt: PackedBlockTypes, patches) -> PackedBlockTypes:
+def _with_donor_patches(pbt: PackedBlockTypes, patches) -> PackedBlockTypes:
     """The newest packed block types grown from ``pbt`` carrying every patch; each
     generation's residues are a leading run of the next's.
     """
@@ -829,7 +829,7 @@ def with_donor_patches(pbt: PackedBlockTypes, patches) -> PackedBlockTypes:
     return newest
 
 
-def metal_connection_rows(assignments):
+def _metal_connection_rows(assignments):
     """(pose, metal, site, donor, donor canonical atom) per filled site; an
     untemplated ion's donors fill its sites in order.
     """
@@ -849,7 +849,7 @@ def _assign_crowded(
     order = numpy.argsort(excess)
     chosen = numpy.sort(order[:n_sites])
     dropped = numpy.sort(order[n_sites:])
-    fit = fit_geometry(directions[chosen], numpy.asarray(vertices))
+    fit = _fit_geometry(directions[chosen], numpy.asarray(vertices))
     logger.info(
         "%s%d+ has %d candidates for %d sites; dropped %d beyond ideal",
         element,
@@ -887,17 +887,17 @@ def _place_cluster_virtuals(bt, coords, missing, rotations):
             missing[j] = False
 
 
-def place_site_virtuals(pbt, block_types64, block_coords, missing_atoms, assignments):
+def _place_site_virtuals(pbt, block_types64, block_coords, missing_atoms, assignments):
     """Place each free ion's site virtuals along its fitted vertex directions.
     A declared site whose virtuals all came with the input keeps them.
     """
-    vertices_for = {g["name"]: g["vertices"] for g in metal_table()["geometries"]}
+    vertices_for = {g["name"]: g["vertices"] for g in _metal_table()["geometries"]}
     for (pose, res), got in assignments:
         bt_index = int(block_types64[pose, res])
         if bt_index < 0:
             continue
         bt = pbt.active_block_types[bt_index]
-        if is_metal_cluster(bt):
+        if _is_metal_cluster(bt):
             _place_cluster_virtuals(
                 bt,
                 block_coords[pose, res],

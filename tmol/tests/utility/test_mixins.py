@@ -2,16 +2,14 @@ import pytest
 import attr
 
 from functools import singledispatch
-from tmol.utility import (
-    cooperative_superclass_factory,
-    AttrMapping,
-)
+from tmol.utility._mixins import _cooperative_superclass_factory
+from tmol.utility._attr import AttrMapping
 
 
 class Setup:
     @classmethod
     def setup(cls, val, **kwargs):
-        return cls(**cooperative_superclass_factory(cls, "factory", val, **kwargs))
+        return cls(**_cooperative_superclass_factory(cls, "factory", val, **kwargs))
 
 
 def test_cooperative_factory_function_update():

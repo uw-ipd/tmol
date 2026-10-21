@@ -3,7 +3,10 @@
 import torch
 
 from tmol import pose_stack_from_file
-from tmol.score.common import TermScoringModule, TermWholePoseScoringModule
+from tmol.score.common._scoring_module import (
+    TermScoringModule,
+    TermWholePoseScoringModule,
+)
 
 
 def test_float64_static_parameters_are_built_lazily() -> None:

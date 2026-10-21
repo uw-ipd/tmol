@@ -5,9 +5,8 @@ import numpy
 import pytest
 from atomworks.io.utils.ccd import atom_array_from_ccd_code
 
-from tmol.database import ParameterDatabase
+from tmol import ParameterDatabase, atom_array_from_file
 from tmol.database.chemical import DEPROTONATED_VAR_IND
-from tmol.io import atom_array_from_file
 from tmol.io import _protonation as protonation
 from tmol.tests.data import data_path
 
@@ -28,7 +27,7 @@ def test_states_by_context_match_the_whole_structure(path, monkeypatch):
     forms = protonation.database_forms(ParameterDatabase.get_default().chemical)
     monkeypatch.setattr(protonation, "_STATE_CAPACITY", 1)
     protonation._STATES.clear()
-    marked = protonation.with_atomworks_hydrogens(
+    marked = protonation._with_atomworks_hydrogens(
         heavy, forms=forms, residue_names=list(forms)
     )
     variant = marked.get_annotation(protonation.PROTONATION_VARIANT)
@@ -81,7 +80,7 @@ def test_a_cached_state_follows_the_metal_bond_length(lengths):
     protonation._STATES.clear()
     for length in lengths:
         site, coordination = _cysteine_on_zinc(length)
-        marked = protonation.with_atomworks_hydrogens(
+        marked = protonation._with_atomworks_hydrogens(
             site, coordination=coordination, forms=forms
         )
         variant = marked.get_annotation(protonation.PROTONATION_VARIANT)[0]
@@ -94,7 +93,7 @@ def test_a_ligand_numbered_after_its_chain_is_not_bonded_to_it():
         data_path("atomworks_regressions", "sulfur_attachments_3t14.cif.zst")
     )
     heavy = structure[(structure.element != "H") & (structure.res_name != "HOH")]
-    protonated = protonation.with_atomworks_hydrogens(heavy)
+    protonated = protonation._with_atomworks_hydrogens(heavy)
     phosphate = (protonated.res_name == "FAD") & numpy.isin(
         protonated.atom_name, ("O1A", "O2A", "O1P", "O2P")
     )
@@ -106,7 +105,7 @@ def test_free_nucleotides_of_one_chain_are_not_linked():
     structure = atom_array_from_file(
         data_path("sweep_regressions", "free_nucleotides_8gpb.cif.zst")
     )
-    protonated = protonation.with_atomworks_hydrogens(
+    protonated = protonation._with_atomworks_hydrogens(
         structure[structure.element != "H"]
     )
     for o3 in numpy.flatnonzero(protonated.atom_name == "O3'"):
@@ -160,7 +159,7 @@ def test_residue_types_take_the_atomworks_state(
     AtomWorks is asked about the whole input once, with the bonds and drawn
     hydrogens tmol hands it; a histidine tautomer it leaves free is summed.
     """
-    from tmol.io import atom_array_from_file, pose_stack_from_atom_array
+    from tmol import atom_array_from_file, pose_stack_from_atom_array
 
     placed, reference = protonation._placed_hydrogens, []
 
@@ -207,7 +206,7 @@ def test_residues_without_a_free_resolved_state_keep_their_type(
     only free ligand copies get state types (8TRB prepared unused PLM_ types)."""
     import re
 
-    from tmol.io import atom_array_from_file, pose_stack_from_atom_array
+    from tmol import atom_array_from_file, pose_stack_from_atom_array
 
     structure = atom_array_from_file(data_path("sweep_regressions", fixture))
     pose, context = pose_stack_from_atom_array(
@@ -229,7 +228,7 @@ def test_a_capped_peptide_after_an_on_demand_terminus_builds(torch_device):
     in that database, must not take it as a terminus template for its ACE cap."""
     import attr
 
-    from tmol.io import atom_array_from_file, pose_stack_from_atom_array
+    from tmol import atom_array_from_file, pose_stack_from_atom_array
 
     database = None
     for fixture in ("metal_amine_terminus_3ppd.cif.zst", "capped_peptide_1j8z.cif.zst"):
@@ -271,11 +270,11 @@ def test_ensembles_reject_model_dependent_protonation(lengths, warm_cache):
     _, coordination = _cysteine_on_zinc(lengths[0])
     if warm_cache:
         for model in models:
-            protonation.with_atomworks_hydrogens(
+            protonation._with_atomworks_hydrogens(
                 model, coordination=coordination, forms=forms
             )
     with pytest.raises(ValueError, match="protonates the models.*differently"):
-        protonation.with_atomworks_hydrogens(
+        protonation._with_atomworks_hydrogens(
             biotite.structure.stack(models), coordination=coordination, forms=forms
         )
 
@@ -296,7 +295,7 @@ def test_ensembles_preserve_metadata_coordinates_and_cached_states(monkeypatch):
 
     monkeypatch.setattr(protonation, "_placed_hydrogens", counted)
     for _ in range(2):
-        marked = protonation.with_atomworks_hydrogens(
+        marked = protonation._with_atomworks_hydrogens(
             stack, coordination=coordination, forms=forms
         )
         assert marked.get_annotation(protonation.PROTONATION_VARIANT)[0] == 4
@@ -310,4 +309,4 @@ def test_ensembles_preserve_metadata_coordinates_and_cached_states(monkeypatch):
 def test_an_unchanged_protonated_ensemble_retains_identity():
     model = atom_array_from_ccd_code("ALA")
     stack = biotite.structure.stack([model, model.copy()])
-    assert protonation.with_atomworks_hydrogens(stack) is stack
+    assert protonation._with_atomworks_hydrogens(stack) is stack

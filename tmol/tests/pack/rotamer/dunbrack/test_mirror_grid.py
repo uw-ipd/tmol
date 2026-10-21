@@ -4,8 +4,8 @@ import attr
 import pytest
 import torch
 
-from tmol.database.scoring._mirrored_dunbrack import with_mirrored_libraries
-from tmol.score.dunbrack import DunbrackParamResolver
+from tmol.database.scoring._mirrored_dunbrack import _with_mirrored_libraries
+from tmol.score.dunbrack._params import DunbrackParamResolver
 from tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler import get_compiled
 
 
@@ -69,7 +69,7 @@ def test_reflected_grid_points_neighbors_and_missing_axes(
                 if lib.table_name in original_names
             ),
         )
-        database = with_mirrored_libraries(
+        database = _with_mirrored_libraries(
             database,
             {row.residue_name: "D" + row.residue_name for row in database.dun_lookup},
         )

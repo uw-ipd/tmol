@@ -4,13 +4,13 @@ import numpy
 import pytest
 import torch
 
-from tmol.pack.rotamer import (
-    assign_chi_dofs_from_samples,
-    coalesce_single_residue_kinforests,
-    construct_single_residue_kinforest,
+from tmol.pack.rotamer._chi_sampler import _assign_chi_dofs_from_samples
+from tmol.pack.rotamer._single_residue_kinforest import (
+    _coalesce_single_residue_kinforests,
+    _construct_single_residue_kinforest,
 )
 from tmol.pack.rotamer._build_rotamers import _build_ring_chi_phi_c_corrections
-from tmol.pose import PackedBlockTypes
+from tmol import PackedBlockTypes
 
 
 def chi_assignment_inputs(database, restypes, device):
@@ -19,8 +19,8 @@ def chi_assignment_inputs(database, restypes, device):
         database.chemical, restypes, types, device=device
     )
     for rt in types:
-        construct_single_residue_kinforest(rt)
-    coalesce_single_residue_kinforests(pbt)
+        _construct_single_residue_kinforest(rt)
+    _coalesce_single_residue_kinforests(pbt)
     block_types = torch.tensor([0, 1, 2, 0, 2], device=device)
     selected = torch.tensor([4, 0, 2], device=device)
     counts = pbt.n_atoms[block_types].long()
@@ -124,7 +124,7 @@ def test_chi_assignment_preserves_independent_dof_oracle(
 
     with monkeypatch.context() as patch:
         patch.setattr(torch.Tensor, "cpu", host_copy)
-        assign_chi_dofs_from_samples(*args)
+        _assign_chi_dofs_from_samples(*args)
     torch.testing.assert_close(dofs, expected, rtol=0, atol=1e-6)
     torch.testing.assert_close(chi, original_chi, rtol=0, atol=0)
     table = _build_ring_chi_phi_c_corrections(pbt)

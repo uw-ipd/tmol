@@ -10,11 +10,15 @@ import logging
 import attr
 import torch
 
-from tmol.database import ParameterDatabase
-from tmol.io import atom_array_from_file, pose_stack_from_atom_array
-from tmol.optimization import run_cart_min
-from tmol.score import beta2016_score_function
-from tmol.score.cartbonded import CROSS_RES_PREFIX, CartBondedEnergyTerm
+from tmol import (
+    ParameterDatabase,
+    atom_array_from_file,
+    pose_stack_from_atom_array,
+    run_cart_min,
+    beta2016_score_function,
+)
+from tmol.score.cartbonded._cartbonded_energy_term import CROSS_RES_PREFIX
+from tmol.score import CartBondedEnergyTerm
 from tmol.tests.data import data_path
 
 GROUPS = [

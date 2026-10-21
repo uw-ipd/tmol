@@ -1,18 +1,17 @@
 import torch
 
+from tmol.optimization._minimizers import CartesianMinimizer, _build_kinforest_network
 from tmol import (
-    CartesianMinimizer,
     PoseStack,
     run_cart_min,
     run_kin_min,
-    build_kinforest_network,
     beta2016_score_function,
     FoldForest,
     MoveMap,
 )
 import attrs
 
-from tmol.optimization import KinematicMinimizer
+from tmol.optimization._minimizers import KinematicMinimizer
 
 
 def test_build_kinforest_sfxn_network_smoke(
@@ -27,7 +26,7 @@ def test_build_kinforest_sfxn_network_smoke(
     mm.move_all_jumps = True
     mm.move_all_named_torsions = True
 
-    kf_sfxn_net = build_kinforest_network(pose_stack, sfxn, ff, mm)
+    kf_sfxn_net = _build_kinforest_network(pose_stack, sfxn, ff, mm)
     assert kf_sfxn_net is not None
 
 

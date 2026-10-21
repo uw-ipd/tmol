@@ -6,33 +6,33 @@ import torch
 
 import tmol.database
 from tmol.database.chemical import (
-    is_metal_cluster,
-    metal_geometry_variant_index,
-    metal_table,
-    special_case_variant_index,
+    _is_metal_cluster,
+    _metal_geometry_variant_index,
+    _metal_table,
+    _special_case_variant_index,
+    _ideal_distances,
 )
-from tmol.io import CanonicalOrdering
+from tmol import CanonicalOrdering
 from tmol.io.details._metal_detection import (
     MetalSiteAssignment,
-    assign_one,
+    _assign_one,
     build_canonical_metal_tables,
-    find_metal_geometries,
-    gather_candidates,
-    ideal_distances,
-    place_site_virtuals,
+    _find_metal_geometries,
+    _gather_candidates,
+    _place_site_virtuals,
 )
-from tmol.io.details._protonation_variants import select_protonation_variants
+from tmol.io.details._protonation_variants import _select_protonation_variants
 
 
 def ion_named(element, ox):
-    for ion in metal_table()["ions"]:
+    for ion in _metal_table()["ions"]:
         if ion["element"] == element and ion["oxidation_state"] == ox:
             return ion
     raise KeyError(f"{element}{ox}")
 
 
 def vertices(name):
-    for g in metal_table()["geometries"]:
+    for g in _metal_table()["geometries"]:
         if g["name"] == name:
             return numpy.asarray(g["vertices"])
     raise KeyError(name)
@@ -45,8 +45,8 @@ def place(directions, distance):
 
 
 def test_missing_donor_element_falls_back_rather_than_raising():
-    dists = ideal_distances(ion_named("Zn", 2), metal_table()["donor_radii"])
-    keep, _ = gather_candidates(
+    dists = _ideal_distances(ion_named("Zn", 2), _metal_table()["donor_radii"])
+    keep, _ = _gather_candidates(
         numpy.zeros(3), place([[1, 0, 0]], 2.0), ["Se"], dists, 0.55
     )
     assert len(keep) == 1
@@ -54,7 +54,7 @@ def test_missing_donor_element_falls_back_rather_than_raising():
 
 def test_derived_distances_fill_only_what_was_not_measured():
     ion = ion_named("Ca", 2)
-    dists = ideal_distances(ion, metal_table()["donor_radii"])
+    dists = _ideal_distances(ion, _metal_table()["donor_radii"])
     assert dists["O"] == ion["distances"]["O"], "a measured value must survive"
     assert "S" not in ion["distances"], "calcium-sulfur was not measured"
     assert dists["S"] == pytest.approx(ion["ionic_radius"] + 1.549, abs=1e-3)
@@ -62,10 +62,10 @@ def test_derived_distances_fill_only_what_was_not_measured():
 
 def test_candidates_are_gathered_without_reference_to_geometry():
     # the cutoff scales with the donor element, not with any polyhedron
-    dists = ideal_distances(ion_named("Zn", 2), metal_table()["donor_radii"])
+    dists = _ideal_distances(ion_named("Zn", 2), _metal_table()["donor_radii"])
     # zinc-oxygen is 2.033 measured, so 0.55 A past it admits out to 2.58
     xyz = numpy.array([[2.03, 0, 0], [2.45, 0, 0], [2.70, 0, 0], [4.0, 0, 0]])
-    keep, excess = gather_candidates(numpy.zeros(3), xyz, ["O"] * 4, dists, 0.55)
+    keep, excess = _gather_candidates(numpy.zeros(3), xyz, ["O"] * 4, dists, 0.55)
     assert list(keep) == [0, 1], "2.70 and 4.0 A are both past tolerance"
     assert excess[0] < excess[1]
 
@@ -154,12 +154,12 @@ def _seven_zinc_contacts():
     ],
 )
 def test_assign_one(ion, donors, element, geometry, expected):
-    got = assign_one(
+    got = _assign_one(
         numpy.zeros(3),
         ion_named(*ion),
         donors,
         [element] * len(donors),
-        metal_table(),
+        _metal_table(),
         geometry=geometry,
     )
     assert isinstance(got, MetalSiteAssignment)
@@ -176,7 +176,7 @@ def canonical_ordering(db):
 
 def metal_tables(db):
     return build_canonical_metal_tables(
-        canonical_ordering(db), db.chemical, metal_table()
+        canonical_ordering(db), db.chemical, _metal_table()
     )
 
 
@@ -189,7 +189,7 @@ def find(db, residues, **kwargs):
     for i, (name, atoms) in enumerate(residues):
         for atom, xyz in atoms.items():
             coords[0, i, co.restypes_atom_index_mapping[name][atom]] = torch.tensor(xyz)
-    return find_metal_geometries(co, db.chemical, res_types, coords, **kwargs)
+    return _find_metal_geometries(co, db.chemical, res_types, coords, **kwargs)
 
 
 def test_every_supported_ion_is_found_in_the_canonical_ordering(
@@ -198,7 +198,7 @@ def test_every_supported_ion_is_found_in_the_canonical_ordering(
     co = canonical_ordering(default_database)
     tables = metal_tables(default_database)
     found = {co.restype_io_equiv_classes[i] for i in tables.ion_for_class}
-    expected = {ion["name3"] for ion in metal_table()["ions"]}
+    expected = {ion["name3"] for ion in _metal_table()["ions"]}
     assert found == expected, "every ion in the table must be selectable on input"
 
 
@@ -224,7 +224,7 @@ def test_the_metal_atom_is_named_by_element_not_component(
     #    its metals
     element_of = {t.name: t.element for t in default_database.chemical.atom_types}
     for res in default_database.chemical.residues:
-        if is_metal_cluster(res):
+        if _is_metal_cluster(res):
             continue
         type_of = {a.name: a.atom_type for a in res.atoms}
         for site in res.metal_sites:
@@ -308,7 +308,7 @@ def test_geometry_is_carried_as_a_res_type_variant(
     assert variants[0, 1] == 0, "a non-metal keeps the default variant"
     ((_, got),) = assignments
     assert got.n_donors == 2, "both carboxylate oxygens are in range"
-    assert int(variants[0, 0]) == metal_geometry_variant_index(got.geometry)
+    assert int(variants[0, 0]) == _metal_geometry_variant_index(got.geometry)
     assert got.geometry in ion_named("Zn", 2)["geometries"]
 
 
@@ -328,7 +328,7 @@ def test_a_lone_metal_takes_its_declared_or_default_geometry(
     variants, _ = find(
         default_database, [(metal, {metal: [0.0, 0.0, 0.0]})], geometries=geometries
     )
-    assert int(variants[0, 0]) == metal_geometry_variant_index(expected)
+    assert int(variants[0, 0]) == _metal_geometry_variant_index(expected)
 
 
 def _assignment_with_donors(donor_atoms):
@@ -405,14 +405,14 @@ def test_protonation_variant_follows_coordination_and_hydrogens(
     )
     variants = torch.zeros_like(res_types)
     if preset:
-        variants[0, 1] = special_case_variant_index(expected)
+        variants[0, 1] = _special_case_variant_index(expected)
     given = variants.clone()
     assignments = []
     if coordinating is not None:
         j = co.restypes_atom_index_mapping[res][coordinating]
         assignments = [((0, 0), _assignment_with_donors([(1, j)]))]
 
-    got = select_protonation_variants(
+    got = _select_protonation_variants(
         co,
         default_database.chemical,
         res_types,
@@ -420,7 +420,7 @@ def test_protonation_variant_follows_coordination_and_hydrogens(
         _present(co, default_database, [("ZN", ()), (res, hydrogens)]),
         assignments,
     )
-    assert int(got[0, 1]) == special_case_variant_index(expected)
+    assert int(got[0, 1]) == _special_case_variant_index(expected)
     assert torch.equal(variants, given), "the input variants are not modified"
 
 
@@ -431,7 +431,7 @@ def test_deprotonated_forms_are_never_the_default_variant(
     # 0 with CYS or TYR would let a hydrogen-free input fall into the thiolate
     for res in default_database.chemical.residues:
         if res.base_name in ("CYS_DEP", "TYR_DEP", "DCYS_DEP", "DTYR_DEP"):
-            assert special_case_variant_index(res) != 0, res.name
+            assert _special_case_variant_index(res) != 0, res.name
 
 
 def test_a_disulfide_cysteine_is_not_a_donor_candidate(
@@ -475,12 +475,12 @@ def test_site_virtuals_point_at_the_donors_that_took_their_vertices(
     )
     directions = vertices("tetrahedral")[:3] @ turn.T
     donors = metal + place(directions, 2.03)
-    got = assign_one(
+    got = _assign_one(
         metal,
         ion_named("Zn", 2),
         donors,
         ["N"] * 3,
-        metal_table(),
+        _metal_table(),
         geometry="tetrahedral",
     )
 
@@ -491,7 +491,7 @@ def test_site_virtuals_point_at_the_donors_that_took_their_vertices(
     missing[0, 0, zinc.atom_to_idx[site.metal_atom]] = False
 
     block_types = torch.zeros((1, 1), dtype=torch.int64)
-    coords, missing = place_site_virtuals(
+    coords, missing = _place_site_virtuals(
         pbt, block_types, block_coords, missing, [((0, 0), got)]
     )
     assert not missing.any(), "every virtual is placed"

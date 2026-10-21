@@ -62,7 +62,7 @@ from __future__ import annotations
 from rdkit import Chem
 
 from tmol.database.chemical import ChiSamples, Torsion, UnresolvedAtom
-from tmol.ligand._atom_typing import find_special_biaryl_pivots
+from tmol.ligand._atom_typing import _find_special_biaryl_pivots
 
 # RosettaVS hard-coded constant (Molecule.py): controls EXTRA expansion.
 MAX_CONFS = 5000
@@ -157,7 +157,7 @@ def _symmetry_order(mol: Chem.Mol, b: int, c: int) -> int:
     return len(others) if len(elements) == 1 else 1
 
 
-def build_chi_topology(  # noqa: C901
+def _build_chi_topology(  # noqa: C901
     mol: Chem.Mol,
     order: list[int],
     parent: dict[int, int],
@@ -220,7 +220,7 @@ def build_chi_topology(  # noqa: C901
         n_h = sum(1 for nb in atom.GetNeighbors() if nb.GetAtomicNum() == 1)
         return n_h == atom.GetDegree() - 1
 
-    biaryl_pivots = find_special_biaryl_pivots(
+    biaryl_pivots = _find_special_biaryl_pivots(
         mol, atype_by_idx, atms_aro, ring_membership, valid
     )
 

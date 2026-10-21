@@ -2,10 +2,10 @@
 
 import attr
 
-from .scoring._cartbonded import CartBondedDatabase
+from .scoring import CartBondedDatabase
 
 
-def symmetric_gly_geometry(chemical, cartbonded):
+def _symmetric_gly_geometry(chemical, cartbonded):
     hydrogen_names = {"HA2", "HA3"}
 
     def symmetric_residue(residue):

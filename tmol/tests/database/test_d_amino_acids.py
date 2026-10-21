@@ -9,9 +9,9 @@ import cattr
 import numpy
 import pytest
 
-from tmol.chemical import l_base_name
-from tmol.chemical._restypes import RefinedResidueType
-from tmol.database import ParameterDatabase
+from tmol.database.chemical import _l_base_name
+from tmol.chemical import RefinedResidueType
+from tmol import ParameterDatabase
 
 
 def residues(param_db):
@@ -22,7 +22,7 @@ def base_pairs(param_db):
     """(L, D) base residue type pairs, matched by the production L-name helper."""
     by_name = residues(param_db)
     return [
-        (by_name[l_base_name(rt)], rt)
+        (by_name[_l_base_name(rt)], rt)
         for _, rt in sorted(by_name.items())
         if rt.name == rt.base_name and rt.properties.polymer.sidechain_chirality == "d"
     ]
@@ -151,20 +151,20 @@ def test_l_base_name_resolves_d_forms_without_touching_dna() -> None:
         return cattr.structure(cattr.unstructure(by_name[name]), RefinedResidueType)
 
     for l_name, d_name_ in (("ALA", "DALA"), ("CYD", "DCYD"), ("HIS_POS", "DHIS_POS")):
-        assert l_base_name(refined(d_name_)) == l_name
-        assert l_base_name(refined(l_name)) == l_name
+        assert _l_base_name(refined(d_name_)) == l_name
+        assert _l_base_name(refined(l_name)) == l_name
     # a variant reports its base type's L name
-    assert l_base_name(refined("DALA:nterm")) == "ALA"
+    assert _l_base_name(refined("DALA:nterm")) == "ALA"
     # DNA residue types start with D but are not d-amino acids
     for name in ("DA", "DC", "DG", "DT"):
-        assert l_base_name(refined(name)) == name
+        assert _l_base_name(refined(name)) == name
 
 
 def test_every_polymer_class_has_default_termini() -> None:
     """The mapping is derived, so a new residue type is covered without an edit."""
-    from tmol.io import default_canonical_ordering
+    from tmol.io._canonical_ordering import _default_canonical_ordering
 
-    co = default_canonical_ordering()
+    co = _default_canonical_ordering()
     mapping = co.restypes_default_termini_mapping
     polymer_classes = {
         rt.io_equiv_class

@@ -5,14 +5,13 @@ import attr
 
 from typing import Tuple
 
-from tmol.types import Tensor
-from tmol.chemical import RefinedResidueType, l_base_name
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
+from tmol.types._torch import Tensor
+from tmol.chemical import RefinedResidueType
+from tmol.database.chemical import _l_base_name
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
 
-from tmol.pack.rotamer import ChiSampler
+from tmol.pack.rotamer._chi_sampler import ChiSampler
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -32,7 +31,7 @@ class FixedAAChiSampler(ChiSampler):
         if rt.properties.polymer.backbone_type != "alpha_aa":
             return False
 
-        if l_base_name(rt) in ("GLY", "ALA"):
+        if _l_base_name(rt) in ("GLY", "ALA"):
             return True
 
         return False
@@ -43,7 +42,7 @@ class FixedAAChiSampler(ChiSampler):
         return pbt.fixed_aa_chi_sampler_builds_bt[bt_inds]
 
     def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
-        base = l_base_name(rt)
+        base = _l_base_name(rt)
         if base == "GLY":
             # Glycine's alpha hydrogens exchange under reflection. Rebuilding
             # only one can place it on top of the retained hydrogen, and a
@@ -58,7 +57,7 @@ class FixedAAChiSampler(ChiSampler):
         if hasattr(block_type, "fixed_aa_chi_sampler_builds_bt"):
             return
         builds_bt = False
-        if l_base_name(block_type) in ("GLY", "ALA"):
+        if _l_base_name(block_type) in ("GLY", "ALA"):
             builds_bt = True
         setattr(block_type, "fixed_aa_chi_sampler_builds_bt", builds_bt)
 

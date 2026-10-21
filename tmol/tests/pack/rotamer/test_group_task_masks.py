@@ -3,10 +3,9 @@
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_atom_array
-from tmol.pack import SetPackerTask
-from tmol.pack.rotamer import build_rotamers
-from tmol.pose._conjugated_groups import find_conjugated_groups
+from tmol import pose_stack_from_atom_array
+from tmol.pack import SetPackerTask, build_rotamers
+from tmol.pose._conjugated_groups import _find_conjugated_groups
 from tmol.tests.pack.rotamer.test_group_constraints import (
     assert_geometry,
     crosslinked_lysines,
@@ -28,7 +27,7 @@ def group_pose(request, torch_device):
 
 def masked_task(pose, context, mode, fixed_owners):
     task, sampler = _task(pose, context.parameter_database, pose.device)
-    group = find_conjugated_groups(pose)[0]
+    group = _find_conjugated_groups(pose)[0]
     mask = torch.zeros_like(pose.block_type_ind, dtype=torch.bool)
     mask[group.pose, [group.blocks[o] for o in fixed_owners]] = True
     if mode == "packing":
@@ -105,18 +104,18 @@ def test_masked_group_packing_preserves_geometry_and_energy(group_pose, fixed_ow
 
 
 def test_reused_sampler_and_batched_masks_are_pose_local(group_pose):
-    from tmol.pack import PackerPalette, PackerTask
-    from tmol.pack.rotamer._conjugated_groups import add_conjugated_group_sampler
-    from tmol.pose import PoseStackBuilder
+    from tmol import PackerPalette, PackerTask
+    from tmol.pack.rotamer._conjugated_groups import _add_conjugated_group_sampler
+    from tmol import PoseStackBuilder
 
     pose, context = group_pose
     _, sampler = _task(pose, context.parameter_database, pose.device)
-    group = find_conjugated_groups(pose)[0]
+    group = _find_conjugated_groups(pose)[0]
 
     def build(stack, fixed_by_pose):
         task = PackerTask(stack, PackerPalette())
         task.add_conformer_sampler(sampler.library_sampler)
-        add_conjugated_group_sampler(task, stack, sampler=sampler)
+        _add_conjugated_group_sampler(task, stack, sampler=sampler)
         task.restrict_to_repacking()
         mask = torch.zeros_like(stack.block_type_ind, dtype=torch.bool)
         for p, owners in enumerate(fixed_by_pose):
@@ -153,10 +152,10 @@ def test_reused_sampler_and_batched_masks_are_pose_local(group_pose):
 def test_member_without_its_own_chi_does_not_add_independent_fallback(group_pose):
     import attr
     from tmol.chemical import ResidueTypeSet
-    from tmol.pose import PackedBlockTypes
+    from tmol import PackedBlockTypes
 
     pose, context = group_pose
-    group = find_conjugated_groups(pose)[0]
+    group = _find_conjugated_groups(pose)[0]
     source = pose.packed_block_types
     # Make a private sampling definition with a rigid linker. Its atoms still
     # move with upstream axes and must participate in every group conformer.
@@ -180,15 +179,15 @@ def test_member_without_its_own_chi_does_not_add_independent_fallback(group_pose
 
 
 def test_library_free_group_preserves_entire_anchor(group_pose):
-    from tmol.pack import PackerPalette, PackerTask
+    from tmol import PackerPalette, PackerTask
     from tmol.pack.rotamer._conjugated_chi_sampler import ConjugatedChiSampler
-    from tmol.pack.rotamer._conjugated_groups import add_conjugated_group_sampler
+    from tmol.pack.rotamer._conjugated_groups import _add_conjugated_group_sampler
 
     pose, context = group_pose
-    group = find_conjugated_groups(pose)[0]
+    group = _find_conjugated_groups(pose)[0]
     task = PackerTask(pose, PackerPalette())
     sampler = ConjugatedChiSampler()
-    add_conjugated_group_sampler(task, pose, sampler=sampler)
+    _add_conjugated_group_sampler(task, pose, sampler=sampler)
     task.restrict_to_repacking()
     _, rotamers = build_rotamers(
         pose, SetPackerTask.from_packer_task(task), context.parameter_database.chemical

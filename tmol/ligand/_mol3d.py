@@ -17,7 +17,7 @@ from typing import Mapping, Optional, Sequence
 from rdkit import Chem
 
 
-def authoritative_charges_by_index(
+def _authoritative_charges_by_index(
     source_atom_names: Sequence[str],
     partial_charges: Optional[Mapping[str, float]],
     mol: Chem.Mol,

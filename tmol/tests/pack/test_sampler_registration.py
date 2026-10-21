@@ -1,10 +1,8 @@
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_file
-from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-from tmol.pack.rotamer import IncludeCurrentSampler
-from tmol.pose import PoseStackBuilder
+from tmol import pose_stack_from_file, PackerPalette, PackerTask, PoseStackBuilder
+from tmol.pack import SetPackerTask, IncludeCurrentSampler
 
 
 @pytest.mark.parametrize(

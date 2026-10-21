@@ -2,20 +2,18 @@ import attr
 import numpy
 import torch
 
-from tmol.types import (
-    validate_args,
-    NDArray,
-    Tensor,
-)
-from tmol.kinematics import (
-    NodeType,
-    KinForest,
+from tmol.types._functional import _validate_args
+from tmol.types._array import NDArray
+from tmol.types._torch import Tensor
+from tmol.kinematics import NodeType
+from tmol.kinematics._datatypes import KinForest
+from tmol.kinematics._scan_ordering import (
     KinForestScanOrdering,
-    annotate_block_type_with_residue_kinforest_data,
-    block_group_kinforest_data,
+    _annotate_block_type_with_residue_kinforest_data,
+    _block_group_kinforest_data,
 )
 from tmol.chemical import RefinedResidueType
-from tmol.pose import PackedBlockTypes
+from tmol.pose._packed_block_types import PackedBlockTypes
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -71,15 +69,15 @@ def _rotamer_kinforest_from_data(rkd, n_atoms, atom_names, mainchain_atoms, idea
     preferred as reference-frame atoms (they hold still across rotamers); for a
     group it is the anchor block's.
     """
-    from tmol.kinematics.compiled import inverse_kin
-    from tmol.utility.ndarray import invert_mapping
+    from tmol.kinematics.compiled._compiled_ops import inverse_kin
+    from tmol.utility.ndarray._common_operations import _invert_mapping
 
     kfo_2_to = rkd.bfto_2_orig.astype(numpy.int64)  # KFO → TO (0-indexed)
     preds = rkd.preds.astype(numpy.int64)  # BFS predecessors in TO; -9999 for root
     dof_type_to = rkd.dof_type  # NodeType per atom in TO
 
     # TO -> KFO mapping (used for kinforest_idx output field)
-    to_2_kfo = invert_mapping(kfo_2_to, n_atoms).astype(numpy.int64)
+    to_2_kfo = _invert_mapping(kfo_2_to, n_atoms).astype(numpy.int64)
 
     # KFO parent indices, 0-indexed (root points to itself)
     kfo_parents = numpy.zeros(n_atoms, dtype=numpy.int64)
@@ -220,8 +218,8 @@ def _rotamer_kinforest_from_data(rkd, n_atoms, atom_names, mainchain_atoms, idea
     )
 
 
-@validate_args
-def construct_single_residue_kinforest(restype: RefinedResidueType):
+@_validate_args
+def _construct_single_residue_kinforest(restype: RefinedResidueType):
     """Create a kinforest for a single residue and its scan ordering data.
 
     The kinforest data structure on its own is incomplete and before it can be
@@ -232,7 +230,7 @@ def construct_single_residue_kinforest(restype: RefinedResidueType):
     if hasattr(restype, "rotamer_kinforest"):
         return
 
-    annotate_block_type_with_residue_kinforest_data(restype)
+    _annotate_block_type_with_residue_kinforest_data(restype)
     polymer = getattr(getattr(restype, "properties", None), "polymer", None)
     setattr(
         restype,
@@ -247,7 +245,7 @@ def construct_single_residue_kinforest(restype: RefinedResidueType):
     )
 
 
-def construct_block_group_kinforest(
+def _construct_block_group_kinforest(
     block_types, links, anchor: int = 0, kinforest_data=None
 ):
     """Create a kinforest spanning a group of blocks joined by their bonds.
@@ -261,7 +259,7 @@ def construct_block_group_kinforest(
     the dofs it reports are placeholders; they are overwritten by the values
     measured from the pose.
     """
-    rkd, offsets = kinforest_data or block_group_kinforest_data(
+    rkd, offsets = kinforest_data or _block_group_kinforest_data(
         block_types, links, anchor
     )
     names = [a.name for bt in block_types for a in bt.atoms]
@@ -276,8 +274,8 @@ def construct_block_group_kinforest(
     )
 
 
-@validate_args
-def coalesce_single_residue_kinforests(pbt: PackedBlockTypes):
+@_validate_args
+def _coalesce_single_residue_kinforests(pbt: PackedBlockTypes):
     if hasattr(pbt, "rotamer_kinforest"):
         return
 

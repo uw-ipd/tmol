@@ -13,15 +13,15 @@ import biotite.structure.io
 import pytest
 import torch
 
-from tmol.database import ParameterDatabase
-from tmol.io import (
+from tmol import (
+    ParameterDatabase,
     atom_array_from_file,
-    build_context_from_atom_array,
     pose_stack_from_atom_array,
+    ScoreType,
 )
-from tmol.ligand import LigandPreparationError
-from tmol.pack import build_missing_sidechains
-from tmol.score import ScoreType
+from tmol.io import build_context_from_atom_array
+from tmol.ligand._preparation import LigandPreparationError
+from tmol.pack._build_missing_sidechains import _build_missing_sidechains
 from tmol.tests.data import data_path
 
 PLI_DATA_DIR = Path(__file__).parent.parent / "data" / "protein_ligand_test"
@@ -116,10 +116,10 @@ def test_context_opth_score_function_omits_invariant_terms(biotite_1ubq, torch_d
         biotite_1ubq, torch_device, context=context, no_optH=True
     )
     missing = torch.zeros_like(pose.block_type_ind, dtype=torch.bool)
-    expected = build_missing_sidechains(
+    expected = _build_missing_sidechains(
         pose, context._packing_score_function, context._dunbrack_sampler, missing
     )
-    actual = build_missing_sidechains(
+    actual = _build_missing_sidechains(
         pose, score_function, context._dunbrack_sampler, missing
     )
     torch.testing.assert_close(actual.block_type_ind, expected.block_type_ind)

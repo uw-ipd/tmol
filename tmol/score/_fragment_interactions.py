@@ -6,10 +6,10 @@ from typing import Protocol, TYPE_CHECKING
 import torch
 
 from tmol.pose._split_block_mapping import SplitBlockEntry, SplitBlockMapping
-from tmol.types import Tensor
+from tmol.types._torch import Tensor
 
 if TYPE_CHECKING:
-    from tmol.pose import PoseStack
+    from tmol.pose._pose_stack import PoseStack
     from tmol.score._score_function import ScoreFunction
 
 

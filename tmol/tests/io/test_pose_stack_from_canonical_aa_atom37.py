@@ -3,12 +3,12 @@ import os
 import torch
 import pytest
 
-from tmol.io import (
-    pose_stack_from_canonical_aa_atom37,
-    canonical_form_from_atomworks,
-    atomworks_from_pose_stack,
-    canonical_ordering_for_atomworks,
-    packed_block_types_for_atomworks,
+from tmol.io._pose_stack_from_atomworks import (
+    _pose_stack_from_canonical_aa_atom37,
+    _canonical_form_from_atomworks,
+    _atomworks_from_pose_stack,
+    _canonical_ordering_for_atomworks,
+    _packed_block_types_for_atomworks,
     _paramdb_for_atomworks,
     ATOMWORKS_NAME3S,
     ATOMWORKS_ATOM37_NAMES,
@@ -39,7 +39,7 @@ def test_pose_stack_from_canonical_aa_atom37_basic(ubq_atomworks, torch_device):
     residue_type = ubq_atomworks["residue_type"]
     chain_iid = ubq_atomworks["chain_iid"]
 
-    ps = pose_stack_from_canonical_aa_atom37(coords, residue_type, chain_iid)
+    ps = _pose_stack_from_canonical_aa_atom37(coords, residue_type, chain_iid)
     assert len(ps) == 1
     assert ps.max_n_blocks == 76
     assert ps.coords.device == torch_device
@@ -51,12 +51,12 @@ def test_canonical_form_from_atomworks(ubq_atomworks, torch_device):
     residue_type = ubq_atomworks["residue_type"]
     chain_iid = ubq_atomworks["chain_iid"]
 
-    cf = canonical_form_from_atomworks(coords, residue_type, chain_iid)
+    cf = _canonical_form_from_atomworks(coords, residue_type, chain_iid)
     assert cf.res_types.shape == (1, 76)
     assert cf.coords.shape[0] == 1
     assert cf.coords.shape[1] == 76
 
-    co = canonical_ordering_for_atomworks()
+    co = _canonical_ordering_for_atomworks()
     for r in range(76):
         rt_idx = residue_type[0, r].item()
         name3 = ATOMWORKS_NAME3S[rt_idx]
@@ -73,8 +73,8 @@ def test_round_trip_atomworks_posestack(ubq_atomworks, torch_device):
     residue_type = ubq_atomworks["residue_type"]
     chain_iid = ubq_atomworks["chain_iid"]
 
-    ps = pose_stack_from_canonical_aa_atom37(coords, residue_type, chain_iid)
-    rt_coords, rt_residue_type, rt_chain_iid = atomworks_from_pose_stack(ps)
+    ps = _pose_stack_from_canonical_aa_atom37(coords, residue_type, chain_iid)
+    rt_coords, rt_residue_type, rt_chain_iid = _atomworks_from_pose_stack(ps)
 
     assert torch.equal(residue_type, rt_residue_type)
     assert torch.equal(chain_iid, rt_chain_iid)
@@ -104,10 +104,10 @@ def test_multichain(ubq_atomworks, torch_device):
     # Split ubiquitin into two chains at residue 38
     chain_iid[0, 38:] = 1
 
-    ps = pose_stack_from_canonical_aa_atom37(coords, residue_type, chain_iid)
+    ps = _pose_stack_from_canonical_aa_atom37(coords, residue_type, chain_iid)
     assert len(ps) == 1
 
-    rt_coords, rt_residue_type, rt_chain_iid = atomworks_from_pose_stack(ps)
+    rt_coords, rt_residue_type, rt_chain_iid = _atomworks_from_pose_stack(ps)
     assert torch.equal(chain_iid, rt_chain_iid)
     assert torch.equal(residue_type, rt_residue_type)
 
@@ -119,11 +119,11 @@ def test_protein_only_validation(torch_device):
 
     residue_type = torch.tensor([[0, 1, 2]], dtype=torch.int64, device=torch_device)
     with pytest.raises(ValueError, match="protein only"):
-        canonical_form_from_atomworks(coords, residue_type, chain_iid)
+        _canonical_form_from_atomworks(coords, residue_type, chain_iid)
 
     residue_type = torch.tensor([[1, 22, 3]], dtype=torch.int64, device=torch_device)
     with pytest.raises(ValueError, match="protein only"):
-        canonical_form_from_atomworks(coords, residue_type, chain_iid)
+        _canonical_form_from_atomworks(coords, residue_type, chain_iid)
 
 
 def test_all_20_amino_acids(torch_device):
@@ -150,8 +150,8 @@ def test_all_20_amino_acids(torch_device):
 
     chain_iid = torch.zeros((1, n_res), dtype=torch.int64, device=torch_device)
 
-    ps = pose_stack_from_canonical_aa_atom37(coords, residue_type, chain_iid)
-    rt_coords, rt_residue_type, rt_chain_iid = atomworks_from_pose_stack(ps)
+    ps = _pose_stack_from_canonical_aa_atom37(coords, residue_type, chain_iid)
+    rt_coords, rt_residue_type, rt_chain_iid = _atomworks_from_pose_stack(ps)
 
     assert torch.equal(residue_type, rt_residue_type)
 
@@ -176,19 +176,19 @@ def test_memoization_of_paramdb():
 
 def test_memoization_of_canonical_ordering():
     """Test that canonical_ordering_for_atomworks is memoized."""
-    co1 = canonical_ordering_for_atomworks()
-    co2 = canonical_ordering_for_atomworks()
+    co1 = _canonical_ordering_for_atomworks()
+    co2 = _canonical_ordering_for_atomworks()
     assert co1 is co2
 
 
 def test_memoization_of_packed_block_types(torch_device):
     """Test that packed_block_types_for_atomworks is memoized."""
-    pbt1 = packed_block_types_for_atomworks(torch_device)
-    pbt2 = packed_block_types_for_atomworks(torch_device)
+    pbt1 = _packed_block_types_for_atomworks(torch_device)
+    pbt2 = _packed_block_types_for_atomworks(torch_device)
     assert pbt1 is pbt2
 
 
 def test_device_of_packed_block_types(torch_device):
     """Test that PBT is on the correct device."""
-    pbt = packed_block_types_for_atomworks(torch_device)
+    pbt = _packed_block_types_for_atomworks(torch_device)
     assert pbt.device == torch_device

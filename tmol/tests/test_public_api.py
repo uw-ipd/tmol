@@ -49,9 +49,10 @@ def test_ligand_all_excludes_vendored_and_internal_helpers():
 
 
 def test_documented_fragment_interaction_helper_is_public():
-    from tmol import score
+    import tmol
 
-    assert "calculate_fragment_interactions" in score.__all__
+    # tutorial_api_usage.csv makes it a top-level API name.
+    assert "calculate_fragment_interactions" in tmol.__all__
 
 
 def test_extern_import_is_independent_of_vendored_tests():

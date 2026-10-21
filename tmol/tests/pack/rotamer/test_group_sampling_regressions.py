@@ -7,11 +7,14 @@ import torch
 import pytest
 
 from tmol.database.chemical import ChiSamples
-from tmol.pack.rotamer._chi_budget import _budgeted_chi_samples, apply_chi_sample_budget
+from tmol.pack.rotamer._chi_budget import (
+    _budgeted_chi_samples,
+    _apply_chi_sample_budget,
+)
 from tmol.pack.rotamer._conjugated_chi_sampler import ConjugatedChiSampler
 from tmol.pack.rotamer._conjugated_groups import (
     GroupSamplingTopology,
-    group_sampled_chi,
+    _group_sampled_chi,
 )
 from tmol.pose._conjugated_groups import ConjugatedGroup
 
@@ -33,7 +36,7 @@ def test_independent_library_does_not_remove_child_chi():
     kept = _budgeted_chi_samples(samples, [1, 2], 81, 81, library_size=9)
     assert kept == tuple(enumerate(samples))
     # Single-block callers still omit chi that their own library supplies.
-    assert apply_chi_sample_budget(samples, [1, 2], 81, 81, n_library_chi=1) == (
+    assert _apply_chi_sample_budget(samples, [1, 2], 81, 81, n_library_chi=1) == (
         samples[1],
     )
 
@@ -78,7 +81,7 @@ def test_group_budget_keeps_correct_residue_and_linkage():
         {frozenset((1, 2)): 2, frozenset((3, 4)): 4},
     )
     group = ConjugatedGroup(0, (0, 1, 2), ((0, 0, 1, 0), (1, 1, 2, 0)))
-    kept = group_sampled_chi(group, pose, 27, 27, library_size=3, topology=topology)
+    kept = _group_sampled_chi(group, pose, 27, 27, library_size=3, topology=topology)
     assert kept == [(2, children[1].chi_samples[0])]
 
 
@@ -151,7 +154,7 @@ def test_kinforest_cache_is_scoped_to_packed_block_types(monkeypatch):
         calls.append(result)
         return result
 
-    monkeypatch.setattr(kin, "construct_block_group_kinforest", construct)
+    monkeypatch.setattr(kin, "_construct_block_group_kinforest", construct)
     monkeypatch.setattr(
         conjugated,
         "group_sampling_topology",
@@ -188,23 +191,23 @@ def test_lockstep_rejects_mismatched_counts_before_native_scoring(
     import pytest
 
     group = ConjugatedGroup(0, (0, 1), ((0, 0, 1, 0),))
-    monkeypatch.setattr(groups, "find_conjugated_groups", lambda pose: [group])
+    monkeypatch.setattr(groups, "_find_conjugated_groups", lambda pose: [group])
     pose = SimpleNamespace(n_poses=1, max_n_blocks=2)
     rotamers = SimpleNamespace(
         n_rots_for_block=torch.tensor([[3, 2]], device=torch_device),
         correlated_groups=(group,),
     )
     with pytest.raises(ValueError, match="differing rotamer counts"):
-        groups.lockstep_group_for_block(pose, rotamers)
+        groups._lockstep_group_for_block(pose, rotamers)
     rotamers.n_rots_for_block[:] = 3
-    result = groups.lockstep_group_for_block(pose, rotamers)
+    result = groups._lockstep_group_for_block(pose, rotamers)
     torch.testing.assert_close(
         result, torch.zeros((1, 2), dtype=torch.int32, device=torch_device)
     )
 
 
 def test_group_collapse_accepts_exclusive_end_offset(torch_device):
-    from tmol.pack.rotamer._conjugated_groups import collapse_group_rotamers
+    from tmol.pack.rotamer._conjugated_groups import _collapse_group_rotamers
 
     def tensor(values):
         return torch.tensor(values, dtype=torch.int32, device=torch_device)
@@ -220,7 +223,7 @@ def test_group_collapse_accepts_exclusive_end_offset(torch_device):
         block_type_ind_for_rot=tensor([0, 0, 1, 1]),
     )
     group = ConjugatedGroup(0, (0, 1), ((0, 0, 1, 0),))
-    collapse, _, _ = collapse_group_rotamers(None, rots, [group])
+    collapse, _, _ = _collapse_group_rotamers(None, rots, [group])
     torch.testing.assert_close(
         collapse.compact_rot_offset_for_block, tensor([[0, 2, 3]])
     )
@@ -251,7 +254,7 @@ def test_constrained_library_projection_preserves_first_distinct_states(monkeypa
         SimpleNamespace(bfto_2_orig=np.arange(6), preds=np.arange(6) - 1),
         {frozenset((1, 2)): 2},
     )
-    monkeypatch.setattr(conjugated, "find_conjugated_groups", lambda pose: [group])
+    monkeypatch.setattr(conjugated, "_find_conjugated_groups", lambda pose: [group])
     monkeypatch.setattr(conjugated, "group_sampling_topology", lambda *args: topology)
     library = {
         (0, 0): (
@@ -298,10 +301,10 @@ def test_independent_samples_on_connected_blocks_are_not_correlated(
     import tmol.pose._conjugated_groups as groups
 
     group = ConjugatedGroup(0, (0, 1), ((0, 0, 1, 0),))
-    monkeypatch.setattr(groups, "find_conjugated_groups", lambda pose: [group])
+    monkeypatch.setattr(groups, "_find_conjugated_groups", lambda pose: [group])
     pose = SimpleNamespace(n_poses=1, max_n_blocks=2)
     rots = SimpleNamespace(n_rots_for_block=torch.tensor(counts, device=torch_device))
-    actual = groups.lockstep_group_for_block(pose, rots)
+    actual = groups._lockstep_group_for_block(pose, rots)
     torch.testing.assert_close(
         actual, torch.full((1, 2), -1, dtype=torch.int32, device=torch_device)
     )
@@ -311,19 +314,25 @@ def test_independent_samples_on_connected_blocks_are_not_correlated(
     "pose,blocks", [(-1, (0, 1)), (1, (0, 1)), (0, (-1, 0)), (0, (0, 2)), (0, (0, 0))]
 )
 def test_explicit_correlation_rejects_invalid_members(torch_device, pose, blocks):
-    from tmol.pack.rotamer._rotamer_set import CorrelatedBlockGroup, correlation_indices
+    from tmol.pack.rotamer._rotamer_set import (
+        CorrelatedBlockGroup,
+        _correlation_indices,
+    )
 
     counts = torch.ones((1, 2), dtype=torch.int64, device=torch_device)
     with pytest.raises(ValueError, match="Invalid correlated block"):
-        correlation_indices(counts, (CorrelatedBlockGroup(pose, blocks),))
+        _correlation_indices(counts, (CorrelatedBlockGroup(pose, blocks),))
 
 
 def test_single_state_groups_cannot_overlap(torch_device):
-    from tmol.pack.rotamer._rotamer_set import CorrelatedBlockGroup, correlation_indices
+    from tmol.pack.rotamer._rotamer_set import (
+        CorrelatedBlockGroup,
+        _correlation_indices,
+    )
 
     counts = torch.ones((1, 3), dtype=torch.int64, device=torch_device)
     with pytest.raises(ValueError, match="multiple correlated groups"):
-        correlation_indices(
+        _correlation_indices(
             counts, (CorrelatedBlockGroup(0, (0, 1)), CorrelatedBlockGroup(0, (1, 2)))
         )
 

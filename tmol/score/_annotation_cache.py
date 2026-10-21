@@ -143,14 +143,14 @@ def _cache(owner, attribute):
     return cache
 
 
-def cached_annotation(owner, attribute, key):
+def _cached_annotation(owner, attribute, key):
     cache = getattr(owner, attribute, None)
     if not isinstance(cache, _AnnotationLRU):
         return None
     return cache.get(key, restore_owner=owner)
 
 
-def store_annotation(owner, attribute, key, value, *, fields=(), bindings=()):
+def _store_annotation(owner, attribute, key, value, *, fields=(), bindings=()):
     """Store a snapshot and owner attributes that must be restored on a hit."""
     attributes = tuple((name, getattr(owner, name)) for name in fields)
     weak_bindings = tuple(
@@ -159,13 +159,13 @@ def store_annotation(owner, attribute, key, value, *, fields=(), bindings=()):
     return _cache(owner, attribute).store(key, value, attributes, weak_bindings)
 
 
-def latest_annotation(owner, attribute):
+def _latest_annotation(owner, attribute):
     """Return the newest snapshot regardless of key, without republishing it."""
     cache = getattr(owner, attribute, None)
     return cache.latest() if isinstance(cache, _AnnotationLRU) else None
 
 
-def invalidate_annotation(owner, attribute, key=None):
+def _invalidate_annotation(owner, attribute, key=None):
     """Invalidate one matching annotation or every entry for an owner field."""
     cache = getattr(owner, attribute, None)
     if isinstance(cache, _AnnotationLRU):

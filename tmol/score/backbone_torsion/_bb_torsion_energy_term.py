@@ -3,20 +3,17 @@ import torch
 
 import attr
 
-from tmol.types import (
-    Tensor,
-    NDArray,
-)
-from tmol.score import EnergyTerm
-from .._annotation_cache import AnnotationKey, cached_annotation, store_annotation
+from tmol.types._torch import Tensor
+from tmol.types._array import NDArray
+from tmol.score._energy_term import EnergyTerm
+from .._annotation_cache import AnnotationKey, _cached_annotation, _store_annotation
 from ._params import BackboneTorsionParamResolver
 from tmol.database import ParameterDatabase
 
-from tmol.chemical import RefinedResidueType, uaid_t
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
+from tmol.chemical import RefinedResidueType
+from tmol.chemical._restypes import uaid_t
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
@@ -121,7 +118,7 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
             return uaids
 
         super(BackboneTorsionEnergyTerm, self).setup_block_type(block_type)
-        cached = cached_annotation(
+        cached = _cached_annotation(
             block_type, "_backbone_torsion_annotation", self._block_annotation_key
         )
         if cached is not None:
@@ -192,7 +189,7 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
             backbone_torsion_atoms=backbone_torsion_atoms,
         )
         setattr(block_type, "backbone_torsion_params", bt_bbtors_params)
-        return store_annotation(
+        return _store_annotation(
             block_type,
             "_backbone_torsion_annotation",
             self._block_annotation_key,
@@ -204,7 +201,7 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
         super(BackboneTorsionEnergyTerm, self).setup_packed_block_types(
             packed_block_types
         )
-        cached = cached_annotation(
+        cached = _cached_annotation(
             packed_block_types,
             "_backbone_torsion_annotation",
             self._packed_annotation_key,
@@ -245,7 +242,7 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
             bt_backbone_torsion_atoms=_t(bt_backbone_torsion_atoms),
         )
         setattr(packed_block_types, "backbone_torsion_params", backbone_torsion_params)
-        return store_annotation(
+        return _store_annotation(
             packed_block_types,
             "_backbone_torsion_annotation",
             self._packed_annotation_key,
@@ -261,7 +258,7 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
         super(BackboneTorsionEnergyTerm, self).setup_poses(pose_stack)
 
     def get_pose_score_term_function(self):
-        from tmol.score.backbone_torsion.potentials import (
+        from tmol.score.backbone_torsion.potentials._compiled import (
             backbone_torsion_pose_score,
         )
 
@@ -269,13 +266,13 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
 
     def get_packing_rotamer_score_term_function(self):
         from tmol.score.backbone_torsion.potentials._compiled import (
-            iter_packing_rotamer_scores,
+            _iter_packing_rotamer_scores,
         )
 
-        return iter_packing_rotamer_scores
+        return _iter_packing_rotamer_scores
 
     def get_rotamer_score_term_function(self):
-        from tmol.score.backbone_torsion.potentials import (
+        from tmol.score.backbone_torsion.potentials._compiled import (
             backbone_torsion_rotamer_score,
         )
 

@@ -47,17 +47,14 @@ from typing import TYPE_CHECKING, Any
 import cattr
 
 from tmol.database import ParameterDatabase
-from tmol.database._yaml import safe_load
+from tmol.database._yaml import _safe_load
 from tmol.database.chemical import (
     RawResidueType,
     VariantType,
-    normalize_bond_tuples,
+    _normalize_bond_tuples,
 )
-from tmol.database.scoring import (
-    CartRes,
-    ConnectionCartRes,
-    PartialCharges,
-)
+from tmol.database.scoring._cartbonded import CartRes, ConnectionCartRes
+from tmol.database.scoring._elec import PartialCharges
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +121,7 @@ def _fill_properties_defaults(props: dict[str, Any]) -> dict[str, Any]:
 def _structure_residue(item: dict[str, Any]) -> RawResidueType:
     """Apply defaults for optional fields, then structure into RawResidueType."""
     populated = {**_RAW_RESIDUE_DEFAULTS, **item}
-    normalize_bond_tuples([populated])
+    _normalize_bond_tuples([populated])
     if "properties" in populated:
         populated["properties"] = _fill_properties_defaults(populated["properties"])
     return cattr.structure(populated, RawResidueType)
@@ -212,7 +209,7 @@ def _load_params_file_cached(
 def _load_params_file_uncached(path: Path) -> list["LigandPreparation"]:
     from tmol.ligand._registry import LigandPreparation, _charges_from_rows
 
-    raw = safe_load(path.read_text())
+    raw = _safe_load(path.read_text())
 
     if not isinstance(raw, dict):
         raise ValueError(f"Expected mapping at YAML root, got {type(raw).__name__}")
@@ -393,9 +390,9 @@ def inject_params_file(
     strict_atom_types: bool = False,
 ) -> ParameterDatabase:
     """Load a single ``.tmol`` file and inject it into a ParameterDatabase."""
-    from tmol.ligand._registry import inject_ligand_preparations
+    from tmol.ligand._registry import _inject_ligand_preparations
 
-    return inject_ligand_preparations(
+    return _inject_ligand_preparations(
         param_db, load_params_file(path), strict_atom_types=strict_atom_types
     )
 
@@ -409,15 +406,15 @@ def _load_params_files(paths):
     ]
 
 
-def inject_params_files(
+def _inject_params_files(
     param_db: ParameterDatabase,
     paths: list[str | Path],
     *,
     strict_atom_types: bool = False,
 ) -> ParameterDatabase:
     """Load multiple ``.tmol`` files and inject them in one shot."""
-    from tmol.ligand._registry import inject_ligand_preparations
+    from tmol.ligand._registry import _inject_ligand_preparations
 
-    return inject_ligand_preparations(
+    return _inject_ligand_preparations(
         param_db, _load_params_files(paths), strict_atom_types=strict_atom_types
     )

@@ -1,14 +1,14 @@
 import numpy
-from tmol.utility.ndarray import (
-    exclusive_cumsum1d,
-    exclusive_cumsum2d,
-    invert_mapping,
+from tmol.utility.ndarray._common_operations import (
+    _exclusive_cumsum1d,
+    _exclusive_cumsum2d,
+    _invert_mapping,
 )
 
 
 def test_invert_mapping():
     a_2_b = numpy.array([5, 4, 7, 1, 2, 0], dtype=numpy.int32)
-    b_2_a = invert_mapping(a_2_b, 8)
+    b_2_a = _invert_mapping(a_2_b, 8)
 
     assert b_2_a.dtype == numpy.int32
 
@@ -18,13 +18,13 @@ def test_invert_mapping():
 
 def test_exclusive_cumsum1d():
     arr = numpy.ones((50,), dtype=numpy.int32)
-    excumsum = exclusive_cumsum1d(arr)
+    excumsum = _exclusive_cumsum1d(arr)
     gold = numpy.arange(50, dtype=numpy.int32)
     numpy.testing.assert_equal(excumsum, gold)
 
 
 def test_exclusive_cumsum2d():
     arr = numpy.ones((50,), dtype=numpy.int32).reshape((2, 25))
-    excumsum = exclusive_cumsum2d(arr)
+    excumsum = _exclusive_cumsum2d(arr)
     gold = numpy.tile(numpy.arange(25, dtype=numpy.int32), (2, 1))
     numpy.testing.assert_equal(excumsum, gold)

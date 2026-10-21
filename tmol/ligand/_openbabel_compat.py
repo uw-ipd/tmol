@@ -44,7 +44,7 @@ _NONTETRAHEDRAL_CHIRAL_TAGS = tuple(
 )
 
 
-def strip_nontetrahedral_stereo(smiles: str) -> str:
+def _strip_nontetrahedral_stereo(smiles: str) -> str:
     """Drop stereo descriptors OpenBabel cannot parse, keeping the rest.
 
     Returns ``smiles`` unchanged if it has no such markers or cannot be parsed.
@@ -73,19 +73,19 @@ def strip_nontetrahedral_stereo(smiles: str) -> str:
     return out
 
 
-def normalize_azide(smiles: str) -> str:
+def _normalize_azide(smiles: str) -> str:
     """Rewrite the neutral cumulated azide ``N=[N]=N`` (CACTVS notation) to the
     charged form ``N=[N+]=[N-]`` that RDKit can sanitize."""
     return smiles.replace("N=[N]=N", "N=[N+]=[N-]")
 
 
-def source_atom_order_from_mapped_smiles(smiles: str) -> Optional[tuple[int, ...]]:
+def _source_atom_order_from_mapped_smiles(smiles: str) -> Optional[tuple[int, ...]]:
     """Heavy-atom source indices in SMILES/mol2 order, or None if one is unmapped.
 
     Explicit input hydrogens are intentionally ignored: OpenBabel regenerates
     hydrogens after protonation, while only heavy atoms retain source names.
     """
-    smiles = normalize_azide(strip_nontetrahedral_stereo(smiles))
+    smiles = _normalize_azide(_strip_nontetrahedral_stereo(smiles))
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return None
@@ -141,7 +141,7 @@ def _obmol_to_rdkit_mol(obmol, *, sanitize: bool = False) -> Optional[Chem.Mol]:
     return Chem.MolFromMolBlock(sdf, sanitize=sanitize, removeHs=False)
 
 
-def obabel_read_mol2_block(
+def _obabel_read_mol2_block(
     mol2_block: str,
     *,
     net_charge: int | None = None,
@@ -296,7 +296,7 @@ def _build_charged_3d_mol2_mol(smiles: str, *, seed: Optional[int] = None):
     from tmol.ligand._conformer_generation import generate_conformer
 
     openbabel, _ = _import_openbabel()
-    smiles = normalize_azide(strip_nontetrahedral_stereo(smiles))
+    smiles = _normalize_azide(_strip_nontetrahedral_stereo(smiles))
     try:
         pymol = generate_conformer(smiles, seed=seed)
     except Exception as exc:

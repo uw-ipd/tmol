@@ -38,10 +38,8 @@ the code assumes a uniform unit distance between interpolation points.
 import torch
 import attr
 
-from tmol.types import (
-    Tensor,
-    validate_args,
-)
+from tmol.types._torch import Tensor
+from tmol.types._functional import _validate_args
 from tmol.numeric.bspline_compiled import _compiled as compiled
 
 
@@ -66,7 +64,7 @@ class BSplineInterpolation:
     n_interp_dims: int
 
     @classmethod
-    @validate_args
+    @_validate_args
     def from_coordinates(cls, coords: Tensor[torch.float]):
         """Construct a BSplineInterpolation instance from  the input coordinates
         (i.e. the data to be interpolated)
@@ -118,7 +116,7 @@ class BSplineInterpolation:
             raise ValueError("Unsupported dimensionality in BSplineInterpolation!")
         return coeffs
 
-    @validate_args
+    @_validate_args
     def interpolate(self, X: Tensor[torch.float][...]) -> Tensor[torch.float]:
         """B-spline interpolation function
 

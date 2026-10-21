@@ -1,10 +1,8 @@
 import attr
 import numpy
 import torch
-from tmol.types import (
-    ValidateAttrs,
-    Tensor,
-)
+from tmol.types._attrs import ValidateAttrs
+from tmol.types._torch import Tensor
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -19,7 +17,7 @@ class CorrelatedBlockGroup:
         return self.blocks[0]
 
 
-def correlation_indices(n_rots_for_block, groups):
+def _correlation_indices(n_rots_for_block, groups):
     out = numpy.full(tuple(n_rots_for_block.shape), -1, dtype=numpy.int32)
     if groups:
         counts = n_rots_for_block.cpu().numpy()
@@ -74,7 +72,7 @@ class RotamerSet(ValidateAttrs):
 
     @group_for_block.default
     def _group_for_block(self):
-        return correlation_indices(self.n_rots_for_block, self.correlated_groups)
+        return _correlation_indices(self.n_rots_for_block, self.correlated_groups)
 
     first_rot_block_type: Tensor[torch.int64][:, :] = attr.ib()
 
@@ -113,7 +111,7 @@ class RotamerSet(ValidateAttrs):
 
     def to_atom_array(self, pbt):
         import biotite.structure as struc
-        from tmol.chemical import get_element_from_atom_name
+        from tmol.chemical._restypes import _get_element_from_atom_name
 
         n_rots = self.n_rotamers_total
         coords = self.coords.cpu().numpy()
@@ -137,7 +135,7 @@ class RotamerSet(ValidateAttrs):
                         res_id=res_id,
                         res_name=bt.name3,
                         atom_name=atom_name,
-                        element=get_element_from_atom_name(atom_name),
+                        element=_get_element_from_atom_name(atom_name),
                     )
                 )
                 model_ids.append(i)

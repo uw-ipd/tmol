@@ -1,5 +1,5 @@
 def test_flatten():
-    from tmol.utility import flat_items, unflatten
+    from tmol.utility._dicttoolz import _flat_items, _unflatten
 
     examples = [
         ({"a": 1, "b": 2, "c": 3}, {("a",): 1, ("b",): 2, ("c",): 3}),
@@ -20,15 +20,15 @@ def test_flatten():
     ]
 
     for ex, flat_ex in examples:
-        assert dict(flat_items(ex)) == flat_ex
-        assert unflatten(flat_ex) == ex
-        assert unflatten(flat_ex.items()) == ex
+        assert dict(_flat_items(ex)) == flat_ex
+        assert _unflatten(flat_ex) == ex
+        assert _unflatten(flat_ex.items()) == ex
 
 
 def test_values_are_a_live_view():
-    from tmol.utility._dicttoolz import vals
+    from tmol.utility._dicttoolz import _vals
 
     mapping = {"first": 1}
-    view = vals(mapping)
+    view = _vals(mapping)
     mapping["second"] = 2
     assert list(view) == [1, 2]

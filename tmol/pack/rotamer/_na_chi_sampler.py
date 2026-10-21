@@ -6,39 +6,38 @@ import attr
 
 from typing import Tuple
 
-from tmol.types import Tensor
-from tmol.utility.tensor import exclusive_cumsum1d
+from tmol.types._torch import Tensor
+from tmol.utility.tensor._common_operations import _exclusive_cumsum1d
 
 from tmol.database import ParameterDatabase
 from tmol.chemical import RefinedResidueType
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
-from tmol.pack import SetPackerTask
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
 from tmol.pack._packer_task import (
+    SetPackerTask,
     DEFAULT_CHI_SAMPLE_EXPANDED_LIMIT,
     DEFAULT_CHI_SAMPLE_LIMIT,
 )
 from tmol.pack.rotamer._chi_budget import (
-    apply_chi_sample_budget,
-    chi_depths,
-    sampler_for_task,
+    _apply_chi_sample_budget,
+    _chi_depths,
+    _sampler_for_task,
 )
 from tmol.pack.rotamer._single_residue_kinforest import (
-    construct_single_residue_kinforest,
+    _construct_single_residue_kinforest,
 )
-from tmol.pack.rotamer import ChiSampler, sc_roots_for_chis
-from tmol.score.na_torsion import (
+from tmol.pack.rotamer._chi_sampler import ChiSampler
+from tmol.pack.rotamer._conformer_sampler import _sc_roots_for_chis
+from tmol.score.na_torsion._params import (
     NaTorsionParams,
     N_PUCKER,
     POLYMER_IND,
     SYN_MEAN,
-    block_type_params,
-    polymer_index,
-    pucker_weights,
+    _block_type_params,
+    _polymer_index,
 )
-from tmol.utility._device import resolve_device
+from tmol.score.na_torsion import pucker_weights
+from tmol.utility import resolve_device
 
 # k in chi = mean + k * sdev_chi, by extra-chi sample level, mirroring Rosetta's
 # expansion of its fitted chi gaussians
@@ -128,7 +127,7 @@ class NaChiRotamerSampler(ChiSampler):
             rt, "na_chi_sampler_params"
         ):
             return rt.na_chi_sampler_params
-        p = block_type_params(rt, self.element_for_atom_type)
+        p = _block_type_params(rt, self.element_for_atom_type)
         chi1 = rt.torsion_to_uaids.get("chi1")
         # the third atom of a torsion is the one whose dof carries it
         p["chi1_atom"] = -1 if chi1 is None else chi1[2][0]
@@ -138,13 +137,13 @@ class NaChiRotamerSampler(ChiSampler):
         # or padded tensors. Other samplers own those residues.
         sampled = list(rt.chi_samples) if p["base"] >= 0 else []
         if sampled:
-            construct_single_residue_kinforest(rt)
-            depths = chi_depths(
+            _construct_single_residue_kinforest(rt)
+            depths = _chi_depths(
                 rt.residue_kinforest_data,
                 [rt.torsion_to_uaids[cs.chi_dihedral][2][0] for cs in sampled],
             )
             sampled = list(
-                apply_chi_sample_budget(
+                _apply_chi_sample_budget(
                     sampled,
                     depths,
                     self.chi_sample_expanded_limit,
@@ -211,7 +210,7 @@ class NaChiRotamerSampler(ChiSampler):
         return self.annotate_packed_block_types(pbt)["builds_bt"][bt_inds]
 
     def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
-        return sc_roots_for_chis(
+        return _sc_roots_for_chis(
             rt, ("chi1",) + tuple(cs.chi_dihedral for cs in rt.chi_samples)
         )
 
@@ -247,7 +246,7 @@ class NaChiRotamerSampler(ChiSampler):
         Tensor[torch.int32][:, :],  # chi_defining_atom_for_rotamer
         Tensor[torch.float32][:, :],  # chi_for_rotamers
     ]:
-        configured, task = sampler_for_task(self, task)
+        configured, task = _sampler_for_task(self, task)
         if configured is not self:
             return configured.sample_chi_for_poses(poses, task)
         pbt = poses.packed_block_types
@@ -299,7 +298,7 @@ class NaChiRotamerSampler(ChiSampler):
         )
         n_steps = steps.shape[0]
         safe_base = base.clamp_min(0)
-        poly = polymer_index(base)
+        poly = _polymer_index(base)
         syn_ok = (
             active
             & (poly == POLYMER_IND["rna"])
@@ -317,9 +316,9 @@ class NaChiRotamerSampler(ChiSampler):
             active, n_modes * n_steps * bounded_combos, torch.zeros_like(n_combos)
         )
 
-        from tmol.pack.rotamer._chi_budget import checked_sample_count
+        from tmol.pack.rotamer._chi_budget import _checked_sample_count
 
-        n_rots = checked_sample_count(
+        n_rots = _checked_sample_count(
             counts, self.chi_sample_expanded_limit, self.chi_sample_limit
         )
         n_rots_for_gbt = counts.to(torch.int32)
@@ -341,7 +340,7 @@ class NaChiRotamerSampler(ChiSampler):
         local = torch.arange(
             n_rots, dtype=torch.int32, device=poses.device
         ) - torch.repeat_interleave(
-            exclusive_cumsum1d(counts), counts, output_size=n_rots
+            _exclusive_cumsum1d(counts), counts, output_size=n_rots
         )
 
         combos_per_rot = n_combos[gbt_for_rotamer]

@@ -9,9 +9,11 @@ is left out. Stereochemistry comes from 3D coordinates.
 import numpy
 from rdkit import Chem
 
-from tmol.chemical import BondType, build_ideal_coords, chemical_bond_orders
-from tmol.database.chemical import site_connections
-from tmol.ligand._rdkit_mol import assign_stereochemistry_from_3d
+from tmol.chemical._restypes import BondType
+from tmol.chemical._ideal_coords import _build_ideal_coords
+from tmol.chemical._bond_orders import _chemical_bond_orders
+from tmol.database.chemical import _site_connections
+from tmol.ligand._rdkit_mol import _assign_stereochemistry_from_3d
 
 _PERIODIC_TABLE = Chem.GetPeriodicTable()
 
@@ -130,7 +132,7 @@ def _smiles(block_type, chem_db, atom_coords, attachments, hydrogens, atom_map):
         index[atom.name] = mol.AddAtom(rd_atom)
         positions.append(atom_coords[i])
 
-    for key, order in chemical_bond_orders(block_type, chem_db).items():
+    for key, order in _chemical_bond_orders(block_type, chem_db).items():
         a, b = tuple(key)
         if a not in index or b not in index:
             continue
@@ -161,7 +163,7 @@ def _smiles(block_type, chem_db, atom_coords, attachments, hydrogens, atom_map):
     for i, xyz in enumerate(positions):
         conformer.SetAtomPosition(i, [float(x) for x in xyz])
     mol.AddConformer(conformer, assignId=True)
-    assign_stereochemistry_from_3d(mol)
+    _assign_stereochemistry_from_3d(mol)
     _clear_resonance_stereo(mol)
 
     if not hydrogens:
@@ -172,7 +174,7 @@ def _smiles(block_type, chem_db, atom_coords, attachments, hydrogens, atom_map):
     return smiles
 
 
-def smiles_from_block_type(
+def _smiles_from_block_type(
     block_type, chem_db, *, hydrogens: bool = False, atom_map: bool = False
 ) -> str:
     """Canonical SMILES of a residue type, with stereochemistry from its ideal
@@ -185,8 +187,8 @@ def smiles_from_block_type(
         atom_map: Number each atom by its block-type atom index + 1 (hydrogens
             only when kept).
     """
-    ideal = build_ideal_coords(block_type)
-    metal = set(site_connections(block_type))
+    ideal = _build_ideal_coords(block_type)
+    metal = set(_site_connections(block_type))
     attachments = []
     for c, conn in enumerate(block_type.connections):
         if conn.name in metal:
@@ -231,7 +233,7 @@ def smiles_from_pose_stack(
     partners = pose_stack.inter_residue_connections64[pose_ind, block_ind].tolist()
     offset = offsets[block_ind]
 
-    own_sites = set(site_connections(block_type))
+    own_sites = set(_site_connections(block_type))
     attachments = []
     for c, conn in enumerate(block_type.connections):
         if conn.name in own_sites:
@@ -241,7 +243,7 @@ def smiles_from_pose_stack(
             attachments.append((c, numpy.full(3, numpy.nan)))
             continue
         partner_type = pbt.active_block_types[block_types[partner]]
-        if partner_type.connections[partner_conn].name in site_connections(
+        if partner_type.connections[partner_conn].name in _site_connections(
             partner_type
         ):
             continue

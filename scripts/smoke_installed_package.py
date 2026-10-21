@@ -9,8 +9,7 @@ from pathlib import Path
 import torch
 import tmol
 from tmol._cpp_lib import _ensure_loaded, _find_extension_library
-from tmol.io import pose_stack_from_file
-from tmol.score import beta2016_score_function
+from tmol import pose_stack_from_file, beta2016_score_function
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--distribution", default="tmol")

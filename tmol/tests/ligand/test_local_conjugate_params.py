@@ -6,12 +6,12 @@ import numpy as np
 import pytest
 import torch
 
-from tmol.database import inject_residue_params
-from tmol.io import pose_stack_from_atom_array
+from tmol.database import _inject_residue_params
+from tmol import pose_stack_from_atom_array
 from tmol.ligand import _connection_params
 from tmol.ligand._local_conjugate_params import (
-    generate_conjugate_parameters,
-    install_conjugate_parameters as install,
+    _generate_conjugate_parameters,
+    _install_conjugate_parameters as install,
 )
 from tmol.tests.ligand import test_conjugate_model
 
@@ -43,10 +43,10 @@ def _charges(database, rt):
 
 def test_install_checks_baseline_and_does_not_apply_twice(conjugate_input, tmp_path):
     from tmol.ligand import load_params_file, prepare_ligands
-    from tmol.ligand._registry import inject_ligand_preparations
+    from tmol.ligand._registry import _inject_ligand_preparations
 
     _, array, database = conjugate_input
-    result = generate_conjugate_parameters(array, database)
+    result = _generate_conjugate_parameters(array, database)
     corrected = install(database, result)
     assert install(corrected, result) is corrected
     repeated = install(database, result)
@@ -55,11 +55,11 @@ def test_install_checks_baseline_and_does_not_apply_twice(conjugate_input, tmp_p
     assert repeated.scoring.elec == corrected.scoring.elec
     assert database is not corrected
     with pytest.raises(ValueError, match="already corrected"):
-        generate_conjugate_parameters(array, corrected)
+        _generate_conjugate_parameters(array, corrected)
     row = result.residues[0]
     name = row.residue_type.name
     atom = next(iter(row.partial_charges))
-    changed = inject_residue_params(
+    changed = _inject_residue_params(
         database, [], partial_charges={name: {atom: row.partial_charges[atom] + 0.125}}
     )
     with pytest.raises(ValueError, match="baseline changed"):
@@ -72,8 +72,8 @@ def test_install_checks_baseline_and_does_not_apply_twice(conjugate_input, tmp_p
         ),
     )
     protected = {supplied.block_type1, supplied.block_type2}
-    reference = inject_residue_params(database, [], connection_params=(supplied,))
-    additions = generate_conjugate_parameters(array, reference, existing=(supplied,))
+    reference = _inject_residue_params(database, [], connection_params=(supplied,))
+    additions = _generate_conjugate_parameters(array, reference, existing=(supplied,))
     assert not protected.intersection(
         row.residue_type.name for row in additions.residues
     )
@@ -84,7 +84,7 @@ def test_install_checks_baseline_and_does_not_apply_twice(conjugate_input, tmp_p
     assert prepared.scoring.cartbonded == updated.scoring.cartbonded
     assert prepared.scoring.elec == updated.scoring.elec
     if additions.connections:
-        restored = inject_ligand_preparations(reference, load_params_file(path))
+        restored = _inject_ligand_preparations(reference, load_params_file(path))
         assert restored.chemical == prepared.chemical
         assert restored.scoring.cartbonded == prepared.scoring.cartbonded
         assert restored.scoring.elec == prepared.scoring.elec
@@ -117,10 +117,10 @@ def test_local_bundle_roundtrip_preserves_correction_and_baseline(
 ):
     from dataclasses import replace
     from tmol.ligand import load_params_file, write_params_file
-    from tmol.ligand._registry import LigandPreparation, inject_ligand_preparations
+    from tmol.ligand._registry import LigandPreparation, _inject_ligand_preparations
 
     _, array, database = conjugate_input
-    result = generate_conjugate_parameters(array, database)
+    result = _generate_conjugate_parameters(array, database)
     preps = [
         LigandPreparation(
             residue_type=row.residue_type,
@@ -155,14 +155,14 @@ def test_local_bundle_roundtrip_preserves_correction_and_baseline(
     )
     assert reloaded == result
     corrected = install(database, reloaded)
-    ordinary = inject_ligand_preparations(database, restored)
+    ordinary = _inject_ligand_preparations(database, restored)
     assert ordinary.chemical == corrected.chemical
     assert ordinary.scoring.elec == corrected.scoring.elec
     assert ordinary.scoring.cartbonded == corrected.scoring.cartbonded
-    assert inject_ligand_preparations(ordinary, restored) is ordinary
+    assert _inject_ligand_preparations(ordinary, restored) is ordinary
     assert install(corrected, reloaded) is corrected
     with pytest.raises(ValueError, match="already corrected"):
-        generate_conjugate_parameters(array, corrected)
+        _generate_conjugate_parameters(array, corrected)
 
 
 def test_generated_local_parameters_preserve_instance_identity(
@@ -177,7 +177,7 @@ def test_generated_local_parameters_preserve_instance_identity(
         return parameterize(model, ph)
 
     monkeypatch.setattr(_connection_params, "_parameterized_model", counted)
-    expected = generate_conjugate_parameters(original, database)
+    expected = _generate_conjugate_parameters(original, database)
     assert len(calls) == (4 if fixture == "nglycan" else 2)
     second = original.copy()
     second.res_id += 10000
@@ -189,10 +189,10 @@ def test_generated_local_parameters_preserve_instance_identity(
     reversed_order = np.concatenate(
         [np.arange(b - 1, a - 1, -1) for a, b in zip(boundaries[:-1], boundaries[1:])]
     )
-    assert generate_conjugate_parameters(second[reversed_order], database) == expected
+    assert _generate_conjugate_parameters(second[reversed_order], database) == expected
     calls.clear()
     assert (
-        generate_conjugate_parameters(original + second + original, database)
+        _generate_conjugate_parameters(original + second + original, database)
         == expected
     )
     assert len(calls) == (4 if fixture == "nglycan" else 2)
@@ -202,7 +202,7 @@ def test_biotin_local_changes_and_canonical_ownership(conjugate_input):
     fixture, array, database = conjugate_input
     if fixture != "biotin":
         pytest.skip("Detailed amide reference uses biotin")
-    result = generate_conjugate_parameters(
+    result = _generate_conjugate_parameters(
         array, database, parameter_source="mmff94-harmonic"
     )
     row = next(r for r in result.residues if r.residue_type.name == "LYS:conj_NZ")
@@ -249,7 +249,7 @@ def test_attached_asparagine_is_not_flipped_independently(conjugate_input):
     if fixture != "nglycan":
         pytest.skip("ASN glycan fixture exercises the terminal amide flip")
     from tmol.chemical import ResidueTypeSet
-    from tmol.pack.rotamer import OptHSampler
+    from tmol.pack import OptHSampler
 
     sampler = OptHSampler()
     base = next(r for r in database.chemical.residues if r.name == "ASN")
@@ -275,9 +275,9 @@ def test_corrected_attachment_pose_charge_geometry_and_gradient(
 ):
     fixture, array, database = conjugate_input
     if parameter_source == "generator-ideals":
-        result = generate_conjugate_parameters(array, database)
+        result = _generate_conjugate_parameters(array, database)
     else:
-        result = generate_conjugate_parameters(
+        result = _generate_conjugate_parameters(
             array, database, parameter_source=parameter_source
         )
     if parameter_source == "generator-ideals":
@@ -350,7 +350,7 @@ def test_corrected_attachment_pose_charge_geometry_and_gradient(
         normal = torch.linalg.cross(ce - n, c - n)
         distance = ((h - n) * normal).sum().abs() / normal.norm()
         assert distance.item() < 1e-4
-    from tmol.score import beta2016_score_function
+    from tmol import beta2016_score_function
 
     scorer = beta2016_score_function(
         torch_device, param_db=corrected
@@ -371,16 +371,17 @@ def test_terminal_and_internal_n_alkylation_workflow(torch_device, tmp_path):
     """Preserve terminal-amine and internal-amide chemistry through a workflow."""
     import biotite.structure as struc
 
-    from tmol.database import ParameterDatabase
-    from tmol.io import atom_array_from_file, build_context_from_atom_array
+    from tmol import ParameterDatabase
+    from tmol import atom_array_from_file
+    from tmol.io import build_context_from_atom_array
     from tmol.ligand import load_params_file, prepare_ligands
     from tmol.ligand._conjugate_model import (
-        attachment_connection_name,
-        capped_conjugate_models,
+        _attachment_connection_name,
+        _capped_conjugate_models,
     )
     from tmol.ligand._connection_params import _protonated_model
-    from tmol.ligand._registry import inject_ligand_preparations
-    from tmol.score import beta2016_score_function
+    from tmol.ligand._registry import _inject_ligand_preparations
+    from tmol import beta2016_score_function
     from tmol.score.elec._params import ElecParamResolver
     from tmol.tests.data import data_path
 
@@ -420,7 +421,7 @@ def test_terminal_and_internal_n_alkylation_workflow(torch_device, tmp_path):
         if residue.name == target_name
     )
     assert (
-        attachment_connection_name(
+        _attachment_connection_name(
             terminal, terminal_n, terminal_carbon, canonical_target
         )
         == "conj_N"
@@ -428,7 +429,7 @@ def test_terminal_and_internal_n_alkylation_workflow(torch_device, tmp_path):
     phosphorylated = terminal.copy()
     phosphorylated.element[terminal_carbon] = "P"
     assert (
-        attachment_connection_name(
+        _attachment_connection_name(
             phosphorylated, terminal_n, terminal_carbon, canonical_target
         )
         == "conj_N"
@@ -570,7 +571,7 @@ def test_terminal_and_internal_n_alkylation_workflow(torch_device, tmp_path):
         ].tolist() == [block_index, connection]
 
         def formal_state(database):
-            for model in capped_conjugate_models(array, database.chemical):
+            for model in _capped_conjugate_models(array, database.chemical):
                 local_by_source = {
                     int(source): local
                     for local, source in enumerate(model.source_atom_indices)
@@ -592,7 +593,7 @@ def test_terminal_and_internal_n_alkylation_workflow(torch_device, tmp_path):
         charges = resolved_charges(prepared, block)
         assert sum(charges.values()) == pytest.approx(0.0, abs=1e-4)
 
-        reloaded = inject_ligand_preparations(
+        reloaded = _inject_ligand_preparations(
             ParameterDatabase.get_default(), load_params_file(params_path)
         )
         restored = next(

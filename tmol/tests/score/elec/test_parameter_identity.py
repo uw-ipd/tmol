@@ -7,10 +7,11 @@ import numpy as np
 import pytest
 import torch
 
-from tmol.database import inject_residue_params
-from tmol.io import extended_pose_stack_from_sequences
-from tmol.score.elec import ElecEnergyTerm, ElecParamResolver
-from tmol.database.scoring import PartialCharges, CountPairReps
+from tmol.database import _inject_residue_params
+from tmol import extended_pose_stack_from_sequences
+from tmol.score import ElecEnergyTerm
+from tmol.score.elec._params import ElecParamResolver
+from tmol.database.scoring._elec import PartialCharges, CountPairReps
 
 
 def isolated_charge_database(database, first_charge, residue="ALA", atom="CB"):
@@ -23,7 +24,7 @@ def isolated_charge_database(database, first_charge, residue="ALA", atom="CB"):
         atom_cp_reps_parameters=(),
     )
     zeroed = attr.evolve(database, scoring=attr.evolve(database.scoring, elec=elec))
-    return inject_residue_params(
+    return _inject_residue_params(
         zeroed,
         [],
         partial_charges={
@@ -188,8 +189,9 @@ def test_charge_database_reuse_energy_and_gradient(
 def test_charge_reuse_rotamer_energies_and_gradients(
     default_database, torch_device, dun_sampler, changed_first
 ):
-    from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-    from tmol.pack.rotamer import build_rotamers
+    from tmol import PackerPalette, PackerTask
+    from tmol.pack import SetPackerTask
+    from tmol.pack import build_rotamers
 
     pose = extended_pose_stack_from_sequences(["KK", "KKK"], device=torch_device)
     task = PackerTask(pose, PackerPalette())
@@ -340,10 +342,10 @@ def test_terminal_conjugate_charge_bundle_energy_gradient(tmp_path, torch_device
     from dataclasses import replace
     import biotite.structure as struc
     import networkx as nx
-    from tmol.database import ParameterDatabase
-    from tmol.io import atom_array_from_file, pose_stack_from_atom_array
+    from tmol import ParameterDatabase
+    from tmol import atom_array_from_file, pose_stack_from_atom_array
     from tmol.ligand import prepare_ligands, load_params_file, write_params_file
-    from tmol.ligand._registry import inject_ligand_preparations
+    from tmol.ligand._registry import _inject_ligand_preparations
     from tmol.tests.data import data_path
     from tmol.tests.pack.rotamer.test_group_constraints import pose_bonds
 
@@ -403,8 +405,8 @@ def test_terminal_conjugate_charge_bundle_energy_gradient(tmp_path, torch_device
     )
     write_params_file(preps, path)
     restored = load_params_file(path)
-    database = inject_ligand_preparations(ParameterDatabase.get_default(), restored)
-    databases = [database, inject_ligand_preparations(database, restored)]
+    database = _inject_ligand_preparations(ParameterDatabase.get_default(), restored)
+    databases = [database, _inject_ligand_preparations(database, restored)]
     assert databases[1] is database
     coords = pose.coords.double().clone()
     coords[0, other] = coords[0, nz] + coords.new_tensor([3.1, 0.7, 0.2])

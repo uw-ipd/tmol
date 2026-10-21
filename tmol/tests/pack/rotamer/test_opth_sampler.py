@@ -4,20 +4,22 @@ from types import SimpleNamespace
 
 import numpy
 import torch
-from tmol.pose import PoseStackBuilder
+from tmol import PoseStackBuilder
 
 # from tmol.score import ScoreFunction
-from tmol.pack import PackerTask, PackerPalette, SetPackerTask
-from tmol.pack.rotamer import (
+from tmol import (
+    PackerTask,
+    PackerPalette,
+    atom_array_from_file,
+    pose_stack_from_atom_array,
+    pose_stack_from_file,
+)
+from tmol.pack import (
+    SetPackerTask,
     build_rotamers,
     FixedAAChiSampler,
     IncludeCurrentSampler,
     OptHSampler,
-)
-from tmol.io import (
-    atom_array_from_file,
-    pose_stack_from_atom_array,
-    pose_stack_from_file,
 )
 from tmol.tests.data import data_path
 

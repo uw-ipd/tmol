@@ -2,13 +2,10 @@ import attr
 import pytest
 import torch
 
-from tmol.pose import (
-    ConstraintSet,
-    PoseStackBuilder,
-)
-from tmol.score.constraint import ConstraintEnergyTerm
+from tmol import ConstraintSet, PoseStackBuilder
+from tmol.score import ConstraintEnergyTerm
 
-from tmol.io import pose_stack_from_file
+from tmol import pose_stack_from_file
 
 
 def _zero_constraint(atoms: torch.Tensor, params: torch.Tensor) -> torch.Tensor:

@@ -5,24 +5,24 @@ from typing import TYPE_CHECKING
 
 import torch
 
-from tmol.pose import PoseStack
-from tmol.types import Tensor
+from tmol.pose._pose_stack import PoseStack
+from tmol.types._torch import Tensor
 
-from tmol.kinematics import (
-    FoldForest,
-    MoveMap,
-    MinimizerMap,
-)
-from tmol.score import ScoreFunction
+from tmol.kinematics._fold_forest import FoldForest
+from tmol.kinematics._move_map import MoveMap, MinimizerMap
+from tmol.score._score_function import ScoreFunction
 
-from tmol.optimization import LBFGS_Armijo
-from tmol.utility._device import synchronize_device
+from tmol.optimization._lbfgs_armijo import LBFGS_Armijo
+from tmol.utility._device import _synchronize_device
 
 if TYPE_CHECKING:
-    from tmol.optimization import CartesianSfxnNetwork, KinForestSfxnNetwork
+    from tmol.optimization._sfxn_modules import (
+        CartesianSfxnNetwork,
+        KinForestSfxnNetwork,
+    )
 
 
-def build_kinforest_network(
+def _build_kinforest_network(
     pose_stack: PoseStack,
     sfxn: ScoreFunction,
     ff: FoldForest,
@@ -47,20 +47,20 @@ def build_kinforest_network(
         A network mapping movable kinematic degrees of freedom to pose energies.
     """
     from tmol.kinematics import PoseStackKinematicsModule
-    from tmol.optimization import KinForestSfxnNetwork
+    from tmol.optimization._sfxn_modules import KinForestSfxnNetwork
 
     if verbose:
-        synchronize_device(pose_stack.device)
+        _synchronize_device(pose_stack.device)
     start_time = time.perf_counter()
 
     kin_module = PoseStackKinematicsModule(pose_stack, ff)
     if verbose:
-        synchronize_device(pose_stack.device)
+        _synchronize_device(pose_stack.device)
     end_time1 = time.perf_counter()
 
     minimizer_map = MinimizerMap(pose_stack, kin_module.kmd, mm)
     if verbose:
-        synchronize_device(pose_stack.device)
+        _synchronize_device(pose_stack.device)
     end_time2 = time.perf_counter()
 
     kf_network = KinForestSfxnNetwork(
@@ -74,7 +74,7 @@ def build_kinforest_network(
         move_map=mm,
     )
     if verbose:
-        synchronize_device(pose_stack.device)
+        _synchronize_device(pose_stack.device)
     end_time3 = time.perf_counter()
 
     if verbose:
@@ -87,7 +87,7 @@ def build_kinforest_network(
     return kf_network
 
 
-def run_min(
+def _run_min(
     sfxn_module: CartesianSfxnNetwork | KinForestSfxnNetwork,
     optimizer_cls: type[torch.optim.Optimizer] = LBFGS_Armijo,
     optimizer_kwargs: dict[str, object] | None = None,
@@ -121,7 +121,7 @@ def run_min(
 
     timing_device = next(sfxn_module.parameters()).device if verbose else None
     if timing_device is not None:
-        synchronize_device(timing_device)
+        _synchronize_device(timing_device)
     start_time = time.perf_counter()
 
     segment_ids = getattr(sfxn_module, "segment_ids", None)
@@ -143,16 +143,16 @@ def run_min(
         return E if segmented else total
 
     if timing_device is not None:
-        synchronize_device(timing_device)
+        _synchronize_device(timing_device)
     end_time1 = time.perf_counter()
     optimizer.step(closure)
     if timing_device is not None:
-        synchronize_device(timing_device)
+        _synchronize_device(timing_device)
     end_time2 = time.perf_counter()
 
     new_pose_stack = sfxn_module.pose_stack_from_dofs()
     if timing_device is not None:
-        synchronize_device(timing_device)
+        _synchronize_device(timing_device)
     end_time3 = time.perf_counter()
 
     if verbose:
@@ -264,7 +264,7 @@ class KinematicMinimizer:
         if self.network is None or not self.network._reset(
             sfxn, pose_stack, fold_forest, move_map
         ):
-            self.network = build_kinforest_network(
+            self.network = _build_kinforest_network(
                 pose_stack,
                 sfxn,
                 fold_forest,
@@ -277,7 +277,7 @@ class KinematicMinimizer:
         selected_optimizer = (
             self._lbfgs_factory if optimizer_cls is LBFGS_Armijo else optimizer_cls
         )
-        result = run_min(
+        result = _run_min(
             self.network,
             optimizer_cls=selected_optimizer,
             optimizer_kwargs=optimizer_kwargs,
@@ -387,7 +387,7 @@ class CartesianMinimizer:
         verbose: bool = False,
     ) -> PoseStack:
         """Minimize one pose stack, reusing compatible rendered state."""
-        from tmol.optimization import CartesianSfxnNetwork
+        from tmol.optimization._sfxn_modules import CartesianSfxnNetwork
 
         if self.network is None or not self.network._reset(
             sfxn, pose_stack, coord_mask
@@ -401,7 +401,7 @@ class CartesianMinimizer:
         selected_optimizer = (
             self._lbfgs_factory if optimizer_cls is LBFGS_Armijo else optimizer_cls
         )
-        result = run_min(
+        result = _run_min(
             self.network,
             optimizer_cls=selected_optimizer,
             optimizer_kwargs=optimizer_kwargs,

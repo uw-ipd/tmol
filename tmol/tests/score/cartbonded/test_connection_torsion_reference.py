@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from tmol.score.cartbonded import CartBondedEnergyTerm
+from tmol.score import CartBondedEnergyTerm
 from tmol.tests.score.common import pose_stack_from_pdb_and_resnums
 
 

@@ -15,10 +15,8 @@ import yaml
 
 from tmol.database.chemical import RawResidueType
 from tmol.ligand._params_file import TMOL_FORMAT_VERSION
-from tmol.database.scoring import (
-    CartRes,
-    PartialCharges,
-)
+from tmol.database.scoring._cartbonded import CartRes
+from tmol.database.scoring._elec import PartialCharges
 
 if TYPE_CHECKING:
     from tmol.ligand._registry import LigandPreparation
@@ -303,7 +301,7 @@ def write_params_file(
     )
 
 
-def write_params_from_mol2(
+def _write_params_from_mol2(
     mol2_path: str | Path,
     out_path: str | Path,
     *,

@@ -1,10 +1,6 @@
 import torch
-from tmol import pose_stack_from_file
-from tmol.score.constraint import (
-    constrain_all_ca,
-    create_mainchain_coordinate_constraints,
-)
-from tmol.pose import PoseStackBuilder
+from tmol import pose_stack_from_file, PoseStackBuilder
+from tmol.score import constrain_all_ca, create_mainchain_coordinate_constraints
 
 
 def test_create_mainchain_coordinate_constraints(

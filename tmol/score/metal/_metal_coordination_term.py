@@ -6,10 +6,11 @@ import numpy
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.database.chemical import ideal_distances, metal_table
-from tmol.pose import PackedBlockTypes, PoseStack
+from tmol.database.chemical import _ideal_distances, _metal_table
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
 
-from .._annotation_cache import AnnotationKey, cached_annotation, store_annotation
+from .._annotation_cache import AnnotationKey, _cached_annotation, _store_annotation
 from .._energy_term import EnergyTerm
 
 # kernel sentinels for metal_conn_virt
@@ -28,7 +29,7 @@ class MetalCoordinationEnergyTerm(EnergyTerm):
         super().__init__(param_db=param_db, device=device)
         self.device = device
         self.params = param_db.scoring.metal_coordination
-        table = metal_table()
+        table = _metal_table()
         self.ion_for_atom_type = {ion["atom_type"]: ion for ion in table["ions"]}
         self.donor_radii = table["donor_radii"]
         self.donor_keys = tuple(self.donor_radii)
@@ -54,7 +55,7 @@ class MetalCoordinationEnergyTerm(EnergyTerm):
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super().setup_packed_block_types(packed_block_types)
-        cached = cached_annotation(
+        cached = _cached_annotation(
             packed_block_types,
             "_metal_coordination_annotation",
             self._packed_annotation_key,
@@ -117,7 +118,7 @@ class MetalCoordinationEnergyTerm(EnergyTerm):
         }
         for name, value in fields.items():
             setattr(pbt, name, value)
-        return store_annotation(
+        return _store_annotation(
             pbt,
             "_metal_coordination_annotation",
             self._packed_annotation_key,
@@ -130,7 +131,7 @@ class MetalCoordinationEnergyTerm(EnergyTerm):
         metal = bt.atom_to_idx[site.metal_atom]
         metal_type = bt.atoms[metal].atom_type
         virts = [bt.atom_to_idx[v] for v in site.site_virts]
-        dist = ideal_distances(self.ion_for_atom_type[metal_type], self.donor_radii)
+        dist = _ideal_distances(self.ion_for_atom_type[metal_type], self.donor_radii)
         radial_sd, lateral_sd = self.params.widths(metal_type)
         params = [
             (dist[key], self.params.well_depth(metal_type, key), radial_sd, lateral_sd)
@@ -204,12 +205,14 @@ class MetalCoordinationEnergyTerm(EnergyTerm):
         return not bool((is_metal & (bt >= 0)).any())
 
     def get_pose_score_term_function(self):
-        from tmol.score.metal.potentials import metal_coordination_pose_scores
+        from tmol.score.metal.potentials._compiled import metal_coordination_pose_scores
 
         return metal_coordination_pose_scores
 
     def get_rotamer_score_term_function(self):
-        from tmol.score.metal.potentials import metal_coordination_rotamer_scores
+        from tmol.score.metal.potentials._compiled import (
+            metal_coordination_rotamer_scores,
+        )
 
         return metal_coordination_rotamer_scores
 

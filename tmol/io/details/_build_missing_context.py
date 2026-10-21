@@ -8,8 +8,8 @@ from typing import Dict, List, Tuple
 import numpy
 import torch
 from tmol.ligand._icoor_tree import (
-    signed_dihedral_angle,
-    vertex_angle,
+    _signed_dihedral_angle,
+    _vertex_angle,
 )
 from scipy.spatial import cKDTree
 
@@ -30,7 +30,7 @@ UNSATURATED = (int(BondType.DOUBLE), int(BondType.TRIPLE), int(BondType.AROMATIC
 
 def _dihedral(a, b, c, d):
     """The IUPAC dihedral a-b-c-d, which ``signed_dihedral_angle`` negates."""
-    return -signed_dihedral_angle(a, b, c, d)
+    return -_signed_dihedral_angle(a, b, c, d)
 
 
 def _normalize(v):
@@ -224,7 +224,7 @@ def _plan(geom, known, targets, conn_nodes, ideal_of):
         ia = ideal_of(a)
         ip, ig, igg = ideal_of(p), _resolve(g, ideal_of), _resolve(gg, ideal_of)
         dist = float(numpy.linalg.norm(ia - ip))
-        theta = vertex_angle(ig, ip, ia)
+        theta = _vertex_angle(ig, ip, ia)
         phi = _dihedral(igg, ig, ip, ia)
         steps.append(_Step(a, refs, dist, theta, phi, axis))
         if axis is not None and axis not in axis_candidates:
@@ -375,7 +375,7 @@ def _clash(moved, points, others, other_xyz, geom, env, excluded):
     return score
 
 
-def build_missing_by_context(
+def _build_missing_by_context(
     pbt,
     pose_coords,
     missing,

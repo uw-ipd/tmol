@@ -10,8 +10,8 @@ from tmol.database.chemical import (
     GEOMETRY_SITE_COUNT,
     Connection,
     MetalSite,
-    is_metal_cluster,
-    metal_table,
+    _is_metal_cluster,
+    _metal_table,
 )
 from tmol.database._patched_chemdb import _validate_raw_residue_metal_sites
 
@@ -257,12 +257,12 @@ def test_metal_ion_ideal_coords_rebuild_their_polyhedra(default_restype_set):
     """
     import numpy
 
-    vertices = {g["name"]: g["vertices"] for g in metal_table()["geometries"]}
+    vertices = {g["name"]: g["vertices"] for g in _metal_table()["geometries"]}
     checked = 0
     for restype in default_restype_set.residue_types:
         if not restype.metal_sites or not restype.metal_sites[0].site_virts:
             continue
-        if is_metal_cluster(restype):
+        if _is_metal_cluster(restype):
             continue
         site = restype.metal_sites[0]
         target = vertices[site.geometry]
@@ -314,7 +314,9 @@ def test_metal_ion_block_types_are_loaded(
 
 
 def generated_ion_names():
-    return {f"{i['name3']}_{g}" for i in metal_table()["ions"] for g in i["geometries"]}
+    return {
+        f"{i['name3']}_{g}" for i in _metal_table()["ions"] for g in i["geometries"]
+    }
 
 
 def generated_cluster_names():
@@ -356,7 +358,7 @@ def test_every_metal_atom_has_its_nominal_elec_charge(
     types = {at.name: at for at in default_database.chemical.atom_types}
     residues = [r for r in default_database.chemical.residues if r.metal_sites]
     generated = {r.name: {a.name: a.atom_type for a in r.atoms} for r in residues}
-    free_ion = {r.name: not is_metal_cluster(r) for r in residues}
+    free_ion = {r.name: not _is_metal_cluster(r) for r in residues}
     seen = {c.res for c in charges if c.res in generated}
     assert seen == set(generated), "some metal ion types have no charge entries"
     for c in charges:

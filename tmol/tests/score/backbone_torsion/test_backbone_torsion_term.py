@@ -1,8 +1,8 @@
 import numpy
 import torch
 
-from tmol.io import pose_stack_from_file
-from tmol.score.backbone_torsion import BackboneTorsionEnergyTerm
+from tmol import pose_stack_from_file
+from tmol.score import BackboneTorsionEnergyTerm
 from tmol.tests.score.common import EnergyTermTestBase
 
 

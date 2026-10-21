@@ -6,21 +6,19 @@ import attrs
 
 from itertools import permutations, product
 
-from tmol.score import AtomTypeDependentTerm
+from tmol.score._atom_type_dependent_term import AtomTypeDependentTerm
 from tmol.score._annotation_cache import (
     AnnotationKey,
-    cached_annotation,
-    store_annotation,
+    _cached_annotation,
+    _store_annotation,
 )
 
 from tmol.database import ParameterDatabase
 
 from tmol.chemical import RefinedResidueType
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
-from tmol.score.common import make_hashtable_keys_values, add_to_hashtable
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
+from tmol.score.common._hash_util import _make_hashtable_keys_values, _add_to_hashtable
 
 logger = logging.getLogger(__name__)
 
@@ -221,7 +219,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(CartBondedEnergyTerm, self).setup_block_type(block_type)
-        cached = cached_annotation(
+        cached = _cached_annotation(
             block_type, "_cartbonded_annotation", self._block_annotation_key
         )
         if cached is not None:
@@ -259,7 +257,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             cartbonded_subgraph_type_offsets=cart_subgraph_type_offsets,
             cartbonded_params=cartbonded_params,
         )
-        return store_annotation(
+        return _store_annotation(
             block_type,
             "_cartbonded_annotation",
             self._block_annotation_key,
@@ -386,7 +384,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
     ):  # noqa: C901
         super(CartBondedEnergyTerm, self).setup_packed_block_types(packed_block_types)
 
-        fragment = cached_annotation(
+        fragment = _cached_annotation(
             packed_block_types,
             "_cartbonded_fragment_annotation",
             self._fragment_annotation_key,
@@ -403,14 +401,14 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
                 device=self.device,
             )
             packed_block_types.cartbonded_is_fragment = fragment
-            store_annotation(
+            _store_annotation(
                 packed_block_types,
                 "_cartbonded_fragment_annotation",
                 self._fragment_annotation_key,
                 fragment,
                 fields=("cartbonded_is_fragment",),
             )
-        previous = cached_annotation(
+        previous = _cached_annotation(
             packed_block_types,
             "_cartbonded_annotation",
             self._packed_annotation_key,
@@ -486,13 +484,13 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             packed_block_types, cbet_atom_unique_id_index, named_params
         )
         padded_key = self._padded_param_key
-        hash_keys, hash_values = make_hashtable_keys_values(
+        hash_keys, hash_values = _make_hashtable_keys_values(
             max(len(named_params), 1), 2, 5, 7
         )
         param_key_to_index = {}
         for cur_val, (key_w_str, value) in enumerate(named_params.items()):
             key = tuple(cbet_atom_unique_id_index[at] for at in key_w_str)
-            add_to_hashtable(hash_keys, hash_values, cur_val, key, value)
+            _add_to_hashtable(hash_keys, hash_values, cur_val, key, value)
             param_key_to_index[padded_key(key)] = cur_val
 
         # Intra-block topology and atom naming are fixed for a packed block
@@ -516,10 +514,10 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         subgraph_type_offsets = torch.from_numpy(subgraph_type_offsets).to(
             device=self.device
         )
-        from ._connection_parameters import compile_connection_parameters
+        from ._connection_parameters import _compile_connection_parameters
 
         connection_keys, connection_spans, connection_paths, connection_values = (
-            compile_connection_parameters(
+            _compile_connection_parameters(
                 self.cart_database.connection_params,
                 packed_block_types,
                 len(hash_values),
@@ -557,7 +555,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             rosetta_typed=self.rosetta_typed,
         )
         packed_block_types.cartbonded_atom_is_rosetta = cb_pbt_ann.atom_is_rosetta
-        return store_annotation(
+        return _store_annotation(
             packed_block_types,
             "_cartbonded_annotation",
             self._packed_annotation_key,
@@ -614,7 +612,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         return tuple(tables)
 
     def _ownership_mask(self, packed_block_types):
-        cached = cached_annotation(
+        cached = _cached_annotation(
             packed_block_types,
             "_cartbonded_ownership_annotation",
             self._ownership_annotation_key,
@@ -631,7 +629,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             for j, atom in enumerate(bt.atoms):
                 mask[i, j] = atom.atom_type in rosetta_typed
         value = torch.tensor(mask, dtype=torch.int32, device=self.device)
-        return store_annotation(
+        return _store_annotation(
             packed_block_types,
             "_cartbonded_ownership_annotation",
             self._ownership_annotation_key,
@@ -642,19 +640,19 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         super(CartBondedEnergyTerm, self).setup_poses(poses)
 
     def get_pose_score_term_function(self):
-        from tmol.score.cartbonded.potentials import cartbonded_pose_scores
+        from tmol.score.cartbonded.potentials._compiled import cartbonded_pose_scores
 
         return cartbonded_pose_scores
 
     def get_packing_rotamer_score_term_function(self):
         from tmol.score.cartbonded.potentials._compiled import (
-            iter_packing_rotamer_scores,
+            _iter_packing_rotamer_scores,
         )
 
-        return iter_packing_rotamer_scores
+        return _iter_packing_rotamer_scores
 
     def get_rotamer_score_term_function(self):
-        from tmol.score.cartbonded.potentials import cartbonded_rotamer_scores
+        from tmol.score.cartbonded.potentials._compiled import cartbonded_rotamer_scores
 
         return cartbonded_rotamer_scores
 

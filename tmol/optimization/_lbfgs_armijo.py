@@ -133,7 +133,7 @@ def _any_true(mask):
     return bool(mask) if mask.numel() == 1 else bool(mask.any())
 
 
-def armijo_linesearch_segmented(
+def _armijo_linesearch_segmented(
     func,
     derphi0,
     old_fval,
@@ -870,7 +870,7 @@ class LBFGS_Armijo(Optimizer):
         # match Rosetta: start at 2x prev accepted step, capped at 1.0
         start_t = (ctx.t / 0.5).clamp(max=1.0)
 
-        accepted, _, ls_evals, status, trial_is_accepted = armijo_linesearch_segmented(
+        accepted, _, ls_evals, status, trial_is_accepted = _armijo_linesearch_segmented(
             linefn_vec,
             ctx.gtd_seg,
             ctx.prev_loss_vec,  # energies at x_backup

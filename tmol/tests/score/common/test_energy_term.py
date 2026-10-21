@@ -7,19 +7,16 @@ import pandas
 import torch
 import yaml
 
-from tmol.io import (
-    pose_stack_from_file,
-    default_canonical_ordering,
-    default_packed_block_types,
-    pose_stack_from_canonical_form,
-)
+from tmol import pose_stack_from_file, PoseStackBuilder
 from tmol.io._canonical_ordering import (
+    _default_canonical_ordering,
+    _default_packed_block_types,
     _canonical_form_from_atom_records,
     _select_atom_records_res_subset,
 )
+from tmol.io._pose_stack_construction import _pose_stack_from_canonical_form
 from tmol.io._pdb_parsing import _parse_pdb
-from tmol.pose import PoseStackBuilder
-from tmol.score.ref import RefEnergyTerm
+from tmol.score import RefEnergyTerm
 
 
 # monkeypatch function to give more sane output from torch gradcheck
@@ -113,8 +110,8 @@ def pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums=None):
     atom_subsets = pandas.concat(
         [_select_atom_records_res_subset(atom_records, i, j) for i, j in resnums]
     )
-    canonical_ordering = default_canonical_ordering()
-    packed_block_types = default_packed_block_types(torch_device)
+    canonical_ordering = _default_canonical_ordering()
+    packed_block_types = _default_packed_block_types(torch_device)
     canonical_form = _canonical_form_from_atom_records(
         canonical_ordering, atom_subsets, torch_device
     )
@@ -135,7 +132,7 @@ def pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums=None):
         [res_not_connected], dtype=torch.bool, device=torch_device
     )
 
-    pose_stack = pose_stack_from_canonical_form(
+    pose_stack = _pose_stack_from_canonical_form(
         canonical_ordering, packed_block_types, *canonical_form
     )
     return pose_stack

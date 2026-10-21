@@ -22,8 +22,7 @@ import attr
 import numpy
 import torch
 
-from tmol.database.scoring._omega_bbdep import OmegaBBDepDatabase
-from tmol.database.scoring._rama import RamaDatabase
+from tmol.database.scoring import OmegaBBDepDatabase, RamaDatabase
 
 # tables to symmetrize -> name of the symmetric copy
 RAMA_TABLES = {"GLY": "GLY_symm", "GLY_prepro": "GLY_prepro_symm"}
@@ -35,7 +34,7 @@ OMEGA_SYMM_MU = 180.0
 OMEGA_SYMM_SIGMA = 6.0
 
 
-def mirror(grid: numpy.ndarray) -> numpy.ndarray:
+def _mirror(grid: numpy.ndarray) -> numpy.ndarray:
     """Reflect a periodic phi/psi grid through the origin.
 
     Bin k is centered at bbstart + k*bbstep with bbstart = -pi, so the bin at
@@ -44,7 +43,7 @@ def mirror(grid: numpy.ndarray) -> numpy.ndarray:
     return numpy.roll(numpy.roll(grid[::-1, ::-1], 1, axis=0), 1, axis=1)
 
 
-def check_registration(table) -> None:
+def _check_registration(table) -> None:
     """Refuse a table whose bins are not the ones ``mirror`` assumes.
 
     ``mirror`` reflects by index, which is the reflection through the origin
@@ -70,7 +69,7 @@ def check_registration(table) -> None:
             )
 
 
-def symmetrize_energies(energies: numpy.ndarray) -> numpy.ndarray:
+def _symmetrize_energies(energies: numpy.ndarray) -> numpy.ndarray:
     """Average an energy table with its mirror image, in probability space.
 
     The tables hold -ln(p) plus a constant, so averaging energies would average
@@ -89,12 +88,12 @@ def symmetrize_energies(energies: numpy.ndarray) -> numpy.ndarray:
     source = numpy.exp(-energies.astype(numpy.float64))
     partition = source.sum()
     p = source / partition
-    p = 0.5 * (p + mirror(p))
+    p = 0.5 * (p + _mirror(p))
     p /= p.sum()
     return (-numpy.log(p) - numpy.log(partition)).astype(numpy.float32)
 
 
-def add_rama_tables(db: RamaDatabase) -> RamaDatabase:
+def _add_rama_tables(db: RamaDatabase) -> RamaDatabase:
     """Append a symmetrized copy of each glycine rama table."""
     by_id = {t.table_id: t for t in db.rama_tables}
     added = []
@@ -102,9 +101,9 @@ def add_rama_tables(db: RamaDatabase) -> RamaDatabase:
         if target in by_id:
             raise ValueError(f"{target} is already present")
         table = by_id[source]
-        check_registration(table)
+        _check_registration(table)
         energies = numpy.asarray(table.table, dtype=numpy.float64)
-        symm = symmetrize_energies(energies)
+        symm = _symmetrize_energies(energies)
         print(
             f"  {source} -> {target}: max shift {numpy.abs(symm - energies).max():.4f}, "
             f"rms {numpy.sqrt(((symm - energies) ** 2).mean()):.4f} kcal/mol"
@@ -113,7 +112,7 @@ def add_rama_tables(db: RamaDatabase) -> RamaDatabase:
     return attr.evolve(db, rama_tables=(*db.rama_tables, *added))
 
 
-def add_omega_tables(db: OmegaBBDepDatabase) -> OmegaBBDepDatabase:
+def _add_omega_tables(db: OmegaBBDepDatabase) -> OmegaBBDepDatabase:
     """Append glycine bbdep-omega tables that are flat and centered on trans.
 
     mu and sigma are stored in degrees. Glycine is achiral, so it has no
@@ -142,7 +141,7 @@ def add_omega_tables(db: OmegaBBDepDatabase) -> OmegaBBDepDatabase:
     return attr.evolve(db, bbdep_omega_tables=(*db.bbdep_omega_tables, *added))
 
 
-def detach(table, *fields):
+def _detach(table, *fields):
     """Copy a table's tensors out of the memory-mapped file.
 
     from_file maps the binary read-only; saving over a path whose pages are
@@ -151,14 +150,14 @@ def detach(table, *fields):
     return attr.evolve(table, **{f: getattr(table, f).clone() for f in fields})
 
 
-def save(db, path: str) -> None:
+def _save(db, path: str) -> None:
     """Write a database beside its source, then move it into place."""
     tmp = path + ".tmp"
     torch.save(attr.evolve(db, uniq_id=db.content_id()), tmp)
     os.replace(tmp, path)
 
 
-def main() -> None:
+def _main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--db_dir", default="tmol/database/default/scoring")
     args = parser.parse_args()
@@ -169,20 +168,20 @@ def main() -> None:
     print(f"rama: {rama_path}")
     rama = RamaDatabase.from_file(rama_path)
     rama = attr.evolve(
-        rama, rama_tables=tuple(detach(t, "table") for t in rama.rama_tables)
+        rama, rama_tables=tuple(_detach(t, "table") for t in rama.rama_tables)
     )
-    save(add_rama_tables(rama), rama_path)
+    _save(_add_rama_tables(rama), rama_path)
 
     print(f"omega_bbdep: {omega_path}")
     omega = OmegaBBDepDatabase.from_file(omega_path)
     omega = attr.evolve(
         omega,
         bbdep_omega_tables=tuple(
-            detach(t, "mu", "sigma") for t in omega.bbdep_omega_tables
+            _detach(t, "mu", "sigma") for t in omega.bbdep_omega_tables
         ),
     )
-    save(add_omega_tables(omega), omega_path)
+    _save(_add_omega_tables(omega), omega_path)
 
 
 if __name__ == "__main__":
-    main()
+    _main()

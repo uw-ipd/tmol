@@ -16,13 +16,13 @@ structure is generated for it.
 
 import collections
 import logging
-from tmol.ligand._polymer_builder import adjacency
+from tmol.ligand._polymer_builder import _adjacency
 
 import math
 
 import attr
 
-from tmol.database._patched_chemdb import RestypeGraphBuilder, pattern_namemaps
+from tmol.database._patched_chemdb import RestypeGraphBuilder, _pattern_namemaps
 from tmol.database.chemical import Atom, VariantScope
 from tmol.extern.pysmiles import read_smiles
 
@@ -54,7 +54,7 @@ def _free_name(wanted, taken):
     raise ValueError(f"no free name for {wanted}")
 
 
-def terminus_templates(chemdb, profile):
+def _terminus_templates(chemdb, profile):
     """The database patches this backbone's chain ends are modelled on.
 
     Which connection a patch acts on is read from the one it removes, so a
@@ -267,7 +267,7 @@ def _cap_subtree(profile, root):
     return reached
 
 
-def terminal_cap_profile(profile, chemdb, template, at_down):
+def _terminal_cap_profile(profile, chemdb, template, at_down):
     """``profile`` with one connection capped as a chain end, not as a stub.
 
     A residue at a terminus is a different molecule from the same residue in a
@@ -303,7 +303,7 @@ def _pattern_binding(chemdb, residue_type, template):
     patchgraph = read_smiles(
         template.pattern, explicit_hydrogen=True, do_fill_valence=False
     )
-    namemaps = pattern_namemaps(
+    namemaps = _pattern_namemaps(
         template,
         RestypeGraphBuilder(elements).from_raw_res(residue_type),
         patchgraph,
@@ -349,17 +349,17 @@ def _terminal_chemistry(
     """
     from rdkit import Chem
 
-    from tmol.ligand._atom_typing import assign_tmol_atom_types, sanitize_tolerant
+    from tmol.ligand._atom_typing import _assign_tmol_atom_types, _sanitize_tolerant
     from tmol.ligand._detect import _dimorphite_protonate_smiles
-    from tmol.ligand._polymer_profile import cap_residue
-    from tmol.ligand._structure_to_smiles import ligand_smiles_from_atom_array
+    from tmol.ligand._polymer_profile import _cap_residue
+    from tmol.ligand._structure_to_smiles import _ligand_smiles_from_atom_array
 
-    terminal = terminal_cap_profile(
+    terminal = _terminal_cap_profile(
         profile, chemdb, template, connection == profile.down
     )
     if terminal is None:
         return None
-    capped, _cap_names = cap_residue(atom_array, terminal)
+    capped, _cap_names = _cap_residue(atom_array, terminal)
 
     # the terminal form is what the patch leaves behind, so a group it takes
     #    away is gone from the molecule that gets typed
@@ -380,13 +380,13 @@ def _terminal_chemistry(
         return None
     connection_index = names.index(site_name)
 
-    smiles = ligand_smiles_from_atom_array(capped, with_atom_map=True)
+    smiles = _ligand_smiles_from_atom_array(capped, with_atom_map=True)
     mol = Chem.MolFromSmiles(_dimorphite_protonate_smiles(smiles, ph=ph))
     if mol is None:
         return None
     mol = Chem.AddHs(mol)
-    sanitize_tolerant(mol)
-    types = assign_tmol_atom_types(mol)
+    _sanitize_tolerant(mol)
+    types = _assign_tmol_atom_types(mol)
     charges = _mmff94_charges(mol, mol.GetNumAtoms())
     if charges is None:
         return None
@@ -607,7 +607,7 @@ def _fallback_chemistry(residue_type, base_charges, template, connection_atom, c
     }
 
 
-def terminus_patches(
+def _terminus_patches(
     chemdb, residue_type, profile, atom_array=None, ph=7.4, base_charges=None
 ):
     """Patches for this residue's chain ends, and what each was modelled on.
@@ -629,7 +629,7 @@ def terminus_patches(
     added_names = set()
     chi_taken = {t.name for t in residue_type.torsions}
     generated = []
-    for (display_name, connection), candidates in terminus_templates(
+    for (display_name, connection), candidates in _terminus_templates(
         chemdb, profile
     ).items():
         template = _template_for(residue_type, connection[1], candidates)
@@ -787,7 +787,7 @@ def _with_every_added_atom(delta, variant, patch, chemistry):
     present = {a.name for a in variant.atoms}
     by_name = {a.name: a.atom_type for a in variant.atoms}
     element_of = chemistry["element_of"]
-    neighbours = adjacency(variant.bonds)
+    neighbours = _adjacency(variant.bonds)
 
     for atom in patch.add_atoms:
         if atom.name not in present or atom.name in delta:
@@ -800,7 +800,7 @@ def _with_every_added_atom(delta, variant, patch, chemistry):
     return delta
 
 
-def patch_charge_entries(param_db, patched_chemdb, residue_type, generated):
+def _patch_charge_entries(param_db, patched_chemdb, residue_type, generated):
     """``{variant name: {atom: charge}}`` for the generated patches.
 
     A terminal form's charges are measured on it, never borrowed: a residue
@@ -878,7 +878,7 @@ def _computed_delta(variant, patch, chemistry):
 
     by_parent = dict(chemistry["hydrogen_charge_by_parent"])
     delta = {}
-    neighbours = adjacency(variant.bonds)
+    neighbours = _adjacency(variant.bonds)
     element_of = chemistry["element_of"]
     is_hydrogen = {
         a.name: element_of.get(a.atom_type, a.atom_type[:1]) == "H"

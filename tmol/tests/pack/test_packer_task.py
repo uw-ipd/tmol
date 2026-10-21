@@ -1,9 +1,8 @@
 import pytest
 import torch
 
-from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-from tmol.pose import PoseStackBuilder
-from tmol.io import pose_stack_from_file
+from tmol import PackerPalette, PackerTask, PoseStackBuilder, pose_stack_from_file
+from tmol.pack import SetPackerTask
 
 # choices are padded to the largest palette: an AIB position offers the 21
 #    canonical choices and AIB itself

@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from tmol.pack.rotamer._chi_budget import checked_sample_count
+from tmol.pack.rotamer._chi_budget import _checked_sample_count
 
 INT_MAX = torch.iinfo(torch.int32).max
 
@@ -20,29 +20,30 @@ INT_MAX = torch.iinfo(torch.int32).max
 def test_invalid_sample_counts_cannot_size_allocations(values, torch_device):
     counts = torch.tensor(values, dtype=torch.int64, device=torch_device)
     with pytest.raises(ValueError, match="Sampling count"):
-        checked_sample_count(counts, 2**63, 2**63)
+        _checked_sample_count(counts, 2**63, 2**63)
 
 
 @pytest.mark.parametrize("dtype", [torch.int32, torch.int64])
 @pytest.mark.parametrize("values", [[], [0], [0, 2, 3], [INT_MAX - 1, 1]])
 def test_valid_sample_count_boundaries(values, dtype, torch_device):
     counts = torch.tensor(values, dtype=dtype, device=torch_device)
-    assert checked_sample_count(counts, INT_MAX, INT_MAX) == sum(values)
+    assert _checked_sample_count(counts, INT_MAX, INT_MAX) == sum(values)
 
 
 def test_per_type_budget_remains_separate_from_total(torch_device):
     counts = torch.tensor([3, 3], device=torch_device)
-    assert checked_sample_count(counts, 2, 3) == 6
+    assert _checked_sample_count(counts, 2, 3) == 6
     with pytest.raises(ValueError, match="Sampling budget 2"):
-        checked_sample_count(counts, 2, 2)
+        _checked_sample_count(counts, 2, 2)
 
 
 @pytest.mark.parametrize("combos", [2**32, 2**31, 2**62, -1])
 def test_nucleotide_counts_checked_before_cast_and_row_allocation(
     combos, rna_pdb, default_database, torch_device, monkeypatch
 ):
-    from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-    from tmol.pack.rotamer import NaChiRotamerSampler
+    from tmol import PackerPalette, PackerTask
+    from tmol.pack import SetPackerTask
+    from tmol.pack import NaChiRotamerSampler
     from tmol.tests.pack.rotamer.test_na_chi_sampler import _pose_stack
 
     pose = _pose_stack(rna_pdb, torch_device)

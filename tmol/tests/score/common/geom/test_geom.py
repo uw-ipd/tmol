@@ -167,7 +167,7 @@ class DihedralDat:
 
 @pytest.fixture
 def dihedral_test_data():
-    from tmol.utility import parse_angle
+    from tmol.utility._units import _parse_angle
 
     coords = array(
         [
@@ -190,7 +190,7 @@ def dihedral_test_data():
     dihedrals = array(
         list(
             map(
-                parse_angle,
+                _parse_angle,
                 [
                     "-71.21515 deg",
                     "-171.94319 deg",

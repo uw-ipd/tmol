@@ -7,9 +7,9 @@ import attr
 import pytest
 import yaml
 
-from tmol.database import ParameterDatabase
-from tmol.ligand import collect_new_atom_types, load_params_file, write_params_file
-from tmol.ligand._registry import inject_ligand_preparations
+from tmol import ParameterDatabase
+from tmol.ligand._registry import collect_new_atom_types, _inject_ligand_preparations
+from tmol.ligand import load_params_file, write_params_file
 from tmol.tests.ligand.test_ligand_entry_paths import _single_prep
 from tmol.ligand._params_file import TMOL_FORMAT_VERSION
 
@@ -55,8 +55,8 @@ def test_real_preparation_maps_roundtrip_and_strict_injection(prep, tmp_path):
     assert restored[0].atom_type_elements == prep.atom_type_elements
     assert yaml.safe_load(path.read_text())["version"] == TMOL_FORMAT_VERSION
     base = ParameterDatabase.get_default()
-    expected = inject_ligand_preparations(base, [prep], strict_atom_types=True)
-    actual = inject_ligand_preparations(base, restored, strict_atom_types=True)
+    expected = _inject_ligand_preparations(base, [prep], strict_atom_types=True)
+    actual = _inject_ligand_preparations(base, restored, strict_atom_types=True)
     assert actual.chemical == expected.chemical
     assert actual.scoring.elec == expected.scoring.elec
     assert actual.scoring.cartbonded == expected.scoring.cartbonded
@@ -72,9 +72,9 @@ def test_element_declaration_cannot_disagree_with_existing_type(prep):
             atom.atom_type: "N" if known[atom.atom_type] != "N" else "C"
         },
     )
-    for database in (base, inject_ligand_preparations(base, [prep])):
+    for database in (base, _inject_ligand_preparations(base, [prep])):
         with pytest.raises(ValueError, match="element disagrees with database"):
-            inject_ligand_preparations(database, [bad])
+            _inject_ligand_preparations(database, [bad])
 
 
 @pytest.mark.parametrize(
@@ -140,7 +140,7 @@ def test_patch_introduced_atom_types_use_declared_elements(prep, tmp_path):
     path = tmp_path / "patch.tmol"
     write_params_file(custom, path)
     for sources in ([custom], load_params_file(path)):
-        database = inject_ligand_preparations(base, sources, strict_atom_types=True)
+        database = _inject_ligand_preparations(base, sources, strict_atom_types=True)
         assert (
             next(
                 t.element

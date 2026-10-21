@@ -187,7 +187,7 @@ def setup(seed: int = SEED):
     """
     import torch
 
-    from tmol.database import ParameterDatabase
+    from tmol import ParameterDatabase
 
     # The tutorials read local example files, not PDB or CCD mirrors.
     logging.getLogger("atomworks.constants").addFilter(
@@ -209,9 +209,26 @@ def setup(seed: int = SEED):
 # (``_ALIASES`` covers the few that are modules or need renaming). They resolve on
 # first use, so importing this module stays cheap.
 _EXPORTS = {
-    "tmol.database": ("ParameterDatabase",),
-    "tmol.io": ("fetch_cif", "file_from_pose_stack", "pose_stack_from_file"),
-    "tmol.kinematics": ("BondDOFTypes", "PoseStackKinematicsModule", "torsion_labels"),
+    "tmol": (
+        "ConstraintSet",
+        "PackerPalette",
+        "PackerTask",
+        "ParameterDatabase",
+        "PoseStackBuilder",
+        "ScoreFunction",
+        "ScoreType",
+        "beta2016_score_function",
+        "file_from_pose_stack",
+        "pack_rotamers",
+        "pose_stack_from_file",
+    ),
+    "tmol.io": ("fetch_cif",),
+    "tmol.kinematics": (
+        "BondDOFTypes",
+        "PoseStackKinematicsModule",
+        "set_named_torsions",
+        "torsion_labels",
+    ),
     "tmol.ligand": ("smiles_from_pose_stack",),
     "tmol.ops": (
         "block_energies",
@@ -222,18 +239,20 @@ _EXPORTS = {
         "res_mask_to_coord_mask",
     ),
     "tmol.optimization": ("KinForestSfxnNetwork",),
-    "tmol.pack": ("PackerPalette", "PackerTask", "pack_rotamers"),
-    "tmol.pack.rotamer": ("FixedAAChiSampler", "IncludeCurrentSampler", "OptHSampler"),
-    "tmol.pack.rotamer.dunbrack": ("create_dunbrack_sampler_from_database",),
+    "tmol.pack": (
+        "FixedAAChiSampler",
+        "IncludeCurrentSampler",
+        "OptHSampler",
+        "create_dunbrack_sampler_from_database",
+    ),
     "tmol.pose": (
-        "ConstraintSet",
-        "PoseStackBuilder",
         "atom_label",
+        "get_named_torsions",
+        "get_polymer_type_mask",
         "metal_blocks",
         "residue_label",
     ),
-    "tmol.score": ("ScoreFunction", "ScoreType", "beta2016_score_function"),
-    "tmol.score.constraint": (
+    "tmol.score": (
         "ConstraintEnergyTerm",
         "constrain_all_ca",
         "create_mainchain_coordinate_constraints",

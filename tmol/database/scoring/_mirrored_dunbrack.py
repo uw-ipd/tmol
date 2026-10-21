@@ -36,11 +36,11 @@ from ._dunbrack_libraries import (
 D_PREFIX = "d"
 
 
-def d_table_name(table_name: str) -> str:
+def _d_table_name(table_name: str) -> str:
     return D_PREFIX + table_name
 
 
-def wells_per_chi(data: RotamericDataForAA) -> torch.Tensor:
+def _wells_per_chi(data: RotamericDataForAA) -> torch.Tensor:
     """How many wells each chi is binned into.
 
     Taken from the alias table as well as the rotamer table: a library need not
@@ -63,14 +63,14 @@ def wells_per_chi(data: RotamericDataForAA) -> torch.Tensor:
     return counts
 
 
-def mirror_wells(wells: torch.Tensor, n_per_column: torch.Tensor) -> torch.Tensor:
+def _mirror_wells(wells: torch.Tensor, n_per_column: torch.Tensor) -> torch.Tensor:
     """Relabel rotamer wells with their mirror images."""
     if wells.numel() == 0:
         return wells
     return n_per_column.unsqueeze(0) + 1 - wells
 
 
-def reflect(table: torch.Tensor, dims, start, step) -> torch.Tensor:
+def _reflect(table: torch.Tensor, dims, start, step) -> torch.Tensor:
     """Permute reflected points onto the grid from ``reflected_grid_start``.
 
     Point k moves to (c - k) modulo the number of bins, where c is the nearest
@@ -85,7 +85,7 @@ def reflect(table: torch.Tensor, dims, start, step) -> torch.Tensor:
     return out
 
 
-def reflected_grid_start(start, step):
+def _reflected_grid_start(start, step):
     """Choose the exact reflected origin nearest the original origin."""
     return -start - round(-2.0 * start / step) * step
 
@@ -100,9 +100,9 @@ def _backbone_dims(data: RotamericDataForAA):
     )
 
 
-def mirror_rotameric_data(data: RotamericDataForAA) -> RotamericDataForAA:
+def _mirror_rotameric_data(data: RotamericDataForAA) -> RotamericDataForAA:
     dims, start, step = _backbone_dims(data)
-    target_start = [reflected_grid_start(s, d) for s, d in zip(start, step)]
+    target_start = [_reflected_grid_start(s, d) for s, d in zip(start, step)]
     # The default aligned grids retain the same tensor and physical origin.
     target_start = (
         data.backbone_dihedral_start
@@ -112,7 +112,7 @@ def mirror_rotameric_data(data: RotamericDataForAA) -> RotamericDataForAA:
     was_mirrored = getattr(data, "backbone_is_mirrored", False)
     # the rotamer table and its aliases share one count per chi, or an alias
     #    will redirect onto a well tuple that no row carries
-    counts = wells_per_chi(data)
+    counts = _wells_per_chi(data)
     n_chi = data.rotamers.shape[1]
     alias = data.rotamer_alias
     return attr.evolve(
@@ -120,20 +120,20 @@ def mirror_rotameric_data(data: RotamericDataForAA) -> RotamericDataForAA:
         backbone_is_mirrored=not was_mirrored,
         backbone_dihedral_start=target_start,
         backbone_source_start=None if was_mirrored else data.backbone_dihedral_start,
-        rotamers=mirror_wells(data.rotamers, counts),
-        rotamer_probabilities=reflect(data.rotamer_probabilities, dims, start, step),
-        rotamer_means=-reflect(data.rotamer_means, dims, start, step),
-        rotamer_stdvs=reflect(data.rotamer_stdvs, dims, start, step),
+        rotamers=_mirror_wells(data.rotamers, counts),
+        rotamer_probabilities=_reflect(data.rotamer_probabilities, dims, start, step),
+        rotamer_means=-_reflect(data.rotamer_means, dims, start, step),
+        rotamer_stdvs=_reflect(data.rotamer_stdvs, dims, start, step),
         # entries name rows, which keep their positions; only the backbone bin
         #    they are read from reflects
-        prob_sorted_rot_inds=reflect(
+        prob_sorted_rot_inds=_reflect(
             data.prob_sorted_rot_inds, tuple(d - 1 for d in dims), start, step
         ),
         rotamer_alias=(
             torch.cat(
                 (
-                    mirror_wells(alias[:, :n_chi], counts),
-                    mirror_wells(alias[:, n_chi:], counts),
+                    _mirror_wells(alias[:, :n_chi], counts),
+                    _mirror_wells(alias[:, n_chi:], counts),
                 ),
                 dim=1,
             )
@@ -143,22 +143,22 @@ def mirror_rotameric_data(data: RotamericDataForAA) -> RotamericDataForAA:
     )
 
 
-def mirror_rotameric_library(
+def _mirror_rotameric_library(
     library: RotamericAADunbrackLibrary,
 ) -> RotamericAADunbrackLibrary:
     return RotamericAADunbrackLibrary(
-        table_name=d_table_name(library.table_name),
-        rotameric_data=mirror_rotameric_data(library.rotameric_data),
+        table_name=_d_table_name(library.table_name),
+        rotameric_data=_mirror_rotameric_data(library.rotameric_data),
     )
 
 
-def mirror_semi_rotameric_library(
+def _mirror_semi_rotameric_library(
     library: SemiRotamericAADunbrackLibrary,
 ) -> SemiRotamericAADunbrackLibrary:
     data = library.rotameric_data
     dims, start, step = _backbone_dims(data)
     # the non-rotameric chi is the trailing axis and negates with the rest
-    nonrot = reflect(
+    nonrot = _reflect(
         library.nonrotameric_chi_probabilities,
         (*dims, library.nonrotameric_chi_probabilities.dim() - 1),
         [*start, library.non_rot_chi_start],
@@ -166,14 +166,14 @@ def mirror_semi_rotameric_library(
     )
     chi_rotamers = library.rotameric_chi_rotamers
     return SemiRotamericAADunbrackLibrary(
-        table_name=d_table_name(library.table_name),
-        rotameric_data=mirror_rotameric_data(data),
-        non_rot_chi_start=reflected_grid_start(
+        table_name=_d_table_name(library.table_name),
+        rotameric_data=_mirror_rotameric_data(data),
+        non_rot_chi_start=_reflected_grid_start(
             library.non_rot_chi_start, library.non_rot_chi_step
         ),
         non_rot_chi_step=library.non_rot_chi_step,
         non_rot_chi_period=library.non_rot_chi_period,
-        rotameric_chi_rotamers=mirror_wells(
+        rotameric_chi_rotamers=_mirror_wells(
             chi_rotamers, chi_rotamers.max(dim=0).values
         ),
         nonrotameric_chi_probabilities=nonrot,
@@ -182,7 +182,7 @@ def mirror_semi_rotameric_library(
     )
 
 
-def with_mirrored_libraries(
+def _with_mirrored_libraries(
     library: DunbrackRotamerLibrary, d_residue_names
 ) -> DunbrackRotamerLibrary:
     """Append only required mirrored libraries and their missing lookup rows.
@@ -215,7 +215,7 @@ def with_mirrored_libraries(
         if d_name is None or d_name in existing:
             continue
         source = mapping.dun_table_name
-        target = d_table_name(source)
+        target = _d_table_name(source)
         if d_name in added:
             if added[d_name] != target:
                 raise ValueError(
@@ -242,7 +242,7 @@ def with_mirrored_libraries(
         rotameric_libraries=(
             *library.rotameric_libraries,
             *(
-                mirror_rotameric_library(lib)
+                _mirror_rotameric_library(lib)
                 for lib in library.rotameric_libraries
                 if lib.table_name in required
             ),
@@ -250,7 +250,7 @@ def with_mirrored_libraries(
         semi_rotameric_libraries=(
             *library.semi_rotameric_libraries,
             *(
-                mirror_semi_rotameric_library(lib)
+                _mirror_semi_rotameric_library(lib)
                 for lib in library.semi_rotameric_libraries
                 if lib.table_name in required
             ),

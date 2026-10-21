@@ -20,7 +20,7 @@ from tmol.database.chemical import (
     Torsion,
     UnresolvedAtom,
 )
-from tmol.ligand._icoor_tree import icoor_geometry_from_coords
+from tmol.ligand._icoor_tree import _icoor_geometry_from_coords
 from tmol.ligand._polymer_profile import PolymerProfile
 
 # non-canonicals with no acceptible sidechain mapping fall back to this AA
@@ -28,7 +28,7 @@ from tmol.ligand._polymer_profile import PolymerProfile
 RAMA_FALLBACK = "ALA"
 
 
-def adjacency(bonds):
+def _adjacency(bonds):
     adj = {}
     for bond in bonds:
         adj.setdefault(bond[0], []).append(bond[1])
@@ -46,7 +46,7 @@ def _dropped_atoms(cap_names, adj, hydrogens):
     return dropped
 
 
-def turnable_bonds(bonds, adj, hydrogens) -> frozenset:
+def _turnable_bonds(bonds, adj, hydrogens) -> frozenset:
     """Heavy-atom bonds a torsion may turn, as frozensets of atom names.
 
     Single, out of any ring, and with a heavy atom on either side to move: a
@@ -90,7 +90,7 @@ def _branch_is_sidechain(root, anchor, adj, turnable, backbone) -> bool:
     return False
 
 
-def sidechain_roots(profile, bonds, adj, kept, hydrogens):
+def _sidechain_roots(profile, bonds, adj, kept, hydrogens):
     """Heavy atoms hanging off the sidechain root that are not backbone.
 
     Structural, so no sidechain atom name is assumed; an alpha-disubstituted
@@ -105,7 +105,7 @@ def sidechain_roots(profile, bonds, adj, kept, hydrogens):
     # a backbone with no privileged root may carry a sidechain anywhere along it
     declared = profile.sidechain_root_atoms is not None
     roots = profile.sidechain_root_atoms if declared else profile.mainchain_atoms
-    turnable = None if declared else turnable_bonds(bonds, adj, hydrogens)
+    turnable = None if declared else _turnable_bonds(bonds, adj, hydrogens)
     return [
         n
         for root in roots
@@ -144,14 +144,14 @@ def _backbone_hydrogen_names(profile, adj, hydrogens, taken):
     return renames
 
 
-def backbone_renames(restype, profile, elements, cap_names):
+def _backbone_renames(restype, profile, elements, cap_names):
     """The atom renames to_polymer_residue_type applies, and the atoms it drops.
 
     Callers that carry per-atom data alongside the residue (charges, coords)
     need the same mapping.
     """
     hydrogens = {n for n, e in elements.items() if e == "H"}
-    adj = adjacency(restype.bonds)
+    adj = _adjacency(restype.bonds)
     dropped = _dropped_atoms(cap_names, adj, hydrogens)
     kept = {a.name for a in restype.atoms if a.name not in dropped}
     remaining = {h for h in hydrogens if h not in dropped}
@@ -410,7 +410,7 @@ def _glycosidic_torsion(profile, adj, elements, kept, chi, renumbered, proton):
     chi it found is dropped in favour of the derived one, and anything further
     out renumbered around it.
     """
-    from tmol.ligand._polymer_profile import glycosidic_torsion_atoms
+    from tmol.ligand._polymer_profile import _glycosidic_torsion_atoms
 
     name = profile.glycosidic_torsion
     if name is None:
@@ -422,7 +422,7 @@ def _glycosidic_torsion(profile, adj, elements, kept, chi, renumbered, proton):
         for atom, neighbours in adj.items()
         if atom in real
     }
-    atoms = glycosidic_torsion_atoms(profile, heavy, elements)
+    atoms = _glycosidic_torsion_atoms(profile, heavy, elements)
     if atoms is None or any(a not in kept for a in atoms):
         return (), chi, renumbered, proton
 
@@ -442,7 +442,7 @@ def _glycosidic_torsion(profile, adj, elements, kept, chi, renumbered, proton):
     return (Torsion(name=name, a=a, b=b, c=c, d=d),), kept_chi, renumbered, proton
 
 
-def icoor_mainchain(profile, present):
+def _icoor_mainchain(profile, present):
     """The mainchain in the order the icoor tree walks it.
 
     Rooted where the profile says, which is where the canonical residue roots
@@ -467,8 +467,8 @@ def _icoor_order(profile, bonds, adj, kept, hydrogens):
     """
     down_name, down_atom = profile.down if profile.down else (None, None)
     up_name, _up_atom = profile.up if profile.up else (None, None)
-    mainchain = icoor_mainchain(profile, kept)
-    roots = sidechain_roots(profile, bonds, adj, kept, hydrogens)
+    mainchain = _icoor_mainchain(profile, kept)
+    roots = _sidechain_roots(profile, bonds, adj, kept, hydrogens)
 
     placed = set(mainchain)
     order = list(mainchain) + ([up_name] if up_name else [])
@@ -525,7 +525,7 @@ def _icoor_order(profile, bonds, adj, kept, hydrogens):
 
 def _parents(profile, adj, order, hydrogens=frozenset()):
     """(parent, grand_parent, great_grand_parent) for each entry in order."""
-    mainchain = icoor_mainchain(profile, set(order))
+    mainchain = _icoor_mainchain(profile, set(order))
     position = {name: i for i, name in enumerate(order)}
 
     # the connection pseudo-atoms hang off the terminal mainchain atoms
@@ -594,7 +594,7 @@ def _computed_icoors(order, frames, coords):
         i: (index[frames[name][1]], index[frames[name][2]])
         for i, name in enumerate(order)
     }
-    geometry = icoor_geometry_from_coords(
+    geometry = _icoor_geometry_from_coords(
         positions, list(range(len(order))), parent, grandparents
     )
     return [
@@ -631,7 +631,7 @@ def _carboxyl_neighbor(center, adj, elements):
     return found[0] if len(found) == 1 else None
 
 
-def sidechain_chirality(profile, coords, roots, adj, elements):
+def _sidechain_chirality(profile, coords, roots, adj, elements):
     """l / d / achiral from the signed volume at the sidechain-bearing atom.
 
     CIP cannot be used: L-cysteine is (R) where every other L-aa is (S).
@@ -689,8 +689,8 @@ def _borrowed_chi(
     """
     from tmol.ligand._rotamer_reference import (
         SidechainGraph,
-        planar_atoms,
-        reference_chi_for_graph,
+        _planar_atoms,
+        _reference_chi_for_graph,
     )
 
     if not references or atom_type_index is None:
@@ -726,16 +726,16 @@ def _borrowed_chi(
             if n in heavy
         },
         rigid=frozenset(rigid),
-        planar=planar_atoms(adjacency, coords),
+        planar=_planar_atoms(adjacency, coords),
         mainchain=tuple(profile.mainchain_atoms),
         backbone_type=profile.backbone_type,
         chirality=chirality,
         coords=coords,
     )
-    return reference_chi_for_graph(graph, references)
+    return _reference_chi_for_graph(graph, references)
 
 
-def to_polymer_residue_type(
+def _to_polymer_residue_type(
     restype: RawResidueType,
     coords: dict,
     profile: PolymerProfile,
@@ -753,7 +753,7 @@ def to_polymer_residue_type(
     what the chi are.
     """
     hydrogen_names = {n for n, e in elements.items() if e == "H"}
-    adj = adjacency(restype.bonds)
+    adj = _adjacency(restype.bonds)
     dropped = _dropped_atoms(cap_names, adj, hydrogen_names)
 
     kept = {a.name for a in restype.atoms if a.name not in dropped}
@@ -793,14 +793,14 @@ def to_polymer_residue_type(
         for name, atom in profile.connections
     )
 
-    adj = adjacency(bonds)
+    adj = _adjacency(bonds)
     # connections are not bonds, but icoor frames reference them (H's ggp is down)
     for conn_name, conn_atom in profile.connections:
         adj.setdefault(conn_atom, []).append(conn_name)
         adj[conn_name] = [conn_atom]
 
-    roots = sidechain_roots(profile, restype.bonds, adj, kept, hydrogens)
-    chirality = sidechain_chirality(profile, coords, roots, adj, elements)
+    roots = _sidechain_roots(profile, restype.bonds, adj, kept, hydrogens)
+    chirality = _sidechain_chirality(profile, coords, roots, adj, elements)
     dunbrack_reference, borrowed = _borrowed_chi(
         restype.name,
         atoms,
@@ -906,7 +906,7 @@ def to_polymer_residue_type(
     )
 
 
-def add_capped_junction_parameters(
+def _add_capped_junction_parameters(
     params, capped_params, profile, kept, renamed, references, elements
 ):
     """Keep generated cap bond/angle ideals where no peptide-role fallback exists.

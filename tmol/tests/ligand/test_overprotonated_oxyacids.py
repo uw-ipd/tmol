@@ -2,9 +2,9 @@
 
 import pytest
 
-from tmol.ligand import prepare_ligand_from_mol2
-from tmol.ligand._detect import nonstandard_residue_info_from_mol2
-from tmol.ligand._input_repair import deprotonate_overprotonated_oxyacids
+from tmol.ligand._preparation import _prepare_ligand_from_mol2
+from tmol.ligand import nonstandard_residue_info_from_mol2
+from tmol.ligand._input_repair import _deprotonate_overprotonated_oxyacids
 from tmol.ligand._openbabel_compat import _build_charged_3d_mol2_mol
 from tmol.tests.data import data_path
 
@@ -17,7 +17,7 @@ FIXTURES = data_path("ligand_test", "overprotonated_oxyacids")
     [("methyl_phosphate", -2), ("methyl_sulfate", -1), ("acetic_acid", -1)],
 )
 def test_regenerate_deprotonates_overprotonated_oxyacid(stem, charge, form):
-    database, _ = prepare_ligand_from_mol2(
+    database, _ = _prepare_ligand_from_mol2(
         FIXTURES / f"{stem}_{form}.mol2", res_name="LIG", mode="regenerate", seed=17
     )
     charges = [
@@ -45,6 +45,6 @@ def test_valid_acids_are_not_repaired(smiles, tmp_path):
     path.write_text(_build_charged_3d_mol2_mol(smiles, seed=17).write("mol2"))
     array = nonstandard_residue_info_from_mol2(path, res_name="LIG").atom_array
 
-    repaired, promoted = deprotonate_overprotonated_oxyacids(array)
+    repaired, promoted = _deprotonate_overprotonated_oxyacids(array)
     assert repaired is array
     assert promoted == frozenset()

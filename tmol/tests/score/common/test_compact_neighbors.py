@@ -1,6 +1,6 @@
 import pytest
 import torch
-from tmol.score.ljlk.potentials import build_compact_block_neighbors
+from tmol.score.ljlk.potentials._compiled import build_compact_block_neighbors
 
 
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])

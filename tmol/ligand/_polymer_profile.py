@@ -175,7 +175,7 @@ def _stub_from_icoor(
 _POLYMER_PROFILE_CACHE = WeakIdentityLRU()
 
 
-def alpha_profile(chemdb) -> PolymerProfile:
+def _alpha_profile(chemdb) -> PolymerProfile:
     """The alpha-amino-acid profile, read off the database's own residues.
 
     Nothing about an alanine backbone is written here: the mainchain, the
@@ -355,14 +355,14 @@ def _build_alpha_profile(chemdb) -> PolymerProfile:  # noqa: C901
     )
 
 
-def cap_polymer_profile(atom_array, connection_atom: str, chemdb) -> PolymerProfile:
+def _cap_polymer_profile(atom_array, connection_atom: str, chemdb) -> PolymerProfile:
     """A profile for a residue that terminates a chain rather than continuing it.
 
     Built from the atom the chain is bonded through, so any capping group is
     described the same way. The peptide bond it makes is real, so the atoms
     forming it take the same types the database gives a backbone.
     """
-    alpha = alpha_profile(chemdb)
+    alpha = _alpha_profile(chemdb)
     backbone_types = dict(alpha.backbone_types)
     hydrogen_types = dict(alpha.backbone_h_types)
     _down_name, alpha_n = alpha.down
@@ -452,7 +452,7 @@ def cap_polymer_profile(atom_array, connection_atom: str, chemdb) -> PolymerProf
     )
 
 
-def place_atom(a, b, c, d, angle, dihedral):
+def _place_atom(a, b, c, d, angle, dihedral):
     """Place a point at distance d from c, angle b-c-x, dihedral a-b-c-x."""
     ang = math.radians(angle)
     dih = math.radians(dihedral)
@@ -471,7 +471,7 @@ def place_atom(a, b, c, d, angle, dihedral):
     return c + offset[0] * bc + offset[1] * m + offset[2] * n
 
 
-def synthetic_reference(b, c=None):
+def _synthetic_reference(b, c=None):
     """A frame point for a residue with too few atoms to supply one.
 
     Only its direction matters: the caps are scaffolding, stripped again once
@@ -575,7 +575,7 @@ def _nitrogen_is_unmodified(adj, element, n_atom: str, ca_atom: str) -> bool:
     return ring in _PROLINE_LIKE_RING_SIZES
 
 
-def alpha_backbone_atoms(atom_array, connection_atoms=None):
+def _alpha_backbone_atoms(atom_array, connection_atoms=None):
     """``(N, CA, C)`` of an unmodified alpha backbone, or None.
 
     The backbone is found by its bonds, never by atom names: a beta amino acid
@@ -740,7 +740,7 @@ def _far_chain_end(atom_array, known: str) -> Optional[str]:
     return candidates[0] if candidates is not None and len(candidates) == 1 else None
 
 
-def completed_connection_atoms(atom_array, connection_atoms):
+def _completed_connection_atoms(atom_array, connection_atoms):
     """Both ends of the backbone where the structure only shows one.
 
     A residue seen only at a chain terminus is bonded on one side, and one
@@ -770,7 +770,7 @@ def completed_connection_atoms(atom_array, connection_atoms):
     conventional = [
         c
         for c in candidates
-        if alpha_backbone_atoms(atom_array, frozenset({known, c})) is not None
+        if _alpha_backbone_atoms(atom_array, frozenset({known, c})) is not None
     ]
     if len(conventional) == 1:
         _warn_terminal_ambiguity(res_name, tuple(sorted(candidates)), conventional[0])
@@ -796,7 +796,7 @@ def _warn_terminal_ambiguity(res_name: str, candidates: tuple, chosen: Optional[
     )
 
 
-def mainchain_path(atom_array, connection_atoms) -> Optional[Tuple[str, ...]]:
+def _mainchain_path(atom_array, connection_atoms) -> Optional[Tuple[str, ...]]:
     """Shortest bonded heavy-atom path between the backbone's two ends."""
     if not connection_atoms or len(connection_atoms) != 2:
         return None
@@ -847,7 +847,7 @@ def _generic_mainchain_torsions(path):
     return tuple(out)
 
 
-def generic_polymer_profile(path, element=None, chemdb=None) -> PolymerProfile:
+def _generic_polymer_profile(path, element=None, chemdb=None) -> PolymerProfile:
     """A profile for a backbone tmol has no standard description of.
 
     Everything the standard profiles do to make a residue score as protein or
@@ -905,10 +905,10 @@ def generic_polymer_profile(path, element=None, chemdb=None) -> PolymerProfile:
 _CANONICAL_ALPHA_BACKBONE = ("N", "CA", "C", "O")
 
 
-def canonical_backbone_renames(atom_array, profile, chemdb, connection_atoms=None):
+def _canonical_backbone_renames(atom_array, profile, chemdb, connection_atoms=None):
     """Resolve declared backbone aliases before donating missing reference atoms."""
     if profile.backbone_type == "alpha_aa":
-        return canonical_alpha_renames(atom_array, connection_atoms)
+        return _canonical_alpha_renames(atom_array, connection_atoms)
     reference = next(
         (r for r in chemdb.residues if r.name == profile.reference_restype), None
     )
@@ -928,7 +928,7 @@ def canonical_backbone_renames(atom_array, profile, chemdb, connection_atoms=Non
         renames[alias.alt_name] = alias.name
     if profile.polymer_type == "nucleic_acid":
         adjacency, double, elements = _heavy_adjacency(atom_array)
-        path, _ = na_sugar_mainchain(adjacency, elements)
+        path, _ = _na_sugar_mainchain(adjacency, elements)
         if (
             path is not None
             and tuple(path[1:]) == profile.mainchain_atoms[1:]
@@ -965,13 +965,13 @@ def canonical_backbone_renames(atom_array, profile, chemdb, connection_atoms=Non
     return renames
 
 
-def canonical_alpha_renames(atom_array, connection_atoms=None) -> dict:
+def _canonical_alpha_renames(atom_array, connection_atoms=None) -> dict:
     """``{actual name: canonical name}`` for an alpha backbone, or empty.
 
     The input names are kept as aliases, so a structure that spells them
     otherwise still resolves onto the renamed atoms.
     """
-    found = alpha_backbone_atoms(atom_array, connection_atoms)
+    found = _alpha_backbone_atoms(atom_array, connection_atoms)
     if found is None:
         return {}
     _adj, double, element = _heavy_adjacency(atom_array)
@@ -1003,7 +1003,7 @@ def canonical_alpha_renames(atom_array, connection_atoms=None) -> dict:
 _CANONICAL_RING_ATOM = "CD"
 
 
-def ring_nitrogen_angle_atom(atom_array, connection_atoms=None) -> Optional[str]:
+def _ring_nitrogen_angle_atom(atom_array, connection_atoms=None) -> Optional[str]:
     """The ring atom on the amide N whose angle no wildcard row will match.
 
     Cartbonded reaches across the peptide bond by atom name, so the angle at a
@@ -1012,7 +1012,7 @@ def ring_nitrogen_angle_atom(atom_array, connection_atoms=None) -> Optional[str]
     own copy of the row instead. None when the row already matches, or when
     there is no ring.
     """
-    found = alpha_backbone_atoms(atom_array, connection_atoms)
+    found = _alpha_backbone_atoms(atom_array, connection_atoms)
     if found is None:
         return None
     adj, _double, element = _heavy_adjacency(atom_array)
@@ -1034,7 +1034,7 @@ _WILDCARD_GROUPS = (
 )
 
 
-def substituted_wildcard_rows(cartbonded_db, canonical, replacement, present):
+def _substituted_wildcard_rows(cartbonded_db, canonical, replacement, present):
     """Wildcard rows naming ``canonical`` on this residue, under its own name.
 
     ``canonical`` is one name or several standing in for a single atom.
@@ -1091,7 +1091,7 @@ def substituted_wildcard_rows(cartbonded_db, canonical, replacement, present):
     return rows
 
 
-def noncanonical_junction_substitutions(residue_type, atom_type_index, source=None):
+def _noncanonical_junction_substitutions(residue_type, atom_type_index, source=None):
     """Map peptide junction frames onto their bonded, retained chemical atoms.
 
     Only carbonyl-carbon and amine-nitrogen junctions borrow peptide rows.
@@ -1179,7 +1179,7 @@ def noncanonical_junction_substitutions(residue_type, atom_type_index, source=No
     return subs
 
 
-def profile_for_atom_array(
+def _profile_for_atom_array(
     atom_array, connection_atoms=None, chemdb=None
 ) -> Optional[PolymerProfile]:
     """The profile describing this residue's backbone, or None."""
@@ -1189,13 +1189,13 @@ def profile_for_atom_array(
         chemdb = ParameterDatabase.get_default().chemical
     # Recognize the nucleotide before sugars (AAB's C1' hydroxyl) and peptide ends
     # (a terminal nucleotide's base amine is not its backbone).
-    kind = na_backbone_kind(atom_array, connection_atoms)
+    kind = _na_backbone_kind(atom_array, connection_atoms)
     if kind is not None:
         return _na_profile_for_structure(
-            atom_array, connection_atoms, na_profile(chemdb, kind)
+            atom_array, connection_atoms, _na_profile(chemdb, kind)
         )
     # a sugar has no backbone; its attachments carry its topology instead
-    if is_carbohydrate(atom_array, connection_atoms):
+    if _is_carbohydrate(atom_array, connection_atoms):
         return None
     if connection_atoms and len(connection_atoms) == 1:
         known = next(iter(connection_atoms))
@@ -1203,14 +1203,14 @@ def profile_for_atom_array(
         if _chain_end_candidates(atom_array, known) == []:
             if not _can_cap_through(atom_array, known):
                 return None
-            return cap_polymer_profile(atom_array, known, chemdb)
-    connection_atoms = completed_connection_atoms(atom_array, connection_atoms)
-    if alpha_backbone_atoms(atom_array, connection_atoms) is not None:
-        return alpha_profile(chemdb)
-    path = mainchain_path(atom_array, connection_atoms)
+            return _cap_polymer_profile(atom_array, known, chemdb)
+    connection_atoms = _completed_connection_atoms(atom_array, connection_atoms)
+    if _alpha_backbone_atoms(atom_array, connection_atoms) is not None:
+        return _alpha_profile(chemdb)
+    path = _mainchain_path(atom_array, connection_atoms)
     if path is not None and len(path) >= 3:
         _adj, _double, element = _heavy_adjacency(atom_array)
-        return generic_polymer_profile(path, element, chemdb)
+        return _generic_polymer_profile(path, element, chemdb)
     return None
 
 
@@ -1220,7 +1220,7 @@ def _na_profile_for_structure(atom_array, connection_atoms, profile):
     if profile is None:
         return profile
     adjacency, _, elements = _heavy_adjacency(atom_array)
-    path, _ = na_sugar_mainchain(adjacency, elements)
+    path, _ = _na_sugar_mainchain(adjacency, elements)
     if path is None:
         return profile
     if profile.up is not None and elements.get(path[-1]) != "O":
@@ -1291,7 +1291,7 @@ def _without_connection(profile, which):
     )
 
 
-def na_sugar_mainchain(adjacency, element):
+def _na_sugar_mainchain(adjacency, element):
     """The nucleotide mainchain, found from the sugar ring alone.
 
     Returns (path, ring) with the path running 5' to 3' -- P-O5'-C5'-C4'-C3'-O3',
@@ -1385,7 +1385,7 @@ def _sugar_ring(adjacency, element):
     return None
 
 
-def is_carbohydrate(atom_array, connection_atoms=None) -> bool:
+def _is_carbohydrate(atom_array, connection_atoms=None) -> bool:
     """Whether this residue is a sugar, from its ring rather than its name.
 
     A sugar closes a five- or six-membered ring through one oxygen and carries
@@ -1413,7 +1413,7 @@ def is_carbohydrate(atom_array, connection_atoms=None) -> bool:
     )
 
 
-def na_backbone_kind(atom_array, connection_atoms) -> Optional[str]:
+def _na_backbone_kind(atom_array, connection_atoms) -> Optional[str]:
     """ "dna" or "rna" if this residue has a standard nucleotide backbone.
 
     Standard means a five-membered sugar with the phosphate-to-3'-oxygen path
@@ -1425,7 +1425,7 @@ def na_backbone_kind(atom_array, connection_atoms) -> Optional[str]:
     if not connection_atoms:
         return None
     adjacency, _double, element = _heavy_adjacency(atom_array)
-    path, ring = na_sugar_mainchain(adjacency, element)
+    path, ring = _na_sugar_mainchain(adjacency, element)
     if path is None:
         return None
     # the chain has to bond at this backbone's ends
@@ -1458,7 +1458,7 @@ def _shortest_path(adjacency, start, end):
     return None
 
 
-def resolve_cap_names(profile: PolymerProfile, existing):
+def _resolve_cap_names(profile: PolymerProfile, existing):
     """Map each cap atom to a name the residue does not already use.
 
     Cap names are only scaffolding, but noncanonicals do use names like CM, so
@@ -1492,7 +1492,7 @@ def _declared_if_tied(atom_array, anchor, leaving):
     return declared if len(declared) == 1 else leaving
 
 
-def cap_residue(atom_array, profile: PolymerProfile, *, include_coordinates=True):
+def _cap_residue(atom_array, profile: PolymerProfile, *, include_coordinates=True):
     """Return (capped heavy-atom AtomArray, cap name mapping).
 
     Hydrogens are dropped: the pipeline derives a SMILES from heavy atoms and the
@@ -1512,7 +1512,7 @@ def cap_residue(atom_array, profile: PolymerProfile, *, include_coordinates=True
             "residue carries no bond table; read the structure with "
             "include_bonds=True so its chemistry can be derived"
         )
-    cap_names = resolve_cap_names(profile, names)
+    cap_names = _resolve_cap_names(profile, names)
 
     keep = numpy.array([str(e) not in _HYDROGEN_ELEMENTS for e in atom_array.element])
     # A complete free terminus can carry a hydroxyl that polymerization
@@ -1575,9 +1575,9 @@ def cap_residue(atom_array, profile: PolymerProfile, *, include_coordinates=True
         for cap in profile.caps:
             frame = [pos[cap_names.get(r, r)] for r in cap.refs]
             while len(frame) < 3:
-                frame = [synthetic_reference(*frame[:2])] + frame
+                frame = [_synthetic_reference(*frame[:2])] + frame
             a, b, c = frame
-            pos[cap_names[cap.name]] = place_atom(
+            pos[cap_names[cap.name]] = _place_atom(
                 a, b, c, cap.d, cap.angle, cap.dihedral
             )
         out.coord[:n_residue] = residue.coord
@@ -1619,7 +1619,7 @@ def cap_residue(atom_array, profile: PolymerProfile, *, include_coordinates=True
 # --------------------------------------------------------------------------- #
 
 
-def na_profile(chemdb, kind: str) -> Optional[PolymerProfile]:
+def _na_profile(chemdb, kind: str) -> Optional[PolymerProfile]:
     """The DNA or RNA profile, read off the database's own nucleotides.
 
     Nothing about a nucleotide is written here: the mainchain, the connections,
@@ -1643,7 +1643,7 @@ def _canonical_na_residues(chemdb, kind):
     ]
 
 
-def sugar_backbone(residue, mainchain, element):
+def _sugar_backbone(residue, mainchain, element):
     """(backbone atom names, sugar ring, glycosidic bond) of one nucleotide.
 
     The backbone is everything reachable from the mainchain without crossing
@@ -1756,7 +1756,7 @@ def _build_na_profile(chemdb, kind: str) -> Optional[PolymerProfile]:
     types = defaultdict(Counter)
     hydrogen_types = defaultdict(Counter)
     for residue in residues:
-        found = sugar_backbone(residue, mainchain, element)
+        found = _sugar_backbone(residue, mainchain, element)
         if found is None:
             continue
         backbone, ring, bond = found
@@ -1880,7 +1880,7 @@ def _na_backbone_torsions(residues, backbone, mainchain, element):
     return tuple(out)
 
 
-def glycosidic_torsion_atoms(profile, adjacency, element):
+def _glycosidic_torsion_atoms(profile, adjacency, element):
     """The four atoms of a nucleotide's glycosidic torsion, or None.
 
     Rosetta measures chi from the sugar's ring oxygen through the bond to the
@@ -1941,7 +1941,7 @@ def _generic_na_profile(path, chemdb) -> PolymerProfile:
     torsion is declared. Only the stubs standing in for its neighbours are a
     nucleotide's, since that is what its two ends actually bond to.
     """
-    reference = na_profile(chemdb, "dna")
+    reference = _na_profile(chemdb, "dna")
     icoors = (
         {}
         if reference is None
@@ -1989,7 +1989,7 @@ def _generic_na_profile(path, chemdb) -> PolymerProfile:
     )
 
 
-def complete_backbone_from_reference(atom_array, profile, param_db):
+def _complete_backbone_from_reference(atom_array, profile, param_db):
     """Backbone atoms the residue is missing, donated by a canonical one.
 
     A residue seen only at a chain end lacks whatever that end does not carry:
@@ -2141,7 +2141,7 @@ def _base_skeleton(residue_type, mainchain, element_of):
     Bond orders are deliberately dropped: an input's orders are not trusted,
     and the base is identified by its skeleton and heteroatom placement.
     """
-    parts = sugar_backbone(residue_type, mainchain, element_of)
+    parts = _sugar_backbone(residue_type, mainchain, element_of)
     if parts is None:
         return None
     backbone, _ring, glycosidic = parts
@@ -2184,7 +2184,7 @@ def _base_similarity(query, reference):
     return shared / (query.GetNumAtoms() + reference.GetNumAtoms() - shared)
 
 
-def na_base_reference(residue_type, profile, chemdb, minimum=0.5):
+def _na_base_reference(residue_type, profile, chemdb, minimum=0.5):
     """The canonical nucleotide whose base tables this one is scored on.
 
     Chosen by matching the base's skeleton against the canonical bases of the
@@ -2194,7 +2194,7 @@ def na_base_reference(residue_type, profile, chemdb, minimum=0.5):
     or none at all, as at an abasic site -- falls back to the polymer's
     averaged base, so the residue is still scored rather than dropped.
     """
-    from tmol.score.na_torsion import BASE_FOR_NAME3, UNKNOWN_BASE_REFERENCE
+    from tmol.score.na_torsion._params import BASE_FOR_NAME3, UNKNOWN_BASE_REFERENCE
 
     kind = profile.backbone_type
     fallback = UNKNOWN_BASE_REFERENCE[kind]

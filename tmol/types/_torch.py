@@ -47,7 +47,7 @@ def _torch_dtype(dt):
     return dt
 
 
-def like_kwargs(t: torch.Tensor):
+def _like_kwargs(t: torch.Tensor):
     """Extract kwargs args needed to initialize an identical tensor."""
     return dict(dtype=t.dtype, layout=t.layout, device=t.device)
 

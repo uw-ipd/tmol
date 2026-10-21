@@ -1,10 +1,10 @@
 import torch
 
-from tmol.pack import PackerEnergyTables
-from tmol.types import Tensor
+from tmol.pack._datatypes import PackerEnergyTables
+from tmol.types._torch import Tensor
 
 
-def run_simulated_annealing(
+def _run_simulated_annealing(
     energy_tables: PackerEnergyTables,
 ) -> tuple[Tensor[torch.float32][:, :], Tensor[torch.int32][:, :, :]]:
     """Rank rotamer assignments with GPU simulated annealing.
@@ -21,7 +21,7 @@ def run_simulated_annealing(
         seed ten low-temperature trajectories each, and the best 25% of those
         are fully quenched, leaving 312 ranked assignments per pose.
     """
-    from tmol.pack.compiled import pack_anneal
+    from tmol.pack.compiled._compiled import pack_anneal
 
     return pack_anneal(
         energy_tables.max_n_rotamers_per_pose,

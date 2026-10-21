@@ -11,17 +11,17 @@ import biotite.structure.io.pdbx as pdbx
 import pytest
 import torch
 
-from tmol.io import (
+from tmol import (
     atom_array_from_file,
     pose_stack_from_atom_array,
     pose_stack_from_file,
+    beta2016_score_function,
 )
 from tmol.io._pose_stack_from_biotite import (
     _map_atoms_to_canonical,
-    canonical_form_from_biotite,
-    canonical_ordering_for_biotite,
+    _canonical_ordering_for_biotite,
 )
-from tmol.score import beta2016_score_function
+from tmol.io import canonical_form_from_biotite
 
 DATA = Path(__file__).parents[1] / "data" / "atomworks_regressions"
 
@@ -37,7 +37,7 @@ def test_partial_sugar_rings_construct_score_and_minimize(torch_device, monkeypa
     from tmol.io import build_context_from_atom_array
     from tmol.io.details import _build_missing_leaf_atoms as leaf
     from rdkit import Chem
-    from tmol.ligand._conjugate_model import capped_conjugate_models
+    from tmol.ligand._conjugate_model import _capped_conjugate_models
 
     array = atom_array_from_file(DATA / "partial_sugar_rings_2msb.cif.zst")
     sugars = [
@@ -75,7 +75,7 @@ def test_partial_sugar_rings_construct_score_and_minimize(torch_device, monkeypa
         if array.atom_name[i] in ("C1", "C2", "C3", "C4", "C5")
     }
     assigned = set()
-    for model in capped_conjugate_models(array, context.parameter_database.chemical):
+    for model in _capped_conjugate_models(array, context.parameter_database.chemical):
         for local, source_index in enumerate(model.source_atom_indices):
             if source_index in centers:
                 assert (
@@ -86,7 +86,7 @@ def test_partial_sugar_rings_construct_score_and_minimize(torch_device, monkeypa
     assert assigned == centers
     assert template.equal_annotations(template_before)
     np.testing.assert_array_equal(template.coord, template_before.coord)
-    original = leaf.build_missing_by_context
+    original = leaf._build_missing_by_context
     calls = []
 
     def record(*args, **kwargs):
@@ -94,7 +94,7 @@ def test_partial_sugar_rings_construct_score_and_minimize(torch_device, monkeypa
         calls.append((args, kwargs, result))
         return result
 
-    monkeypatch.setattr(leaf, "build_missing_by_context", record)
+    monkeypatch.setattr(leaf, "_build_missing_by_context", record)
     pose = pose_stack_from_atom_array(
         array, torch_device, context=context, no_optH=True
     )
@@ -499,7 +499,8 @@ def test_terminal_nucleoside_keeps_its_backbone_and_minimizes(
 
 
 def _score_and_minimize(pose, context, max_iter=10, fixed_iterations=False):
-    from tmol.optimization import CartesianSfxnNetwork, LBFGS_Armijo
+    from tmol.optimization._sfxn_modules import CartesianSfxnNetwork
+    from tmol.optimization._lbfgs_armijo import LBFGS_Armijo
 
     assert torch.isfinite(pose.coords[pose.real_atoms]).all()
     score = beta2016_score_function(pose.device, param_db=context.parameter_database)
@@ -526,7 +527,8 @@ def _score_and_minimize(pose, context, max_iter=10, fixed_iterations=False):
 
 
 def test_macrocycle_preserves_every_bond_across_residue_order(torch_device):
-    from tmol.io import build_context_from_atom_array, pose_stack_from_atom_array
+    from tmol.io import build_context_from_atom_array
+    from tmol import pose_stack_from_atom_array
 
     array = atom_array_from_file(DATA / "macrocycle_1xvk.cif")
     # Free magnesium is deferred; waters follow the constructor's usual policy.
@@ -599,7 +601,7 @@ def test_repeated_glycans_share_transferable_attachment_targets(
     torch_device, fixture, shared_type
 ):
     from tmol.io import build_context_from_atom_array
-    from tmol.ligand._connection_params import generate_conjugate_connection_params
+    from tmol.ligand._connection_params import _generate_conjugate_connection_params
 
     array = atom_array_from_file(DATA / f"{fixture}.cif.zst")
     array = array[array.res_name != "HOH"]
@@ -637,7 +639,9 @@ def test_repeated_glycans_share_transferable_attachment_targets(
     ]
     # Both repeated sites and separately prepared poses must agree, independent
     # of encounter order or random seed. Supplied records cannot mask regeneration.
-    regenerated = generate_conjugate_connection_params(reversed_array, database, seed=1)
+    regenerated = _generate_conjugate_connection_params(
+        reversed_array, database, seed=1
+    )
     assert len(regenerated) == len(records)
     for generated, installed in zip(regenerated, records):
         metadata = json.loads(installed.provenance)
@@ -757,7 +761,7 @@ def test_author_named_view_preserves_the_conflicting_label_atom_coordinate():
 @pytest.mark.parametrize("element", ["H", "D"])
 def test_unrecognized_hydrogen_names_can_be_rebuilt(element):
     mask, atoms, residues = _map_atoms_to_canonical(
-        canonical_ordering_for_biotite(),
+        _canonical_ordering_for_biotite(),
         np.array([0, 0]),
         ["ALA", "ALA"],
         ["CA", "extra_H"],
@@ -1047,10 +1051,10 @@ def test_a_retinal_conformer_keeps_its_trans_double_bonds(monkeypatch):
 )
 def test_random_cif_completion_and_relax(fixture, blocks, missing, torch_device):
     from tmol.io import build_context_from_atom_array
-    from tmol.kinematics import CartesianMoveMap, FoldForest
-    from tmol.optimization import run_cart_min
-    from tmol.pack import PackerPalette
-    from tmol.relax import fast_relax
+    from tmol import CartesianMoveMap, FoldForest
+    from tmol import run_cart_min
+    from tmol import PackerPalette
+    from tmol import fast_relax
 
     array = atom_array_from_file(DATA / f"{fixture}.cif")
     if fixture == "orphan_hydrogen_9ewf":
@@ -1370,7 +1374,7 @@ def test_sidechain_substitutions_retain_chemistry(
 def test_ester_and_thioester_contexts_survive_reuse_and_export(torch_device, tmp_path):
     from tmol.io import build_context_from_atom_array
     from tmol.ligand import prepare_ligands
-    from tmol.pack._packer_task import PackerPalette
+    from tmol import PackerPalette
 
     array = atom_array_from_file(DATA / "attachment_contexts_8trb.cif.zst")
     metals = np.isin(np.char.upper(array.element), ("NA", "ZN"))

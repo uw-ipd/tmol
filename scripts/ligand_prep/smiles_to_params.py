@@ -20,7 +20,7 @@ import argparse
 
 from tmol.ligand import _params_io as params_io
 from tmol.ligand import prepare_single_ligand
-from tmol.ligand._detect import nonstandard_residue_info_from_smiles_via_mol2
+from tmol.ligand._detect import _nonstandard_residue_info_from_smiles_via_mol2
 
 
 def main() -> None:
@@ -50,7 +50,7 @@ def main() -> None:
     args = ap.parse_args()
 
     # 1. SMILES -> mol2 -> NonStandardResidueInfo
-    info = nonstandard_residue_info_from_smiles_via_mol2(
+    info = _nonstandard_residue_info_from_smiles_via_mol2(
         args.smiles,
         res_name=args.res_name,
         ph=args.ph,

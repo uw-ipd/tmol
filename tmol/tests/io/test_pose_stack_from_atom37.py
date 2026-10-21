@@ -10,8 +10,8 @@ from tmol.io import (
     build_context_from_atom_array,
     canonical_form_from_biotite,
     pose_stack_from_atom37,
-    pose_stack_from_canonical_form_and_context,
 )
+from tmol.io._pose_stack_from_biotite import _pose_stack_from_canonical_form_and_context
 from tmol.tests.data import data_path
 
 
@@ -89,7 +89,7 @@ def test_tensor_path_matches_the_atom_array_path(source, torch_device):
         co=canonical_ordering,
         missing_density_distance_threshold=0.0,
     )
-    reference = pose_stack_from_canonical_form_and_context(
+    reference = _pose_stack_from_canonical_form_and_context(
         canonical_form, context, no_optH=True, atom37_coords=None
     )
 
@@ -230,7 +230,7 @@ def test_tensor_path_refuses_a_residue_type_the_slot_map_cannot_route(torch_devi
     import torch
 
     from tmol.io import build_context_from_atom_array
-    from tmol.io._pose_stack_from_atom37 import canonical_form_from_atom37
+    from tmol.io._pose_stack_from_atom37 import _canonical_form_from_atom37
     from tmol.tests.data import data_path
 
     structure = _load(data_path("pdb", "1ubq.pdb"))
@@ -252,4 +252,4 @@ def test_tensor_path_refuses_a_residue_type_the_slot_map_cannot_route(torch_devi
     chain_id = torch.zeros((1, 1), dtype=torch.int32, device=torch_device)
 
     with pytest.raises(ValueError, match="routes no atom of residue type"):
-        canonical_form_from_atom37(coords, res_types, chain_id, co, slot_map=slot_map)
+        _canonical_form_from_atom37(coords, res_types, chain_id, co, slot_map=slot_map)

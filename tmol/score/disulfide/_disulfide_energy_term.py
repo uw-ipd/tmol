@@ -4,15 +4,13 @@ import torch
 import numpy
 
 from .._energy_term import EnergyTerm
-from .._annotation_cache import AnnotationKey, cached_annotation, store_annotation
+from .._annotation_cache import AnnotationKey, _cached_annotation, _store_annotation
 
 from tmol.database import ParameterDatabase
-from tmol.score.disulfide import DisulfideGlobalParams
+from tmol.score.disulfide._params import DisulfideGlobalParams
 from tmol.chemical import RefinedResidueType
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
 
 
 class _DisulfideParameter(Enum):
@@ -93,7 +91,7 @@ class DisulfideEnergyTerm(EnergyTerm):
     def setup_block_type(self, block_type: RefinedResidueType):
         super(DisulfideEnergyTerm, self).setup_block_type(block_type)
 
-        cached = cached_annotation(
+        cached = _cached_annotation(
             block_type, "_disulfide_annotation", self._block_annotation_key
         )
         if cached is not None:
@@ -106,7 +104,7 @@ class DisulfideEnergyTerm(EnergyTerm):
             )
 
         setattr(block_type, "disulfide_connections", disulfide_connections)
-        return store_annotation(
+        return _store_annotation(
             block_type,
             "_disulfide_annotation",
             self._block_annotation_key,
@@ -117,7 +115,7 @@ class DisulfideEnergyTerm(EnergyTerm):
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(DisulfideEnergyTerm, self).setup_packed_block_types(packed_block_types)
 
-        cached = cached_annotation(
+        cached = _cached_annotation(
             packed_block_types,
             "_disulfide_annotation",
             self._packed_annotation_key,
@@ -153,7 +151,7 @@ class DisulfideEnergyTerm(EnergyTerm):
             device=self.device,
         )
         setattr(packed_block_types, "disulfide_bt_is_mirrored", is_mirrored)
-        return store_annotation(
+        return _store_annotation(
             packed_block_types,
             "_disulfide_annotation",
             self._packed_annotation_key,
@@ -174,12 +172,12 @@ class DisulfideEnergyTerm(EnergyTerm):
         return self.device.type == "cuda"
 
     def get_pose_score_term_function(self):
-        from tmol.score.disulfide.potentials import disulfide_pose_scores
+        from tmol.score.disulfide.potentials._compiled import disulfide_pose_scores
 
         return disulfide_pose_scores
 
     def get_rotamer_score_term_function(self):
-        from tmol.score.disulfide.potentials import disulfide_rotamer_scores
+        from tmol.score.disulfide.potentials._compiled import disulfide_rotamer_scores
 
         return disulfide_rotamer_scores
 

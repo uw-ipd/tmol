@@ -7,14 +7,12 @@ import numpy
 import torch
 
 
-from tmol.types import (
-    Tensor,
-    TensorGroup,
-    ValidateAttrs,
-    validate_args,
-)
+from tmol.types._torch import Tensor
+from tmol.types._tensor import TensorGroup
+from tmol.types._attrs import ValidateAttrs
+from tmol.types._functional import _validate_args
 from tmol.database.scoring import LJLKDatabase
-from tmol.database import PatchedChemicalDatabase
+from tmol.database._patched_chemdb import PatchedChemicalDatabase
 
 from .._chemical_database import AtomTypeParamResolver
 
@@ -100,7 +98,7 @@ class LJLKParamResolver(ValidateAttrs):
             )
 
     @classmethod
-    @validate_args
+    @_validate_args
     def from_database(
         cls,
         chemical_database: PatchedChemicalDatabase,
@@ -114,7 +112,7 @@ class LJLKParamResolver(ValidateAttrs):
         )
 
     @classmethod
-    @validate_args
+    @_validate_args
     def from_param_resolver(
         cls, atom_type_resolver: AtomTypeParamResolver, ljlk_database: LJLKDatabase
     ):

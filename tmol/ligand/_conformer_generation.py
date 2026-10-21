@@ -27,7 +27,7 @@ from rdkit import (
 )
 from rdkit.Chem import AllChem
 
-from tmol.ligand._atom_typing import assign_tmol_atom_types
+from tmol.ligand._atom_typing import _assign_tmol_atom_types
 from tmol.ligand._openbabel_compat import _OPENBABEL_FORCEFIELD_LOCK
 
 RDLogger.DisableLog("rdApp.*")
@@ -410,7 +410,7 @@ def _conjugated_single_bonds(rd: Chem.Mol):
     """(i, j) for the single bonds ligand typing promotes to double (conjugated, amide)."""
     mol = Chem.Mol(rd)
     try:
-        assign_tmol_atom_types(mol)
+        _assign_tmol_atom_types(mol)
     except ValueError:
         return []
     return [

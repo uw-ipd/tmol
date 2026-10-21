@@ -6,18 +6,21 @@ import pytest
 import torch
 from yaml import safe_load
 
-from tmol.database.chemical import is_metal_cluster, site_connections
-from tmol.database.scoring import MetalWellDepth
-from tmol.io import (
-    add_metal_coordination,
+from tmol.database.chemical import _is_metal_cluster, _site_connections
+from tmol.database.scoring._metal_coordination import MetalWellDepth
+from tmol.io._metal_coordination import (
+    _add_metal_coordination,
+    _remove_metal_coordination,
+)
+from tmol import (
     atom_array_from_file,
     pose_stack_from_atom_array,
     pose_stack_from_file,
-    remove_metal_coordination,
+    PackerPalette,
+    PackerTask,
+    ScoreType,
 )
-from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-from tmol.pack.rotamer import build_rotamers
-from tmol.score import ScoreType
+from tmol.pack import SetPackerTask, build_rotamers
 from tmol.score.metal._metal_coordination_term import MetalCoordinationEnergyTerm
 from tmol.tests.data import data_path
 from tmol.tests.score.metal import metal_oracle
@@ -161,7 +164,7 @@ def idealized(param_db, pose_stack):
     pbt = pose_stack.packed_block_types
     for pose, block in torch.nonzero(pose_stack.block_type_ind64 >= 0).tolist():
         bt = pbt.active_block_types[pose_stack.block_type_ind64[pose, block]]
-        if not is_metal_cluster(bt):
+        if not _is_metal_cluster(bt):
             continue
         start = int(pose_stack.block_coord_offset64[pose, block])
         ideal = torch.tensor(
@@ -339,12 +342,12 @@ def bridged_sod(device):
     irc = pose_stack.inter_residue_connections64[0, cu].cpu()
     (site,) = [
         k
-        for k, name in enumerate(site_connections(bt))
+        for k, name in enumerate(_site_connections(bt))
         if int(irc[bt.connection_to_cidx[name], 0]) == his118
     ]
     co = context.canonical_ordering
-    opened = remove_metal_coordination(co, pose_stack, 0, cu, site)
-    return add_metal_coordination(co, opened, 0, cu, his61, "ND1", site=site), cu, zn
+    opened = _remove_metal_coordination(co, pose_stack, 0, cu, site)
+    return _add_metal_coordination(co, opened, 0, cu, his61, "ND1", site=site), cu, zn
 
 
 def test_bridge_matches_oracle(default_database, torch_device):
@@ -549,7 +552,7 @@ def test_pose_without_metals_is_zero(ubq_pdb, default_database, torch_device):
 
 
 def test_beta2016_includes_metal_coordination(torch_device):
-    from tmol.score import beta2016_score_function
+    from tmol import beta2016_score_function
 
     sfxn = beta2016_score_function(torch_device)
     assert float(sfxn.get_weight(ScoreType.metal_coordination)) == 1.0

@@ -9,8 +9,8 @@ import numpy
 import yaml
 from yaml import safe_load
 
-from tmol.chemical._ideal_coords import normalize
-from tmol.database.chemical import ideal_distances
+from tmol.chemical._ideal_coords import _normalize
+from tmol.database.chemical import _ideal_distances
 
 CHEM_DIR = os.path.join(
     os.path.dirname(__file__), "..", "..", "database", "default", "chemical"
@@ -23,16 +23,16 @@ SCORING_DIR = os.path.join(
 SITE_DONOR = "Owat"
 
 
-def frame_from_coords(p1, p2, p3):
+def _frame_from_coords(p1, p2, p3):
     """The builder's frame: origin at p3, z from p2 to p3."""
-    z = normalize(p3 - p2)
-    v21 = normalize(p1 - p2)
-    y = normalize(v21 - numpy.dot(z, v21) * z)
-    x = normalize(numpy.cross(y, z))
+    z = _normalize(p3 - p2)
+    v21 = _normalize(p1 - p2)
+    y = _normalize(v21 - numpy.dot(z, v21) * z)
+    x = _normalize(numpy.cross(y, z))
     return x, y, z
 
 
-def icoors_for_sites(vertices, dist):
+def _icoors_for_sites(vertices, dist):
     """Icoors for the metal at the origin and a virtual per vertex, inverting
     build_coords_from_icoors (whose theta is the supplement of the bond angle).
     """
@@ -45,21 +45,21 @@ def icoors_for_sites(vertices, dist):
     rows.append((0.0, 180.0, dist))  # V1 goes on +x; theta is unused here
     if len(sites) > 1:
         # V2 hangs off the metal, so the builder takes pi - theta as its angle
-        cos_a = numpy.dot(normalize(sites[0]), normalize(sites[1]))
+        cos_a = numpy.dot(_normalize(sites[0]), _normalize(sites[1]))
         angle = math.degrees(math.acos(max(-1.0, min(1.0, cos_a))))
         rows.append((0.0, 180.0 - angle, dist))
     if len(sites) > 2:
         # the dihedral frame is built from V1 and V2, so they must not be
         # collinear through the metal -- order trans pairs apart in the table
-        cos_12 = numpy.dot(normalize(sites[0]), normalize(sites[1]))
+        cos_12 = numpy.dot(_normalize(sites[0]), _normalize(sites[1]))
         if abs(cos_12) > 0.999:
             raise ValueError(
                 "first two vertices are collinear through the metal, leaving "
                 "the dihedral frame undefined; reorder the geometry's vertices"
             )
     for site in sites[2:]:
-        x, y, z = frame_from_coords(sites[1], sites[0], numpy.zeros(3))
-        u = normalize(site)
+        x, y, z = _frame_from_coords(sites[1], sites[0], numpy.zeros(3))
+        u = _normalize(site)
         a, b, c = numpy.dot(u, x), numpy.dot(u, y), numpy.dot(u, z)
         theta = math.degrees(math.acos(max(-1.0, min(1.0, c))))
         phi = math.degrees(math.atan2(-a, b))
@@ -67,7 +67,7 @@ def icoors_for_sites(vertices, dist):
     return rows
 
 
-def residue_for(ion, geometry, vertices, distances, n_sites):
+def _residue_for(ion, geometry, vertices, distances, n_sites):
     """The metal, a virtual per templated site, and a connection per site."""
     # a single-ion component names its atom by element, whatever its code
     metal = ion["element"].upper()
@@ -75,7 +75,7 @@ def residue_for(ion, geometry, vertices, distances, n_sites):
     name = f"{name3}_{geometry}"
     virts = [f"V{i + 1}" for i in range(len(vertices))]
     sites = [f"site{i + 1}" for i in range(n_sites)]
-    icoor_rows = icoors_for_sites(vertices, distances[SITE_DONOR])
+    icoor_rows = _icoors_for_sites(vertices, distances[SITE_DONOR])
 
     # the first three atoms name each other, as HOH does
     stub = [metal] + virts
@@ -143,7 +143,7 @@ def residue_for(ion, geometry, vertices, distances, n_sites):
     }
 
 
-def main():
+def _main():
     with open(os.path.join(CHEM_DIR, "metals.yaml")) as infile:
         table = safe_load(infile)
     vertices_for = {g["name"]: g["vertices"] for g in table["geometries"]}
@@ -153,9 +153,9 @@ def main():
 
     residues, charges = [], []
     for ion in table["ions"]:
-        distances = ideal_distances(ion, table["donor_radii"])
+        distances = _ideal_distances(ion, table["donor_radii"])
         for geometry in ion["geometries"]:
-            res = residue_for(
+            res = _residue_for(
                 ion, geometry, vertices_for[geometry], distances, n_sites_for[geometry]
             )
             residues.append(res)
@@ -184,4 +184,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    _main()

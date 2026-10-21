@@ -4,10 +4,14 @@ import attr
 import pytest
 import torch
 
-from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-from tmol.pack.rotamer import FixedAAChiSampler, build_rotamers
-from tmol.pack.rotamer.dunbrack import DunbrackChiSampler
-from tmol.score.dunbrack import DunbrackParamResolver
+from tmol import PackerPalette, PackerTask
+from tmol.pack import (
+    SetPackerTask,
+    FixedAAChiSampler,
+    build_rotamers,
+    DunbrackChiSampler,
+)
+from tmol.score.dunbrack._params import DunbrackParamResolver
 from tmol.tests.pack.rotamer.dunbrack.test_libraryless_polymers import (
     own_chi_pose,
     target_types,
@@ -87,7 +91,7 @@ def test_copy_source_is_union_of_nonnested_regions(torch_device):
     from tmol.pack.rotamer._mainchain_fingerprint import (
         AtomFingerprint,
         MCFingerprint,
-        find_unique_fingerprints,
+        _find_unique_fingerprints,
     )
 
     tokens = [AtomFingerprint(0, i, 0, 6) for i in range(3)]
@@ -106,7 +110,7 @@ def test_copy_source_is_union_of_nonnested_regions(torch_device):
         _mc_sampler_labels={"left": ("left", 0), "right": ("right", 1)},
     )
     pbt = SimpleNamespace(active_block_types=[rt], n_types=1, device=torch_device)
-    packed = find_unique_fingerprints(pbt)
+    packed = _find_unique_fingerprints(pbt)
     assert packed.source_atom_mapping.tolist() == [[0, 1, 2]]
     assert packed.atom_mapping[packed.sampler_mapping["left"], 0, 0].tolist() == [
         0,
@@ -118,7 +122,7 @@ def test_copy_source_is_union_of_nonnested_regions(torch_device):
         -1,
         2,
     ]
-    assert find_unique_fingerprints(pbt) is packed
+    assert _find_unique_fingerprints(pbt) is packed
 
 
 def test_new_equivalent_instances_reuse_tensors_without_retaining_old_samplers(
@@ -126,7 +130,7 @@ def test_new_equivalent_instances_reuse_tensors_without_retaining_old_samplers(
 ):
     import gc
     import weakref
-    from tmol.pack.rotamer._build_rotamers import annotate_everything
+    from tmol.pack.rotamer._build_rotamers import _annotate_everything
 
     pose, _ = own_chi_pose(ubq_pdb, torch_device, gapped=True)
     pbt = pose.packed_block_types
@@ -136,7 +140,7 @@ def test_new_equivalent_instances_reuse_tensors_without_retaining_old_samplers(
     for _ in range(12):
         current = (DunbrackChiSampler(resolver), FixedAAChiSampler())
         references.extend(weakref.ref(s) for s in current)
-        annotate_everything(default_database.chemical, current, pbt)
+        _annotate_everything(default_database.chemical, current, pbt)
         packed = pbt.mc_fingerprints
         observed = tuple(
             getattr(packed, name).data_ptr()
@@ -148,7 +152,7 @@ def test_new_equivalent_instances_reuse_tensors_without_retaining_old_samplers(
         for rt in pbt.active_block_types:
             assert len(rt.mc_fingerprints) <= len(current)
         assert all(id(s) in packed.sampler_mapping for s in current)
-        annotate_everything(default_database.chemical, current, pbt)
+        _annotate_everything(default_database.chemical, current, pbt)
         assert pbt.mc_fingerprints is packed
     del current
     gc.collect()
@@ -161,17 +165,19 @@ def test_fingerprint_chemical_identity_and_source_expiry(
     import gc
     import weakref
     import numpy
-    from tmol.pack.rotamer import construct_single_residue_kinforest
+    from tmol.pack.rotamer._single_residue_kinforest import (
+        _construct_single_residue_kinforest,
+    )
     from tmol.pack.rotamer._mainchain_fingerprint import (
-        annotate_residue_type_with_sampler_fingerprints,
-        create_mainchain_fingerprint,
+        _annotate_residue_type_with_sampler_fingerprints,
+        _create_mainchain_fingerprint,
     )
 
     pose, _ = own_chi_pose(ubq_pdb, torch_device, gapped=True)
     rt = next(
         bt for bt in pose.packed_block_types.active_block_types if bt.base_name == "XIL"
     )
-    construct_single_residue_kinforest(rt)
+    _construct_single_residue_kinforest(rt)
     sampler = samplers(default_database, torch_device)[1]
     chemical = default_database.chemical
     alpha_type = rt.atoms[rt.atom_to_idx["CA"]].atom_type
@@ -184,9 +190,9 @@ def test_fingerprint_chemical_identity_and_source_expiry(
     )
     observed = []
     for database in (chemical, changed, chemical):
-        annotate_residue_type_with_sampler_fingerprints(rt, (sampler,), database)
+        _annotate_residue_type_with_sampler_fingerprints(rt, (sampler,), database)
         cached = rt.mc_fingerprints[sampler.sampler_name()]
-        atoms, fingerprints, _ = create_mainchain_fingerprint(
+        atoms, fingerprints, _ = _create_mainchain_fingerprint(
             rt, sampler.first_sc_atoms_for_rt(rt), database
         )
         numpy.testing.assert_array_equal(cached.mc_ats, atoms)
@@ -196,7 +202,7 @@ def test_fingerprint_chemical_identity_and_source_expiry(
     assert observed[0] == observed[2]
     private = attr.evolve(chemical)
     reference = weakref.ref(private)
-    annotate_residue_type_with_sampler_fingerprints(rt, (sampler,), private)
+    _annotate_residue_type_with_sampler_fingerprints(rt, (sampler,), private)
     del private
     gc.collect()
     assert reference() is None
@@ -205,7 +211,7 @@ def test_fingerprint_chemical_identity_and_source_expiry(
 def test_sampler_without_any_buildable_types_needs_no_copy_plan(
     ubq_pdb, default_database, torch_device
 ):
-    from tmol.io import pose_stack_from_file
+    from tmol import pose_stack_from_file
     from tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity import (
         fresh_pose,
     )

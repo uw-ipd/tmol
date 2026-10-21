@@ -24,13 +24,13 @@ import biotite.structure.info as info
 import numpy as np
 import pytest
 
-from tmol.database import ParameterDatabase
+from tmol import ParameterDatabase
 from tmol.ligand import prepare_ligands
 from tmol.ligand._polymer_profile import (
-    glycosidic_torsion_atoms,
-    na_backbone_kind,
-    na_profile,
-    profile_for_atom_array,
+    _glycosidic_torsion_atoms,
+    _na_backbone_kind,
+    _na_profile,
+    _profile_for_atom_array,
 )
 from tmol.tests.data import data_path
 
@@ -51,7 +51,7 @@ _FIXTURES: dict[str, dict[str, tuple[str, str | None]]] = {
 
 
 def _structure(stem: str):
-    from tmol.io import atom_array_from_file
+    from tmol import atom_array_from_file
 
     return atom_array_from_file(FIXTURE_DIR / f"{stem}.cif")
 
@@ -117,27 +117,27 @@ def test_a_standard_nucleotide_backbone_is_recognized(code: str) -> None:
     names = {str(n) for n in component.atom_name}
     connections = frozenset(a for a in ("P", "O3'") if a in names)
     assert connections, code
-    assert na_backbone_kind(component, connections) == _CLASSES[code]
+    assert _na_backbone_kind(component, connections) == _CLASSES[code]
 
 
 def test_a_fused_dinucleotide_is_not_a_standard_backbone() -> None:
     """TTD is two nucleotides in one component, so no single sugar spans it."""
     component = _component("TTD")
     assert {"P", "PB"} <= {str(n) for n in component.atom_name}
-    assert na_backbone_kind(component, frozenset({"P", "O3'"})) is None
+    assert _na_backbone_kind(component, frozenset({"P", "O3'"})) is None
 
 
 @pytest.mark.parametrize("code", ["DDG", "DOC"])
 def test_a_3_prime_deoxy_nucleotide_ends_its_chain_at_c3(code: str) -> None:
     """A dideoxy chain terminator has no O3': the backbone stops at C3'."""
-    profile = profile_for_atom_array(_component(code), frozenset({"P"}))
+    profile = _profile_for_atom_array(_component(code), frozenset({"P"}))
     assert profile.down == ("down", "P") and profile.up is None
     assert profile.mainchain_atoms[-1] == "C3'"
 
 
 def test_an_abasic_nucleotide_is_a_backbone_not_a_sugar() -> None:
     """AAB's C1' hydroxyl makes it look like a sugar; its backbone wins."""
-    profile = profile_for_atom_array(_component("AAB"), frozenset({"P", "O3'"}))
+    profile = _profile_for_atom_array(_component("AAB"), frozenset({"P", "O3'"}))
     assert profile is not None and profile.up == ("up", "O3'")
 
 
@@ -165,9 +165,9 @@ def test_chi_is_measured_the_way_the_tables_were_built(code: str) -> None:
     """
     component = _component(code)
     adjacency, element = _heavy_adjacency(component)
-    kind = na_backbone_kind(component, frozenset({"P", "O3'"}))
-    profile = na_profile(ParameterDatabase.get_default().chemical, kind)
-    assert glycosidic_torsion_atoms(profile, adjacency, element) == _CHI[code]
+    kind = _na_backbone_kind(component, frozenset({"P", "O3'"}))
+    profile = _na_profile(ParameterDatabase.get_default().chemical, kind)
+    assert _glycosidic_torsion_atoms(profile, adjacency, element) == _CHI[code]
 
 
 # --------------------------------------------------------------------------- #
@@ -251,7 +251,7 @@ def test_a_fused_dinucleotide_is_prepared_as_a_ligand() -> None:
 
 def test_every_canonical_base_identifies_as_itself() -> None:
     """The base reference is inferred from chemistry, so it must be a fixpoint."""
-    from tmol.ligand._polymer_profile import na_base_reference, na_profile
+    from tmol.ligand._polymer_profile import _na_base_reference, _na_profile
 
     chemdb = ParameterDatabase.get_default().chemical
     canonicals = [
@@ -262,7 +262,7 @@ def test_every_canonical_base_identifies_as_itself() -> None:
     assert canonicals
     for residue in canonicals:
         kind = residue.properties.polymer.backbone_type
-        inferred = na_base_reference(residue, na_profile(chemdb, kind), chemdb)
+        inferred = _na_base_reference(residue, _na_profile(chemdb, kind), chemdb)
         assert inferred == residue.io_equiv_class, residue.name
 
 
@@ -327,8 +327,8 @@ def test_a_nucleotide_seen_only_at_a_terminus_gets_its_phosphate_back() -> None:
 @pytest.mark.parametrize("stem", sorted(_FIXTURES))
 def test_a_nucleotide_scores(stem: str, torch_device) -> None:
     """Smoke test: preparation has to survive into a pose and a number."""
-    from tmol.io import pose_stack_from_atom_array
-    from tmol.score import beta2016_score_function
+    from tmol import pose_stack_from_atom_array
+    from tmol import beta2016_score_function
 
     structure = _structure(stem)
     prepared, _known, _co = _prepared(structure)
@@ -380,7 +380,7 @@ def test_every_variant_builds_finite_ideal_coordinates(stem: str) -> None:
     """
     import cattr
 
-    from tmol.chemical._restypes import RefinedResidueType
+    from tmol.chemical import RefinedResidueType
 
     prepared, known, _co = _prepared(_structure(stem))
     bad = []
@@ -394,13 +394,13 @@ def test_every_variant_builds_finite_ideal_coordinates(stem: str) -> None:
 
 
 def _sweep_structure(stem: str):
-    from tmol.io import atom_array_from_file
+    from tmol import atom_array_from_file
 
     return atom_array_from_file(data_path("sweep_regressions", f"{stem}.cif.zst"))
 
 
 def _block_type_names(structure, device):
-    from tmol.io import pose_stack_from_atom_array
+    from tmol import pose_stack_from_atom_array
 
     pose = pose_stack_from_atom_array(
         structure, device, prepare_ligands=True, ligand_seed=0, no_optH=True

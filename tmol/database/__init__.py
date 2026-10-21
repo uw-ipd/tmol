@@ -10,13 +10,13 @@ from .chemical import (  # noqa: F401
     AtomType,
     ChemicalDatabase,
     RawResidueType,
-    l_base_name,
+    _l_base_name,
 )
 from ._patched_chemdb import PatchedChemicalDatabase  # noqa: F401
 from .scoring import ScoringDatabase  # noqa: F401
 from .scoring._elec import PartialCharges  # noqa: F401
 from .scoring._cartbonded import CartRes, ConnectionCartRes  # noqa: F401
-from .scoring._mirrored_dunbrack import with_mirrored_libraries
+from .scoring._mirrored_dunbrack import _with_mirrored_libraries
 
 
 @attr.s(frozen=True)
@@ -53,14 +53,14 @@ class ParameterDatabase:
         #    torsions; the mirrored libraries are built here rather than stored,
         #    since which residues need them is a property of the chemical database
         d_names = {
-            l_base_name(residue): residue.name
+            _l_base_name(residue): residue.name
             for residue in patched_chemdb.residues
             if residue.name == residue.base_name
             and residue.properties.polymer.sidechain_chirality == "d"
         }
         if d_names:
             scoring = attr.evolve(
-                scoring, dun=with_mirrored_libraries(scoring.dun, d_names)
+                scoring, dun=_with_mirrored_libraries(scoring.dun, d_names)
             )
         return cls(scoring=scoring, chemical=patched_chemdb)
 
@@ -104,9 +104,9 @@ class ParameterDatabase:
                 {"gly": "gly_symm", "prepro": "prepro_gly_symm"},
             ),
         )
-        from ._symmetric_gly import symmetric_gly_geometry
+        from ._symmetric_gly import _symmetric_gly_geometry
 
-        chemical, cartbonded = symmetric_gly_geometry(
+        chemical, cartbonded = _symmetric_gly_geometry(
             self.chemical, self.scoring.cartbonded
         )
         return attr.evolve(
@@ -175,7 +175,7 @@ class ParameterDatabase:
         )
 
 
-def inject_residue_params(
+def _inject_residue_params(
     param_db: ParameterDatabase,
     residue_types: list[RawResidueType],
     atom_types: Optional[list[AtomType]] = None,
@@ -250,12 +250,4 @@ def inject_residue_params(
     return attr.evolve(param_db, scoring=new_scoring, chemical=new_patched)
 
 
-__all__ = [
-    "AtomType",
-    "ChemicalDatabase",
-    "ParameterDatabase",
-    "PatchedChemicalDatabase",
-    "RawResidueType",
-    "ScoringDatabase",
-    "inject_residue_params",
-]
+__all__ = []

@@ -2,19 +2,15 @@ import torch
 import toolz
 import biotite.structure
 
-from tmol.types import validate_args
+from tmol.types._functional import _validate_args
 from tmol.chemical import ResidueTypeSet
 from tmol.database import ParameterDatabase
 from tmol.io._build_context import PoseBuildContext
-from tmol.io._pose_stack_from_atom37 import canonical_form_from_atom37
-from tmol.io import (
-    CanonicalForm,
-    CanonicalOrdering,
-)
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
+from tmol.io._pose_stack_from_atom37 import _canonical_form_from_atom37
+from tmol.io._canonical_form import CanonicalForm
+from tmol.io._canonical_ordering import CanonicalOrdering
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
 
 # Use AtomWorks' protein token order and atom slots as the source of truth.
 # This module therefore has a runtime AtomWorks dependency. Copy the public
@@ -37,8 +33,8 @@ ATOMWORKS_ATOM37_NAMES = {
 # ---------------------------------------------------------------------------
 
 
-@validate_args
-def pose_stack_from_canonical_aa_atom37(
+@_validate_args
+def _pose_stack_from_canonical_aa_atom37(
     coords: torch.Tensor,
     residue_type: torch.Tensor,
     chain_iid: torch.Tensor,
@@ -80,18 +76,18 @@ def pose_stack_from_canonical_aa_atom37(
     ValueError
         If any ``residue_type`` value is outside 1..20 (protein-only).
     """
-    from tmol.io import pose_stack_from_canonical_form
+    from tmol.io._pose_stack_construction import _pose_stack_from_canonical_form
 
-    cf = canonical_form_from_atomworks(coords, residue_type, chain_iid)
+    cf = _canonical_form_from_atomworks(coords, residue_type, chain_iid)
 
-    co = canonical_ordering_for_atomworks()
-    pbt = packed_block_types_for_atomworks(cf.coords.device)
+    co = _canonical_ordering_for_atomworks()
+    pbt = _packed_block_types_for_atomworks(cf.coords.device)
 
-    return pose_stack_from_canonical_form(co, pbt, *cf, **kwargs)
+    return _pose_stack_from_canonical_form(co, pbt, *cf, **kwargs)
 
 
-@validate_args
-def pose_stack_from_atom37_and_topology(
+@_validate_args
+def _pose_stack_from_atom37_and_topology(
     atom37_coords: torch.Tensor,
     biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
     context: PoseBuildContext,
@@ -154,7 +150,7 @@ def pose_stack_from_atom37_and_topology(
     PoseStack
         Whose ``coords`` carry gradients back to ``atom37_coords``.
     """
-    from tmol.io import pose_stack_from_atom_array
+    from tmol.io._pose_stack_from_biotite import pose_stack_from_atom_array
 
     return pose_stack_from_atom_array(
         biotite_structure,
@@ -167,8 +163,8 @@ def pose_stack_from_atom37_and_topology(
     )
 
 
-@validate_args
-def canonical_form_from_atomworks(
+@_validate_args
+def _canonical_form_from_atomworks(
     coords: torch.Tensor,
     residue_type: torch.Tensor,
     chain_iid: torch.Tensor,
@@ -213,11 +209,11 @@ def canonical_form_from_atomworks(
 
     # Only the residue-index space is atomworks-specific. Once the tokens are
     # expressed as tmol residue types, the coordinate scatter is the shared one.
-    return canonical_form_from_atom37(
+    return _canonical_form_from_atom37(
         coords,
         _aw_2_tmol_restype_map(device)[residue_type],
         chain_iid,
-        canonical_ordering_for_atomworks(),
+        _canonical_ordering_for_atomworks(),
     )
 
 
@@ -226,7 +222,7 @@ def canonical_form_from_atomworks(
 # ---------------------------------------------------------------------------
 
 
-def atomworks_from_pose_stack(
+def _atomworks_from_pose_stack(
     pose_stack: PoseStack,
 ) -> tuple:
     """Convert a PoseStack back to atomworks UNIFIED_ATOM37_ENCODING tensors.
@@ -245,10 +241,10 @@ def atomworks_from_pose_stack(
     chain_iid : Tensor[int64], shape [n_poses, max_n_res]
         Chain identifiers.
     """
-    from tmol.io import canonical_form_from_pose_stack
+    from tmol.io._pose_stack_deconstruction import _canonical_form_from_pose_stack
 
-    co = canonical_ordering_for_atomworks()
-    cf = canonical_form_from_pose_stack(co, pose_stack)
+    co = _canonical_ordering_for_atomworks()
+    cf = _canonical_form_from_pose_stack(co, pose_stack)
 
     device = cf.coords.device
     tmol_2_aw_rtmap, tmol_2_aw_atmap, tmol_at_is_real = _get_tmol_2_aw_mappings(device)
@@ -322,18 +318,18 @@ def _restype_set_for_atomworks() -> ResidueTypeSet:
     return ResidueTypeSet.from_database(paramdb.chemical)
 
 
-@validate_args
+@_validate_args
 @toolz.functoolz.memoize
-def canonical_ordering_for_atomworks() -> CanonicalOrdering:
+def _canonical_ordering_for_atomworks() -> CanonicalOrdering:
     """Construct the CanonicalOrdering for the protein subset used
     by the atomworks UNIFIED_ATOM37_ENCODING."""
     paramdb = _paramdb_for_atomworks()
     return CanonicalOrdering.from_chemdb(paramdb.chemical)
 
 
-@validate_args
+@_validate_args
 @toolz.functoolz.memoize
-def packed_block_types_for_atomworks(device: torch.device) -> PackedBlockTypes:
+def _packed_block_types_for_atomworks(device: torch.device) -> PackedBlockTypes:
     """Construct the PackedBlockTypes for the protein subset used
     by the atomworks UNIFIED_ATOM37_ENCODING."""
     restype_set = _restype_set_for_atomworks()
@@ -345,7 +341,7 @@ def packed_block_types_for_atomworks(device: torch.device) -> PackedBlockTypes:
 @toolz.functoolz.memoize
 def _aw_2_tmol_restype_map(device: torch.device):
     """Atomworks residue index -> tmol canonical residue type (-1 if tmol has none)."""
-    classes = canonical_ordering_for_atomworks().restype_io_equiv_classes
+    classes = _canonical_ordering_for_atomworks().restype_io_equiv_classes
     return torch.tensor(
         [classes.index(n) if n in classes else -1 for n in ATOMWORKS_NAME3S],
         dtype=torch.int64,
@@ -356,7 +352,7 @@ def _aw_2_tmol_restype_map(device: torch.device):
 @toolz.functoolz.memoize
 def _get_tmol_2_aw_mappings(device: torch.device):
     """Build reverse mapping tensors: tmol canonical -> atomworks atom37 slot."""
-    co = canonical_ordering_for_atomworks()
+    co = _canonical_ordering_for_atomworks()
 
     n_co_restypes = len(co.restype_io_equiv_classes)
     max_n_canonical_atoms = co.max_n_canonical_atoms

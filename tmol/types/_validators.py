@@ -9,7 +9,7 @@ import toolz
 _validators = []
 
 
-def is_list_type(tp):
+def _is_list_type(tp):
     """Test if the type is a generic list type, including subclasses excluding
     non-generic classes.
     Examples::
@@ -30,23 +30,23 @@ def is_list_type(tp):
 
 
 @singledispatch
-def get_validator(type_annotation):
+def _get_validator(type_annotation):
     """Return the registered runtime validator for a type annotation."""
     for pred, val in _validators:
         if pred(type_annotation):
             return val(type_annotation)
-    return validate_isinstance(type_annotation)
+    return _validate_isinstance(type_annotation)
 
 
 @toolz.curry
-def validate_tuple(tup, value):
+def _validate_tuple(tup, value):
     if not isinstance(value, tuple):
         raise TypeError(f"expected {tup}, received {type(value)!r}")
 
     args = get_args(tup)
 
     if args and args[-1] == Ellipsis:
-        vval = get_validator(args[0])
+        vval = _get_validator(args[0])
         for v in value:
             vval(v)
     elif args:
@@ -54,11 +54,11 @@ def validate_tuple(tup, value):
             raise ValueError(f"expected {tup}, received invalid length: {len(value)}")
 
         for tt, v in zip(tup.__args__, value):
-            get_validator(tt)(v)
+            _get_validator(tt)(v)
 
 
 @toolz.curry
-def validate_list(lst, value):
+def _validate_list(lst, value):
     """Test if a given value matches the List type in the type hints:
     A list may either be of a uniform type, e.g. "List[int]", or may have
     no specified type, and thus be of any time, e.g. "List". In the first
@@ -80,7 +80,7 @@ def validate_list(lst, value):
         # accept List[X] as a list with as many elements of type X as you want
         for i, v in enumerate(value):
             try:
-                get_validator(args[0])(v)
+                _get_validator(args[0])(v)
             except TypeError as err:
                 raise TypeError(
                     f"Failed to validate {lst}: {i}th argument error: {err}"
@@ -88,12 +88,12 @@ def validate_list(lst, value):
 
 
 @toolz.curry
-def validate_union(union, value):
+def _validate_union(union, value):
     assert union.__args__
 
     for ut in union.__args__:
         try:
-            get_validator(ut)(value)
+            _get_validator(ut)(value)
             return
         except (ValueError, TypeError):
             pass
@@ -102,17 +102,17 @@ def validate_union(union, value):
 
 
 @toolz.curry
-def validate_isinstance(type_annotation, value):
+def _validate_isinstance(type_annotation, value):
     """Require a value to be an instance of the annotated type."""
     if not isinstance(value, type_annotation):
         raise TypeError(f"expected {type_annotation}, received {type(value)!r}")
 
 
-def register_validator(type_predicate, validator):
+def _register_validator(type_predicate, validator):
     """Register a validator factory for annotations matching a predicate."""
     _validators.append((type_predicate, validator))
 
 
-register_validator(is_tuple_type, validate_tuple)
-register_validator(is_list_type, validate_list)
-register_validator(is_union_type, validate_union)
+_register_validator(is_tuple_type, _validate_tuple)
+_register_validator(_is_list_type, _validate_list)
+_register_validator(is_union_type, _validate_union)

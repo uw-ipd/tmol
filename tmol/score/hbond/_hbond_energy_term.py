@@ -7,10 +7,8 @@ from .._atom_type_dependent_term import AtomTypeDependentTerm
 from tmol.database import ParameterDatabase
 
 from tmol.chemical import RefinedResidueType
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
 
 _PACK_HBOND_ROTAMER_CANDIDATE_WINDOW = 32 * 1024
 
@@ -73,7 +71,7 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         )
 
     def pose_score_hbond(self, *args):
-        from tmol.score.hbond.potentials import hbond_pose_scores
+        from tmol.score.hbond.potentials._compiled import hbond_pose_scores
 
         common_args = args[:-4]
         pose_stack, hbond_params, block_pair_scoring, shared_block_neighbors = args[-4:]
@@ -88,9 +86,7 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
     def _hbond_score_args(
         self, common_args, pose_stack, hbond_params, block_pair_scoring
     ):
-        from tmol.score.hbond.potentials import (
-            gen_hbond_bases,
-        )
+        from tmol.score.hbond.potentials._compiled import gen_hbond_bases
 
         coords_dtype = common_args[0].dtype
         pair_param_table, pair_poly_table, global_param_table = self._param_tables(
@@ -152,7 +148,7 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         return score_args
 
     def rotamer_score_hbond(self, *args):
-        from tmol.score.hbond.potentials import (
+        from tmol.score.hbond.potentials._compiled import (
             hbond_rotamer_scores,
             hbond_rotamer_scores_shared,
         )
@@ -175,7 +171,7 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
 
     def iter_packing_rotamer_scores(self, *args):
         """Yield canonical H-bond rotamer scores in bounded candidate pages."""
-        from tmol.score.hbond.potentials import (
+        from tmol.score.hbond.potentials._compiled import (
             hbond_rotamer_dispatch_page,
             hbond_rotamer_scores_shared,
             hbond_rotamer_spheres,

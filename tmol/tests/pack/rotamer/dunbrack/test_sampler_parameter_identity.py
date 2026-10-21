@@ -7,11 +7,9 @@ import numpy
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_file
-from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-from tmol.pack.rotamer.dunbrack import DunbrackChiSampler
-from tmol.pose import PackedBlockTypes
-from tmol.score.dunbrack import DunbrackParamResolver
+from tmol import pose_stack_from_file, PackerPalette, PackerTask, PackedBlockTypes
+from tmol.pack import SetPackerTask, DunbrackChiSampler
+from tmol.score.dunbrack._params import DunbrackParamResolver
 
 
 def fresh_pose(pose):

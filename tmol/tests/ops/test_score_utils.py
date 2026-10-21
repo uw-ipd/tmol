@@ -4,14 +4,15 @@ import pytest
 import torch
 import biotite.structure as struc
 
-from tmol.ops import build_coord_mask_for_mask_and_nearby_blocks
-from tmol.io import (
+from tmol.ops._score_utils import _build_coord_mask_for_mask_and_nearby_blocks
+from tmol import (
     pose_stack_from_atom_array,
     pose_stack_from_file,
     atom_array_from_pose_stack,
+    PoseStackBuilder,
+    run_cart_min,
+    beta2016_score_function,
 )
-from tmol.pose import PoseStackBuilder
-from tmol import run_cart_min, beta2016_score_function
 import tmol.ops._score_utils as score_utils
 
 
@@ -284,7 +285,7 @@ def test_build_coord_mask_and_minimize_for_first_residue(
     mask[:, 0] = True
 
     # Generate the coord_mask from the block mask
-    coord_mask = build_coord_mask_for_mask_and_nearby_blocks(pose_stack, mask)
+    coord_mask = _build_coord_mask_for_mask_and_nearby_blocks(pose_stack, mask)
 
     # Verify the coord_mask has been produced
     assert coord_mask.shape == pose_stack.coords.shape[:2], (
@@ -316,7 +317,7 @@ def test_build_coord_mask_and_minimize_for_first_residue(
 
 def test_block_masks_may_live_on_a_different_device_than_the_pose(torch_device):
     """Tutorials build masks with ``torch.zeros(...)``, which defaults to the CPU."""
-    from tmol.io import extended_pose_stack_from_sequences
+    from tmol import extended_pose_stack_from_sequences
 
     pose_stack = extended_pose_stack_from_sequences(["AGA", "AGA"], device=torch_device)
     cpu_mask = torch.zeros((pose_stack.n_poses, pose_stack.max_n_blocks), dtype=bool)
@@ -329,5 +330,5 @@ def test_block_masks_may_live_on_a_different_device_than_the_pose(torch_device):
     assert from_cpu.device == on_pose_device.device
     assert torch.equal(from_cpu, on_pose_device)
 
-    nearby = build_coord_mask_for_mask_and_nearby_blocks(pose_stack, cpu_mask)
+    nearby = _build_coord_mask_for_mask_and_nearby_blocks(pose_stack, cpu_mask)
     assert nearby.device == on_pose_device.device

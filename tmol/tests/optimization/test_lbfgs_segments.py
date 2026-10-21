@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import torch
 
-from tmol.optimization import LBFGS_Armijo, lbfgs_two_loop
+from tmol.optimization._lbfgs_armijo import LBFGS_Armijo, lbfgs_two_loop
 
 
 def _history(m, n_segments, size, dtype, device, seed=0):

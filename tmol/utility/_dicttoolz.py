@@ -17,19 +17,19 @@ from toolz.dicttoolz import (  # noqa
 )
 
 
-def items(d):
+def _items(d):
     return d.items()
 
 
-def keys(d):
+def _keys(d):
     return d.keys()
 
 
-def vals(d):
+def _vals(d):
     return d.values()
 
 
-def flat_items(d):
+def _flat_items(d):
     """Iterate items from potentially nested mapping.
 
     Iterates [(keys,...): value] items from a potentially nested mapping of
@@ -37,15 +37,15 @@ def flat_items(d):
     collections.abc.Mapping subtypes.
     """
 
-    for k, v in items(d):
+    for k, v in _items(d):
         if not isinstance(v, Mapping):
             yield ((k,), v)
         else:
-            for sk, v in flat_items(v):
+            for sk, v in _flat_items(v):
                 yield ((k,) + sk, v)
 
 
-def unflatten(keys_values, factory=dict):
+def _unflatten(keys_values, factory=dict):
     """Construct potentially-nested mapping from (keys, value) items.
 
     Construct a potentially-nested mapping from a flat iterator of (keys,
@@ -53,17 +53,17 @@ def unflatten(keys_values, factory=dict):
     assoc_in.
     """
     if isinstance(keys_values, Mapping):
-        keys_values = items(keys_values)
+        keys_values = _items(keys_values)
 
     d = factory()
 
     for keys, val in keys_values:
-        update_inplace(d, keys, lambda _: val, val, factory)
+        _update_inplace(d, keys, lambda _: val, val, factory)
 
     return d
 
 
-def update_inplace(d, keys, func, default=None, factory=dict):
+def _update_inplace(d, keys, func, default=None, factory=dict):
     """Update value in a (potentially) nested dictionary inplace
 
     inputs:
@@ -85,7 +85,7 @@ def update_inplace(d, keys, func, default=None, factory=dict):
     if ks:
         if k not in d:
             d[k] = factory()
-        update_inplace(d[k], ks, func, default, factory)
+        _update_inplace(d[k], ks, func, default, factory)
         return d
     d[k] = func(d[k]) if (k in d) else func(default)
     return d

@@ -26,8 +26,8 @@ import logging
 
 from biotite.structure import AtomArray
 from rdkit import Chem
-from tmol.ligand._input_repair import correct_carboxylate_bond_orders
-from tmol.ligand._rdkit_mol import rdkit_mol_from_ligand_atom_array
+from tmol.ligand._input_repair import _correct_carboxylate_bond_orders
+from tmol.ligand._rdkit_mol import _rdkit_mol_from_ligand_atom_array
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +63,7 @@ def _tag_source_atom_map(mol: Chem.Mol, atom_array: AtomArray) -> None:
         mol.GetAtomWithIdx(mol_idx).SetAtomMapNum(int(source_idx) + 1)
 
 
-def ligand_smiles_from_atom_array(
+def _ligand_smiles_from_atom_array(
     atom_array: AtomArray,
     *,
     res_name: str | None = None,
@@ -106,13 +106,13 @@ def ligand_smiles_from_atom_array(
     # Build from the explicit bonds
     #  -> then apply geometry bond-order corrections for common "mistakes"
     def _attempt(repair_chemistry: bool) -> str | None:
-        mol = rdkit_mol_from_ligand_atom_array(
+        mol = _rdkit_mol_from_ligand_atom_array(
             atom_array,
             res_name=res_name or "ligand",
             repair_chemistry=repair_chemistry,
             keep_hydrogens=keep_hydrogens,
         )
-        mol = correct_carboxylate_bond_orders(mol)
+        mol = _correct_carboxylate_bond_orders(mol)
         if with_atom_map:
             _tag_source_atom_map(mol, atom_array)
         return _mol_to_smiles(mol)
