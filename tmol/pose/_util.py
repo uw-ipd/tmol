@@ -5,6 +5,7 @@ Setting torsions (which requires inverse kinematics) lives in
 kinematics dependency.
 """
 
+import re
 from typing import List
 
 import numpy
@@ -132,6 +133,81 @@ def blocks_for_residue_labels(
     matches = (residue_labels == queries[..., None]) & chain_mask
     block = numpy.where(matches.any(axis=-1), matches.argmax(axis=-1), -1)
     return torch.as_tensor(block, dtype=torch.int64, device=pose_stack.device)
+
+
+_RESIDUE_ID = re.compile(r"^(?P<number>\d+)(?P<insertion_code>[A-Za-z]*)$")
+
+
+def atom_for_residue_label(
+    pose_stack: PoseStack, pose_ind: int, chain_id: str, res_id: str, atom_id: str
+) -> torch.Tensor:
+    """``[pose, block, atom]`` triple for one atom, addressed entirely in PDB space.
+
+    ``res_id`` is a residue number as a string, with an optional PDB
+    insertion-code suffix (e.g. ``"12"`` or ``"12A"``); ``atom_id`` is that
+    residue's atom name (e.g. ``"CA"``). The result is an ``int32`` tensor on
+    ``pose_stack``'s device, suitable directly as one row of the ``atoms``
+    tensor :meth:`ConstraintSet.add_constraints` expects.
+
+    Raises ValueError if no block matches the chain/residue, or if the
+    matching block's residue type has no atom by that name.
+    """
+    match = _RESIDUE_ID.match(res_id)
+    if not match:
+        raise ValueError(f"invalid residue id: {res_id!r}")
+    residue_number = int(match.group("number"))
+    insertion_code = match.group("insertion_code")
+
+    chain_labels = pose_stack.pdb_info.chain_labels[pose_ind]
+    residue_labels = pose_stack.pdb_info.residue_labels[pose_ind]
+    residue_insertion_codes = pose_stack.pdb_info.residue_insertion_codes[pose_ind]
+    matches = numpy.flatnonzero(
+        (chain_labels == chain_id)
+        & (residue_labels == residue_number)
+        & (residue_insertion_codes == insertion_code)
+    )
+    if len(matches) == 0:
+        raise ValueError(
+            f"no block found for chain {chain_id!r} residue {res_id!r} "
+            f"in pose {pose_ind}"
+        )
+    block = int(matches[0])
+    block_type = pose_stack.block_type(pose_ind, block)
+    if atom_id not in block_type.atom_to_idx:
+        raise ValueError(
+            f"residue type {block_type.name} (chain {chain_id!r} residue "
+            f"{res_id!r} in pose {pose_ind}) has no atom {atom_id!r}"
+        )
+    atom = block_type.atom_to_idx[atom_id]
+    return torch.tensor(
+        [pose_ind, block, atom], dtype=torch.int32, device=pose_stack.device
+    )
+
+
+def constraint_atoms_for_labels(
+    pose_stack: PoseStack,
+    atoms,
+) -> torch.Tensor:
+    """The atoms of one constraint, addressed entirely in PDB space.
+
+    ``atoms`` is a sequence of 1 to 4 ``(pose_ind, chain_id, res_id, atom_id)``
+    labels (see :func:`atom_for_residue_label`) -- one atom per constraint
+    slot. The slot count matches whichever ``ConstraintEnergyTerm`` function
+    the result is eventually passed to: 1 for a coordinate constraint, 2 for
+    a distance constraint (``harmonic``/``bounded``), 4 for a torsion-angle
+    constraint (``circularharmonic``).
+
+    Returns an ``int32`` tensor shaped ``[len(atoms), 3]`` on ``pose_stack``'s
+    device. Stack the result for each constraint (e.g. ``torch.stack(...)``)
+    to build the ``[n_constraints, n_atoms, 3]`` tensor
+    :meth:`ConstraintSet.add_constraints` expects.
+    """
+    if not 1 <= len(atoms) <= 4:
+        raise ValueError(f"atoms must specify 1 to 4 atoms, got {len(atoms)}")
+
+    return torch.stack(
+        [atom_for_residue_label(pose_stack, *atom_label) for atom_label in atoms]
+    )
 
 
 def get_torsion_names(pose_stack: PoseStack, pose: int, block: int) -> List[str]:
