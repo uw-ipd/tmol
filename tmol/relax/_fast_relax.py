@@ -4,6 +4,7 @@ from collections.abc import Callable, Sequence
 from typing import Protocol
 
 import attr
+import numpy
 import torch
 
 from tmol.pose import PoseStack
@@ -522,6 +523,16 @@ def accept_best(
         new_tensor[better_mask] = candidate[better_mask]
         return new_tensor
 
+    def select_better_atom_info(field_name: str, width: int) -> numpy.ndarray:
+        """A per-atom pdb_info field, padded with zeros to the merged atom count."""
+        best = getattr(best_pose_stack.pdb_info, field_name)
+        candidate = getattr(candidate_pose_stack.pdb_info, field_name)
+        better = better_mask.cpu().numpy()
+        merged = numpy.zeros((best.shape[0], width), dtype=best.dtype)
+        merged[~better, : best.shape[1]] = best[~better]
+        merged[better, : candidate.shape[1]] = candidate[better]
+        return merged
+
     if better_mask.any():
         if verbose:
             print("accepting new best scores")
@@ -533,9 +544,17 @@ def accept_best(
         new_block_coord_offset64 = select_better("block_coord_offset64")
         new_block_type_ind = select_better("block_type_ind")
         new_block_type_ind64 = select_better("block_type_ind64")
+        new_pdb_info = attr.evolve(
+            best_pose_stack.pdb_info,
+            atom_occupancy=select_better_atom_info(
+                "atom_occupancy", new_coords.shape[1]
+            ),
+            atom_b_factor=select_better_atom_info("atom_b_factor", new_coords.shape[1]),
+        )
         new_best_pose_stack = attr.evolve(
             best_pose_stack,
             coords=new_coords,
+            pdb_info=new_pdb_info,
             block_coord_offset=new_block_coord_offset,
             block_coord_offset64=new_block_coord_offset64,
             block_type_ind=new_block_type_ind,
