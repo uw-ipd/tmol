@@ -302,13 +302,18 @@ _RANGE_FIELD = re.compile(
     r"^(?P<negate>~)?(?:(?P<star>\*)|(?P<start>\d+)(?:-(?P<end>\d+))?)$"
 )
 _CHAIN_FIELD = re.compile(r"^(?P<negate>~)?(?:(?P<star>\*)|(?P<chains>[A-Za-z0-9]+))$")
+_RESIDUE_TOKEN = r"\d+[A-Za-z]*"
+_RESIDUE_RANGE_FIELD = re.compile(
+    rf"^(?P<negate>~)?(?:(?P<star>\*)|(?P<start>{_RESIDUE_TOKEN})(?:-(?P<end>{_RESIDUE_TOKEN}))?)$"
+)
+_RESIDUE_TOKEN_PARTS = re.compile(r"^(?P<num>\d+)(?P<icode>[A-Za-z]*)$")
 
 
 def _range_field_mask(field: str, values):
-    """Boolean numpy array shaped like ``values``, for a poses/residues field."""
+    """Boolean numpy array shaped like ``values``, for a poses field."""
     match = _RANGE_FIELD.match(field)
     if not match:
-        raise ValueError(f"invalid poses/residues field: {field!r}")
+        raise ValueError(f"invalid poses field: {field!r}")
     if match.group("star"):
         mask = numpy.ones_like(values, dtype=bool)
     else:
@@ -330,6 +335,44 @@ def _chain_field_mask(field: str, chain_labels):
     return ~mask if match.group("negate") else mask
 
 
+def _parse_residue_token(token: str):
+    """(residue number, insertion code) for one range boundary, e.g. ``"52A"``."""
+    match = _RESIDUE_TOKEN_PARTS.match(token)
+    return int(match.group("num")), match.group("icode")
+
+
+def _residue_field_mask(field: str, residue_labels, residue_insertion_codes):
+    """Boolean numpy array shaped like ``residue_labels``, for a residues field.
+
+    A residue's position is the ``(number, insertion code)`` pair, ordered the
+    same way the PDB numbers insertions: ``12 < 12A < 12B < 13``. A bare number
+    (with no insertion code) means that number's plain, uninserted residue
+    specifically; a range boundary with no insertion code means the plain
+    residue at that end -- so ``"12-13"`` covers every insertion between them
+    (``12, 12A, 12B, 13``), while ``"12"`` alone covers only plain residue 12.
+    """
+    match = _RESIDUE_RANGE_FIELD.match(field)
+    if not match:
+        raise ValueError(f"invalid residues field: {field!r}")
+    if match.group("star"):
+        mask = numpy.ones_like(residue_labels, dtype=bool)
+    else:
+        start_num, start_icode = _parse_residue_token(match.group("start"))
+        end_num, end_icode = (
+            _parse_residue_token(match.group("end"))
+            if match.group("end") is not None
+            else (start_num, start_icode)
+        )
+        at_or_after_start = (residue_labels > start_num) | (
+            (residue_labels == start_num) & (residue_insertion_codes >= start_icode)
+        )
+        at_or_before_end = (residue_labels < end_num) | (
+            (residue_labels == end_num) & (residue_insertion_codes <= end_icode)
+        )
+        mask = at_or_after_start & at_or_before_end
+    return ~mask if match.group("negate") else mask
+
+
 def _block_mask_from_pose_stack_selection(pose_stack: PoseStack, selection_string: str):
     """Boolean numpy array shaped ``[n_poses, max_n_blocks]``."""
     stripped = selection_string.strip()
@@ -340,6 +383,7 @@ def _block_mask_from_pose_stack_selection(pose_stack: PoseStack, selection_strin
     pose_indices = numpy.arange(n_poses)
     chain_labels_all = pose_stack.pdb_info.chain_labels
     residue_labels_all = pose_stack.pdb_info.residue_labels
+    residue_insertion_codes_all = pose_stack.pdb_info.residue_insertion_codes
     real_all = pose_stack.block_type_ind64.cpu().numpy() >= 0
 
     mask = numpy.zeros((n_poses, pose_stack.max_n_blocks), dtype=bool)
@@ -355,8 +399,10 @@ def _block_mask_from_pose_stack_selection(pose_stack: PoseStack, selection_strin
         poses_sel = _range_field_mask(poses_field, pose_indices)
         for pose_ind in numpy.flatnonzero(poses_sel):
             chain_sel = _chain_field_mask(chains_field, chain_labels_all[pose_ind])
-            residue_sel = _range_field_mask(
-                residues_field, residue_labels_all[pose_ind]
+            residue_sel = _residue_field_mask(
+                residues_field,
+                residue_labels_all[pose_ind],
+                residue_insertion_codes_all[pose_ind],
             )
             mask[pose_ind] |= chain_sel & residue_sel & real_all[pose_ind]
 
@@ -371,12 +417,20 @@ def select_blocks_from_pose_stack(
     The notation is one or more comma-separated ``[poses,chains,residues]``
     clauses, unioned together:
 
-    - ``poses`` and ``residues`` are each a single integer, a dash-separated
-      range, or ``*`` for all of them; prefix with ``~`` to select everything
-      *except* that integer/range.
+    - ``poses`` is a single integer, a dash-separated range, or ``*`` for all
+      of them; prefix with ``~`` to select everything *except* that
+      integer/range.
     - ``chains`` is one or more chain letters concatenated together (e.g.
       ``"AB"`` selects chains A and B), or ``*`` for every chain; prefix with
       ``~`` to select every chain *except* those listed.
+    - ``residues`` is a single residue, a dash-separated range, or ``*`` for
+      all of them; prefix with ``~`` to select everything *except* that
+      residue/range. A residue may carry a PDB insertion code suffix (e.g.
+      ``"52A"``); a bare number with no suffix means that number's plain,
+      uninserted residue specifically, so a range like ``"12-13"`` covers
+      every insertion between its endpoints (``12, 12A, 12B, 13``), while
+      ``"12"`` alone covers only plain residue 12 and ``"12-12B"`` covers
+      ``12, 12A, 12B`` but not ``13``.
     - Multiple ``[poses,chains,residues]`` clauses, separated by commas,
       union together.
 
@@ -389,6 +443,8 @@ def select_blocks_from_pose_stack(
     - ``"[*,B,~5]"`` -- every residue of chain B except residue 5
     - ``"[~0-1,A,*]"`` -- chain A, in every pose except poses 0 and 1
     - ``"[*,AB,*]"`` -- every residue of chains A and B
+    - ``"[*,A,52A]"`` -- just the inserted residue 52A of chain A
+    - ``"[*,A,12-12B]"`` -- residues 12, 12A and 12B of chain A (not 13)
     - ``"[0,A,5],[1,B,10-20]"`` -- the union of both selections
 
     Residue numbers are PDB (author) numbering; they are resolved against
