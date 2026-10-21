@@ -65,7 +65,8 @@ def pose_stack_from_canonical_aa_atom37(
     coords : Tensor, shape [batch, n_res, 37, 3]
         Atom coordinates in the atomworks atom37 layout.
     residue_type : Tensor[int64], shape [batch, n_res]
-        Atomworks token indices. Must be in 1..20 (standard protein only).
+        Atomworks token indices in 1..20 (standard protein only), or 0 for
+        padding.
     chain_iid : Tensor[int64], shape [batch, n_res]
         Chain identifiers (integer IDs, not string labels).
     **kwargs
@@ -78,7 +79,8 @@ def pose_stack_from_canonical_aa_atom37(
     Raises
     ------
     ValueError
-        If any ``residue_type`` value is outside 1..20 (protein-only).
+        If any ``residue_type`` value is outside 1..20 (protein-only) and not
+        0 (padding).
     """
     from tmol.io import pose_stack_from_canonical_form
 
@@ -180,7 +182,8 @@ def canonical_form_from_atomworks(
     coords : Tensor, shape [batch, n_res, 37, 3]
         Atom coordinates in the atomworks atom37 layout.
     residue_type : Tensor[int64], shape [batch, n_res]
-        Atomworks token indices. Must be in 1..20 (standard protein only).
+        Atomworks token indices in 1..20 (standard protein only), or 0 for
+        padding, as atomworks_from_pose_stack writes it.
     chain_iid : Tensor[int64], shape [batch, n_res]
         Chain identifiers.
 
@@ -189,17 +192,16 @@ def canonical_form_from_atomworks(
     CanonicalForm
     """
 
-    # Validate protein-only
-    if (residue_type < _ATOMWORKS_MIN_PROTEIN_IDX).any() or (
-        residue_type > _ATOMWORKS_MAX_PROTEIN_IDX
-    ).any():
-        bad = residue_type[
-            (residue_type < _ATOMWORKS_MIN_PROTEIN_IDX)
-            | (residue_type > _ATOMWORKS_MAX_PROTEIN_IDX)
-        ]
+    # Validate protein-only; 0 is padding and maps to no residue type
+    out_of_range = (residue_type != 0) & (
+        (residue_type < _ATOMWORKS_MIN_PROTEIN_IDX)
+        | (residue_type > _ATOMWORKS_MAX_PROTEIN_IDX)
+    )
+    if out_of_range.any():
+        bad = residue_type[out_of_range]
         raise ValueError(
             f"residue_type must be in range [{_ATOMWORKS_MIN_PROTEIN_IDX}, "
-            f"{_ATOMWORKS_MAX_PROTEIN_IDX}] (protein only). "
+            f"{_ATOMWORKS_MAX_PROTEIN_IDX}] (protein only) or 0 (padding). "
             f"Got out-of-range values: {bad.unique().tolist()}"
         )
 
