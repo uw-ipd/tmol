@@ -740,154 +740,125 @@
 
 
 
-<span class="n">_SELECTION_CLAUSE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
-    <span class="sa">r</span><span class="s2">"^(?P&lt;negate_chain&gt;~)?(?P&lt;chain&gt;[A-Za-z0-9]+)"</span>
-    <span class="sa">r</span><span class="s2">"(?:\[(?P&lt;negate_res&gt;~)?(?P&lt;start&gt;\d+)(?:-(?P&lt;end&gt;\d+))?\])?$"</span>
+<span class="n">_SELECTION_STRING</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^\[[^\[\]]*\](?:\s*,\s*\[[^\[\]]*\])*$"</span><span class="p">)</span>
+<span class="n">_SELECTION_CLAUSE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"\[([^\[\]]*)\]"</span><span class="p">)</span>
+<span class="n">_RANGE_FIELD</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+    <span class="sa">r</span><span class="s2">"^(?P&lt;negate&gt;~)?(?:(?P&lt;star&gt;\*)|(?P&lt;start&gt;\d+)(?:-(?P&lt;end&gt;\d+))?)$"</span>
 <span class="p">)</span>
+<span class="n">_CHAIN_FIELD</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^(?P&lt;negate&gt;~)?(?:(?P&lt;star&gt;\*)|(?P&lt;chains&gt;[A-Za-z0-9]+))$"</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_selection_clause_mask</span><span class="p">(</span><span class="n">chain_labels</span><span class="p">,</span> <span class="n">residue_labels</span><span class="p">,</span> <span class="n">clause</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Boolean numpy array shaped like ``chain_labels`` for one clause, or</span>
-<span class="sd">    ``None`` for a blank clause (e.g. a trailing comma)."""</span>
-    <span class="n">clause</span> <span class="o">=</span> <span class="n">clause</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">clause</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">None</span>
-    <span class="n">match</span> <span class="o">=</span> <span class="n">_SELECTION_CLAUSE</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">clause</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_range_field_mask</span><span class="p">(</span><span class="n">field</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Boolean numpy array shaped like ``values``, for a poses/residues field."""</span>
+    <span class="n">match</span> <span class="o">=</span> <span class="n">_RANGE_FIELD</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">match</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"invalid selection clause: </span><span class="si">{</span><span class="n">clause</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
-
-    <span class="n">chain_mask</span> <span class="o">=</span> <span class="n">chain_labels</span> <span class="o">==</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">"chain"</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">"start"</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="c1"># A bare chain token, e.g. "A" or "~A" -- no residue range to apply.</span>
-        <span class="k">return</span> <span class="o">~</span><span class="n">chain_mask</span> <span class="k">if</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">"negate_chain"</span><span class="p">)</span> <span class="k">else</span> <span class="n">chain_mask</span>
-    <span class="k">if</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">"negate_chain"</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"cannot combine a leading '~' with a bracketed range: </span><span class="si">{</span><span class="n">clause</span><span class="si">!r}</span><span class="s2">"</span>
-        <span class="p">)</span>
-
-    <span class="n">start</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">"start"</span><span class="p">))</span>
-    <span class="n">end</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">"end"</span><span class="p">))</span> <span class="k">if</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">"end"</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">start</span>
-    <span class="n">in_range</span> <span class="o">=</span> <span class="p">(</span><span class="n">residue_labels</span> <span class="o">&gt;=</span> <span class="n">start</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">residue_labels</span> <span class="o">&lt;=</span> <span class="n">end</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">chain_mask</span> <span class="o">&amp;</span> <span class="p">(</span><span class="o">~</span><span class="n">in_range</span> <span class="k">if</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">"negate_res"</span><span class="p">)</span> <span class="k">else</span> <span class="n">in_range</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"invalid poses/residues field: </span><span class="si">{</span><span class="n">field</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">"star"</span><span class="p">):</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">"start"</span><span class="p">))</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">"end"</span><span class="p">))</span> <span class="k">if</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">"end"</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">start</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">values</span> <span class="o">&gt;=</span> <span class="n">start</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">values</span> <span class="o">&lt;=</span> <span class="n">end</span><span class="p">)</span>
+    <span class="k">return</span> <span class="o">~</span><span class="n">mask</span> <span class="k">if</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">"negate"</span><span class="p">)</span> <span class="k">else</span> <span class="n">mask</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_block_mask_from_selection</span><span class="p">(</span>
-    <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">pose_ind</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">selection_string</span><span class="p">:</span> <span class="nb">str</span>
-<span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Boolean numpy array shaped ``[max_n_blocks]`` for one pose."""</span>
-    <span class="n">chain_labels</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">chain_labels</span><span class="p">[</span><span class="n">pose_ind</span><span class="p">]</span>
-    <span class="n">residue_labels</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_labels</span><span class="p">[</span><span class="n">pose_ind</span><span class="p">]</span>
-    <span class="n">real</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">[</span><span class="n">pose_ind</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="mi">0</span>
-
-    <span class="n">mask</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">clause</span> <span class="ow">in</span> <span class="n">selection_string</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">","</span><span class="p">):</span>
-        <span class="n">clause_mask</span> <span class="o">=</span> <span class="n">_selection_clause_mask</span><span class="p">(</span><span class="n">chain_labels</span><span class="p">,</span> <span class="n">residue_labels</span><span class="p">,</span> <span class="n">clause</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">clause_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">mask</span> <span class="o">|=</span> <span class="n">clause_mask</span>
-    <span class="k">return</span> <span class="n">mask</span> <span class="o">&amp;</span> <span class="n">real</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_chain_field_mask</span><span class="p">(</span><span class="n">field</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">chain_labels</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Boolean numpy array shaped like ``chain_labels``, for a chains field."""</span>
+    <span class="n">match</span> <span class="o">=</span> <span class="n">_CHAIN_FIELD</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">match</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"invalid chains field: </span><span class="si">{</span><span class="n">field</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">"star"</span><span class="p">):</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">chain_labels</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">chain_labels</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">"chains"</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="o">~</span><span class="n">mask</span> <span class="k">if</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">"negate"</span><span class="p">)</span> <span class="k">else</span> <span class="n">mask</span>
 
 
-<span class="c1"># Shared by every select_*'s docstring below:</span>
-<span class="c1">#</span>
-<span class="c1"># The selection notation is comma-separated chain/residue clauses, unioned</span>
-<span class="c1"># together:</span>
-<span class="c1">#</span>
-<span class="c1"># - "A" -- every residue of chain A</span>
-<span class="c1"># - "~A" -- every residue not in chain A</span>
-<span class="c1"># - "A[5]" -- residue 5 of chain A</span>
-<span class="c1"># - "B[4-10]" -- residues 4 through 10 of chain B</span>
-<span class="c1"># - "B[~5]" -- every residue of chain B except 5</span>
-<span class="c1"># - "B[~2-4]" -- every residue of chain B except 2 through 4</span>
-<span class="c1"># - "A,B" -- the union of the A and B selections</span>
-<span class="c1">#</span>
-<span class="c1"># Residue numbers are PDB (author) numbering; they are resolved against each</span>
-<span class="c1"># pose's own pdb_info and mapped internally to the pose stack's block indexing.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_block_mask_from_pose_stack_selection</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">selection_string</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Boolean numpy array shaped ``[n_poses, max_n_blocks]``."""</span>
+    <span class="n">stripped</span> <span class="o">=</span> <span class="n">selection_string</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_SELECTION_STRING</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">stripped</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"invalid selection string: </span><span class="si">{</span><span class="n">selection_string</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="n">n_poses</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span>
+    <span class="n">pose_indices</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_poses</span><span class="p">)</span>
+    <span class="n">chain_labels_all</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">chain_labels</span>
+    <span class="n">residue_labels_all</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_labels</span>
+    <span class="n">real_all</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_blocks</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">raw_clause</span> <span class="ow">in</span> <span class="n">_SELECTION_CLAUSE</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">stripped</span><span class="p">):</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="n">raw_clause</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">","</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"selection clause must have 3 comma-separated fields "</span>
+                <span class="sa">f</span><span class="s2">"(poses, chains, residues): </span><span class="si">{</span><span class="n">raw_clause</span><span class="si">!r}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="n">poses_field</span><span class="p">,</span> <span class="n">chains_field</span><span class="p">,</span> <span class="n">residues_field</span> <span class="o">=</span> <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">)</span>
+
+        <span class="n">poses_sel</span> <span class="o">=</span> <span class="n">_range_field_mask</span><span class="p">(</span><span class="n">poses_field</span><span class="p">,</span> <span class="n">pose_indices</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">pose_ind</span> <span class="ow">in</span> <span class="n">numpy</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">poses_sel</span><span class="p">):</span>
+            <span class="n">chain_sel</span> <span class="o">=</span> <span class="n">_chain_field_mask</span><span class="p">(</span><span class="n">chains_field</span><span class="p">,</span> <span class="n">chain_labels_all</span><span class="p">[</span><span class="n">pose_ind</span><span class="p">])</span>
+            <span class="n">residue_sel</span> <span class="o">=</span> <span class="n">_range_field_mask</span><span class="p">(</span>
+                <span class="n">residues_field</span><span class="p">,</span> <span class="n">residue_labels_all</span><span class="p">[</span><span class="n">pose_ind</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">mask</span><span class="p">[</span><span class="n">pose_ind</span><span class="p">]</span> <span class="o">|=</span> <span class="n">chain_sel</span> <span class="o">&amp;</span> <span class="n">residue_sel</span> <span class="o">&amp;</span> <span class="n">real_all</span><span class="p">[</span><span class="n">pose_ind</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">mask</span>
 
 
-<div class="viewcode-block" id="select_blocks_from_pose">
-<a class="viewcode-back" href="../../../api/analysis.html#tmol.ops.select_blocks_from_pose">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">select_blocks_from_pose</span><span class="p">(</span>
-    <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">pose_ind</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">selection_string</span><span class="p">:</span> <span class="nb">str</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:]:</span>
-<span class="w">    </span><span class="sd">"""Block mask shaped ``[max_n_blocks]`` for one pose, from a selection</span>
-<span class="sd">    string. See :func:`select_from_pose` for the selection notation.</span>
+<div class="viewcode-block" id="select_blocks_from_pose_stack">
+<a class="viewcode-back" href="../../../api/analysis.html#tmol.ops.select_blocks_from_pose_stack">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">select_blocks_from_pose_stack</span><span class="p">(</span>
+    <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">selection_string</span><span class="p">:</span> <span class="nb">str</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:]:</span>
+<span class="w">    </span><span class="sd">"""Block mask shaped ``[n_poses, max_n_blocks]``, from a selection string.</span>
+
+<span class="sd">    The notation is one or more comma-separated ``[poses,chains,residues]``</span>
+<span class="sd">    clauses, unioned together:</span>
+
+<span class="sd">    - ``poses`` and ``residues`` are each a single integer, a dash-separated</span>
+<span class="sd">      range, or ``*`` for all of them; prefix with ``~`` to select everything</span>
+<span class="sd">      *except* that integer/range.</span>
+<span class="sd">    - ``chains`` is one or more chain letters concatenated together (e.g.</span>
+<span class="sd">      ``"AB"`` selects chains A and B), or ``*`` for every chain; prefix with</span>
+<span class="sd">      ``~`` to select every chain *except* those listed.</span>
+<span class="sd">    - Multiple ``[poses,chains,residues]`` clauses, separated by commas,</span>
+<span class="sd">      union together.</span>
+
+<span class="sd">    Examples:</span>
+
+<span class="sd">    - ``"[*,A,*]"`` -- every residue of chain A, in every pose</span>
+<span class="sd">    - ``"[0,A,5]"`` -- residue 5 of chain A, in pose 0 only</span>
+<span class="sd">    - ``"[*,B,4-10]"`` -- residues 4 through 10 of chain B, in every pose</span>
+<span class="sd">    - ``"[*,~A,*]"`` -- every residue not in chain A</span>
+<span class="sd">    - ``"[*,B,~5]"`` -- every residue of chain B except residue 5</span>
+<span class="sd">    - ``"[~0-1,A,*]"`` -- chain A, in every pose except poses 0 and 1</span>
+<span class="sd">    - ``"[*,AB,*]"`` -- every residue of chains A and B</span>
+<span class="sd">    - ``"[0,A,5],[1,B,10-20]"`` -- the union of both selections</span>
+
+<span class="sd">    Residue numbers are PDB (author) numbering; they are resolved against</span>
+<span class="sd">    each selected pose's own ``pdb_info``.</span>
 <span class="sd">    """</span>
     <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
-        <span class="n">_block_mask_from_selection</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">pose_ind</span><span class="p">,</span> <span class="n">selection_string</span><span class="p">),</span>
+        <span class="n">_block_mask_from_pose_stack_selection</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">selection_string</span><span class="p">),</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span>
         <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
     <span class="p">)</span></div>
 
 
 
-<div class="viewcode-block" id="select_blocks_from_poses">
-<a class="viewcode-back" href="../../../api/analysis.html#tmol.ops.select_blocks_from_poses">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">select_blocks_from_poses</span><span class="p">(</span>
+<div class="viewcode-block" id="select_from_pose_stack">
+<a class="viewcode-back" href="../../../api/analysis.html#tmol.ops.select_from_pose_stack">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">select_from_pose_stack</span><span class="p">(</span>
     <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">selection_string</span><span class="p">:</span> <span class="nb">str</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:]:</span>
-<span class="w">    </span><span class="sd">"""Block mask shaped ``[n_poses, max_n_blocks]``, applying the same</span>
-<span class="sd">    selection string to every pose in the stack independently. See</span>
-<span class="sd">    :func:`select_from_pose` for the selection notation.</span>
-<span class="sd">    """</span>
-    <span class="n">block_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-        <span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_blocks</span><span class="p">),</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span>
-        <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="k">for</span> <span class="n">pose_ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span><span class="p">):</span>
-        <span class="n">block_mask</span><span class="p">[</span><span class="n">pose_ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">select_blocks_from_pose</span><span class="p">(</span>
-            <span class="n">pose_stack</span><span class="p">,</span> <span class="n">pose_ind</span><span class="p">,</span> <span class="n">selection_string</span>
-        <span class="p">)</span>
-    <span class="k">return</span> <span class="n">block_mask</span></div>
+<span class="w">    </span><span class="sd">"""Atom mask shaped ``[n_poses, max_n_atoms]``, from a selection string.</span>
 
-
-
-<div class="viewcode-block" id="select_from_pose">
-<a class="viewcode-back" href="../../../api/analysis.html#tmol.ops.select_from_pose">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">select_from_pose</span><span class="p">(</span>
-    <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">pose_ind</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">selection_string</span><span class="p">:</span> <span class="nb">str</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:]:</span>
-<span class="w">    </span><span class="sd">"""Atom mask shaped ``[max_n_atoms]`` for one pose, from a selection string.</span>
-
-<span class="sd">    The selection notation is comma-separated chain/residue clauses, unioned</span>
-<span class="sd">    together:</span>
-
-<span class="sd">    - ``"A"`` -- every residue of chain A</span>
-<span class="sd">    - ``"~A"`` -- every residue not in chain A</span>
-<span class="sd">    - ``"A[5]"`` -- residue 5 of chain A</span>
-<span class="sd">    - ``"B[4-10]"`` -- residues 4 through 10 of chain B</span>
-<span class="sd">    - ``"B[~5]"`` -- every residue of chain B except 5</span>
-<span class="sd">    - ``"B[~2-4]"`` -- every residue of chain B except 2 through 4</span>
-<span class="sd">    - ``"A,B"`` -- the union of the A and B selections</span>
-
-<span class="sd">    Residue numbers are PDB (author) numbering; they are resolved against</span>
-<span class="sd">    this pose's own ``pdb_info`` and mapped internally to the pose stack's</span>
-<span class="sd">    block indexing.</span>
-<span class="sd">    """</span>
-    <span class="n">block_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-        <span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_blocks</span><span class="p">),</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span>
-        <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">block_mask</span><span class="p">[</span><span class="n">pose_ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">select_blocks_from_pose</span><span class="p">(</span>
-        <span class="n">pose_stack</span><span class="p">,</span> <span class="n">pose_ind</span><span class="p">,</span> <span class="n">selection_string</span>
-    <span class="p">)</span>
-    <span class="k">return</span> <span class="n">res_mask_to_coord_mask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">block_mask</span><span class="p">)[</span><span class="n">pose_ind</span><span class="p">]</span></div>
-
-
-
-<div class="viewcode-block" id="select_from_poses">
-<a class="viewcode-back" href="../../../api/analysis.html#tmol.ops.select_from_poses">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">select_from_poses</span><span class="p">(</span>
-    <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">selection_string</span><span class="p">:</span> <span class="nb">str</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:]:</span>
-<span class="w">    </span><span class="sd">"""Atom mask shaped ``[n_poses, max_n_atoms]``, applying the same</span>
-<span class="sd">    selection string (see :func:`select_from_pose` for the notation) to</span>
-<span class="sd">    every pose in the stack independently -- chain and residue labels are</span>
-<span class="sd">    resolved against each pose's own ``pdb_info``.</span>
+<span class="sd">    See :func:`select_blocks_from_pose_stack` for the notation.</span>
 <span class="sd">    """</span>
     <span class="k">return</span> <span class="n">res_mask_to_coord_mask</span><span class="p">(</span>
-        <span class="n">pose_stack</span><span class="p">,</span> <span class="n">select_blocks_from_poses</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">selection_string</span><span class="p">)</span>
+        <span class="n">pose_stack</span><span class="p">,</span> <span class="n">select_blocks_from_pose_stack</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">selection_string</span><span class="p">)</span>
     <span class="p">)</span></div>
 
 
