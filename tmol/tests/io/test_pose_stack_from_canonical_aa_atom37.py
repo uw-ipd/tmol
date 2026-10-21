@@ -117,13 +117,30 @@ def test_protein_only_validation(torch_device):
     coords = torch.zeros((1, 3, 37, 3), dtype=torch.float32, device=torch_device)
     chain_iid = torch.zeros((1, 3), dtype=torch.int64, device=torch_device)
 
-    residue_type = torch.tensor([[0, 1, 2]], dtype=torch.int64, device=torch_device)
+    residue_type = torch.tensor([[-1, 1, 2]], dtype=torch.int64, device=torch_device)
     with pytest.raises(ValueError, match="protein only"):
         canonical_form_from_atomworks(coords, residue_type, chain_iid)
 
     residue_type = torch.tensor([[1, 22, 3]], dtype=torch.int64, device=torch_device)
     with pytest.raises(ValueError, match="protein only"):
         canonical_form_from_atomworks(coords, residue_type, chain_iid)
+
+
+def test_padded_batch_round_trip(ubq_atomworks, torch_device):
+    """Token 0 pads a shorter pose, as atomworks_from_pose_stack writes it."""
+    n_short = 40
+    coords = ubq_atomworks["coords"].repeat(2, 1, 1, 1)
+    residue_type = ubq_atomworks["residue_type"].repeat(2, 1)
+    chain_iid = ubq_atomworks["chain_iid"].repeat(2, 1)
+    coords[1, n_short:] = 0
+    residue_type[1, n_short:] = 0
+
+    ps = pose_stack_from_canonical_aa_atom37(coords, residue_type, chain_iid)
+    n_real = (ps.block_type_ind64 >= 0).sum(dim=1).tolist()
+    assert n_real == [residue_type.shape[1], n_short]
+
+    _, rt_residue_type, _ = atomworks_from_pose_stack(ps)
+    assert torch.equal(rt_residue_type, residue_type)
 
 
 def test_all_20_amino_acids(torch_device):
