@@ -22,7 +22,7 @@ from rdkit import Chem
 from rdkit.Chem import RWMol
 
 from tmol.io._canonical_ordering import CanonicalOrdering
-from tmol.ligand._input_repair import _infer_oxyacid_bonds, normalize_radical_oxygens
+from tmol.ligand._input_repair import _infer_oxyacid_bonds, _normalize_radical_oxygens
 from tmol.ligand._mol2_names import _apply_disambiguated_mol2_names
 
 logger = logging.getLogger(__name__)
@@ -749,7 +749,7 @@ def _nonstandard_residue_info_from_mol2_mol(
     )
 
 
-def _normalize_radical_oxygens(smiles: str) -> str:
+def _normalize_radical_oxygens_in_smiles(smiles: str) -> str:
     """Restore the formal charge on bare radical oxygens (e.g. DUD ``[O]``).
 
     Some source databases write anionic oxygens (carboxylate, sulfonate,
@@ -765,7 +765,7 @@ def _normalize_radical_oxygens(smiles: str) -> str:
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return smiles
-    fixed = normalize_radical_oxygens(mol)
+    fixed = _normalize_radical_oxygens(mol)
     return smiles if fixed is mol else Chem.MolToSmiles(fixed)
 
 
@@ -829,7 +829,7 @@ def _nonstandard_residue_info_from_smiles_via_mol2(
         _source_atom_order_from_mapped_smiles,
     )
 
-    smiles = _normalize_radical_oxygens(smiles)
+    smiles = _normalize_radical_oxygens_in_smiles(smiles)
     prep_smiles = _dimorphite_protonate_smiles(smiles, ph) if protonate else smiles
     source_order = _source_atom_order_from_mapped_smiles(prep_smiles)
     molecule = _build_charged_3d_mol2_mol(prep_smiles, seed=seed)

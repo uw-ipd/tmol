@@ -1009,14 +1009,14 @@ def test_a_retinal_conformer_keeps_its_trans_double_bonds(monkeypatch):
     from tmol.io import build_context_from_atom_array
 
     generated = []
-    generate = conformers._generate_conformer
+    generate = conformers._generate_conformer_impl
 
     def recording(smiles, minimize_steps, seed):
         molecule = generate(smiles, minimize_steps, seed)
         generated.append((smiles, np.array([atom.coords for atom in molecule.atoms])))
         return molecule
 
-    monkeypatch.setattr(conformers, "_generate_conformer", recording)
+    monkeypatch.setattr(conformers, "_generate_conformer_impl", recording)
     conformers._seeded_conformer.cache_clear()
     array = atom_array_from_file(DATA / "retinyl_lysine_4xxj.cif")
     build_context_from_atom_array(

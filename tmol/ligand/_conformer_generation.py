@@ -7,7 +7,7 @@ torch stress refine (4D chiral annealing with random restarts, then a full-weigh
 (e.g. pentavalent phosphoranes) fall back to covalent-radius / hybridization
 ideals with explicit trigonal-bipyramidal constraints.
 
-The public entry :func:`generate_conformer` returns a coordinate-carrying pybel
+The entry point :func:`_generate_conformer` returns a coordinate-carrying pybel
 ``Molecule``; partial charges and atom names are assigned by the caller.
 """
 
@@ -95,7 +95,7 @@ _HYB_ANGLE = {
 }
 
 
-def generate_conformer(
+def _generate_conformer(
     smiles: str, *, minimize_steps: int = 50, seed: Optional[int] = None
 ):
     """Conformer generation script SMILES -> pybel.
@@ -114,7 +114,7 @@ def generate_conformer(
         ValueError: Failures in parsing or final min.
     """
     if seed is None:
-        return _generate_conformer(smiles, minimize_steps, seed)
+        return _generate_conformer_impl(smiles, minimize_steps, seed)
     ob, pybel = _import_openbabel()
     # Seeded results are reusable, but callers own their coordinates and charges.
     return pybel.Molecule(ob.OBMol(_seeded_conformer(smiles, minimize_steps, seed)))
@@ -122,10 +122,10 @@ def generate_conformer(
 
 @lru_cache(maxsize=128)
 def _seeded_conformer(smiles: str, minimize_steps: int, seed: int):
-    return _generate_conformer(smiles, minimize_steps, seed).OBMol
+    return _generate_conformer_impl(smiles, minimize_steps, seed).OBMol
 
 
-def _generate_conformer(smiles: str, minimize_steps: int, seed: Optional[int]):
+def _generate_conformer_impl(smiles: str, minimize_steps: int, seed: Optional[int]):
     _, pybel = _import_openbabel()
     obmol = _smiles_to_obmol(smiles)
     rd = _obmol_to_rdkit(obmol)

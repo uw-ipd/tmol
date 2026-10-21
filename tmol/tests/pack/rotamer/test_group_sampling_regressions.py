@@ -92,7 +92,7 @@ def test_anchor_library_keeps_identical_block_numbers_in_different_poses(
 
     monkeypatch.setattr(
         conjugated,
-        "group_sampling_topology",
+        "_group_sampling_topology",
         lambda *args: SimpleNamespace(
             block_types=[
                 SimpleNamespace(
@@ -157,7 +157,7 @@ def test_kinforest_cache_is_scoped_to_packed_block_types(monkeypatch):
     monkeypatch.setattr(kin, "_construct_block_group_kinforest", construct)
     monkeypatch.setattr(
         conjugated,
-        "group_sampling_topology",
+        "_group_sampling_topology",
         lambda group, pose: SimpleNamespace(
             block_types=pose.packed_block_types.active_block_types,
             kinforest=object(),
@@ -255,7 +255,7 @@ def test_constrained_library_projection_preserves_first_distinct_states(monkeypa
         {frozenset((1, 2)): 2},
     )
     monkeypatch.setattr(conjugated, "_find_conjugated_groups", lambda pose: [group])
-    monkeypatch.setattr(conjugated, "group_sampling_topology", lambda *args: topology)
+    monkeypatch.setattr(conjugated, "_group_sampling_topology", lambda *args: topology)
     library = {
         (0, 0): (
             np.tile([2, 3], (4, 1)),
@@ -277,21 +277,23 @@ def test_topology_cache_separates_external_constraints_and_is_bounded(monkeypatc
     pose = SimpleNamespace(
         packed_block_types=SimpleNamespace(), block_type_ind=torch.tensor([[0, 1]])
     )
-    monkeypatch.setattr(conjugated, "_group_sampling_topology", lambda *args: object())
+    monkeypatch.setattr(
+        conjugated, "_group_sampling_topology_impl", lambda *args: object()
+    )
     group = ConjugatedGroup(0, (0, 1), ((0, 0, 1, 0),))
-    free = conjugated.group_sampling_topology(group, pose)
+    free = conjugated._group_sampling_topology(group, pose)
     attached = attr.evolve(group, external_links=((1, 1, 2, 0),))
-    fixed = conjugated.group_sampling_topology(attached, pose)
+    fixed = conjugated._group_sampling_topology(attached, pose)
     assert fixed is not free
     # Which external pose block supplies the same constraint does not alter
     # the group's topology; an external owner's/port's identity does.
     equivalent = attr.evolve(group, external_links=((1, 1, 3, 7),))
-    assert conjugated.group_sampling_topology(equivalent, pose) is fixed
+    assert conjugated._group_sampling_topology(equivalent, pose) is fixed
     for port in range(33):
         attached = attr.evolve(group, external_links=((1, port, 2, 0),))
-        conjugated.group_sampling_topology(attached, pose)
+        conjugated._group_sampling_topology(attached, pose)
     assert len(pose.packed_block_types.conjugated_sampling_topology_cache) == 32
-    assert conjugated.group_sampling_topology(group, pose) is not free
+    assert conjugated._group_sampling_topology(group, pose) is not free
 
 
 @pytest.mark.parametrize("counts", [[[3, 3]], [[3, 2]]])

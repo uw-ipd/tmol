@@ -218,7 +218,7 @@ class ClusterSites:
         return sum(len(m.sites) for m in self.metals)
 
 
-def build_canonical_metal_tables(
+def _build_canonical_metal_tables(
     canonical_ordering, chemical_db, table: dict
 ) -> CanonicalMetalTables:
     """Fold the chemical database down to what detection reads per atom, cached on the
@@ -233,7 +233,7 @@ def build_canonical_metal_tables(
             and parameters is table
         ):
             return built
-    built = _build_canonical_metal_tables(canonical_ordering, chemical_db, table)
+    built = _build_canonical_metal_tables_impl(canonical_ordering, chemical_db, table)
     _LAST_METAL_TABLES = (canonical_ordering, chemical_db, table, built)
     return built
 
@@ -242,7 +242,7 @@ def build_canonical_metal_tables(
 _LAST_METAL_TABLES: Optional[tuple] = None
 
 
-def _build_canonical_metal_tables(
+def _build_canonical_metal_tables_impl(
     canonical_ordering, chemical_db, table: dict
 ) -> CanonicalMetalTables:
     """Fold the chemical database down to what detection reads per atom."""
@@ -621,7 +621,7 @@ def _find_metal_geometries(
     """
     table = _metal_table() if table is None else table
     table_vertices = {g["name"]: g["vertices"] for g in table["geometries"]}
-    tables = build_canonical_metal_tables(canonical_ordering, chemical_db, table)
+    tables = _build_canonical_metal_tables(canonical_ordering, chemical_db, table)
     variants = torch.zeros_like(res_types, dtype=torch.int32)
     if not tables.ion_for_class and not tables.cluster_for_class:
         return variants, []

@@ -59,15 +59,15 @@ def _hydrogen_names_by_parent(
     return out
 
 
-def database_forms(chemdb) -> dict[str, Forms]:
+def _database_forms(chemdb) -> dict[str, Forms]:
     """The protonation ``Forms`` of each default-database class in ``chemdb``.
 
     Only plain, histidine and deprotonated forms count; tmol's disulfide search
     decides CYD. Connection atoms have no fixed count."""
-    return _FORMS.get_or_create(chemdb, (), lambda: _database_forms(chemdb))
+    return _FORMS.get_or_create(chemdb, (), lambda: _database_forms_impl(chemdb))
 
 
-def _database_forms(chemdb) -> dict[str, Forms]:
+def _database_forms_impl(chemdb) -> dict[str, Forms]:
     from tmol.io._pose_stack_from_biotite import _canonical_ordering_for_biotite
 
     known = set(_canonical_ordering_for_biotite().restype_io_equiv_classes)
@@ -247,7 +247,7 @@ def _with_atomworks_hydrogens(
         backbone: ``(upper, lower)`` polymer connection atoms by residue name,
             through which consecutive residues of a chain are bonded for
             AtomWorks where the structure leaves them unbonded.
-        forms: ``database_forms`` of the residues tmol builds itself.
+        forms: ``_database_forms`` of the residues tmol builds itself.
         hydrogens: Hydrogen count per atom AtomWorks is to keep, -1 where none.
 
     Returns:

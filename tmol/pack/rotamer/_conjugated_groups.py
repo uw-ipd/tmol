@@ -69,7 +69,7 @@ class GroupSamplingPlan:
     owners: tuple
 
 
-def group_sampling_topology(group, pose_stack, fixed_owners=()):
+def _group_sampling_topology(group, pose_stack, fixed_owners=()):
     """Independent axes that preserve cycles and fixed external attachments.
 
     Cycle edges cannot turn independently. A bridge can turn only if its
@@ -92,14 +92,14 @@ def group_sampling_topology(group, pose_stack, fixed_owners=()):
         cache = OrderedDict()
         pbt.conjugated_sampling_topology_cache = cache
     if key not in cache:
-        cache[key] = _group_sampling_topology(group, pose_stack, fixed_owners)
+        cache[key] = _group_sampling_topology_impl(group, pose_stack, fixed_owners)
         if len(cache) > 32:
             cache.popitem(last=False)
     cache.move_to_end(key)
     return cache[key]
 
 
-def _group_sampling_topology(group, pose_stack, fixed_owners=()):
+def _group_sampling_topology_impl(group, pose_stack, fixed_owners=()):
     from tmol.kinematics._scan_ordering import _block_group_kinforest_data
 
     types, offsets, partners = _group_atom_context(group, pose_stack)
@@ -171,7 +171,7 @@ def _group_sampled_chi(
     """
     from tmol.pack.rotamer._chi_budget import _budgeted_chi_samples, _chi_depths
 
-    topology = topology or group_sampling_topology(group, pose_stack)
+    topology = topology or _group_sampling_topology(group, pose_stack)
     block_types, offsets, partners = (
         topology.block_types,
         topology.offsets,

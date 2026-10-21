@@ -493,18 +493,20 @@ class TestDetectHelpers:
         assert preparation._prepare_mol2("lig.mol2", mode=mode) == expected
 
     def test_normalize_radical_oxygens(self) -> None:
-        from tmol.ligand._detect import _normalize_radical_oxygens
+        from tmol.ligand._detect import _normalize_radical_oxygens_in_smiles
 
         # Bare radical oxygen on a carboxyl carbon -> becomes [O-].
-        fixed = _normalize_radical_oxygens("CC(=O)[O]")
+        fixed = _normalize_radical_oxygens_in_smiles("CC(=O)[O]")
         mol = Chem.MolFromSmiles(fixed)
         assert mol is not None
         assert any(a.GetFormalCharge() == -1 for a in mol.GetAtoms())
 
         # Nothing to change -> returned unchanged.
-        assert _normalize_radical_oxygens("CCO") == "CCO"
+        assert _normalize_radical_oxygens_in_smiles("CCO") == "CCO"
         # Unparseable input -> returned unchanged.
-        assert _normalize_radical_oxygens("not a smiles!!!") == "not a smiles!!!"
+        assert (
+            _normalize_radical_oxygens_in_smiles("not a smiles!!!") == "not a smiles!!!"
+        )
 
     def test_dimorphite_protonate_smiles(self) -> None:
         from tmol.ligand._detect import _dimorphite_protonate_smiles

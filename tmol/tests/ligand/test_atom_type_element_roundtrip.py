@@ -8,7 +8,7 @@ import pytest
 import yaml
 
 from tmol import ParameterDatabase
-from tmol.ligand._registry import collect_new_atom_types, _inject_ligand_preparations
+from tmol.ligand._registry import _collect_new_atom_types, _inject_ligand_preparations
 from tmol.ligand import load_params_file, write_params_file
 from tmol.tests.ligand.test_ligand_entry_paths import _single_prep
 from tmol.ligand._params_file import TMOL_FORMAT_VERSION
@@ -39,7 +39,7 @@ def test_declared_element_survives_export_without_name_inference(
     assert restored.atom_type_elements == custom.atom_type_elements
     # This checks element registration only. No arbitrary new scoring rows are
     # implied, and the deliberately relabeled topology is not scored.
-    types = collect_new_atom_types(
+    types = _collect_new_atom_types(
         ParameterDatabase.get_default().chemical,
         restored.residue_type,
         restored.atom_type_elements,
@@ -113,7 +113,7 @@ def test_legacy_missing_mapping_keeps_strict_mode_error():
         name="LEGACY", atoms=(SimpleNamespace(name="N1", atom_type="UnfamiliarType"),)
     )
     with pytest.raises(ValueError, match="Unknown element mapping"):
-        collect_new_atom_types(
+        _collect_new_atom_types(
             ParameterDatabase.get_default().chemical, residue, strict_atom_types=True
         )
 

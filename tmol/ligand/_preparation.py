@@ -23,7 +23,7 @@ from tmol.io._canonical_ordering import CanonicalOrdering
 from tmol.io._protonation import (
     PROTONATION_VARIANT,
     _bonded_out,
-    database_forms,
+    _database_forms,
     _hydrogen_names_by_parent,
     _hydrogens_by_parent,
     _with_atomworks_hydrogens,
@@ -44,7 +44,7 @@ from tmol.ligand._registry import (
     _build_cartbonded_params,
     _inject_ligand_preparations,
     _rebuild_canonical_ordering,
-    collect_new_atom_types,
+    _collect_new_atom_types,
 )
 from tmol.ligand._mol3d import _authoritative_charges_by_index
 from tmol.ligand._residue_builder import _build_residue_type
@@ -744,7 +744,7 @@ def _prepare_polymer_residue(
     atom_type_index.update(
         {
             a.name: a
-            for a in collect_new_atom_types(
+            for a in _collect_new_atom_types(
                 param_db.chemical,
                 prep.residue_type,
                 atom_type_elements=prep.atom_type_elements,
@@ -860,7 +860,7 @@ def _prepare_polymer_residue(
                 [residue_type],
                 atom_types=(
                     *param_db.chemical.atom_types,
-                    *collect_new_atom_types(
+                    *_collect_new_atom_types(
                         param_db.chemical,
                         residue_type,
                         atom_type_elements=prep.atom_type_elements,
@@ -1942,7 +1942,7 @@ def prepare_ligands(  # noqa: C901
     # an input protonated in context (with its metal bonds) keeps that state (5XNL)
     if PROTONATION_VARIANT not in atom_array.get_annotation_categories():
         atom_array = _with_atomworks_hydrogens(
-            atom_array, ph=ph, forms=database_forms(param_db.chemical)
+            atom_array, ph=ph, forms=_database_forms(param_db.chemical)
         )
     _assert_prepared_names_cover(atom_array, param_db)
 

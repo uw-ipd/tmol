@@ -243,7 +243,7 @@ def _correct_carboxylate_bond_orders(mol: Chem.Mol) -> Chem.Mol:
     return _sanitized(rw, mol, "geometry bond correction failed to sanitize")
 
 
-def normalize_radical_oxygens(mol: Chem.Mol) -> Chem.Mol:
+def _normalize_radical_oxygens(mol: Chem.Mol) -> Chem.Mol:
     """Restore formal charge on bare radical oxygens (DUD-style ``[O]``)."""
     rw = Chem.RWMol(mol)
     changed = False

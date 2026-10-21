@@ -302,7 +302,7 @@ def test_pose_stack_from_and_to_biotite_multiple_poses(
 def test_canonical_form_multipose_metadata_propagation(biotite_1r21, torch_device):
     import attr
     from tmol.io._pose_stack_from_biotite import (
-        biotite_from_canonical_form,
+        _biotite_from_canonical_form,
         _canonical_ordering_for_biotite,
     )
 
@@ -320,7 +320,7 @@ def test_canonical_form_multipose_metadata_propagation(biotite_1r21, torch_devic
     missing = co.restypes_atom_index_mapping[first_type]["CB"]
     cf.coords[0, 0, missing] = float("nan")
     cf.coords.requires_grad_()
-    restored = biotite_from_canonical_form(cf, co)
+    restored = _biotite_from_canonical_form(cf, co)
     assert restored.stack_depth() == biotite_1r21.stack_depth()
     assert set(restored.chain_id) == {"long_author_chain"}
     assert restored.ins_code[0] == "A"
@@ -344,9 +344,9 @@ def test_canonical_form_multipose_metadata_propagation(biotite_1r21, torch_devic
         changed = getattr(cf, field).copy()
         changed[1, 0, 0] += 1
         with pytest.raises(ValueError, match="different metadata"):
-            biotite_from_canonical_form(attr.evolve(cf, **{field: changed}), co)
+            _biotite_from_canonical_form(attr.evolve(cf, **{field: changed}), co)
     empty = attr.evolve(cf, coords=torch.full_like(cf.coords, float("nan")))
-    empty_array = biotite_from_canonical_form(empty, co)
+    empty_array = _biotite_from_canonical_form(empty, co)
     assert empty_array.array_length() == 0
     empty_canonical = canonical_form_from_biotite(empty_array, torch_device, co=co)
     assert empty_canonical.res_types.shape == (biotite_1r21.stack_depth(), 0)

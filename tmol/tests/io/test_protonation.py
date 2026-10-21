@@ -24,7 +24,7 @@ def test_states_by_context_match_the_whole_structure(path, monkeypatch):
     """A residue's state read from its bonded context is the whole structure's."""
     structure = atom_array_from_file(data_path(*path))
     heavy = structure[structure.element != "H"]
-    forms = protonation.database_forms(ParameterDatabase.get_default().chemical)
+    forms = protonation._database_forms(ParameterDatabase.get_default().chemical)
     monkeypatch.setattr(protonation, "_STATE_CAPACITY", 1)
     protonation._STATES.clear()
     marked = protonation._with_atomworks_hydrogens(
@@ -76,7 +76,7 @@ def _cysteine_on_zinc(distance):
 @pytest.mark.parametrize("lengths", [(2.3, 3.6), (3.6, 2.3)], ids=["near", "far"])
 def test_a_cached_state_follows_the_metal_bond_length(lengths):
     """A thiolate on a bonded zinc, a thiol past AtomWorks' reach, in either order."""
-    forms = protonation.database_forms(ParameterDatabase.get_default().chemical)
+    forms = protonation._database_forms(ParameterDatabase.get_default().chemical)
     protonation._STATES.clear()
     for length in lengths:
         site, coordination = _cysteine_on_zinc(length)
@@ -264,7 +264,7 @@ def test_a_heme_split_from_its_iron_keeps_the_porphyrin_dianion():
 @pytest.mark.parametrize("warm_cache", [False, True])
 def test_ensembles_reject_model_dependent_protonation(lengths, warm_cache):
     """One stack cannot describe both a zinc thiolate and a free thiol."""
-    forms = protonation.database_forms(ParameterDatabase.get_default().chemical)
+    forms = protonation._database_forms(ParameterDatabase.get_default().chemical)
     protonation._STATES.clear()
     models = [_cysteine_on_zinc(length)[0] for length in lengths]
     _, coordination = _cysteine_on_zinc(lengths[0])
@@ -284,7 +284,7 @@ def test_ensembles_preserve_metadata_coordinates_and_cached_states(monkeypatch):
     stack = biotite.structure.stack([model, model.copy()])
     stack.box = numpy.array([numpy.eye(3) * 20, numpy.eye(3) * 21])
     stack._custom_ccd_registry = {}
-    forms = protonation.database_forms(ParameterDatabase.get_default().chemical)
+    forms = protonation._database_forms(ParameterDatabase.get_default().chemical)
     protonation._STATES.clear()
     placed = protonation._placed_hydrogens
     calls = []

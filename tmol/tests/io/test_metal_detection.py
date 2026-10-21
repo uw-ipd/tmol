@@ -16,7 +16,7 @@ from tmol import CanonicalOrdering
 from tmol.io.details._metal_detection import (
     MetalSiteAssignment,
     _assign_one,
-    build_canonical_metal_tables,
+    _build_canonical_metal_tables,
     _find_metal_geometries,
     _gather_candidates,
     _place_site_virtuals,
@@ -175,7 +175,7 @@ def canonical_ordering(db):
 
 
 def metal_tables(db):
-    return build_canonical_metal_tables(
+    return _build_canonical_metal_tables(
         canonical_ordering(db), db.chemical, _metal_table()
     )
 

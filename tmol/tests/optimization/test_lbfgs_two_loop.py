@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from tmol.optimization._lbfgs_armijo import lbfgs_two_loop
+from tmol.optimization._lbfgs_armijo import _lbfgs_two_loop
 from tmol.tests import requires_cuda
 
 
@@ -39,7 +39,7 @@ def _random_inputs(N, m, dtype, device, seed=0):
 @pytest.mark.parametrize("N,m", [(1, 1), (10, 1), (256, 5), (1024, 128), (5003, 64)])
 def test_lbfgs_two_loop_matches_reference(N, m, dtype, torch_device):
     grad, dirs, stps = _random_inputs(N, m, dtype, torch_device)
-    out = lbfgs_two_loop(grad, dirs, stps)
+    out = _lbfgs_two_loop(grad, dirs, stps)
     ref = _golden_two_loop(grad, dirs, stps)
     atol, rtol = (1e-9, 1e-7) if dtype == torch.float64 else (1e-3, 1e-3)
     torch.testing.assert_close(out, ref, atol=atol, rtol=rtol)
@@ -51,7 +51,7 @@ def test_lbfgs_two_loop_batched_matches_reference(dtype, torch_device):
     grad = torch.stack([case[0] for case in cases])
     dirs = torch.stack([case[1] for case in cases], dim=1)
     stps = torch.stack([case[2] for case in cases], dim=1)
-    actual = lbfgs_two_loop(grad, dirs, stps)
+    actual = _lbfgs_two_loop(grad, dirs, stps)
     expected = torch.stack([_golden_two_loop(*case) for case in cases])
     tolerance = (1e-9, 1e-7) if dtype == torch.float64 else (1e-3, 1e-3)
     torch.testing.assert_close(actual, expected, atol=tolerance[0], rtol=tolerance[1])
@@ -81,7 +81,7 @@ def test_lbfgs_two_loop_diagonal_history(dtype, layout, differentiable, torch_de
     directions = steps * diagonal
     grad = torch.arange(1, batch * 7 + 1, dtype=dtype, device=torch_device)
     grad = grad.reshape(batch, 7).requires_grad_(differentiable)
-    result = lbfgs_two_loop(grad, directions, steps)
+    result = _lbfgs_two_loop(grad, directions, steps)
     torch.testing.assert_close(result, -grad / diagonal, atol=0, rtol=0)
     if differentiable:
         (derivative,) = torch.autograd.grad(result.sum(), grad)
@@ -99,12 +99,12 @@ def test_lbfgs_two_loop_benchmark(benchmark, dtype):
     device = torch.device("cuda")
     N, m = 1024, 128
     grad, dirs, stps = _random_inputs(N, m, dtype, device)
-    lbfgs_two_loop(grad, dirs, stps)  # warmup / load
+    _lbfgs_two_loop(grad, dirs, stps)  # warmup / load
     torch.cuda.synchronize()
 
     @benchmark
     def run():
-        out = lbfgs_two_loop(grad, dirs, stps)
+        out = _lbfgs_two_loop(grad, dirs, stps)
         torch.cuda.synchronize()
         return out
 
@@ -115,7 +115,7 @@ def test_lbfgs_two_loop_benchmark(benchmark, dtype):
 def test_circular_history_matches_chronological_history(
     dtype, history_start, layout, torch_device
 ):
-    from tmol.optimization._lbfgs_armijo import _lbfgs_two_loop
+    from tmol.optimization._lbfgs_armijo import _lbfgs_two_loop_impl
 
     torch.manual_seed(713)
     batch = 1 if layout == "single" else 3
@@ -131,8 +131,8 @@ def test_circular_history_matches_chronological_history(
         steps[:, 1].zero_()
         directions[:, 1].zero_()
     grad = torch.randn(batch, 37, dtype=dtype, device=torch_device)
-    actual = _lbfgs_two_loop(grad, directions, steps, history_start)
-    expected = lbfgs_two_loop(
+    actual = _lbfgs_two_loop_impl(grad, directions, steps, history_start)
+    expected = _lbfgs_two_loop(
         grad,
         torch.roll(directions, -history_start, dims=0),
         torch.roll(steps, -history_start, dims=0),
@@ -144,8 +144,8 @@ def test_circular_history_matches_chronological_history(
     grad.requires_grad_()
     directions.requires_grad_()
     steps.requires_grad_()
-    actual = _lbfgs_two_loop(grad, directions, steps, history_start)
-    expected = lbfgs_two_loop(
+    actual = _lbfgs_two_loop_impl(grad, directions, steps, history_start)
+    expected = _lbfgs_two_loop(
         grad,
         torch.roll(directions, -history_start, dims=0),
         torch.roll(steps, -history_start, dims=0),

@@ -185,7 +185,7 @@ def _build_cartbonded_params(  # noqa: C901
     )
 
 
-def collect_new_atom_types(
+def _collect_new_atom_types(
     chem_db: PatchedChemicalDatabase,
     residue_type: RawResidueType,
     atom_type_elements: Optional[dict[str, str]] = None,
@@ -197,7 +197,7 @@ def collect_new_atom_types(
     Sets hbond properties (is_donor, is_acceptor, acceptor_hybridization)
     from the HBOND_PROPERTIES lookup in atom_typing.py.
     """
-    return _collect_new_atom_types(
+    return _collect_new_atom_types_from_sources(
         chem_db,
         ((residue_type.atoms, f"residue {residue_type.name}"),),
         atom_type_elements,
@@ -205,7 +205,7 @@ def collect_new_atom_types(
     )
 
 
-def _collect_new_atom_types(
+def _collect_new_atom_types_from_sources(
     chem_db, atom_sources, atom_type_elements=None, *, strict_atom_types=False
 ):
     """Collect types once across sources, including atoms introduced by patches."""
@@ -560,7 +560,7 @@ def _inject_ligand_preparations(
     ]
     extended = _inject_additions(param_db, additions, strict_atom_types)
     elements = _batch_atom_type_elements(preparations, extended.chemical)
-    atom_types = _collect_new_atom_types(
+    atom_types = _collect_new_atom_types_from_sources(
         extended.chemical,
         (
             (p.residue_type.atoms, f"residue {p.residue_type.name}")
@@ -635,7 +635,7 @@ def _inject_additions(param_db, preparations, strict_atom_types):
     ):
         return param_db
 
-    new_atom_types = _collect_new_atom_types(
+    new_atom_types = _collect_new_atom_types_from_sources(
         param_db.chemical,
         chain(
             (

@@ -33,7 +33,7 @@ from tmol.pack.rotamer._conformer_sampler import _sc_roots_for_chis
 from tmol.pose._conjugated_groups import _find_conjugated_groups
 from tmol.pack.rotamer._conjugated_groups import (
     _group_sampled_chi,
-    group_sampling_topology,
+    _group_sampling_topology,
     _resolve_group_atom,
     GroupSamplingPlan,
 )
@@ -207,7 +207,7 @@ class ConjugatedChiSampler(ChiSampler):
             plans = [
                 GroupSamplingPlan(
                     group,
-                    group_sampling_topology(
+                    _group_sampling_topology(
                         group, pose_stack, (0,) if first_owner else ()
                     ),
                     tuple(range(first_owner, len(group))),
@@ -344,7 +344,7 @@ class ConjugatedChiSampler(ChiSampler):
             cache = OrderedDict()
             setattr(pbt, "conjugated_kinforest_cache", cache)
         if key not in cache:
-            topology = group_sampling_topology(group, pose_stack)
+            topology = _group_sampling_topology(group, pose_stack)
             cache[key] = _construct_block_group_kinforest(
                 topology.block_types,
                 group.links,
@@ -489,7 +489,7 @@ class ConjugatedChiSampler(ChiSampler):
             fixed = tuple(owner for owner in range(len(group)) if owner not in owners)
             plans.append(
                 GroupSamplingPlan(
-                    group, group_sampling_topology(group, pose_stack, fixed), owners
+                    group, _group_sampling_topology(group, pose_stack, fixed), owners
                 )
             )
 
@@ -629,7 +629,7 @@ class ConjugatedChiSampler(ChiSampler):
             topology = (
                 plans[group_index].topology
                 if plans is not None
-                else group_sampling_topology(group, pose_stack)
+                else _group_sampling_topology(group, pose_stack)
             )
             if any(
                 name.startswith("chi")

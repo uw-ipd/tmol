@@ -31,7 +31,7 @@ from tmol.io._input_termini import (
 from tmol.io._canonical_ordering import _only_coordinates_a_metal, CanonicalOrdering
 from tmol.io._protonation import (
     PROTONATION_VARIANT,
-    database_forms,
+    _database_forms,
     _residues_lacking_hydrogens,
     _with_atomworks_hydrogens,
 )
@@ -1175,7 +1175,7 @@ def atom_array_from_pose_stack(
     if co is None:
         co = _canonical_ordering_for_pose_stack(pose_stack)
     cf = _canonical_form_from_pose_stack(co, pose_stack)
-    structure, block_for_atom = _biotite_from_canonical_form(
+    structure, block_for_atom = _biotite_from_canonical_form_impl(
         cf, co, include_virtual_atoms
     )
     structure.bonds = _bonds_from_pose_stack(pose_stack, structure, block_for_atom)
@@ -2485,7 +2485,7 @@ def _with_input_hydrogens(biotite_structure, ph, co, chemdb, find_metal_coordina
         names = set(co.restype_io_equiv_classes)
         names |= {alias for alias, name in aliases.items() if name in names}
     template = _template_array(biotite_structure)
-    forms = database_forms(chemdb)
+    forms = _database_forms(chemdb)
     if PROTONATION_VARIANT in template.get_annotation_categories() or (
         EXPLICIT_TERMINI not in template.get_annotation_categories()
         and not _residues_lacking_hydrogens(biotite_structure, names, forms)[1].any()
@@ -2962,7 +2962,7 @@ def _derived_types_for_param_db(
 
 
 @_validate_args
-def biotite_from_canonical_form(
+def _biotite_from_canonical_form(
     cf: CanonicalForm,
     co: CanonicalOrdering | None = None,
     include_virtual_atoms: bool = False,
@@ -2976,10 +2976,10 @@ def biotite_from_canonical_form(
     export detaches coordinates from autograd. A canonical form carries no
     residue types, so the result has no bonds; atom_array_from_pose_stack adds them.
     """
-    return _biotite_from_canonical_form(cf, co, include_virtual_atoms)[0]
+    return _biotite_from_canonical_form_impl(cf, co, include_virtual_atoms)[0]
 
 
-def _biotite_from_canonical_form(cf, co, include_virtual_atoms):
+def _biotite_from_canonical_form_impl(cf, co, include_virtual_atoms):
     """The exported structure, and the canonical residue of each of its atoms."""
     import biotite.structure as struc
 

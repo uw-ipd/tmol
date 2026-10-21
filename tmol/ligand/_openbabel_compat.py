@@ -277,7 +277,7 @@ def _build_charged_3d_mol2_mol(smiles: str, *, seed: Optional[int] = None):
     """Parse a SMILES, 3D-embed, charge, and rename atoms; return the pybel mol.
 
     Coordinates come from the distance-geometry builder
-    (:func:`tmol.ligand._conformer_generation.generate_conformer`); this then computes MMFF94 partial charges (so the mol2
+    (:func:`tmol.ligand._conformer_generation._generate_conformer`); this then computes MMFF94 partial charges (so the mol2
     ``charge_type`` is normally ``MMFF94_CHARGES``) and assigns generic atom
     names. MMFF94 charges are topological, so the conformer does not affect them.
 
@@ -293,12 +293,12 @@ def _build_charged_3d_mol2_mol(smiles: str, *, seed: Optional[int] = None):
         ValueError: If RDKit rejects the chemistry, 3D generation fails, or no
             partial charges can be computed.
     """
-    from tmol.ligand._conformer_generation import generate_conformer
+    from tmol.ligand._conformer_generation import _generate_conformer
 
     openbabel, _ = _import_openbabel()
     smiles = _normalize_azide(_strip_nontetrahedral_stereo(smiles))
     try:
-        pymol = generate_conformer(smiles, seed=seed)
+        pymol = _generate_conformer(smiles, seed=seed)
     except Exception as exc:
         raise ValueError(
             f"failed to generate 3D coordinates for SMILES {smiles!r}"
