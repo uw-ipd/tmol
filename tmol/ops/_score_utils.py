@@ -296,143 +296,120 @@ def res_mask_to_coord_mask(
     return mask.to(block_for_atom.device).gather(1, block_for_atom) & real_atoms
 
 
-_SELECTION_CLAUSE = re.compile(
-    r"^(?P<negate_chain>~)?(?P<chain>[A-Za-z0-9]+)"
-    r"(?:\[(?P<negate_res>~)?(?P<start>\d+)(?:-(?P<end>\d+))?\])?$"
+_SELECTION_STRING = re.compile(r"^\[[^\[\]]*\](?:\s*,\s*\[[^\[\]]*\])*$")
+_SELECTION_CLAUSE = re.compile(r"\[([^\[\]]*)\]")
+_RANGE_FIELD = re.compile(
+    r"^(?P<negate>~)?(?:(?P<star>\*)|(?P<start>\d+)(?:-(?P<end>\d+))?)$"
 )
+_CHAIN_FIELD = re.compile(r"^(?P<negate>~)?(?:(?P<star>\*)|(?P<chains>[A-Za-z0-9]+))$")
 
 
-def _selection_clause_mask(chain_labels, residue_labels, clause: str):
-    """Boolean numpy array shaped like ``chain_labels`` for one clause, or
-    ``None`` for a blank clause (e.g. a trailing comma)."""
-    clause = clause.strip()
-    if not clause:
-        return None
-    match = _SELECTION_CLAUSE.match(clause)
+def _range_field_mask(field: str, values):
+    """Boolean numpy array shaped like ``values``, for a poses/residues field."""
+    match = _RANGE_FIELD.match(field)
     if not match:
-        raise ValueError(f"invalid selection clause: {clause!r}")
-
-    chain_mask = chain_labels == match.group("chain")
-    if match.group("start") is None:
-        # A bare chain token, e.g. "A" or "~A" -- no residue range to apply.
-        return ~chain_mask if match.group("negate_chain") else chain_mask
-    if match.group("negate_chain"):
-        raise ValueError(
-            f"cannot combine a leading '~' with a bracketed range: {clause!r}"
-        )
-
-    start = int(match.group("start"))
-    end = int(match.group("end")) if match.group("end") is not None else start
-    in_range = (residue_labels >= start) & (residue_labels <= end)
-    return chain_mask & (~in_range if match.group("negate_res") else in_range)
+        raise ValueError(f"invalid poses/residues field: {field!r}")
+    if match.group("star"):
+        mask = numpy.ones_like(values, dtype=bool)
+    else:
+        start = int(match.group("start"))
+        end = int(match.group("end")) if match.group("end") is not None else start
+        mask = (values >= start) & (values <= end)
+    return ~mask if match.group("negate") else mask
 
 
-def _block_mask_from_selection(
-    pose_stack: PoseStack, pose_ind: int, selection_string: str
-):
-    """Boolean numpy array shaped ``[max_n_blocks]`` for one pose."""
-    chain_labels = pose_stack.pdb_info.chain_labels[pose_ind]
-    residue_labels = pose_stack.pdb_info.residue_labels[pose_ind]
-    real = pose_stack.block_type_ind64[pose_ind].cpu().numpy() >= 0
-
-    mask = numpy.zeros(pose_stack.max_n_blocks, dtype=bool)
-    for clause in selection_string.split(","):
-        clause_mask = _selection_clause_mask(chain_labels, residue_labels, clause)
-        if clause_mask is not None:
-            mask |= clause_mask
-    return mask & real
+def _chain_field_mask(field: str, chain_labels):
+    """Boolean numpy array shaped like ``chain_labels``, for a chains field."""
+    match = _CHAIN_FIELD.match(field)
+    if not match:
+        raise ValueError(f"invalid chains field: {field!r}")
+    if match.group("star"):
+        mask = numpy.ones_like(chain_labels, dtype=bool)
+    else:
+        mask = numpy.isin(chain_labels, list(match.group("chains")))
+    return ~mask if match.group("negate") else mask
 
 
-# Shared by every select_*'s docstring below:
-#
-# The selection notation is comma-separated chain/residue clauses, unioned
-# together:
-#
-# - "A" -- every residue of chain A
-# - "~A" -- every residue not in chain A
-# - "A[5]" -- residue 5 of chain A
-# - "B[4-10]" -- residues 4 through 10 of chain B
-# - "B[~5]" -- every residue of chain B except 5
-# - "B[~2-4]" -- every residue of chain B except 2 through 4
-# - "A,B" -- the union of the A and B selections
-#
-# Residue numbers are PDB (author) numbering; they are resolved against each
-# pose's own pdb_info and mapped internally to the pose stack's block indexing.
+def _block_mask_from_pose_stack_selection(pose_stack: PoseStack, selection_string: str):
+    """Boolean numpy array shaped ``[n_poses, max_n_blocks]``."""
+    stripped = selection_string.strip()
+    if not _SELECTION_STRING.match(stripped):
+        raise ValueError(f"invalid selection string: {selection_string!r}")
+
+    n_poses = pose_stack.n_poses
+    pose_indices = numpy.arange(n_poses)
+    chain_labels_all = pose_stack.pdb_info.chain_labels
+    residue_labels_all = pose_stack.pdb_info.residue_labels
+    real_all = pose_stack.block_type_ind64.cpu().numpy() >= 0
+
+    mask = numpy.zeros((n_poses, pose_stack.max_n_blocks), dtype=bool)
+    for raw_clause in _SELECTION_CLAUSE.findall(stripped):
+        fields = raw_clause.split(",")
+        if len(fields) != 3:
+            raise ValueError(
+                f"selection clause must have 3 comma-separated fields "
+                f"(poses, chains, residues): {raw_clause!r}"
+            )
+        poses_field, chains_field, residues_field = (f.strip() for f in fields)
+
+        poses_sel = _range_field_mask(poses_field, pose_indices)
+        for pose_ind in numpy.flatnonzero(poses_sel):
+            chain_sel = _chain_field_mask(chains_field, chain_labels_all[pose_ind])
+            residue_sel = _range_field_mask(
+                residues_field, residue_labels_all[pose_ind]
+            )
+            mask[pose_ind] |= chain_sel & residue_sel & real_all[pose_ind]
+
+    return mask
 
 
-def select_blocks_from_pose(
-    pose_stack: PoseStack, pose_ind: int, selection_string: str
-) -> Tensor[torch.bool][:]:
-    """Block mask shaped ``[max_n_blocks]`` for one pose, from a selection
-    string. See :func:`select_from_pose` for the selection notation.
-    """
-    return torch.as_tensor(
-        _block_mask_from_selection(pose_stack, pose_ind, selection_string),
-        dtype=torch.bool,
-        device=pose_stack.device,
-    )
-
-
-def select_blocks_from_poses(
+def select_blocks_from_pose_stack(
     pose_stack: PoseStack, selection_string: str
 ) -> Tensor[torch.bool][:, :]:
-    """Block mask shaped ``[n_poses, max_n_blocks]``, applying the same
-    selection string to every pose in the stack independently. See
-    :func:`select_from_pose` for the selection notation.
-    """
-    block_mask = torch.zeros(
-        (pose_stack.n_poses, pose_stack.max_n_blocks),
-        dtype=torch.bool,
-        device=pose_stack.device,
-    )
-    for pose_ind in range(pose_stack.n_poses):
-        block_mask[pose_ind] = select_blocks_from_pose(
-            pose_stack, pose_ind, selection_string
-        )
-    return block_mask
+    """Block mask shaped ``[n_poses, max_n_blocks]``, from a selection string.
 
+    The notation is one or more comma-separated ``[poses,chains,residues]``
+    clauses, unioned together:
 
-def select_from_pose(
-    pose_stack: PoseStack, pose_ind: int, selection_string: str
-) -> Tensor[torch.bool][:]:
-    """Atom mask shaped ``[max_n_atoms]`` for one pose, from a selection string.
+    - ``poses`` and ``residues`` are each a single integer, a dash-separated
+      range, or ``*`` for all of them; prefix with ``~`` to select everything
+      *except* that integer/range.
+    - ``chains`` is one or more chain letters concatenated together (e.g.
+      ``"AB"`` selects chains A and B), or ``*`` for every chain; prefix with
+      ``~`` to select every chain *except* those listed.
+    - Multiple ``[poses,chains,residues]`` clauses, separated by commas,
+      union together.
 
-    The selection notation is comma-separated chain/residue clauses, unioned
-    together:
+    Examples:
 
-    - ``"A"`` -- every residue of chain A
-    - ``"~A"`` -- every residue not in chain A
-    - ``"A[5]"`` -- residue 5 of chain A
-    - ``"B[4-10]"`` -- residues 4 through 10 of chain B
-    - ``"B[~5]"`` -- every residue of chain B except 5
-    - ``"B[~2-4]"`` -- every residue of chain B except 2 through 4
-    - ``"A,B"`` -- the union of the A and B selections
+    - ``"[*,A,*]"`` -- every residue of chain A, in every pose
+    - ``"[0,A,5]"`` -- residue 5 of chain A, in pose 0 only
+    - ``"[*,B,4-10]"`` -- residues 4 through 10 of chain B, in every pose
+    - ``"[*,~A,*]"`` -- every residue not in chain A
+    - ``"[*,B,~5]"`` -- every residue of chain B except residue 5
+    - ``"[~0-1,A,*]"`` -- chain A, in every pose except poses 0 and 1
+    - ``"[*,AB,*]"`` -- every residue of chains A and B
+    - ``"[0,A,5],[1,B,10-20]"`` -- the union of both selections
 
     Residue numbers are PDB (author) numbering; they are resolved against
-    this pose's own ``pdb_info`` and mapped internally to the pose stack's
-    block indexing.
+    each selected pose's own ``pdb_info``.
     """
-    block_mask = torch.zeros(
-        (pose_stack.n_poses, pose_stack.max_n_blocks),
+    return torch.as_tensor(
+        _block_mask_from_pose_stack_selection(pose_stack, selection_string),
         dtype=torch.bool,
         device=pose_stack.device,
     )
-    block_mask[pose_ind] = select_blocks_from_pose(
-        pose_stack, pose_ind, selection_string
-    )
-    return res_mask_to_coord_mask(pose_stack, block_mask)[pose_ind]
 
 
-def select_from_poses(
+def select_from_pose_stack(
     pose_stack: PoseStack, selection_string: str
 ) -> Tensor[torch.bool][:, :]:
-    """Atom mask shaped ``[n_poses, max_n_atoms]``, applying the same
-    selection string (see :func:`select_from_pose` for the notation) to
-    every pose in the stack independently -- chain and residue labels are
-    resolved against each pose's own ``pdb_info``.
+    """Atom mask shaped ``[n_poses, max_n_atoms]``, from a selection string.
+
+    See :func:`select_blocks_from_pose_stack` for the notation.
     """
     return res_mask_to_coord_mask(
-        pose_stack, select_blocks_from_poses(pose_stack, selection_string)
+        pose_stack, select_blocks_from_pose_stack(pose_stack, selection_string)
     )
 
 
