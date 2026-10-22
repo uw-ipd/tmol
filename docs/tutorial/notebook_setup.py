@@ -41,6 +41,16 @@ logging.getLogger("atomworks.constants").addFilter(
     )
 )
 
+# OpenBabel prints its own warnings (odd valences, stereo perception, charge
+# model fallbacks, ...) straight to stderr via a native logger, not Python's
+# `logging` -- there's no record to filter, so the only way to keep them out
+# of every notebook's output is to lower its global output level here, before
+# the first structure load (which runs OpenBabel-backed ligand detection) can
+# trigger one.
+from openbabel import openbabel as _openbabel  # noqa: E402
+
+_openbabel.obErrorLog.SetOutputLevel(_openbabel.obError)
+
 TUTORIAL_REF = "master"
 RAW_BASE = f"https://raw.githubusercontent.com/uw-ipd/tmol/{TUTORIAL_REF}"
 # Advance only after the release wheels have been published and exercised.
