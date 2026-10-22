@@ -8,6 +8,7 @@ from tmol.chemical import (
     build_ideal_coords,
     RefinedResidueType,
     ResidueTypeSet,
+    bonds_and_bond_ranges,
 )
 from tmol.database.chemical import RawResidueType
 
@@ -159,6 +160,83 @@ def test_all_bonds_construction(fresh_default_restype_set):
             else:
                 conn = bt.all_bonds[i, 2]
                 assert bt.ordered_connection_atoms[conn] == at1
+
+
+@pytest.mark.parametrize("dtype", [numpy.int32, numpy.int64])
+@pytest.mark.parametrize(
+    "n_atoms,intra,connections,expected_bonds,expected_ranges",
+    [
+        (0, [], [], [], []),
+        (3, [], [], [], [[-1, -1]] * 3),
+        (
+            3,
+            [[1, 2], [0, 2], [2, 1], [2, 0]],
+            [2, 0, 2],
+            [
+                [0, 2, -1],
+                [0, -1, 1],
+                [1, 2, -1],
+                [2, 1, -1],
+                [2, 0, -1],
+                [2, -1, 0],
+                [2, -1, 2],
+            ],
+            [[0, 2], [2, 3], [3, 7]],
+        ),
+        (
+            2,
+            [[0, 1], [0, 1], [1, 0], [1, 0]],
+            [0, 0],
+            [[0, 1, -1], [0, 1, -1], [0, -1, 0], [0, -1, 1], [1, 0, -1], [1, 0, -1]],
+            [[0, 4], [4, 6]],
+        ),
+        # Preserve the legacy origin for an isolated first atom in this perf change.
+        (
+            3,
+            [[1, 2], [2, 1]],
+            [1, 1],
+            [[1, -1, 0], [1, -1, 1], [2, 1, -1], [1, 2, -1]],
+            [[-1, -1], [-1, 2], [2, 3]],
+        ),
+    ],
+    ids=["empty", "isolated", "unsorted", "duplicates", "isolated_first"],
+)
+def test_all_bonds_order_and_ranges(
+    dtype, n_atoms, intra, connections, expected_bonds, expected_ranges
+):
+    bonds, ranges = bonds_and_bond_ranges(
+        n_atoms,
+        numpy.array(intra, dtype=dtype).reshape(-1, 2),
+        numpy.array(connections, dtype=dtype),
+    )
+    assert bonds.dtype == ranges.dtype == dtype
+    numpy.testing.assert_array_equal(
+        bonds, numpy.array(expected_bonds, dtype=dtype).reshape(-1, 3)
+    )
+    numpy.testing.assert_array_equal(
+        ranges, numpy.array(expected_ranges, dtype=dtype).reshape(-1, 2)
+    )
+
+
+@pytest.mark.parametrize("intra,connections", [([[2, 0]], []), ([], [2])])
+def test_all_bonds_rejects_out_of_range_sources(intra, connections):
+    with pytest.raises(IndexError):
+        bonds_and_bond_ranges(
+            2,
+            numpy.array(intra, dtype=numpy.int32).reshape(-1, 2),
+            numpy.array(connections, dtype=numpy.int32),
+        )
+
+
+def test_empty_torsion_metadata(default_database):
+    raw = next(r for r in default_database.chemical.residues if r.name == "LEU")
+    refined = cattr.structure(
+        cattr.unstructure(attr.evolve(raw, torsions=())), RefinedResidueType
+    )
+    assert refined.ordered_torsions.shape == (0, 4, 3)
+    assert refined.ordered_torsions.dtype == numpy.int32
+    assert refined.which_mcsc_torsion.shape == (0,)
+    assert refined.which_mcsc_torsion.dtype == numpy.int32
 
 
 def test_mc_sc_torsion_properties(fresh_default_restype_set):

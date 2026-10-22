@@ -338,13 +338,12 @@ class RefinedResidueType(RawResidueType):
 
     @ordered_torsions.default
     def _setup_ordered_torsions(self):
-        ordered_torsions = numpy.full((len(self.torsions), 4, 3), -1, dtype=numpy.int32)
-        for i, tor in enumerate(self.torsions):
-            for j in range(4):
-                ordered_torsions[i, j] = numpy.array(
-                    self.torsion_to_uaids[tor.name][j], dtype=numpy.int32
-                )
-        return ordered_torsions
+        if not self.torsions:
+            return numpy.empty((0, 4, 3), dtype=numpy.int32)
+        return numpy.array(
+            [self.torsion_to_uaids[tor.name] for tor in self.torsions],
+            dtype=numpy.int32,
+        )
 
     @property
     def n_torsions(self):
