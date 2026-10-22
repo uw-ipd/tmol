@@ -205,6 +205,94 @@ def setup(seed: int = SEED):
     return device, ParameterDatabase.get_default()
 
 
+def connect_atoms(
+    viewer, pose_stack, atom_a, atom_b, *, radius: float = 0.12, color: str = "yellow"
+):
+    """Draw a cylinder between two atoms of a PoseStack in a ``tmol.view`` viewer.
+
+    ``atom_a``/``atom_b`` are each a ``(pose, block, atom)`` index triple
+    (e.g. from ``tmol.atom_for_residue_label``, or one row of a
+    ``ConstraintSet``'s ``constraint_atoms``). Call before ``viewer.show()``.
+    Useful for making a specific atom pair -- e.g. the two atoms of a
+    distance constraint -- visually obvious when highlighting alone is easy
+    to miss.
+    """
+
+    def coord_for(atom):
+        pose_ind, block_ind, atom_ind = (int(x) for x in atom)
+        offset = int(pose_stack.block_coord_offset[pose_ind, block_ind])
+        return pose_stack.coords[pose_ind, offset + atom_ind]
+
+    coord_a = coord_for(atom_a)
+    coord_b = coord_for(atom_b)
+    viewer.addCylinder(
+        {
+            "start": {
+                "x": float(coord_a[0]),
+                "y": float(coord_a[1]),
+                "z": float(coord_a[2]),
+            },
+            "end": {
+                "x": float(coord_b[0]),
+                "y": float(coord_b[1]),
+                "z": float(coord_b[2]),
+            },
+            "radius": radius,
+            "color": color,
+        }
+    )
+
+
+def view_constraints(
+    pose_stack, pose_ind: int = 0, *, radius: float = 0.12, color: str = "yellow"
+):
+    """Render one pose with every attached constraint highlighted and connected.
+
+    Highlights every atom that appears in one of ``pose_stack``'s attached
+    constraints (``pose_stack.constraint_set``) for the given pose, and
+    connects each constraint's atoms in sequence with :func:`connect_atoms`
+    -- a coordinate constraint's single atom is just highlighted, a distance
+    constraint's two atoms get one connecting cylinder, and a torsion-angle
+    constraint's four atoms get three, tracing the dihedral. Calls
+    ``viewer.show()``; returns nothing, so calling this as a cell's last
+    statement doesn't also trigger the notebook's own auto-display of a
+    returned viewer (which would otherwise render it a second time).
+    """
+    import torch
+    import tmol
+
+    constraint_set = pose_stack.constraint_set
+    highlight_mask = torch.zeros_like(pose_stack.real_atoms)
+
+    constraints = []
+    if constraint_set is not None:
+        for row in constraint_set.constraint_atoms.tolist():
+            if row[0][0] != pose_ind:
+                continue
+            atoms = []
+            for triple in row:
+                if triple[0] == -1:
+                    continue
+                if atoms and tuple(triple) == tuple(atoms[-1]):
+                    continue
+                atoms.append(triple)
+                offset = int(pose_stack.block_coord_offset[triple[0], triple[1]])
+                highlight_mask[triple[0], offset + triple[2]] = True
+            if atoms:
+                constraints.append(atoms)
+
+    viewer = tmol.view(
+        pose_stack,
+        highlighted=highlight_mask[pose_ind][pose_stack.real_atoms[pose_ind]],
+    )
+    for atoms in constraints:
+        for atom_a, atom_b in zip(atoms, atoms[1:]):
+            connect_atoms(
+                viewer, pose_stack, atom_a, atom_b, radius=radius, color=color
+            )
+    viewer.show()
+
+
 # Names ``from notebook_setup import *`` provides, by the module they come from
 # (``_ALIASES`` covers the few that are modules or need renaming). They resolve on
 # first use, so importing this module stays cheap.
@@ -238,6 +326,7 @@ _EXPORTS = {
     "tmol.score.constraint": (
         "ConstraintEnergyTerm",
         "constrain_all_ca",
+        "constrain_closest_interchain_ca_pair",
         "create_mainchain_coordinate_constraints",
     ),
 }
@@ -250,7 +339,15 @@ _ALIASES = {
 }
 _SOURCES = {name: module for module, names in _EXPORTS.items() for name in names}
 
-__all__ = ["SEED", "data_path", "setup", *_ALIASES, *_SOURCES]  # noqa: PLE0604
+__all__ = [  # noqa: PLE0604
+    "SEED",
+    "connect_atoms",
+    "data_path",
+    "setup",
+    "view_constraints",
+    *_ALIASES,
+    *_SOURCES,
+]
 
 
 def __getattr__(name: str):
