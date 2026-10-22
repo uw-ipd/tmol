@@ -26,6 +26,21 @@ from importlib import import_module
 from pathlib import Path
 from urllib.request import urlretrieve
 
+# atomworks.constants warns the moment it's imported if these are unset, which
+# happens as soon as anything below resolves a lazy tmol name -- including the
+# very first `from notebook_setup import *`, well before setup() could install
+# a filter. Installed here, at module import time, so it's in place first.
+logging.getLogger("atomworks.constants").addFilter(
+    lambda record: (
+        not record.getMessage().startswith(
+            (
+                "Environment variable CCD_MIRROR_PATH not set.",
+                "Environment variable PDB_MIRROR_PATH not set.",
+            )
+        )
+    )
+)
+
 TUTORIAL_REF = "master"
 RAW_BASE = f"https://raw.githubusercontent.com/uw-ipd/tmol/{TUTORIAL_REF}"
 # Advance only after the release wheels have been published and exercised.
@@ -189,17 +204,6 @@ def setup(seed: int = SEED):
 
     from tmol.database import ParameterDatabase
 
-    # The tutorials read local example files, not PDB or CCD mirrors.
-    logging.getLogger("atomworks.constants").addFilter(
-        lambda record: (
-            not record.getMessage().startswith(
-                (
-                    "Environment variable CCD_MIRROR_PATH not set.",
-                    "Environment variable PDB_MIRROR_PATH not set.",
-                )
-            )
-        )
-    )
     torch.manual_seed(seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     return device, ParameterDatabase.get_default()
