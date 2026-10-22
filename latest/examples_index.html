@@ -55,7 +55,7 @@
     <link rel="icon" href="_static/favicon.ico"/>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="TMol How-To Guide" href="tutorial/01_tmol_how_to_guide.html" />
+    <link rel="next" title="TMol How-To Guide" href="tutorial/01_tmol_tutorial.html" />
     <link rel="prev" title="Benchmarking" href="user_guide/benchmarking.html" />
   
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -387,22 +387,8 @@
 <nav class="bd-docs-nav bd-links"
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
-  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Load, score, and optimize</span></p>
-<ul class="nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="tutorial/01_tmol_how_to_guide.html">TMol How-To Guide</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorial/02_scoring_and_optimization.html">TMol How-To Guide — Scoring and Optimization</a></li>
-</ul>
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Metals, nucleic acids, ligands, and NCAAs</span></p>
-<ul class="nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="tutorial/03_metals_and_nucleic_acids.html">TMol How-To Guide — Metals and Nucleic Acids</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorial/04_ligands_and_ncaas.html">TMol How-To Guide — Ligands and NCAAs</a></li>
-</ul>
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Selections, constraints, and advanced topics</span></p>
-<ul class="nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="tutorial/05_selections.html">TMol How-To Guide — Selections</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorial/06_constraints.html">TMol How-To Guide — Constraints</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorial/07_advanced_kinematics.html">TMol How-To Guide — Advanced Kinematics</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorial/08_advanced_topics.html">TMol How-To Guide — Advanced Topics</a></li>
+  <div class="bd-toc-item navbar-nav"><ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="tutorial/01_tmol_tutorial.html">TMol How-To Guide</a></li>
 </ul>
 </div>
 </nav></div>
@@ -462,11 +448,12 @@
                   
   <section id="tutorials">
 <h1>Tutorials<a class="headerlink" href="#tutorials" title="Link to this heading">#</a></h1>
-<p>The tutorials are a how-to guide to TMol, split into runnable notebooks. Each
-section works through its operations with code, results, and structure viewers
-side by side, and can be run independently from top to bottom. Start with
-loading structures (1), then choose the operation or molecular system you need
-below. Sections marked <strong>TODO</strong> are still being written.</p>
+<p>A single notebook walks through TMol: loading structures, scoring and
+optimization, metals and nucleic acids, ligands and NCAAs, selections,
+constraints, and advanced kinematics and topics. Each section works through
+its operations with code, results, and structure viewers side by side, and
+can be run independently once the shared Setup cell at the top has run.
+Sections marked <strong>TODO</strong> are still being written.</p>
 <p>Setup starts folded. Expand it when you need the details; the modeling steps and
 their results stay visible.</p>
 <p>In Colab, select a GPU under <strong>Runtime → Change runtime type</strong>, then <strong>Run all</strong>.
@@ -474,49 +461,10 @@ The shared <code class="docutils literal notranslate"><span class="pre">notebook
 operators matching Colab’s PyTorch CUDA major and downloads the example data.
 For local notebooks and supported environments, follow <a class="reference internal" href="installation.html"><span class="doc">Installation</span></a>.</p>
 <div class="toctree-wrapper compound">
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Load, score, and optimize</span></p>
 <div class="nbsphinx-gallery">
-<a class="reference internal" href="tutorial/01_tmol_how_to_guide.html">
-  <div><img alt="" src="./_static/nbsphinx-no-thumbnail.svg"></div>
+<a class="reference internal" href="tutorial/01_tmol_tutorial.html">
+  <div><img alt="" src="./_images/tutorial_01_tmol_tutorial_222_0.png"></div>
   <div>TMol How-To Guide</div>
-</a>
-<a class="reference internal" href="tutorial/02_scoring_and_optimization.html">
-  <div><img alt="" src="./_static/nbsphinx-no-thumbnail.svg"></div>
-  <div>TMol How-To Guide — Scoring and Optimization</div>
-</a>
-</div>
-</div>
-<div class="toctree-wrapper compound">
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Metals, nucleic acids, ligands, and NCAAs</span></p>
-<div class="nbsphinx-gallery">
-<a class="reference internal" href="tutorial/03_metals_and_nucleic_acids.html">
-  <div><img alt="" src="./_static/nbsphinx-no-thumbnail.svg"></div>
-  <div>TMol How-To Guide — Metals and Nucleic Acids</div>
-</a>
-<a class="reference internal" href="tutorial/04_ligands_and_ncaas.html">
-  <div><img alt="" src="./_static/nbsphinx-no-thumbnail.svg"></div>
-  <div>TMol How-To Guide — Ligands and NCAAs</div>
-</a>
-</div>
-</div>
-<div class="toctree-wrapper compound">
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Selections, constraints, and advanced topics</span></p>
-<div class="nbsphinx-gallery">
-<a class="reference internal" href="tutorial/05_selections.html">
-  <div><img alt="" src="./_static/nbsphinx-no-thumbnail.svg"></div>
-  <div>TMol How-To Guide — Selections</div>
-</a>
-<a class="reference internal" href="tutorial/06_constraints.html">
-  <div><img alt="" src="./_static/nbsphinx-no-thumbnail.svg"></div>
-  <div>TMol How-To Guide — Constraints</div>
-</a>
-<a class="reference internal" href="tutorial/07_advanced_kinematics.html">
-  <div><img alt="" src="./_static/nbsphinx-no-thumbnail.svg"></div>
-  <div>TMol How-To Guide — Advanced Kinematics</div>
-</a>
-<a class="reference internal" href="tutorial/08_advanced_topics.html">
-  <div><img alt="" src="./_static/nbsphinx-no-thumbnail.svg"></div>
-  <div>TMol How-To Guide — Advanced Topics</div>
 </a>
 </div>
 </div>
@@ -542,7 +490,7 @@ For local notebooks and supported environments, follow <a class="reference inter
       </div>
     </a>
     <a class="right-next"
-       href="tutorial/01_tmol_how_to_guide.html"
+       href="tutorial/01_tmol_tutorial.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>

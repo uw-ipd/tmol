@@ -496,7 +496,8 @@
 <span class="sd">    coords : Tensor, shape [batch, n_res, 37, 3]</span>
 <span class="sd">        Atom coordinates in the atomworks atom37 layout.</span>
 <span class="sd">    residue_type : Tensor[int64], shape [batch, n_res]</span>
-<span class="sd">        Atomworks token indices. Must be in 1..20 (standard protein only).</span>
+<span class="sd">        Atomworks token indices in 1..20 (standard protein only), or 0 for</span>
+<span class="sd">        padding.</span>
 <span class="sd">    chain_iid : Tensor[int64], shape [batch, n_res]</span>
 <span class="sd">        Chain identifiers (integer IDs, not string labels).</span>
 <span class="sd">    **kwargs</span>
@@ -509,7 +510,8 @@
 <span class="sd">    Raises</span>
 <span class="sd">    ------</span>
 <span class="sd">    ValueError</span>
-<span class="sd">        If any ``residue_type`` value is outside 1..20 (protein-only).</span>
+<span class="sd">        If any ``residue_type`` value is outside 1..20 (protein-only) and not</span>
+<span class="sd">        0 (padding).</span>
 <span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_canonical_form</span>
 
@@ -617,7 +619,8 @@
 <span class="sd">    coords : Tensor, shape [batch, n_res, 37, 3]</span>
 <span class="sd">        Atom coordinates in the atomworks atom37 layout.</span>
 <span class="sd">    residue_type : Tensor[int64], shape [batch, n_res]</span>
-<span class="sd">        Atomworks token indices. Must be in 1..20 (standard protein only).</span>
+<span class="sd">        Atomworks token indices in 1..20 (standard protein only), or 0 for</span>
+<span class="sd">        padding, as atomworks_from_pose_stack writes it.</span>
 <span class="sd">    chain_iid : Tensor[int64], shape [batch, n_res]</span>
 <span class="sd">        Chain identifiers.</span>
 
@@ -626,17 +629,16 @@
 <span class="sd">    CanonicalForm</span>
 <span class="sd">    """</span>
 
-    <span class="c1"># Validate protein-only</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">residue_type</span> <span class="o">&lt;</span> <span class="n">_ATOMWORKS_MIN_PROTEIN_IDX</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">()</span> <span class="ow">or</span> <span class="p">(</span>
-        <span class="n">residue_type</span> <span class="o">&gt;</span> <span class="n">_ATOMWORKS_MAX_PROTEIN_IDX</span>
-    <span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
-        <span class="n">bad</span> <span class="o">=</span> <span class="n">residue_type</span><span class="p">[</span>
-            <span class="p">(</span><span class="n">residue_type</span> <span class="o">&lt;</span> <span class="n">_ATOMWORKS_MIN_PROTEIN_IDX</span><span class="p">)</span>
-            <span class="o">|</span> <span class="p">(</span><span class="n">residue_type</span> <span class="o">&gt;</span> <span class="n">_ATOMWORKS_MAX_PROTEIN_IDX</span><span class="p">)</span>
-        <span class="p">]</span>
+    <span class="c1"># Validate protein-only; 0 is padding and maps to no residue type</span>
+    <span class="n">out_of_range</span> <span class="o">=</span> <span class="p">(</span><span class="n">residue_type</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span>
+        <span class="p">(</span><span class="n">residue_type</span> <span class="o">&lt;</span> <span class="n">_ATOMWORKS_MIN_PROTEIN_IDX</span><span class="p">)</span>
+        <span class="o">|</span> <span class="p">(</span><span class="n">residue_type</span> <span class="o">&gt;</span> <span class="n">_ATOMWORKS_MAX_PROTEIN_IDX</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">out_of_range</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+        <span class="n">bad</span> <span class="o">=</span> <span class="n">residue_type</span><span class="p">[</span><span class="n">out_of_range</span><span class="p">]</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">"residue_type must be in range [</span><span class="si">{</span><span class="n">_ATOMWORKS_MIN_PROTEIN_IDX</span><span class="si">}</span><span class="s2">, "</span>
-            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">_ATOMWORKS_MAX_PROTEIN_IDX</span><span class="si">}</span><span class="s2">] (protein only). "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">_ATOMWORKS_MAX_PROTEIN_IDX</span><span class="si">}</span><span class="s2">] (protein only) or 0 (padding). "</span>
             <span class="sa">f</span><span class="s2">"Got out-of-range values: </span><span class="si">{</span><span class="n">bad</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span>
         <span class="p">)</span>
 
