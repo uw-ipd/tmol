@@ -89,7 +89,7 @@ print(packed_scorer(packed.coords).tolist())
 ```
 
 Render a new scorer after packing because the output atom layout can change.
-See the {doc}`scoring and optimization notebook <tutorial/02_scoring_and_optimization>` for
+See the {ref}`scoring and optimization notebook </tutorial/01_tmol_tutorial.ipynb#2.-scoring-and-optimization>` for
 fixed residues, mutation scans, and residue-level results.
 
 ## Combine packing and minimization
@@ -131,7 +131,7 @@ print(scores.tolist())
 
 Group similarly sized systems to reduce padding. The same code runs on CUDA
 when the inputs and score function are on that device.
-See the {doc}`how-to guide <tutorial/01_tmol_how_to_guide>` for timing and memory.
+See the {ref}`how-to guide </tutorial/01_tmol_tutorial.ipynb#1.-basics>` for timing and memory.
 
 ## Load a protein–ligand complex
 
@@ -154,8 +154,8 @@ complex_scorer = complex_sfxn.render_whole_pose_scoring_module(complex_pose)
 print(complex_scorer(complex_pose.coords).tolist())
 ```
 
-Continue with the {doc}`ligands notebook <tutorial/04_ligands_and_ncaas>` or
-{doc}`metals and nucleic acids notebook <tutorial/03_metals_and_nucleic_acids>` for those systems.
+Continue with the {ref}`ligands notebook </tutorial/01_tmol_tutorial.ipynb#4.-ligands-and-ncaas>` or
+{ref}`metals and nucleic acids notebook </tutorial/01_tmol_tutorial.ipynb#3.-metals-and-nucleic-acids>` for those systems.
 
 ## Further workflows
 

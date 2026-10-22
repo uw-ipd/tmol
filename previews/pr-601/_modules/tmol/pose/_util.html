@@ -434,6 +434,7 @@
 <span class="sd">kinematics dependency.</span>
 <span class="sd">"""</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
@@ -540,23 +541,38 @@
 
 
 
+<span class="n">_RESIDUE_ID</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^(?P&lt;number&gt;\d+)(?P&lt;insertion_code&gt;[A-Za-z]*)$"</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="block_for_residue_label">
 <a class="viewcode-back" href="../../../api/pose.html#tmol.pose.block_for_residue_label">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">block_for_residue_label</span><span class="p">(</span>
-    <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">pose_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">residue_number</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">pose_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">residue_id</span><span class="p">:</span> <span class="nb">str</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Block index of one (chain, author residue number) label.</span>
+<span class="w">    </span><span class="sd">"""Block index of one (chain, author residue label).</span>
+
+<span class="sd">    ``residue_id`` is a residue number as a string, with an optional PDB</span>
+<span class="sd">    insertion-code suffix (e.g. ``"12"`` or ``"12A"``).</span>
 
 <span class="sd">    Raises ValueError if no block in the pose matches.</span>
 <span class="sd">    """</span>
+    <span class="n">match</span> <span class="o">=</span> <span class="n">_RESIDUE_ID</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">residue_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">match</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"invalid residue id: </span><span class="si">{</span><span class="n">residue_id</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">residue_number</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">"number"</span><span class="p">))</span>
+    <span class="n">insertion_code</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">"insertion_code"</span><span class="p">)</span>
+
     <span class="n">chain_labels</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">chain_labels</span><span class="p">[</span><span class="n">pose_index</span><span class="p">]</span>
     <span class="n">residue_labels</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_labels</span><span class="p">[</span><span class="n">pose_index</span><span class="p">]</span>
+    <span class="n">residue_insertion_codes</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_insertion_codes</span><span class="p">[</span><span class="n">pose_index</span><span class="p">]</span>
     <span class="n">matches</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span>
-        <span class="p">(</span><span class="n">chain_labels</span> <span class="o">==</span> <span class="n">chain</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">residue_labels</span> <span class="o">==</span> <span class="n">residue_number</span><span class="p">)</span>
+        <span class="p">(</span><span class="n">chain_labels</span> <span class="o">==</span> <span class="n">chain</span><span class="p">)</span>
+        <span class="o">&amp;</span> <span class="p">(</span><span class="n">residue_labels</span> <span class="o">==</span> <span class="n">residue_number</span><span class="p">)</span>
+        <span class="o">&amp;</span> <span class="p">(</span><span class="n">residue_insertion_codes</span> <span class="o">==</span> <span class="n">insertion_code</span><span class="p">)</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">matches</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"no block found for chain </span><span class="si">{</span><span class="n">chain</span><span class="si">!r}</span><span class="s2"> residue </span><span class="si">{</span><span class="n">residue_number</span><span class="si">}</span><span class="s2"> "</span>
+            <span class="sa">f</span><span class="s2">"no block found for chain </span><span class="si">{</span><span class="n">chain</span><span class="si">!r}</span><span class="s2"> residue </span><span class="si">{</span><span class="n">residue_id</span><span class="si">!r}</span><span class="s2"> "</span>
             <span class="sa">f</span><span class="s2">"in pose </span><span class="si">{</span><span class="n">pose_index</span><span class="si">}</span><span class="s2">"</span>
         <span class="p">)</span>
     <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">matches</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div>
@@ -584,6 +600,84 @@
     <span class="n">matches</span> <span class="o">=</span> <span class="p">(</span><span class="n">residue_labels</span> <span class="o">==</span> <span class="n">queries</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">])</span> <span class="o">&amp;</span> <span class="n">chain_mask</span>
     <span class="n">block</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">matches</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span> <span class="n">matches</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="atom_for_residue_label">
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.atom_for_residue_label">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">atom_for_residue_label</span><span class="p">(</span>
+    <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">pose_ind</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">chain_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">res_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">atom_id</span><span class="p">:</span> <span class="nb">str</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""``[pose, block, atom]`` triple for one atom, addressed entirely in PDB space.</span>
+
+<span class="sd">    ``res_id`` is a residue number as a string, with an optional PDB</span>
+<span class="sd">    insertion-code suffix (e.g. ``"12"`` or ``"12A"``); ``atom_id`` is that</span>
+<span class="sd">    residue's atom name (e.g. ``"CA"``). The result is an ``int32`` tensor on</span>
+<span class="sd">    ``pose_stack``'s device, suitable directly as one row of the ``atoms``</span>
+<span class="sd">    tensor :meth:`ConstraintSet.add_constraints` expects.</span>
+
+<span class="sd">    Raises ValueError if no block matches the chain/residue, or if the</span>
+<span class="sd">    matching block's residue type has no atom by that name.</span>
+<span class="sd">    """</span>
+    <span class="n">match</span> <span class="o">=</span> <span class="n">_RESIDUE_ID</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">res_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">match</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"invalid residue id: </span><span class="si">{</span><span class="n">res_id</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">residue_number</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">"number"</span><span class="p">))</span>
+    <span class="n">insertion_code</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">"insertion_code"</span><span class="p">)</span>
+
+    <span class="n">chain_labels</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">chain_labels</span><span class="p">[</span><span class="n">pose_ind</span><span class="p">]</span>
+    <span class="n">residue_labels</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_labels</span><span class="p">[</span><span class="n">pose_ind</span><span class="p">]</span>
+    <span class="n">residue_insertion_codes</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_insertion_codes</span><span class="p">[</span><span class="n">pose_ind</span><span class="p">]</span>
+    <span class="n">matches</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">chain_labels</span> <span class="o">==</span> <span class="n">chain_id</span><span class="p">)</span>
+        <span class="o">&amp;</span> <span class="p">(</span><span class="n">residue_labels</span> <span class="o">==</span> <span class="n">residue_number</span><span class="p">)</span>
+        <span class="o">&amp;</span> <span class="p">(</span><span class="n">residue_insertion_codes</span> <span class="o">==</span> <span class="n">insertion_code</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">matches</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"no block found for chain </span><span class="si">{</span><span class="n">chain_id</span><span class="si">!r}</span><span class="s2"> residue </span><span class="si">{</span><span class="n">res_id</span><span class="si">!r}</span><span class="s2"> "</span>
+            <span class="sa">f</span><span class="s2">"in pose </span><span class="si">{</span><span class="n">pose_ind</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="n">block</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">matches</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">block_type</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type</span><span class="p">(</span><span class="n">pose_ind</span><span class="p">,</span> <span class="n">block</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">atom_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">block_type</span><span class="o">.</span><span class="n">atom_to_idx</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"residue type </span><span class="si">{</span><span class="n">block_type</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> (chain </span><span class="si">{</span><span class="n">chain_id</span><span class="si">!r}</span><span class="s2"> residue "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">res_id</span><span class="si">!r}</span><span class="s2"> in pose </span><span class="si">{</span><span class="n">pose_ind</span><span class="si">}</span><span class="s2">) has no atom </span><span class="si">{</span><span class="n">atom_id</span><span class="si">!r}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="n">atom</span> <span class="o">=</span> <span class="n">block_type</span><span class="o">.</span><span class="n">atom_to_idx</span><span class="p">[</span><span class="n">atom_id</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">pose_ind</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">atom</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="constraint_atoms_for_labels">
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.constraint_atoms_for_labels">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">constraint_atoms_for_labels</span><span class="p">(</span>
+    <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
+    <span class="n">atoms</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The atoms of one constraint, addressed entirely in PDB space.</span>
+
+<span class="sd">    ``atoms`` is a sequence of 1 to 4 ``(pose_ind, chain_id, res_id, atom_id)``</span>
+<span class="sd">    labels (see :func:`atom_for_residue_label`) -- one atom per constraint</span>
+<span class="sd">    slot. The slot count matches whichever ``ConstraintEnergyTerm`` function</span>
+<span class="sd">    the result is eventually passed to: 1 for a coordinate constraint, 2 for</span>
+<span class="sd">    a distance constraint (``harmonic``/``bounded``), 4 for a torsion-angle</span>
+<span class="sd">    constraint (``circularharmonic``).</span>
+
+<span class="sd">    Returns an ``int32`` tensor shaped ``[len(atoms), 3]`` on ``pose_stack``'s</span>
+<span class="sd">    device. Stack the result for each constraint (e.g. ``torch.stack(...)``)</span>
+<span class="sd">    to build the ``[n_constraints, n_atoms, 3]`` tensor</span>
+<span class="sd">    :meth:`ConstraintSet.add_constraints` expects.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">4</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"atoms must specify 1 to 4 atoms, got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">atom_for_residue_label</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="o">*</span><span class="n">atom_label</span><span class="p">)</span> <span class="k">for</span> <span class="n">atom_label</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">]</span>
+    <span class="p">)</span></div>
 
 
 

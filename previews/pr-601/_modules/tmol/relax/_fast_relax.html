@@ -433,6 +433,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Protocol</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
@@ -959,6 +960,16 @@
         <span class="n">new_tensor</span><span class="p">[</span><span class="n">better_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">candidate</span><span class="p">[</span><span class="n">better_mask</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">new_tensor</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">select_better_atom_info</span><span class="p">(</span><span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">width</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""A per-atom pdb_info field, padded with zeros to the merged atom count."""</span>
+        <span class="n">best</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">best_pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="p">,</span> <span class="n">field_name</span><span class="p">)</span>
+        <span class="n">candidate</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">candidate_pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="p">,</span> <span class="n">field_name</span><span class="p">)</span>
+        <span class="n">better</span> <span class="o">=</span> <span class="n">better_mask</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="n">merged</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">best</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">width</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">best</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">merged</span><span class="p">[</span><span class="o">~</span><span class="n">better</span><span class="p">,</span> <span class="p">:</span> <span class="n">best</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">best</span><span class="p">[</span><span class="o">~</span><span class="n">better</span><span class="p">]</span>
+        <span class="n">merged</span><span class="p">[</span><span class="n">better</span><span class="p">,</span> <span class="p">:</span> <span class="n">candidate</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">candidate</span><span class="p">[</span><span class="n">better</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">merged</span>
+
     <span class="k">if</span> <span class="n">better_mask</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
         <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">"accepting new best scores"</span><span class="p">)</span>
@@ -970,9 +981,17 @@
         <span class="n">new_block_coord_offset64</span> <span class="o">=</span> <span class="n">select_better</span><span class="p">(</span><span class="s2">"block_coord_offset64"</span><span class="p">)</span>
         <span class="n">new_block_type_ind</span> <span class="o">=</span> <span class="n">select_better</span><span class="p">(</span><span class="s2">"block_type_ind"</span><span class="p">)</span>
         <span class="n">new_block_type_ind64</span> <span class="o">=</span> <span class="n">select_better</span><span class="p">(</span><span class="s2">"block_type_ind64"</span><span class="p">)</span>
+        <span class="n">new_pdb_info</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+            <span class="n">best_pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="p">,</span>
+            <span class="n">atom_occupancy</span><span class="o">=</span><span class="n">select_better_atom_info</span><span class="p">(</span>
+                <span class="s2">"atom_occupancy"</span><span class="p">,</span> <span class="n">new_coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="p">),</span>
+            <span class="n">atom_b_factor</span><span class="o">=</span><span class="n">select_better_atom_info</span><span class="p">(</span><span class="s2">"atom_b_factor"</span><span class="p">,</span> <span class="n">new_coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+        <span class="p">)</span>
         <span class="n">new_best_pose_stack</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
             <span class="n">best_pose_stack</span><span class="p">,</span>
             <span class="n">coords</span><span class="o">=</span><span class="n">new_coords</span><span class="p">,</span>
+            <span class="n">pdb_info</span><span class="o">=</span><span class="n">new_pdb_info</span><span class="p">,</span>
             <span class="n">block_coord_offset</span><span class="o">=</span><span class="n">new_block_coord_offset</span><span class="p">,</span>
             <span class="n">block_coord_offset64</span><span class="o">=</span><span class="n">new_block_coord_offset64</span><span class="p">,</span>
             <span class="n">block_type_ind</span><span class="o">=</span><span class="n">new_block_type_ind</span><span class="p">,</span>

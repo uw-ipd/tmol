@@ -131,4 +131,4 @@ adds overhead and changes the system by removing inter-fragment connections.
 
 ## Examples and reference
 
-{doc}`Scoring tutorial </tutorial/02_scoring_and_optimization>` · {doc}`Scoring API </api/score>` · {doc}`Score terms </api/score_terms>`
+{ref}`Scoring tutorial </tutorial/01_tmol_tutorial.ipynb#2.-scoring-and-optimization>` · {doc}`Scoring API </api/score>` · {doc}`Score terms </api/score_terms>`

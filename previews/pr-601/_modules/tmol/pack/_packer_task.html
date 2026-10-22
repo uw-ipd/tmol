@@ -505,8 +505,9 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        noncanonical_design: Also offer noncanonical residue types (such as AIB)</span>
-<span class="sd">            as replacements for other residues. Off by default, so a</span>
-<span class="sd">            noncanonical type is considered only where the input already has it.</span>
+<span class="sd">            and opposite-chirality amino acids (L &lt;-&gt; D) as replacements for</span>
+<span class="sd">            other residues. Off by default, so a noncanonical type is considered</span>
+<span class="sd">            only where the input already has it.</span>
 <span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">noncanonical_design</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
@@ -759,6 +760,16 @@
                     <span class="c1"># dangerous because this packer pallete will allow</span>
                     <span class="c1"># your d-caa to become glycine, and then later</span>
                     <span class="c1"># to an l-caa, but not the other way around</span>
+                    <span class="n">allowed_block_types_for_block_type</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+                    <span class="n">allowed_block_is_orig</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">j</span> <span class="o">==</span> <span class="n">i</span><span class="p">)</span>
+                    <span class="n">restrict_to_repacking_masks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="n">j_allowed_for_restrict_to_repack</span>
+                    <span class="p">)</span>
+                <span class="k">elif</span> <span class="p">(</span>
+                    <span class="n">noncanonical_design</span>
+                    <span class="ow">and</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">polymer_type</span> <span class="o">==</span> <span class="s2">"amino_acid"</span>
+                <span class="p">):</span>
+                    <span class="c1"># noncanonical design also crosses between l and d amino acids</span>
                     <span class="n">allowed_block_types_for_block_type</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
                     <span class="n">allowed_block_is_orig</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">j</span> <span class="o">==</span> <span class="n">i</span><span class="p">)</span>
                     <span class="n">restrict_to_repacking_masks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>

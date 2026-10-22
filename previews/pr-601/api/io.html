@@ -892,7 +892,8 @@ connections.</p></li>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>coords</strong> (<a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types.Tensor"><em>Tensor</em></a><em>, </em><a class="reference internal" href="pose.html#tmol.pose.InterBlockBondsep.shape" title="tmol.pose.InterBlockBondsep.shape"><em>shape</em></a><em> [</em><em>batch</em><em>, </em><em>n_res</em><em>, </em><em>37</em><em>, </em><em>3</em><em>]</em>) – Atom coordinates in the atomworks atom37 layout.</p></li>
-<li><p><strong>residue_type</strong> (<a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types.Tensor"><em>Tensor</em></a><em>[</em><em>int64</em><em>]</em><em>, </em><a class="reference internal" href="pose.html#tmol.pose.InterBlockBondsep.shape" title="tmol.pose.InterBlockBondsep.shape"><em>shape</em></a><em> [</em><em>batch</em><em>, </em><em>n_res</em><em>]</em>) – Atomworks token indices. Must be in 1..20 (standard protein only).</p></li>
+<li><p><strong>residue_type</strong> (<a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types.Tensor"><em>Tensor</em></a><em>[</em><em>int64</em><em>]</em><em>, </em><a class="reference internal" href="pose.html#tmol.pose.InterBlockBondsep.shape" title="tmol.pose.InterBlockBondsep.shape"><em>shape</em></a><em> [</em><em>batch</em><em>, </em><em>n_res</em><em>]</em>) – Atomworks token indices in 1..20 (standard protein only), or 0 for
+padding, as atomworks_from_pose_stack writes it.</p></li>
 <li><p><strong>chain_iid</strong> (<a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types.Tensor"><em>Tensor</em></a><em>[</em><em>int64</em><em>]</em><em>, </em><a class="reference internal" href="pose.html#tmol.pose.InterBlockBondsep.shape" title="tmol.pose.InterBlockBondsep.shape"><em>shape</em></a><em> [</em><em>batch</em><em>, </em><em>n_res</em><em>]</em>) – Chain identifiers.</p></li>
 </ul>
 </dd>
@@ -1299,7 +1300,8 @@ supplied, not about how the pose is built.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>coords</strong> (<a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types.Tensor"><em>Tensor</em></a><em>, </em><a class="reference internal" href="pose.html#tmol.pose.InterBlockBondsep.shape" title="tmol.pose.InterBlockBondsep.shape"><em>shape</em></a><em> [</em><em>batch</em><em>, </em><em>n_res</em><em>, </em><em>37</em><em>, </em><em>3</em><em>]</em>) – Atom coordinates in the atomworks atom37 layout.</p></li>
-<li><p><strong>residue_type</strong> (<a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types.Tensor"><em>Tensor</em></a><em>[</em><em>int64</em><em>]</em><em>, </em><a class="reference internal" href="pose.html#tmol.pose.InterBlockBondsep.shape" title="tmol.pose.InterBlockBondsep.shape"><em>shape</em></a><em> [</em><em>batch</em><em>, </em><em>n_res</em><em>]</em>) – Atomworks token indices. Must be in 1..20 (standard protein only).</p></li>
+<li><p><strong>residue_type</strong> (<a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types.Tensor"><em>Tensor</em></a><em>[</em><em>int64</em><em>]</em><em>, </em><a class="reference internal" href="pose.html#tmol.pose.InterBlockBondsep.shape" title="tmol.pose.InterBlockBondsep.shape"><em>shape</em></a><em> [</em><em>batch</em><em>, </em><em>n_res</em><em>]</em>) – Atomworks token indices in 1..20 (standard protein only), or 0 for
+padding.</p></li>
 <li><p><strong>chain_iid</strong> (<a class="reference internal" href="types.html#tmol.types.Tensor" title="tmol.types.Tensor"><em>Tensor</em></a><em>[</em><em>int64</em><em>]</em><em>, </em><a class="reference internal" href="pose.html#tmol.pose.InterBlockBondsep.shape" title="tmol.pose.InterBlockBondsep.shape"><em>shape</em></a><em> [</em><em>batch</em><em>, </em><em>n_res</em><em>]</em>) – Chain identifiers (integer IDs, not string labels).</p></li>
 <li><p><strong>**kwargs</strong> – Additional arguments passed to <code class="docutils literal notranslate"><span class="pre">pose_stack_from_canonical_form</span></code>.</p></li>
 </ul>
@@ -1308,7 +1310,8 @@ supplied, not about how the pose is built.</p>
 <dd class="field-even"><p><a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose.PoseStack">PoseStack</a></p>
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If any <code class="docutils literal notranslate"><span class="pre">residue_type</span></code> value is outside 1..20 (protein-only).</p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If any <code class="docutils literal notranslate"><span class="pre">residue_type</span></code> value is outside 1..20 (protein-only) and not
+    0 (padding).</p>
 </dd>
 </dl>
 </dd></dl>
