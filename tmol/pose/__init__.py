@@ -22,9 +22,11 @@ from ._sequence import (  # noqa: F401
     tokenize_sequences,
 )  # noqa: F401
 from ._util import (  # noqa: F401
+    atom_for_residue_label,
     atom_label,
     block_for_residue_label,
     blocks_for_residue_labels,
+    constraint_atoms_for_labels,
     get_ligand_mask,
     get_named_torsions,
     get_polymer_type_mask,
@@ -47,9 +49,11 @@ __all__ = [
     "SeqToken",
     "SplitBlockEntry",
     "SplitBlockMapping",
+    "atom_for_residue_label",
     "atom_label",
     "block_for_residue_label",
     "blocks_for_residue_labels",
+    "constraint_atoms_for_labels",
     "get_ligand_mask",
     "get_named_torsions",
     "get_polymer_type_mask",

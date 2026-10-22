@@ -116,4 +116,4 @@ Before scoring or refinement, verify:
 
 ## Examples and reference
 
-{doc}`Structure I/O tutorial </tutorial/01_tmol_how_to_guide>` · {doc}`I/O API </api/io>` · {doc}`Ligand preparation </user_guide/ligands>`
+{ref}`Structure I/O tutorial </tutorial/01_tmol_tutorial.ipynb#1.-basics>` · {doc}`I/O API </api/io>` · {doc}`Ligand preparation </user_guide/ligands>`

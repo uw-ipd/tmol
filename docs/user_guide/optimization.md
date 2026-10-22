@@ -143,4 +143,4 @@ execution remains eager.
 
 ## Examples and reference
 
-{doc}`Scoring and optimization tutorial </tutorial/02_scoring_and_optimization>` · {doc}`Advanced kinematics </tutorial/07_advanced_kinematics>` · {doc}`Optimization API </api/optimization>` · {doc}`Kinematics API </api/kinematics>`
+{ref}`Scoring and optimization tutorial </tutorial/01_tmol_tutorial.ipynb#2.-scoring-and-optimization>` · {ref}`Advanced kinematics </tutorial/01_tmol_tutorial.ipynb#7.-advanced-kinematics>` · {doc}`Optimization API </api/optimization>` · {doc}`Kinematics API </api/kinematics>`
