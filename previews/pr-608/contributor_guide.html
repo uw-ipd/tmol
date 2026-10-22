@@ -485,11 +485,6 @@ runs on CUDA in CI as well as on CPU, because CPU-only runs hide
 device-mismatch bugs; a test enforces it. Tag cells that need a GPU with
 <code class="docutils literal notranslate"><span class="pre">gpu-only</span></code>.</p></li>
 </ul>
-<p><code class="docutils literal notranslate"><span class="pre">docs/tutorial/tmol_tutorial.ipynb</span></code> combines all of the section notebooks
-above into one notebook with a single shared Setup cell, for readers who want
-the whole walkthrough in one place. It doesn’t match the <code class="docutils literal notranslate"><span class="pre">NN_name.ipynb</span></code>
-pattern, so it isn’t part of CI’s notebook discovery or GPU smoke – update it
-by hand whenever a section notebook changes, so the two don’t drift.</p>
 </section>
 </section>
 <section id="writing-documentation">

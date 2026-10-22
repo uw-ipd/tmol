@@ -74,4 +74,4 @@ each mutant with its independently repacked WT control.
 
 ## Examples and reference
 
-{doc}`Interface example </tutorial/02_scoring_and_optimization>` · {doc}`Analysis API </api/analysis>` · {doc}`Packing </workflows/packing>`
+{ref}`Interface example </tutorial/01_tmol_tutorial.ipynb#2.-scoring-and-optimization>` · {doc}`Analysis API </api/analysis>` · {doc}`Packing </workflows/packing>`

@@ -35,7 +35,7 @@ Parsing marks unresolved atoms; TMol reconstructs supported missing coordinates
 from chemical construction frames. An unresolved backbone or an underdetermined
 ligand requires an explicit input policy or additional geometry. The score
 function must use the pose's device and prepared parameter database. See
-{doc}`Ligands and NCAAs </tutorial/04_ligands_and_ncaas>` for
+{ref}`Ligands and NCAAs </tutorial/01_tmol_tutorial.ipynb#4.-ligands-and-ncaas>` for
 preparation, strict errors and reusable parameter bundles.
 
 ## Direct prediction tensors

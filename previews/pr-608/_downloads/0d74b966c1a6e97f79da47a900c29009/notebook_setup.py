@@ -201,8 +201,18 @@ def setup(seed: int = SEED):
         ``ParameterDatabase.get_default()``.
     """
     import torch
+    from openbabel import openbabel
 
     from tmol.database import ParameterDatabase
+
+    # OpenBabel prints its own warnings (odd valences, stereo perception, charge
+    # model fallbacks, ...) straight to stderr via a native logger, not Python's
+    # `logging` -- there's no record to filter, so the only way to keep them out
+    # of every notebook's output is to lower its global output level here, before
+    # the first structure load (which runs OpenBabel-backed ligand detection) can
+    # trigger one. Done here rather than at module level so importing this module
+    # standalone (e.g. test_colab_release_config.py) doesn't require OpenBabel.
+    openbabel.obErrorLog.SetOutputLevel(openbabel.obError)
 
     torch.manual_seed(seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

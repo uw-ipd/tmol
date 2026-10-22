@@ -30,4 +30,4 @@ validation against suitable molecular data.
 
 ## Examples and reference
 
-{doc}`Ligands and NCAAs </tutorial/04_ligands_and_ncaas>` · {doc}`Advanced kinematics </tutorial/07_advanced_kinematics>` · {doc}`Packer extensions </tutorial/08_advanced_topics>`
+{ref}`Ligands and NCAAs </tutorial/01_tmol_tutorial.ipynb#4.-ligands-and-ncaas>` · {ref}`Advanced kinematics </tutorial/01_tmol_tutorial.ipynb#7.-advanced-kinematics>` · {ref}`Packer extensions </tutorial/01_tmol_tutorial.ipynb#8.-advanced-topics>`
