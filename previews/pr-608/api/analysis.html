@@ -656,12 +656,20 @@ any device; it is moved to the pose’s device.</p></li>
 <p>The notation is one or more comma-separated <code class="docutils literal notranslate"><span class="pre">[poses,chains,residues]</span></code>
 clauses, unioned together:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">poses</span></code> and <code class="docutils literal notranslate"><span class="pre">residues</span></code> are each a single integer, a dash-separated
-range, or <code class="docutils literal notranslate"><span class="pre">*</span></code> for all of them; prefix with <code class="docutils literal notranslate"><span class="pre">~</span></code> to select everything
-<em>except</em> that integer/range.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">poses</span></code> is a single integer, a dash-separated range, or <code class="docutils literal notranslate"><span class="pre">*</span></code> for all
+of them; prefix with <code class="docutils literal notranslate"><span class="pre">~</span></code> to select everything <em>except</em> that
+integer/range.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">chains</span></code> is one or more chain letters concatenated together (e.g.
 <code class="docutils literal notranslate"><span class="pre">&quot;AB&quot;</span></code> selects chains A and B), or <code class="docutils literal notranslate"><span class="pre">*</span></code> for every chain; prefix with
 <code class="docutils literal notranslate"><span class="pre">~</span></code> to select every chain <em>except</em> those listed.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">residues</span></code> is a single residue, a dash-separated range, or <code class="docutils literal notranslate"><span class="pre">*</span></code> for
+all of them; prefix with <code class="docutils literal notranslate"><span class="pre">~</span></code> to select everything <em>except</em> that
+residue/range. A residue may carry a PDB insertion code suffix (e.g.
+<code class="docutils literal notranslate"><span class="pre">&quot;52A&quot;</span></code>); a bare number with no suffix means that number’s plain,
+uninserted residue specifically, so a range like <code class="docutils literal notranslate"><span class="pre">&quot;12-13&quot;</span></code> covers
+every insertion between its endpoints (<code class="docutils literal notranslate"><span class="pre">12,</span> <span class="pre">12A,</span> <span class="pre">12B,</span> <span class="pre">13</span></code>), while
+<code class="docutils literal notranslate"><span class="pre">&quot;12&quot;</span></code> alone covers only plain residue 12 and <code class="docutils literal notranslate"><span class="pre">&quot;12-12B&quot;</span></code> covers
+<code class="docutils literal notranslate"><span class="pre">12,</span> <span class="pre">12A,</span> <span class="pre">12B</span></code> but not <code class="docutils literal notranslate"><span class="pre">13</span></code>.</p></li>
 <li><p>Multiple <code class="docutils literal notranslate"><span class="pre">[poses,chains,residues]</span></code> clauses, separated by commas,
 union together.</p></li>
 </ul>
@@ -674,6 +682,8 @@ union together.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;[*,B,~5]&quot;</span></code> – every residue of chain B except residue 5</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;[~0-1,A,*]&quot;</span></code> – chain A, in every pose except poses 0 and 1</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;[*,AB,*]&quot;</span></code> – every residue of chains A and B</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;[*,A,52A]&quot;</span></code> – just the inserted residue 52A of chain A</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;[*,A,12-12B]&quot;</span></code> – residues 12, 12A and 12B of chain A (not 13)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;[0,A,5],[1,B,10-20]&quot;</span></code> – the union of both selections</p></li>
 </ul>
 <p>Residue numbers are PDB (author) numbering; they are resolved against
