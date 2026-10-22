@@ -373,7 +373,10 @@ def test_select_blocks_single_chain(torch_device):
         ["AAA:KKKKK", "AA"], device=torch_device
     )
     real = pose_stack.block_type_ind64 >= 0
-    chain_a = torch.as_tensor(pose_stack.pdb_info.chain_labels == "A") & real
+    chain_a = (
+        torch.as_tensor(pose_stack.pdb_info.chain_labels == "A", device=torch_device)
+        & real
+    )
     actual = select_blocks_from_pose_stack(pose_stack, "[*,A,*]")
     torch.testing.assert_close(actual, chain_a)
 
@@ -382,7 +385,10 @@ def test_select_blocks_negated_chain(torch_device):
     """A "~" prefixed chain selects every other real residue."""
     pose_stack = extended_pose_stack_from_sequences("AAA:KKKKK", device=torch_device)
     real = pose_stack.block_type_ind64 >= 0
-    not_a = torch.as_tensor(pose_stack.pdb_info.chain_labels != "A") & real
+    not_a = (
+        torch.as_tensor(pose_stack.pdb_info.chain_labels != "A", device=torch_device)
+        & real
+    )
     actual = select_blocks_from_pose_stack(pose_stack, "[*,~A,*]")
     torch.testing.assert_close(actual, not_a)
 
@@ -391,7 +397,9 @@ def test_select_blocks_multiple_chains_concatenated(torch_device):
     """Concatenated chain letters union those chains together."""
     pose_stack = extended_pose_stack_from_sequences("AAA:KKK:GGG", device=torch_device)
     chain_labels = pose_stack.pdb_info.chain_labels
-    expected = torch.as_tensor((chain_labels == "A") | (chain_labels == "C"))
+    expected = torch.as_tensor(
+        (chain_labels == "A") | (chain_labels == "C"), device=torch_device
+    )
     actual = select_blocks_from_pose_stack(pose_stack, "[*,AC,*]")
     torch.testing.assert_close(actual, expected)
     # the middle chain (B) is excluded
@@ -410,7 +418,9 @@ def test_select_blocks_residue_range(torch_device):
     """A dash-separated range selects every residue in [start, end]."""
     pose_stack = extended_pose_stack_from_sequences("AAA:KKKKK", device=torch_device)
     residue_labels = pose_stack.pdb_info.residue_labels
-    expected = torch.as_tensor((residue_labels >= 2) & (residue_labels <= 6))
+    expected = torch.as_tensor(
+        (residue_labels >= 2) & (residue_labels <= 6), device=torch_device
+    )
     actual = select_blocks_from_pose_stack(pose_stack, "[*,*,2-6]")
     torch.testing.assert_close(actual, expected)
 
@@ -421,7 +431,7 @@ def test_select_blocks_negated_residue_range(torch_device):
     residue_labels = pose_stack.pdb_info.residue_labels
     real = pose_stack.block_type_ind64 >= 0
     in_range = (residue_labels >= 2) & (residue_labels <= 6)
-    expected = torch.as_tensor(~in_range) & real
+    expected = torch.as_tensor(~in_range, device=torch_device) & real
     actual = select_blocks_from_pose_stack(pose_stack, "[*,*,~2-6]")
     torch.testing.assert_close(actual, expected)
 
