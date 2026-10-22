@@ -1,9 +1,11 @@
 #include <tmol/utility/tensor/native_pybind.hh>
+#include <tmol/utility/tensor/TensorUtilEigen.h>
 #pragma once
 
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 
+#include <tmol/utility/portable/pybind.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 

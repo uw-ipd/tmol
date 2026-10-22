@@ -65,7 +65,10 @@ class ElecPoseScoreOp
 
     using Int = int32_t;
 
-    TMOL_DISPATCH_FLOATING_DEVICE(
+    // The whole-pose forward and the rotamer-pair score have Metal backends;
+    // see elec_pose_score.mps.cpp. The remaining dispatch sites in this file
+    // stay CPU/CUDA-only until their kernels are ported.
+    TMOL_DISPATCH_FLOATING_DEVICE_MPS(
         rot_coords.options(), "elec_pose_score_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
@@ -311,7 +314,7 @@ class ElecRotamerScoreOp : public tmol::native::autograd::Function<
 
     using Int = int32_t;
 
-    TMOL_DISPATCH_FLOATING_DEVICE(
+    TMOL_DISPATCH_FLOATING_DEVICE_MPS(
         rot_coords.options(), "elec_rotamer_score_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;

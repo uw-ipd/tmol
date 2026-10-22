@@ -1,16 +1,15 @@
 #pragma once
 
-#include <cmath>
-
-#include <Eigen/Core>
-#include <Eigen/Geometry>
+#include <tmol/utility/portable/math.hh>
+#include <tmol/utility/portable/matrix.hh>
+#include <tmol/utility/portable/metal_view.hh>
 
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/polynomial.hh>
 #include <tmol/score/common/tuple.hh>
 #include <tmol/score/common/tuple_operators.hh>
 
-#include "params.hh"
+#include "params_types.hh"
 
 #undef B0
 
@@ -21,44 +20,50 @@ namespace potentials {
 
 using namespace tmol::score::common;
 
-#define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+#define def auto TMOL_HD
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+using tmol::portable::Vec;
 
 #define Real3 Vec<Real, 3>
 
+// Enumerators rather than static constexpr members: Metal requires every
+// program-scope variable to live in the `constant` address space, and a static
+// data member is program scope. An enumerator is not a variable. See traits.hh
+// for the same problem solved the same way.
 struct AcceptorHybridization {
-  static constexpr int none = 0;
-  static constexpr int sp2 = 1;
-  static constexpr int sp3 = 2;
-  static constexpr int ring = 3;
+  enum { none = 0, sp2 = 1, sp3 = 2, ring = 3 };
 };
 
-template <typename Real>
-def AH_dist_V_dV(Real3 A, Real3 H, HBondPoly<double> const& AHdist_poly)
+template <typename Real, typename PolyReal>
+def AH_dist_V_dV(
+    Real3 A, Real3 H, TMOL_DEVICE_REF(HBondPoly<PolyReal> const) AHdist_poly)
     -> tuple<Real, Real3, Real3> {
   auto dist = distance<Real>::V_dV(A, H);
-  auto poly = bound_poly<11, double>::V_dV(
+  auto poly = bound_poly<11, Real, PolyReal, PolyReal>::V_dV(
       dist.V, AHdist_poly.coeffs, AHdist_poly.range, AHdist_poly.bound);
 
   return {poly.V, poly.dV_dX * dist.dV_dA, poly.dV_dX * dist.dV_dB};
 }
 
-template <typename Real>
-def AH_dist_V(Real3 A, Real3 H, HBondPoly<double> const& AHdist_poly) -> Real {
+template <typename Real, typename PolyReal>
+def AH_dist_V(
+    Real3 A, Real3 H, TMOL_DEVICE_REF(HBondPoly<PolyReal> const) AHdist_poly)
+    -> Real {
   Real dist = distance<Real>::V(A, H);
-  return bound_poly<11, double>::V(
+  return bound_poly<11, Real, PolyReal, PolyReal>::V(
       dist, AHdist_poly.coeffs, AHdist_poly.range, AHdist_poly.bound);
 }
 
-template <typename Real>
+template <typename Real, typename PolyReal>
 def AHD_angle_V_dV(
-    Real3 A, Real3 H, Real3 D, HBondPoly<double> const& cosAHD_poly)
+    Real3 A,
+    Real3 H,
+    Real3 D,
+    TMOL_DEVICE_REF(HBondPoly<PolyReal> const) cosAHD_poly)
     -> tuple<Real, Real3, Real3, Real3> {
   // In non-cos space
   auto AHD = pt_interior_angle<Real>::V_dV(A, H, D);
-  auto poly = bound_poly<11, double>::V_dV(
+  auto poly = bound_poly<11, Real, PolyReal, PolyReal>::V_dV(
       AHD.V, cosAHD_poly.coeffs, cosAHD_poly.range, cosAHD_poly.bound);
 
   return {
@@ -68,24 +73,30 @@ def AHD_angle_V_dV(
       poly.dV_dX * AHD.dV_dC};
 }
 
-template <typename Real>
-def AHD_angle_V(Real3 A, Real3 H, Real3 D, HBondPoly<double> const& cosAHD_poly)
-    -> Real {
+template <typename Real, typename PolyReal>
+def AHD_angle_V(
+    Real3 A,
+    Real3 H,
+    Real3 D,
+    TMOL_DEVICE_REF(HBondPoly<PolyReal> const) cosAHD_poly) -> Real {
   // In non-cos space
   Real AHD = pt_interior_angle<Real>::V(A, H, D);
-  return bound_poly<11, double>::V(
+  return bound_poly<11, Real, PolyReal, PolyReal>::V(
       AHD, cosAHD_poly.coeffs, cosAHD_poly.range, cosAHD_poly.bound);
 }
 
-template <typename Real>
+template <typename Real, typename PolyReal>
 def _BAH_angle_base_form_V_dV(
-    Real3 B, Real3 A, Real3 H, HBondPoly<double> const& cosBAH_poly)
+    Real3 B,
+    Real3 A,
+    Real3 H,
+    TMOL_DEVICE_REF(HBondPoly<PolyReal> const) cosBAH_poly)
     -> tuple<Real, Real3, Real3, Real3> {
   Real3 AH = H - A;
   Real3 BA = A - B;
 
   auto cosT = cos_interior_angle<Real>::V_dV(AH, BA);
-  auto poly = bound_poly<11, double>::V_dV(
+  auto poly = bound_poly<11, Real, PolyReal, PolyReal>::V_dV(
       cosT.V, cosBAH_poly.coeffs, cosBAH_poly.range, cosBAH_poly.bound);
 
   return {
@@ -95,28 +106,31 @@ def _BAH_angle_base_form_V_dV(
       poly.dV_dX * cosT.dV_dA};
 }
 
-template <typename Real>
+template <typename Real, typename PolyReal>
 def _BAH_angle_base_form_V(
-    Real3 B, Real3 A, Real3 H, HBondPoly<double> const& cosBAH_poly) -> Real {
+    Real3 B,
+    Real3 A,
+    Real3 H,
+    TMOL_DEVICE_REF(HBondPoly<PolyReal> const) cosBAH_poly) -> Real {
   Real3 AH = H - A;
   Real3 BA = A - B;
 
   Real cosT = cos_interior_angle<Real>::V(AH, BA);
-  return bound_poly<11, double>::V(
+  return bound_poly<11, Real, PolyReal, PolyReal>::V(
       cosT, cosBAH_poly.coeffs, cosBAH_poly.range, cosBAH_poly.bound);
 }
 
-template <typename Real, typename Int>
+template <typename Real, typename Int, typename PolyReal>
 def BAH_angle_V_dV(
     Real3 B,
     Real3 B0,
     Real3 A,
     Real3 H,
     Int acceptor_hybridization,
-    HBondPoly<double> const& cosBAH_poly,
+    TMOL_DEVICE_REF(HBondPoly<PolyReal> const) cosBAH_poly,
     Real hb_sp3_softmax_fade) -> tuple<Real, Real3, Real3, Real3, Real3> {
-  using std::exp;
-  using std::log;
+  using tmol::portable::math::exp;
+  using tmol::portable::math::log;
 
   if (acceptor_hybridization == AcceptorHybridization::sp2) {
     Real PxH;
@@ -163,23 +177,23 @@ def BAH_angle_V_dV(
         (dPxHfade_dPxH * dPxH_dA) + (dPxHfade_dPxH0 * dPxH0_dA),
         (dPxHfade_dPxH * dPxH_dH) + (dPxHfade_dPxH0 * dPxH0_dH)};
   } else {
-#ifndef __CUDACC__
+#if !defined(__CUDACC__) && !TMOL_PORTABLE_METAL
     throw std::runtime_error("Invalid acceptor_hybridization.");
 #endif
   }
 }
 
-template <typename Real, typename Int>
+template <typename Real, typename Int, typename PolyReal>
 def BAH_angle_V(
     Real3 B,
     Real3 B0,
     Real3 A,
     Real3 H,
     Int acceptor_hybridization,
-    HBondPoly<double> const& cosBAH_poly,
+    TMOL_DEVICE_REF(HBondPoly<PolyReal> const) cosBAH_poly,
     Real hb_sp3_softmax_fade) -> Real {
-  using std::exp;
-  using std::log;
+  using tmol::portable::math::exp;
+  using tmol::portable::math::log;
 
   if (acceptor_hybridization == AcceptorHybridization::sp2) {
     return _BAH_angle_base_form_V(B, A, H, cosBAH_poly);
@@ -198,7 +212,7 @@ def BAH_angle_V(
 
   } else {
     // printf("bad acceptor hybridization %d", acceptor_hybridization);
-#ifndef __CUDACC__
+#if !defined(__CUDACC__) && !TMOL_PORTABLE_METAL
     throw std::runtime_error("Invalid acceptor_hybridization.");
 #endif
   }
@@ -207,11 +221,11 @@ def BAH_angle_V(
 template <typename Real>
 def sp2chi_energy_V_dV(Real ang, Real chi, Real d, Real m, Real l)
     -> tuple<Real, Real, Real> {
-  const Real pi = EIGEN_PI;
+  const Real pi = tmol::portable::math::pi<Real>();
 
-  using std::cos;
-  using std::pow;
-  using std::sin;
+  using tmol::portable::math::cos;
+  using tmol::portable::math::pow;
+  using tmol::portable::math::sin;
 
   Real H = 0.5 * (cos(2 * chi) + 1);
 
@@ -251,11 +265,11 @@ def sp2chi_energy_V_dV(Real ang, Real chi, Real d, Real m, Real l)
 
 template <typename Real>
 def sp2chi_energy_V(Real ang, Real chi, Real d, Real m, Real l) -> Real {
-  const Real pi = EIGEN_PI;
+  const Real pi = tmol::portable::math::pi<Real>();
 
-  using std::cos;
-  using std::pow;
-  using std::sin;
+  using tmol::portable::math::cos;
+  using tmol::portable::math::pow;
+  using tmol::portable::math::sin;
 
   Real H = 0.5 * (cos(2 * chi) + 1);
 
@@ -360,6 +374,12 @@ struct hbond_score_V_dV_t {
 
 template <typename Real, typename Int>
 struct hbond_score {
+  // PolyReal is deduced: float64 on the host and CUDA, a hi/lo float32 pair on
+  // Metal. The two tables come by device reference and are read in place, all
+  // the way down into the Horner loop in common/polynomial.hh -- they are
+  // elements of a parameter view, so copying one to thread space would move
+  // 360 bytes of coefficients through registers to no purpose.
+  template <typename PolyReal>
   static def V_dV(
       // coordinates
       Real3 D,
@@ -368,8 +388,8 @@ struct hbond_score {
       Real3 B,
       Real3 B0,
 
-      HBondPairParams<Real> const& pair_params,
-      HBondPolynomials<double> const& polynomials,
+      TMOL_DEVICE_REF(HBondPairParams<Real> const) pair_params,
+      TMOL_DEVICE_REF(HBondPolynomials<PolyReal> const) polynomials,
       HBondGlobalParams<Real> global_params) -> hbond_score_V_dV_t<Real> {
     Real E = 0.0;
     Real3 dE_dD = {0, 0, 0};
@@ -442,6 +462,7 @@ struct hbond_score {
     return {E, dE_dD, dE_dH, dE_dA, dE_dB, dE_dB0};
   }
 
+  template <typename PolyReal>
   static def V(
       // coordinates
       Real3 D,
@@ -450,8 +471,8 @@ struct hbond_score {
       Real3 B,
       Real3 B0,
 
-      HBondPairParams<Real> const& pair_params,
-      HBondPolynomials<double> const& polynomials,
+      TMOL_DEVICE_REF(HBondPairParams<Real> const) pair_params,
+      TMOL_DEVICE_REF(HBondPolynomials<PolyReal> const) polynomials,
       HBondGlobalParams<Real> global_params) -> Real {
     Real E = 0.0;
 

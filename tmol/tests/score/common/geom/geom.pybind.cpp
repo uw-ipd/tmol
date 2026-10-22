@@ -1,4 +1,6 @@
 #include <pybind11/eigen.h>
+
+#include <tmol/utility/tensor/pybind.h>
 #include <torch/extension.h>
 
 #include <tmol/score/common/geom.hh>
@@ -9,7 +11,7 @@ template <typename Real>
 void bind(pybind11::module& m) {
   using namespace pybind11::literals;
 
-  m.def("distance_V", &distance<Real>::V, "A"_a, "B"_a);
+  m.def("distance_V", &distance<Real>::template V<Vec<Real, 3>>, "A"_a, "B"_a);
   m.def(
       "distance_V_dV",
       [](Vec<Real, 3> A, Vec<Real, 3> B) {

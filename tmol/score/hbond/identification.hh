@@ -1,7 +1,7 @@
 #pragma once
 
-#include <tmol/utility/tensor/TensorAccessor.h>
-#include <Eigen/Core>
+#include <tmol/utility/portable/math.hh>
+#include <tmol/utility/portable/matrix.hh>
 #include <tmol/score/bonded_atom.hh>
 
 #undef B0
@@ -10,17 +10,16 @@ namespace tmol {
 namespace score {
 namespace hbond {
 
-#define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+#define def auto TMOL_HD
 
+// Enumerators, not `static constexpr int` members: Metal requires every
+// program-scope variable to live in the `constant` address space, and a
+// static data member is program scope. See traits.hh for the same pattern.
 struct AcceptorHybridization {
-  static constexpr int none = 0;
-  static constexpr int sp2 = 1;
-  static constexpr int sp3 = 2;
-  static constexpr int ring = 3;
+  enum { none = 0, sp2 = 1, sp3 = 2, ring = 3 };
 };
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+using tmol::portable::Vec;
 
 template <typename Int>
 struct RotamerCentricAcceptorBases {
@@ -28,11 +27,11 @@ struct RotamerCentricAcceptorBases {
   bonded_atom::BlockCentricAtom<Int> B;
   bonded_atom::BlockCentricAtom<Int> B0;
 
-  template <tmol::Device Dev>
+  template <template <typename, int> class View, typename AtomIsHydrogenView>
   static def sp2_acceptor_base(
       bonded_atom::BlockCentricAtom<Int> A,
-      bonded_atom::RotamerCentricIndexedBonds<Int, Dev> bonds,
-      TView<Int, 2, Dev> bt_atom_is_hydrogen) -> RotamerCentricAcceptorBases {
+      bonded_atom::RotamerCentricIndexedBonds<Int, View> bonds,
+      AtomIsHydrogenView bt_atom_is_hydrogen) -> RotamerCentricAcceptorBases {
     using bonded_atom::BlockCentricAtom;
     BlockCentricAtom<Int> B({-1, -1, -1});
     BlockCentricAtom<Int> B0({-1, -1, -1});
@@ -72,11 +71,11 @@ struct RotamerCentricAcceptorBases {
     return {A, B, B0};
   }
 
-  template <tmol::Device Dev>
+  template <template <typename, int> class View, typename AtomIsHydrogenView>
   static def sp3_acceptor_base(
       bonded_atom::BlockCentricAtom<Int> A,
-      bonded_atom::RotamerCentricIndexedBonds<Int, Dev> bonds,
-      TView<Int, 2, Dev> bt_atom_is_hydrogen) -> RotamerCentricAcceptorBases {
+      bonded_atom::RotamerCentricIndexedBonds<Int, View> bonds,
+      AtomIsHydrogenView bt_atom_is_hydrogen) -> RotamerCentricAcceptorBases {
     using bonded_atom::BlockCentricAtom;
     BlockCentricAtom<Int> B{-1, -1, -1};
     BlockCentricAtom<Int> B0{-1, -1, -1};
@@ -113,11 +112,11 @@ struct RotamerCentricAcceptorBases {
     return {A, B, B0};
   }
 
-  template <tmol::Device Dev>
+  template <template <typename, int> class View, typename AtomIsHydrogenView>
   static def ring_acceptor_base(
       bonded_atom::BlockCentricAtom<Int> A,
-      bonded_atom::RotamerCentricIndexedBonds<Int, Dev> bonds,
-      TView<Int, 2, Dev> bt_atom_is_hydrogen) -> RotamerCentricAcceptorBases {
+      bonded_atom::RotamerCentricIndexedBonds<Int, View> bonds,
+      AtomIsHydrogenView bt_atom_is_hydrogen) -> RotamerCentricAcceptorBases {
     using bonded_atom::BlockCentricAtom;
     BlockCentricAtom<Int> B{-1, -1, -1};
     BlockCentricAtom<Int> B0{-1, -1, -1};
@@ -148,12 +147,12 @@ struct RotamerCentricAcceptorBases {
     return {A, B, B0};
   }
 
-  template <tmol::Device Dev>
+  template <template <typename, int> class View, typename AtomIsHydrogenView>
   static def for_acceptor(
       bonded_atom::BlockCentricAtom<Int> A,
       Int hybridization,
-      bonded_atom::RotamerCentricIndexedBonds<Int, Dev> bonds,
-      TView<Int, 2, Dev> bt_atom_is_hydrogen) -> RotamerCentricAcceptorBases {
+      bonded_atom::RotamerCentricIndexedBonds<Int, View> bonds,
+      AtomIsHydrogenView bt_atom_is_hydrogen) -> RotamerCentricAcceptorBases {
     if (hybridization == AcceptorHybridization::sp2) {
       return sp2_acceptor_base(A, bonds, bt_atom_is_hydrogen);
     } else if (hybridization == AcceptorHybridization::sp3) {
@@ -171,11 +170,11 @@ struct RotamerCentricDonorBase {
   bonded_atom::BlockCentricAtom<Int> H;
   bonded_atom::BlockCentricAtom<Int> D;
 
-  template <tmol::Device Dev>
+  template <template <typename, int> class View, typename AtomIsHydrogenView>
   static def for_polar_H(
       bonded_atom::BlockCentricAtom<Int> H,
-      bonded_atom::RotamerCentricIndexedBonds<Int, Dev> bonds,
-      TView<Int, 2, Dev> bt_atom_is_hydrogen) -> RotamerCentricDonorBase<Int> {
+      bonded_atom::RotamerCentricIndexedBonds<Int, View> bonds,
+      AtomIsHydrogenView bt_atom_is_hydrogen) -> RotamerCentricDonorBase<Int> {
     using bonded_atom::BlockCentricAtom;
 
     BlockCentricAtom<Int> D{-1, -1, -1};

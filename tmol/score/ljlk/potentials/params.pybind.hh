@@ -1,5 +1,6 @@
 #pragma once
 
+#include <tmol/utility/portable/math.hh>
 #include <pybind11/pybind11.h>
 #include <tmol/utility/tensor/pybind.h>
 
@@ -28,7 +29,7 @@ struct type_caster<tmol::score::ljlk::potentials::LJTypeParams<Real>> {
 
     CAST_ATTR(src, value, lj_radius);
     try {
-      value.lj_sqrt_wdepth = std::sqrt(
+      value.lj_sqrt_wdepth = tmol::portable::math::sqrt(
           src.attr("lj_wdepth").cast<decltype(value.lj_sqrt_wdepth)>());
     } catch (pybind11::cast_error) {
       pybind11::print("Error casting: lj_wdepth");

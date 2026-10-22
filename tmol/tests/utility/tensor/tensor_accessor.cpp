@@ -1,4 +1,5 @@
 #include <torch/extension.h>
+#include <tmol/utility/tensor/TensorUtilEigen.h>
 #include <Eigen/Core>
 #include <cmath>
 

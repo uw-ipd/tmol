@@ -783,20 +783,25 @@ def test_packed_block_setup_is_reused_and_cross_score_function_safe(
     sfxn.set_weight(ScoreType.ref, 1.0)
     term = sfxn.all_terms()[0]
     original = term.setup_block_type
-    calls = 0
+    set_up = set()
 
-    def counted(block_type):
-        nonlocal calls
-        calls += 1
+    # Record which block types are set up, not how often: a term's
+    # setup_packed_block_types may re-read its own cached per-block
+    # annotation, and whether that cache is already warm depends on which
+    # tests ran first.
+    def recorded(block_type):
+        set_up.add(id(block_type))
         return original(block_type)
 
-    monkeypatch.setattr(term, "setup_block_type", counted)
-    sfxn.pre_work_initialization(pose)
-    first_calls = calls
-    assert first_calls == len(pose.packed_block_types.active_block_types)
+    monkeypatch.setattr(term, "setup_block_type", recorded)
+    all_block_types = {id(bt) for bt in pose.packed_block_types.active_block_types}
 
     sfxn.pre_work_initialization(pose)
-    assert calls == first_calls
+    assert set_up == all_block_types
+
+    set_up.clear()
+    sfxn.pre_work_initialization(pose)
+    assert set_up == set()
 
     # Packed block types are shared. Another score function may replace
     # option-dependent annotations, so its setup must invalidate this cache.
@@ -804,7 +809,7 @@ def test_packed_block_setup_is_reused_and_cross_score_function_safe(
     other.set_weight(ScoreType.ref, 1.0)
     other.pre_work_initialization(pose)
     sfxn.pre_work_initialization(pose)
-    assert calls == 2 * first_calls
+    assert set_up == all_block_types
 
 
 def test_packed_block_setup_reuses_annotations_for_identical_types(

@@ -1,7 +1,6 @@
 #pragma once
 
-#include <Eigen/Core>
-#include <Eigen/Geometry>
+#include <tmol/utility/portable/matrix.hh>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
@@ -22,8 +21,7 @@ namespace score {
 namespace ljlk {
 namespace potentials {
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+using tmol::portable::Vec;
 
 template <
     template <tmol::Device> class DeviceOperations,

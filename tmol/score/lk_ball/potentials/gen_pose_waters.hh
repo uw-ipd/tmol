@@ -1,5 +1,6 @@
 #pragma once
 
+#include <tmol/utility/portable/matrix.hh>
 #include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/score/lk_ball/potentials/params.hh>
 
@@ -8,8 +9,7 @@ namespace score {
 namespace lk_ball {
 namespace potentials {
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+using tmol::portable::Vec;
 
 template <
     template <tmol::Device> class Dispatch,
@@ -128,6 +128,11 @@ struct GeneratePoseWaters {
       TView<Int, 2, Dev> block_type_atom_is_hydrogen,
 
       TView<LKBallWaterGenGlobalParams<Real>, 1, Dev> global_params,
+      // The three torsion tables below, packed into one [3, max_len]
+      // row-major table. Built by the op wrapper and empty on every backend
+      // but Metal, whose kernel context has no room for three separate
+      // bindings; see WaterGenDerivCtxT.
+      TView<Real, 2, Dev> packed_water_tors,
       TView<Real, 1, Dev> sp2_water_tors,
       TView<Real, 1, Dev> sp3_water_tors,
       TView<Real, 1, Dev> ring_water_tors) -> TPack<Vec<Real, 3>, 1, Dev>;

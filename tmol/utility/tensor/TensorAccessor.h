@@ -1,5 +1,6 @@
 #pragma once
 
+#include <tmol/utility/portable/device.hh>
 #include <stdint.h>
 #include <cassert>
 #include <algorithm>
@@ -54,10 +55,6 @@ inline void handler(int sig, char* file, int line) {
 #endif
 
 namespace tmol {
-
-enum class Device { CPU, CUDA };
-
-enum class PtrTag { Restricted, Unrestricted };
 
 // The PtrTraits argument to the TensorAccessor/TView
 // is used to enable the __restrict__ keyword/modifier for the data

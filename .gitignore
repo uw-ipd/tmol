@@ -161,3 +161,11 @@ tmol/tests/data/ligand_test/ligand_tmol_generated/
 # are committed; only ad-hoc pipeline outputs are ignored here.
 tmol/tests/data/protein_ligand_test/*.pipeline.nomin.cif
 tmol/tests/data/protein_ligand_test/*.packmin.cif
+
+# MPS backend build artifacts: the Metal shaders are generated from the
+# .metal.in sources by cmake/TmolMetalShader.cmake at build time.
+/generated/
+*.raw.metal
+*.flat.metal
+*.metal.d
+

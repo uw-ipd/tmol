@@ -40,7 +40,8 @@ Device and dtype
 All tensors participating in one operation must use compatible devices and
 dtypes. A :class:`~tmol.pose.PoseStack`, its
 :class:`~tmol.pose.PackedBlockTypes`, rendered scoring modules, and movement
-data normally live on the same CPU or CUDA device.
+data normally live on the same CPU or CUDA device. On Apple silicon they stay
+on the CPU; scoring copies what its GPU-offloaded terms need internally.
 
 TMol APIs commonly accept a device-like value and normalize it through
 :func:`tmol.utility.resolve_device`. Preserve the input coordinate dtype unless

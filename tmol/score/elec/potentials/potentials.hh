@@ -1,9 +1,6 @@
 #pragma once
 
-#include <cmath>
-
-#include <Eigen/Core>
-#include <Eigen/Geometry>
+#include <tmol/utility/portable/math.hh>
 
 #include <tmol/score/common/cubic_hermite_polynomial.hh>
 #include <tmol/score/common/geom.hh>
@@ -11,7 +8,7 @@
 #include <tmol/score/common/tuple.hh>
 #include <tmol/score/common/tuple_operators.hh>
 
-#include "params.hh"
+#include "params_types.hh"
 
 #undef B0
 
@@ -22,14 +19,9 @@ namespace potentials {
 
 #define def                \
   template <typename Real> \
-  auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+  auto TMOL_HD
 
 using namespace tmol::score::common;
-
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
-
-#define Real3 Vec<Real, 3>
 
 def connectivity_weight(Real bonded_path_length) -> Real {
   if (bonded_path_length > 4) {
@@ -47,15 +39,16 @@ def eps(Real dist, Real D, Real D0, Real S) -> Real {
       D
       - Real(0.5) * (D - D0)
             * (Real(2) + Real(2) * dist * S + dist * dist * S * S)
-            * std::exp(-dist * S));
+            * tmol::portable::math::exp(-dist * S));
 }
 
 def deps_ddist(Real dist, Real D, Real D0, Real S) -> Real {
-  return Real(0.5) * (D - D0) * dist * dist * S * S * S * std::exp(-dist * S);
+  return Real(0.5) * (D - D0) * dist * dist * S * S * S
+         * tmol::portable::math::exp(-dist * S);
 }
 
 def eps_deps_ddist(Real dist, Real D, Real D0, Real S) -> tuple<Real, Real> {
-  Real const exp_term = std::exp(-dist * S);
+  Real const exp_term = tmol::portable::math::exp(-dist * S);
   return {
       D
           - Real(0.5) * (D - D0)
@@ -69,7 +62,7 @@ def elec_delec_ddist(
     Real e_i,
     Real e_j,
     Real bonded_path_length,
-    ElecGlobalParams<Real> const& params) -> tuple<Real, Real> {
+    TMOL_THREAD ElecGlobalParams<Real> const& params) -> tuple<Real, Real> {
   if (bonded_path_length < Real(4)) {
     return {0, 0};
   }
@@ -135,7 +128,7 @@ def elec(
     Real e_i,
     Real e_j,
     Real bonded_path_length,
-    ElecGlobalParams<Real> const& params) -> Real {
+    TMOL_THREAD ElecGlobalParams<Real> const& params) -> Real {
   if (bonded_path_length < Real(4)) {
     return 0;
   }
@@ -189,7 +182,6 @@ def elec(
   return weight * elecE;
 }
 
-#undef Real3
 #undef def
 }  // namespace potentials
 }  // namespace elec

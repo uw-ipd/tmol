@@ -1,5 +1,6 @@
 #pragma once
 
+#include <tmol/utility/portable/math.hh>
 #include <algorithm>  // std::min
 
 namespace tmol {
@@ -22,7 +23,7 @@ __device__
   // original rotamer is bad
   deltaE = prevE > 1 ? deltaE / prevE : deltaE;
 
-  float prob_pass = std::exp(-1 * deltaE / kT);
+  float prob_pass = tmol::portable::math::exp(-1 * deltaE / kT);
   return uniform_random < prob_pass;
 }
 

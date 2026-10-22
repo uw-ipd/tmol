@@ -1,6 +1,9 @@
 #pragma once
 
+#include <tmol/utility/portable/qualifiers.hh>
+
 #ifdef __NVCC__
+#include <tmol/utility/portable/math.hh>
 #include <moderngpu/cta_reduce.hxx>
 // #include <moderngpu/transform.hxx>
 #endif
@@ -23,7 +26,7 @@
 #endif
 
 // Macro for the declaration of all device lambdas;
-// NOTE: EIGEN_DEVICE_FUNC declares functions
+// NOTE: TMOL_HD declares functions
 // __host__ __device__
 // which is unfortunate if you want to put a lambda inside
 // a lambda, which we do.
@@ -61,9 +64,11 @@
 
 #endif
 
-// CUDA defines min; on CPU, we need to say "using std::min;"
+// nvcc and the Metal standard library both supply min/max as builtins; the
+// host build has to pull them in from <algorithm>. Metal translation units
+// must not see libc++ at all, so the include is excluded there as well.
 // TO DO: find a better place for this
-#ifndef __NVCC__
+#if !defined(__NVCC__) && !TMOL_PORTABLE_METAL
 #include <algorithm>
 
 using std::max;

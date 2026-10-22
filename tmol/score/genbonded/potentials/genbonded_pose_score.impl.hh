@@ -1,7 +1,7 @@
 #pragma once
 
-#include <Eigen/Core>
-#include <Eigen/Geometry>
+#include <tmol/utility/portable/reduce_ops.hh>
+#include <tmol/utility/portable/matrix.hh>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
@@ -26,7 +26,6 @@
 #include "genbonded_pose_score.hh"
 
 // mgpu operators for warp/CTA reductions
-#include <moderngpu/operators.hxx>
 
 namespace tmol {
 namespace score {
@@ -35,8 +34,7 @@ namespace potentials {
 
 using namespace tmol::score::common;
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+using tmol::portable::Vec;
 
 #define Real3 Vec<Real, 3>
 
@@ -667,7 +665,7 @@ auto GenBondedPoseScoreDispatch<DeviceOps, D, Real, Int>::forward(
     // -------------------------------------------------------------------------
     auto reduce_and_write = ([&] TMOL_DEVICE_FUNC(int tid) {
       Real const cta_score = DeviceOps<D>::template reduce_in_workgroup<nt>(
-          score, shared, mgpu::plus_t<Real>());
+          score, shared, tmol::portable::plus_t<Real>());
       if (tid == 0 && cta_score != 0.0) {
         if (output_block_pair_energies) {
           // Two residues can be joined by more than one connection -- a cyclic
@@ -1063,12 +1061,13 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
       mgr, max_n_interactions, count_intxns_for_rot_conn);
 
   int64_t const n_output_intxns_total_64 =
-      DeviceOps<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+      DeviceOps<D>::template scan_and_return_total<
+          tmol::portable::scan_type::exclusive>(
           mgr,
           n_output_intxns_for_rot_conn.data(),
           n_output_intxns_for_rot_conn_offset.data(),
           max_n_interactions,
-          mgpu::plus_t<int64_t>());
+          tmol::portable::plus_t<int64_t>());
   int const n_output_intxns_total = score::common::checked_dispatch_size(
       n_output_intxns_total_64, "generic-bonded output dispatch");
   TPack<Int, 1, D> rotconn_for_output_intxn_t =
@@ -1306,7 +1305,7 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
 
     auto reduce_and_write = ([&] TMOL_DEVICE_FUNC(int tid) {
       Real const cta_score = DeviceOps<D>::template reduce_in_workgroup<nt>(
-          torsion_score, shared, mgpu::plus_t<Real>());
+          torsion_score, shared, tmol::portable::plus_t<Real>());
       if (tid == 0 && cta_score != 0.0) {
         int const out_idx =
             output_block_pair_energies ? cta : dispatch_indices[0][cta];

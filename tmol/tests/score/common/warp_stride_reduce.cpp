@@ -1,4 +1,6 @@
 #include <torch/extension.h>
+
+#include <tmol/utility/portable/pybind.h>
 #include <Eigen/Core>
 
 #include <tmol/utility/tensor/TensorCast.h>

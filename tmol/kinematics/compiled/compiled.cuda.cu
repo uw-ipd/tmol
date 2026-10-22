@@ -180,7 +180,7 @@ struct ForwardKinDispatch {
     // temp memory for scan
     nvtx_range_push("dispatch::alloc_temp");
     int carryoutBuffer, scanBuffer, lbsBuffer;
-    tie(scanBuffer, carryoutBuffer, lbsBuffer) =
+    mgpu::tie(scanBuffer, carryoutBuffer, lbsBuffer) =
         getScanBufferSize(gens, nt, vt);
     auto scanCarryout_t =
         TPack<HomogeneousTransform, 1, D>::empty({carryoutBuffer});
@@ -379,7 +379,7 @@ struct KinDerivDispatch {
     // temp memory for scan
     nvtx_range_push("dispatch::dalloc_temp");
     int carryoutBuffer, scanBuffer, lbsBuffer;
-    tie(scanBuffer, carryoutBuffer, lbsBuffer) =
+    mgpu::tie(scanBuffer, carryoutBuffer, lbsBuffer) =
         getScanBufferSize(gens, nt, vt);
     auto scanCarryout_t = TPack<f1f2Vectors, 1, D>::empty({carryoutBuffer});
     auto scanCarryout = scanCarryout_t.view;
@@ -431,7 +431,7 @@ struct KinDerivDispatch {
       // mgpu does not play nicely with eigen types
       // instead, we wrap the raw data buffer
       //      and use eigen:map to reconstruct on device
-      tmol::kinematics::kernel_segscan<launch_t, scan_type_exc>(
+      tmol::kinematics::kernel_segscan<launch_t, mgpu::scan_type_exc>(
           k_reindex,
           nnodes,
           &scans.data()[scanstart],

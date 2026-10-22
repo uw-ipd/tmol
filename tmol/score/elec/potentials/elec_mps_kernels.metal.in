@@ -1,0 +1,107 @@
+// Metal entry points for the elec term.
+//
+// Runtime shader compilation cannot resolve filesystem includes, so this file
+// is pre-expanded by the C preprocessor at build time and the flattened text
+// is handed to torch's MPS shader-library API. That is also why it is named
+// `.metal.in` rather than `.metal`: it is not a standalone shader until the
+// includes have been inlined.
+//
+// Everything below the includes is a thin shell. The scoring itself lives in
+// elec_kernels.hh, compiled here from exactly the same source the CPU and
+// CUDA backends use. All this file does is what Metal demands a kernel entry
+// do and a called function cannot: declare the threadgroup storage, read the
+// thread's position from entry attributes, and name the address space of the
+// bound buffers.
+
+#include <tmol/score/common/device_operations.mps.impl.hh>
+#include <tmol/score/common/launch_box_macros.hh>
+#include <tmol/score/elec/potentials/elec_ctx_metal.hh>
+#include <tmol/score/elec/potentials/elec_kernels.hh>
+
+using tmol::score::common::DeviceOperations;
+using tmol::score::common::WorkgroupLane;
+using namespace tmol::score::elec::potentials;
+
+LAUNCH_BOX_32
+
+typedef WorkgroupLane<tmol::Device::MPS> Lane;
+
+// Whole-pose scoring: output is [term, pose, block, block].
+typedef ElecCtxMetal<float, int32_t, 4> PoseCtx;
+// Rotamer scoring: output is [term, block_pair].
+typedef ElecCtxMetal<float, int32_t, 2> RotCtx;
+
+typedef ElecSharedMem<float, TILE_SIZE, MAX_N_CONN, launch_t> ElecShared;
+
+// One float per simdgroup in the threadgroup. nt is 32 and the simdgroup
+// width on Apple silicon is also 32, so this is a single slot -- but sizing
+// it from the launch width keeps it correct if nt grows.
+#define TMOL_N_SIMDS ((launch_t::sm_ptx::nt + 31) / 32)
+
+// The twenty view buffers are declared positionally and immediately collected
+// into an array: ElecCtxT::visit_views assigns them to fields in this order,
+// and the host binds them in that same order, so neither side repeats the
+// field list. The count is checked against the context below.
+#define TMOL_ELEC_ENTRY(ENTRY_NAME, BODY, CTX_T)                             \
+  kernel void ENTRY_NAME(                                                    \
+      device const int64_t* meta [[buffer(0)]],                              \
+      device void* b1 [[buffer(1)]],                                        \
+      device void* b2 [[buffer(2)]],                                        \
+      device void* b3 [[buffer(3)]],                                        \
+      device void* b4 [[buffer(4)]],                                        \
+      device void* b5 [[buffer(5)]],                                        \
+      device void* b6 [[buffer(6)]],                                        \
+      device void* b7 [[buffer(7)]],                                        \
+      device void* b8 [[buffer(8)]],                                        \
+      device void* b9 [[buffer(9)]],                                        \
+      device void* b10 [[buffer(10)]],                                      \
+      device void* b11 [[buffer(11)]],                                      \
+      device void* b12 [[buffer(12)]],                                      \
+      device void* b13 [[buffer(13)]],                                      \
+      device void* b14 [[buffer(14)]],                                      \
+      device void* b15 [[buffer(15)]],                                      \
+      device void* b16 [[buffer(16)]],                                      \
+      device void* b17 [[buffer(17)]],                                      \
+      device void* b18 [[buffer(18)]],                                      \
+      device void* b19 [[buffer(19)]],                                      \
+      device void* b20 [[buffer(20)]],                                                                        \
+      uint cta [[threadgroup_position_in_grid]],                             \
+      uint tid [[thread_position_in_threadgroup]],                           \
+      uint n_threads [[threads_per_threadgroup]]) {                          \
+    static_assert(                                                           \
+        CTX_T::n_views == 20,                                                \
+        "buffer bindings here must cover every view visit_views enumerates");\
+    device void* ptrs[20] = {                                                \
+        b1,                                                                 \
+        b2,                                                                 \
+        b3,                                                                 \
+        b4,                                                                 \
+        b5,                                                                 \
+        b6,                                                                 \
+        b7,                                                                 \
+        b8,                                                                 \
+        b9,                                                                 \
+        b10,                                                                \
+        b11,                                                                \
+        b12,                                                                \
+        b13,                                                                \
+        b14,                                                                \
+        b15,                                                                \
+        b16,                                                                \
+        b17,                                                                \
+        b18,                                                                \
+        b19,                                                                \
+        b20};                                                                \
+    threadgroup ElecShared shared;                                           \
+    threadgroup float reduce_scratch[TMOL_N_SIMDS];                          \
+    CTX_T ctx = tmol_build_metal_ctx<CTX_T>(ptrs, meta);                     \
+    Lane lane(tid, n_threads, reduce_scratch);                               \
+    BODY<DeviceOperations, tmol::Device::MPS, float, int32_t, launch_t>(     \
+        ctx, shared, int(cta), lane);                                        \
+  }
+
+TMOL_ELEC_ENTRY(
+    elec_eval_energies_by_block_2_f32, elec_eval_energies_by_block_2, PoseCtx)
+TMOL_ELEC_ENTRY(elec_eval_energies_f32, elec_eval_energies, PoseCtx)
+TMOL_ELEC_ENTRY(
+    elec_eval_energies_by_block_f32, elec_eval_energies_by_block, RotCtx)

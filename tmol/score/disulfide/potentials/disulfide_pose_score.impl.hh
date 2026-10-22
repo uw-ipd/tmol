@@ -1,7 +1,7 @@
 #pragma once
 
-#include <Eigen/Core>
-#include <Eigen/Geometry>
+#include <tmol/utility/portable/reduce_ops.hh>
+#include <tmol/utility/portable/matrix.hh>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
@@ -24,7 +24,6 @@
 #include <tmol/score/disulfide/potentials/disulfide_pose_score.hh>
 
 // Operator definitions; safe for CPU comM_PIlation
-#include <moderngpu/operators.hxx>
 
 #include <chrono>
 #include <cmath>
@@ -37,8 +36,7 @@ namespace score {
 namespace disulfide {
 namespace potentials {
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+using tmol::portable::Vec;
 
 // The disulfide potential is intended to score cyteine-cysteine chemical
 // bonds and the parameters are taken from distributions of bond geometries
@@ -487,7 +485,10 @@ auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       mgr, n_rots, count_dispatch_indices);
 
   int64_t const max_n_energies_for_rot_64 = DeviceDispatch<D>::reduce(
-      mgr, n_energies_for_rot.data(), n_rots, mgpu::maximum_t<int64_t>());
+      mgr,
+      n_energies_for_rot.data(),
+      n_rots,
+      tmol::portable::maximum_t<int64_t>());
   int const max_n_energies_for_rot = score::common::checked_dispatch_size(
       max_n_energies_for_rot_64, "disulfide per-rotamer dispatch");
   int const candidate_dispatch = score::common::checked_dispatch_product(
@@ -496,12 +497,13 @@ auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   auto n_energies_for_rot_offset_t = TPack<int64_t, 1, D>::zeros({n_rots});
   auto n_energies_for_rot_offset = n_energies_for_rot_offset_t.view;
   int64_t const n_dispatch_total_64 =
-      DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+      DeviceDispatch<D>::template scan_and_return_total<
+          tmol::portable::scan_type::exclusive>(
           mgr,
           n_energies_for_rot.data(),
           n_energies_for_rot_offset.data(),
           n_rots,
-          mgpu::plus_t<int64_t>());
+          tmol::portable::plus_t<int64_t>());
   int const n_dispatch_total = score::common::checked_dispatch_size(
       n_dispatch_total_64, "disulfide output dispatch");
 

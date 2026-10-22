@@ -73,7 +73,12 @@ print("TMol CUDA operators:", tmol.has_cuda())
 print("GPU available:", torch.cuda.is_available())
 ```
 
-For CPU execution, use `torch.device("cpu")`. For GPU execution, both CUDA
+For CPU execution, use `torch.device("cpu")`. On Apple silicon this is also
+the device to use: poses stay on the CPU, and the most expensive operations --
+the pairwise score terms, the packer's interaction graph, and simulated
+annealing -- run on the GPU automatically, with their inputs copied over as
+needed. Set `TMOL_MPS_OFFLOAD=0` to keep everything on the CPU. Do not place
+poses on `torch.device("mps")`. For GPU execution with CUDA, both CUDA
 checks must be true. Applications that require a GPU should fail explicitly:
 
 ```python

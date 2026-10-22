@@ -1,0 +1,1 @@
+#error "Eigen reached a header that must stay portable. The scalar math shared with the Metal backend may not depend on Eigen; use tmol/utility/portable/matrix.hh."

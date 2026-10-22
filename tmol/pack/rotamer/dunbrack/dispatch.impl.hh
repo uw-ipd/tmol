@@ -1,7 +1,10 @@
+#include <tmol/utility/portable/reduce_ops.hh>
+#include <tmol/score/common/diamond_macros.hh>
+#include <tmol/utility/portable/math.hh>
+#include <tmol/utility/portable/matrix.hh>
 #include <tmol/utility/tensor/native.hh>
 #pragma once
 
-#include <Eigen/Core>
 #include <cmath>
 #include <limits>
 #include <tuple>
@@ -14,7 +17,6 @@
 #include <tmol/numeric/bspline_compiled/bspline.hh>
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/launch_box_macros.hh>
-#include <moderngpu/scan_types.hxx>
 #include <tmol/score/common/tuple.hh>
 
 #include <tmol/extern/moderngpu/operators.hxx>
@@ -24,8 +26,7 @@ namespace pack {
 namespace rotamer {
 namespace dunbrack {
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+using tmol::portable::Vec;
 
 template <
     template <tmol::Device> class Dispatch,
@@ -33,7 +34,7 @@ template <
     typename Real,
     typename Int>
 struct DunbrackChiSampler {
-  static EIGEN_DEVICE_FUNC void backbone_lookup_coordinate(
+  static TMOL_HD void backbone_lookup_coordinate(
       Real dihedral,
       Real start,
       Real source_start,
@@ -74,7 +75,7 @@ struct DunbrackChiSampler {
   }
 
   // Negative values mark invalid/overflowed counts and survive every later sum.
-  static EIGEN_DEVICE_FUNC Int checked_count_product(Int a, Int b) {
+  static TMOL_HD Int checked_count_product(Int a, Int b) {
     if (a < 0 || b < 0) return -1;
     if constexpr (sizeof(Int) < sizeof(int64_t)) {
       int64_t const product = int64_t(a) * int64_t(b);
@@ -88,13 +89,13 @@ struct DunbrackChiSampler {
   static Int checked_count_offsets(
       ContextManager& mgr, TView<Int, 1, D> counts, TView<Int, 1, D> offsets) {
     if (counts.size(0) == 0) return 0;
-    auto add = [] EIGEN_DEVICE_FUNC(Int a, Int b) -> Int {
+    auto add = [] TMOL_DEVICE_FUNC(Int a, Int b) -> Int {
       if (a < 0 || b < 0 || a > std::numeric_limits<Int>::max() - b) return -1;
       return a + b;
     };
-    Int const total =
-        Dispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
-            mgr, counts.data(), offsets.data(), counts.size(0), add);
+    Int const total = Dispatch<D>::template scan_and_return_total<
+        tmol::portable::scan_type::exclusive>(
+        mgr, counts.data(), offsets.data(), counts.size(0), add);
     TORCH_CHECK(
         total >= 0,
         "Dunbrack sampling count exceeds index capacity ",
@@ -270,7 +271,7 @@ struct DunbrackChiSampler {
     auto backbone_dihedrals = backbone_dihedrals_tp.view;
 
     // This should be extracted to a function
-    auto compute_backbone_dihedrals = [=] EIGEN_DEVICE_FUNC(int bubl) {
+    auto compute_backbone_dihedrals = [=] TMOL_DEVICE_FUNC(int bubl) {
       for (int dihe_ind = 0; dihe_ind < ndihe_for_res[bubl]; ++dihe_ind) {
         int i = dihedral_offset_for_res[bubl] + dihe_ind;
         Int at0 = dihedral_atom_inds[i][0];
@@ -337,7 +338,7 @@ struct DunbrackChiSampler {
         mgr,
         nchi_for_buildable_restype.data(),
         nchi_for_buildable_restype.size(0),
-        mgpu::maximum_t<Int>());
+        tmol::portable::maximum_t<Int>());
 
     // OK!
     // So the next step is to expand the base rotamers into extra rotamers
@@ -371,7 +372,7 @@ struct DunbrackChiSampler {
           mgr,
           n_rotamers_to_build_per_brt.data(),
           n_brt,
-          mgpu::maximum_t<Int>());
+          tmol::portable::maximum_t<Int>());
       TORCH_CHECK(
           maximum <= max_samples_per_restype,
           "Sampling budget ",
@@ -442,7 +443,7 @@ struct DunbrackChiSampler {
 
     Int const n_brt = bubl_and_rottable_set_for_buildable_restype.size(0);
     assert(n_possible_rotamers_per_brt.size(0) == n_brt);
-    auto lambda_determine_n_possible_rots = [=] EIGEN_DEVICE_FUNC(int brt) {
+    auto lambda_determine_n_possible_rots = [=] TMOL_DEVICE_FUNC(int brt) {
       Int rottable_set = bubl_and_rottable_set_for_buildable_restype[brt][1];
       // fd  a residue with no rotamer library builds from its own chi samples
       //     alone: one base rotamer, which those samples then expand
@@ -474,7 +475,7 @@ struct DunbrackChiSampler {
     // std::cout << "n_brt: "<< n_brt << " n possible rotamers " <<
     // n_possible_rotamers << std::endl;
     auto mark_possrot_boundary_beginnings =
-        [=] EIGEN_DEVICE_FUNC(int buildable_restype) {
+        [=] TMOL_DEVICE_FUNC(int buildable_restype) {
           // printf("    mark_possrot_boundary beginnings %d\n",
           // buildable_restype);
           Int const offset = possible_rotamer_offset_for_brt[buildable_restype];
@@ -487,12 +488,12 @@ struct DunbrackChiSampler {
 
     // Non-segmented scan on "max" to get the brt index for each possible
     // rotamer
-    Dispatch<D>::template scan<mgpu::scan_type_inc>(
+    Dispatch<D>::template scan<tmol::portable::scan_type::inclusive>(
         mgr,
         brt_for_possible_rotamer_start.data(),
         brt_for_possible_rotamer.data(),
         n_possible_rotamers,
-        mgpu::maximum_t<Int>());
+        tmol::portable::maximum_t<Int>());
     // std::cout << "done with fill_in_brt_for_possrots" << std::endl;
   }
 
@@ -519,7 +520,7 @@ struct DunbrackChiSampler {
     // std::endl;
     int const n_possible_rotamers = brt_for_possible_rotamer.size(0);
 
-    auto calculate_possible_rotamer_probability = [=] EIGEN_DEVICE_FUNC(
+    auto calculate_possible_rotamer_probability = [=] TMOL_DEVICE_FUNC(
                                                       int possible_rotamer) {
       // Compute the probability of the ith possible rotamer
       int const brt = brt_for_possible_rotamer[possible_rotamer];
@@ -599,15 +600,15 @@ struct DunbrackChiSampler {
     // Now we perform (exclusive) segmented scans on the possible-rotamer
     // probabilities to get the cumulative sums of the probabilities so
     // that we can decide where to put the cutoff
-    auto rotamer_probability_cumsum_tp =
-        Dispatch<D>::template segmented_scan<mgpu::scan_type_exc>(
-            mgr,
-            rotamer_probability.data(),
-            possible_rotamer_offset_for_brt.data(),
-            n_possible_rotamers,
-            n_brt,
-            mgpu::plus_t<Real>(),
-            Real(0));
+    auto rotamer_probability_cumsum_tp = Dispatch<D>::template segmented_scan<
+        tmol::portable::scan_type::exclusive>(
+        mgr,
+        rotamer_probability.data(),
+        possible_rotamer_offset_for_brt.data(),
+        n_possible_rotamers,
+        n_brt,
+        tmol::portable::plus_t<Real>(),
+        Real(0));
     auto rotamer_probability_cumsum = rotamer_probability_cumsum_tp.view;
 
     // And with the cumulative sum, we can now decide which rotamers we will
@@ -616,7 +617,7 @@ struct DunbrackChiSampler {
         TPack<Int, 1, D>::empty(n_possible_rotamers);
     auto build_possible_rotamer = build_possible_rotamer_tp.view;
     auto decide_on_possible_rotamer =
-        [=] EIGEN_DEVICE_FUNC(int possible_rotamer) {
+        [=] TMOL_DEVICE_FUNC(int possible_rotamer) {
           int const rt = brt_for_possible_rotamer[possible_rotamer];
           int keep = rotamer_probability_cumsum[possible_rotamer]
                      <= prob_cumsum_limit_for_buildable_restype[rt];
@@ -627,18 +628,18 @@ struct DunbrackChiSampler {
         mgr, n_possible_rotamers, decide_on_possible_rotamer);
 
     // *in*clusive segmented scan on the build_possible_rotamer array
-    auto count_rotamers_to_build_tp =
-        Dispatch<D>::template segmented_scan<mgpu::scan_type_inc>(
-            mgr,
-            build_possible_rotamer.data(),
-            possible_rotamer_offset_for_brt.data(),
-            n_possible_rotamers,
-            n_brt,
-            mgpu::plus_t<Int>(),
-            Int(0));
+    auto count_rotamers_to_build_tp = Dispatch<D>::template segmented_scan<
+        tmol::portable::scan_type::inclusive>(
+        mgr,
+        build_possible_rotamer.data(),
+        possible_rotamer_offset_for_brt.data(),
+        n_possible_rotamers,
+        n_brt,
+        tmol::portable::plus_t<Int>(),
+        Int(0));
     auto count_rotamers_to_build = count_rotamers_to_build_tp.view;
 
-    auto count_rots_to_build_per_brt = [=] EIGEN_DEVICE_FUNC(int brt) {
+    auto count_rots_to_build_per_brt = [=] TMOL_DEVICE_FUNC(int brt) {
       Int const offset = possible_rotamer_offset_for_brt[brt];
       Int const npossible = n_possible_rotamers_per_brt[brt];
       Int const last = offset + npossible - 1;
@@ -673,7 +674,7 @@ struct DunbrackChiSampler {
     assert(n_rotamers_to_build_per_brt.size(0) == n_brt);
     assert(n_rotamers_to_build_per_brt_offsets.size(0) == n_brt);
 
-    auto count_expansions_for_brt = [=] EIGEN_DEVICE_FUNC(int brt) {
+    auto count_expansions_for_brt = [=] TMOL_DEVICE_FUNC(int brt) {
       Int const nchi = nchi_for_buildable_restype[brt];
       Int const table_set = bubl_and_rottable_set_for_buildable_restype[brt][1];
       Int const n_dun_chi = table_set < 0 ? 0 : nchi_for_tableset[table_set];
@@ -721,7 +722,7 @@ struct DunbrackChiSampler {
     auto brt_for_rotamer_start_tp = TPack<Int, 1, D>::zeros(n_rotamers);
     auto brt_for_rotamer_start = brt_for_rotamer_start_tp.view;
 
-    auto mark_rot_brt_boundary_beginnings = [=] EIGEN_DEVICE_FUNC(int brt) {
+    auto mark_rot_brt_boundary_beginnings = [=] TMOL_DEVICE_FUNC(int brt) {
       Int const offset = n_rotamers_to_build_per_brt_offsets[brt];
       brt_for_rotamer_start[offset] = brt;
     };
@@ -730,12 +731,12 @@ struct DunbrackChiSampler {
         mgr, n_brt, mark_rot_brt_boundary_beginnings);
 
     // Now scan on max and record the restype for each rotamer
-    Dispatch<D>::template scan<mgpu::scan_type_inc>(
+    Dispatch<D>::template scan<tmol::portable::scan_type::inclusive>(
         mgr,
         brt_for_rotamer_start.data(),
         brt_for_rotamer.data(),
         n_rotamers,
-        mgpu::maximum_t<Int>());
+        tmol::portable::maximum_t<Int>());
   }
 
   static void sample_chi_for_rotamers(
@@ -780,7 +781,7 @@ struct DunbrackChiSampler {
     //  -- its base rotamer index
     //  -- which expanded rotamer for the base rotamer it is
 
-    auto sample_chi_for_rotamer = [=] EIGEN_DEVICE_FUNC(int rotamer) {
+    auto sample_chi_for_rotamer = [=] TMOL_DEVICE_FUNC(int rotamer) {
       int const brt = brt_for_rotamer[rotamer];
       int const res = bubl_and_rottable_set_for_buildable_restype[brt][0];
       int const table_set = bubl_and_rottable_set_for_buildable_restype[brt][1];

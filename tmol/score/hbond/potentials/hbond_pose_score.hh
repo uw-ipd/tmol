@@ -1,7 +1,6 @@
 #pragma once
 
-#include <Eigen/Core>
-#include <Eigen/Geometry>
+#include <tmol/utility/portable/matrix.hh>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
@@ -21,8 +20,7 @@ namespace score {
 namespace hbond {
 namespace potentials {
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+using tmol::portable::Vec;
 
 template <
     template <tmol::Device> class DeviceOps,
@@ -92,7 +90,7 @@ struct HBondPoseScoreDispatch {
 
       // HBond potential parameters
       TView<HBondPairParams<Real>, 2, Dev> pair_params,
-      TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
+      TView<HBondPolysFor<Dev>, 2, Dev> pair_polynomials,
       TView<HBondGlobalParams<Real>, 1, Dev> global_params,
 
       // Derived-atom coords + source-atom indices produced by the
@@ -170,7 +168,7 @@ struct HBondPoseScoreDispatch {
 
       // HBond potential parameters
       TView<HBondPairParams<Real>, 2, Dev> pair_params,
-      TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
+      TView<HBondPolysFor<Dev>, 2, Dev> pair_polynomials,
       TView<HBondGlobalParams<Real>, 1, Dev> global_params,
       //////////////////////
 
@@ -278,7 +276,7 @@ struct HBondRotamerScoreDispatch {
 
       // HBond potential parameters
       TView<HBondPairParams<Real>, 2, Dev> pair_params,
-      TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
+      TView<HBondPolysFor<Dev>, 2, Dev> pair_polynomials,
       TView<HBondGlobalParams<Real>, 1, Dev> global_params,
 
       // Derived-atom coords + source-atom indices produced by the
@@ -355,7 +353,7 @@ struct HBondRotamerScoreDispatch {
 
       // HBond potential parameters
       TView<HBondPairParams<Real>, 2, Dev> pair_params,
-      TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
+      TView<HBondPolysFor<Dev>, 2, Dev> pair_polynomials,
       TView<HBondGlobalParams<Real>, 1, Dev> global_params,
       //////////////////////
 

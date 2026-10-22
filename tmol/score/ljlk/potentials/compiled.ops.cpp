@@ -72,7 +72,12 @@ class LJLKPoseScoreOp
 
     using Int = int32_t;
 
-    TMOL_DISPATCH_FLOATING_DEVICE(
+    // The whole-pose forward, the rotamer-pair score, and the fused LJ/LK +
+    // elec rotamer dispatch and weighted score have Metal backends; see
+    // ljlk_pose_score.mps.cpp and ljlk_elec_pose_score.mps.cpp. The remaining
+    // dispatch sites in this file stay CPU/CUDA-only until their kernels are
+    // ported.
+    TMOL_DISPATCH_FLOATING_DEVICE_MPS(
         rot_coords.options(), "ljlk_pose_score_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
@@ -520,7 +525,7 @@ class LJLKRotamerScoreOp : public tmol::native::autograd::Function<
 
     using Int = int32_t;
 
-    TMOL_DISPATCH_FLOATING_DEVICE(
+    TMOL_DISPATCH_FLOATING_DEVICE_MPS(
         rot_coords.options(), "ljlk_rotamer_score_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
@@ -1080,7 +1085,7 @@ Tensor ljlk_elec_rotamer_dispatch_op(
     int64_t candidate_count) {
   Tensor dispatch_indices;
   using Int = int32_t;
-  TMOL_DISPATCH_FLOATING_DEVICE(
+  TMOL_DISPATCH_FLOATING_DEVICE_MPS(
       rot_coords.options(), "ljlk_elec_rotamer_dispatch", ([&] {
         using Real = scalar_t;
         constexpr tmol::Device Dev = device_t;
@@ -1177,7 +1182,7 @@ std::vector<Tensor> ljlk_elec_weighted_rotamer_scores_op(
 
   Tensor score, dscore_dcoords, dispatch_indices;
   using Int = int32_t;
-  TMOL_DISPATCH_FLOATING_DEVICE(
+  TMOL_DISPATCH_FLOATING_DEVICE_MPS(
       rot_coords.options(), "ljlk_elec_weighted_rotamer_scores", ([&] {
         using Real = scalar_t;
         constexpr tmol::Device Dev = device_t;

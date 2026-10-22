@@ -17,6 +17,7 @@ using IntList = torch::headeronly::IntHeaderOnlyArrayRef;
 using Error = std::runtime_error;
 constexpr auto kCPU = torch::headeronly::DeviceType::CPU;
 constexpr auto kCUDA = torch::headeronly::DeviceType::CUDA;
+constexpr auto kMPS = torch::headeronly::DeviceType::MPS;
 constexpr auto kInt32 = ScalarType::Int;
 constexpr auto kFloat32 = ScalarType::Float;
 constexpr auto kFloat64 = ScalarType::Double;
@@ -109,6 +110,9 @@ struct Tensor {
   Tensor select(int64_t d, int64_t i) const;
   Tensor narrow(int64_t d, int64_t start, int64_t length) const;
   bool is_cuda() const { return device().is_cuda(); }
+  bool is_mps() const {
+    return device().type() == torch::headeronly::DeviceType::MPS;
+  }
   bool is_contiguous() const {
     if (numel() == 0) return true;
     int64_t expected = 1;
@@ -164,6 +168,21 @@ Tensor full(IntList shape, S fill, TensorOptions options) {
   stable::fill_(*result.value, fill);
   return result;
 }
+// A contiguous copy that starts at the base of its own allocation.
+//
+// Metal requires a 16-byte-aligned buffer offset, and a tensor that is a
+// slice of a larger one -- an upstream gradient narrowed out of a
+// concatenation, say -- need not satisfy that. Binding one faults inside the
+// Metal shim rather than returning an error, so the few gradients that reach
+// a kernel as views are copied first.
+inline Tensor realigned_copy(const Tensor& source) {
+  Tensor fresh = empty(source.sizes(), source.options());
+  auto destination = fresh.handle();
+  auto origin = source.handle();
+  stable::copy_(destination, origin);
+  return fresh;
+}
+
 inline Tensor zeros(IntList shape, TensorOptions options) {
   Tensor result = empty(shape, options);
   STABLE_TORCH_ERROR_CODE_CHECK(aoti_torch_zero_(result.value->get()));
@@ -239,6 +258,7 @@ using torch::kCUDA;
 using torch::kFloat32;
 using torch::kFloat64;
 using torch::kInt32;
+using torch::kMPS;
 namespace autograd = torch::autograd;
 inline ScalarType scalar_type_from_options(const TensorOptions& o) {
   return c10::typeMetaToScalarType(o.dtype());

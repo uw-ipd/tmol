@@ -1,7 +1,6 @@
 #include <tmol/utility/tensor/native.hh>
 #pragma once
 
-#include <Eigen/Core>
 #include <tuple>
 
 #include <tmol/utility/tensor/TensorAccessor.h>

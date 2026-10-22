@@ -1,10 +1,10 @@
 #pragma once
 
 #ifdef __CUDACC__
+#include <tmol/utility/portable/matrix.hh>
 #include <cooperative_groups.h>
 #include <tmol/numeric/log2.hh>
 #include <type_traits>
-#include <Eigen/Core>
 
 namespace tmol {
 namespace score {
@@ -35,19 +35,19 @@ struct WarpStrideReduceShfl<
 
 template <typename T, int N>
 struct WarpStrideReduceShfl<
-    Eigen::Matrix<T, N, 1>,
+    tmol::portable::Vec<T, N>,
     typename std::enable_if<std::is_arithmetic<T>::value>::type> {
   template <typename F>
-  static __device__ __inline__ Eigen::Matrix<T, N, 1> stride_reduce(
+  static __device__ __inline__ tmol::portable::Vec<T, N> stride_reduce(
       cooperative_groups::coalesced_group g,
-      Eigen::Matrix<T, N, 1> val,
+      tmol::portable::Vec<T, N> val,
       int stride,
       F f) {
     unsigned int const grank = g.thread_rank();
     unsigned int const gsize = g.size();
 
     for (int i = 1; i * stride < 32; i *= 2) {
-      Eigen::Matrix<T, N, 1> val_i;
+      tmol::portable::Vec<T, N> val_i;
       for (int j = 0; j < N; ++j) {
         val_i[j] = g.shfl_down(val[j], i * stride);
       }

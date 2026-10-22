@@ -93,7 +93,8 @@ class HBondPoseScoresOp : public tmol::native::autograd::Function<
 
     using Int = int32_t;
 
-    TMOL_DISPATCH_FLOATING_DEVICE(
+    // _MPS: the whole-pose kernel has a Metal entry point.
+    TMOL_DISPATCH_FLOATING_DEVICE_MPS(
         rot_coords.options(), "hbond_pose_score_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
@@ -304,7 +305,8 @@ class HBondPoseScoresOp : public tmol::native::autograd::Function<
 
       auto dTdV = grad_outputs[0];
 
-      TMOL_DISPATCH_FLOATING_DEVICE(
+      // _MPS: both backward kernels have Metal entry points.
+      TMOL_DISPATCH_FLOATING_DEVICE_MPS(
           rot_coords.options(), "hbond_pose_score_backward", ([&] {
             using Real = scalar_t;
             constexpr tmol::Device Dev = device_t;
@@ -441,7 +443,9 @@ class HBondRotamerScoresOp : public tmol::native::autograd::Function<
 
     using Int = int32_t;
 
-    TMOL_DISPATCH_FLOATING_DEVICE(
+    // _MPS: the rotamer-pair kernel has a Metal entry point, so an MPS
+    // coordinate tensor dispatches to the device rather than being rejected.
+    TMOL_DISPATCH_FLOATING_DEVICE_MPS(
         rot_coords.options(), "hbond_rotamer_score_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
@@ -645,7 +649,8 @@ class HBondRotamerScoresOp : public tmol::native::autograd::Function<
 
       auto dTdV = grad_outputs[0];
 
-      TMOL_DISPATCH_FLOATING_DEVICE(
+      // _MPS: both backward kernels have Metal entry points.
+      TMOL_DISPATCH_FLOATING_DEVICE_MPS(
           rot_coords.options(), "hbond_pose_score_backward", ([&] {
             using Real = scalar_t;
             constexpr tmol::Device Dev = device_t;
@@ -1057,7 +1062,8 @@ std::vector<Tensor> gen_hbond_bases_op(
 
   using Int = int32_t;
 
-  TMOL_DISPATCH_FLOATING_DEVICE(
+  // _MPS: the derived-atom pre-pass has a Metal entry point.
+  TMOL_DISPATCH_FLOATING_DEVICE_MPS(
       rot_coords.options(), "gen_hbond_bases_op", ([&] {
         using Real = scalar_t;
         constexpr tmol::Device Dev = device_t;
@@ -1106,7 +1112,10 @@ std::vector<Tensor> hbond_rotamer_spheres_op(
   Tensor rot_spheres;
   Tensor block_spheres;
   using Int = int32_t;
-  TMOL_DISPATCH_FLOATING_DEVICE(
+  // _MPS: the packer reaches these through
+  // iter_packing_rotamer_scores, and the sphere-overlap bodies they
+  // delegate to have Metal entry points.
+  TMOL_DISPATCH_FLOATING_DEVICE_MPS(
       rot_coords.options(), "hbond_rotamer_spheres", ([&] {
         using Real = scalar_t;
         constexpr tmol::Device Dev = device_t;
@@ -1144,7 +1153,10 @@ Tensor hbond_rotamer_dispatch_page_op(
       candidate_begin >= 0 && candidate_end >= candidate_begin
           && candidate_end <= std::numeric_limits<Int>::max(),
       "invalid hydrogen-bond rotamer dispatch candidate range");
-  TMOL_DISPATCH_FLOATING_DEVICE(
+  // _MPS: the packer reaches these through
+  // iter_packing_rotamer_scores, and the sphere-overlap bodies they
+  // delegate to have Metal entry points.
+  TMOL_DISPATCH_FLOATING_DEVICE_MPS(
       block_spheres.options(), "hbond_rotamer_dispatch_page", ([&] {
         using Real = scalar_t;
         constexpr tmol::Device Dev = device_t;

@@ -1,7 +1,6 @@
 #pragma once
 
-#include <Eigen/Core>
-#include <Eigen/Geometry>
+#include <tmol/utility/portable/matrix.hh>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
@@ -25,7 +24,6 @@
 #include <tmol/score/constraint/potentials/constraint_score.hh>
 
 // Operator definitions; safe for CPU compilation
-#include <moderngpu/operators.hxx>
 
 #include <chrono>
 
@@ -34,10 +32,9 @@ namespace score {
 namespace constraint {
 namespace potentials {
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+using tmol::portable::Vec;
 template <typename Real>
-using CoordQuad = Eigen::Matrix<Real, 4, 3>;
+using CoordQuad = tmol::portable::Mat<Real, 4, 3>;
 #define Real3 Vec<Real, 3>
 
 template <

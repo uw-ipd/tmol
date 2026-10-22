@@ -1,15 +1,11 @@
 #pragma once
 
-#include <cmath>
-
-#include <Eigen/Core>
-#include <Eigen/Geometry>
+#include <tmol/utility/portable/math.hh>
+#include <tmol/utility/portable/matrix.hh>
 
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/tuple.hh>
 #include <tmol/score/common/tuple_operators.hh>
-
-#include <pybind11/pybind11.h>
 
 namespace tmol {
 namespace score {
@@ -18,10 +14,9 @@ namespace potentials {
 
 using namespace tmol::score::common;
 
-#define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+#define def auto TMOL_HD
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+using tmol::portable::Vec;
 #define Real3 Vec<Real, 3>
 
 // ---------------------------------------------------------------------------
@@ -55,8 +50,10 @@ def gbtorsion_V_dV(
 
   // offset is an additive constant (Rosetta convention), not a phase.
   // Per-period phases (f1..f4) are all 0 in the current database.
-  Real E = k1 * (1 + std::cos(theta)) + k2 * (1 + std::cos(2 * theta))
-           + k3 * (1 + std::cos(3 * theta)) + k4 * (1 + std::cos(4 * theta));
+  Real E = k1 * (1 + tmol::portable::math::cos(theta))
+           + k2 * (1 + tmol::portable::math::cos(2 * theta))
+           + k3 * (1 + tmol::portable::math::cos(3 * theta))
+           + k4 * (1 + tmol::portable::math::cos(4 * theta));
 
   if (k1 < 0) E += -2.0 * k1;
   if (k2 < 0) E += -2.0 * k2;
@@ -67,8 +64,10 @@ def gbtorsion_V_dV(
 
   // printf("gbtorsion_V_dV E=%f (%f/%f/%f/%f)\n",E,k1,k2,k3,k4);
 
-  Real dEdtheta = -k1 * std::sin(theta) - 2 * k2 * std::sin(2 * theta)
-                  - 3 * k3 * std::sin(3 * theta) - 4 * k4 * std::sin(4 * theta);
+  Real dEdtheta = -k1 * tmol::portable::math::sin(theta)
+                  - 2 * k2 * tmol::portable::math::sin(2 * theta)
+                  - 3 * k3 * tmol::portable::math::sin(3 * theta)
+                  - 4 * k4 * tmol::portable::math::sin(4 * theta);
 
   Vec<Real3, 4> dEdx;
   dEdx[0] = dEdtheta * torsion.dV_dI;

@@ -1,52 +1,28 @@
-#include <tmol/utility/tensor/native.hh>
 #pragma once
 
+#include <tmol/utility/portable/matrix.hh>
+#include <tmol/utility/tensor/native.hh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorUtil.h>
+#include "params_types.hh"
 
 namespace tmol {
-namespace score {
-namespace hbond {
-namespace potentials {
 
+// A double-float occupies two primitive slots. Declared here rather than
+// beside the type because hbond is its only tensor-resident user; move it to
+// the tensor layer if a second term needs it.
 template <typename Real>
-struct HBondPoly {
-  Eigen::Matrix<Real, 11, 1> coeffs;
-  Real zero_pad;  // Eigen wants to align to memory boundaries
-  Eigen::Matrix<Real, 2, 1> range;
-  Eigen::Matrix<Real, 2, 1> bound;
+struct enable_tensor_view<tmol::portable::DoubleFloat<Real>> {
+  static const bool enabled = enable_tensor_view<Real>::enabled;
+  static const tmol::native::ScalarType scalar_type() {
+    return enable_tensor_view<Real>::scalar_type();
+  }
+
+  static const int nconsumed_dims = 1;
+  static const int consumed_dims(int i) { return (i == 0) ? 2 : 0; }
+
+  typedef typename enable_tensor_view<Real>::PrimitiveType PrimitiveType;
 };
-
-template <typename Real>
-struct HBondPolynomials {
-  HBondPoly<Real> AHdist_poly;
-  HBondPoly<Real> cosBAH_poly;
-  HBondPoly<Real> cosAHD_poly;
-};
-
-template <typename Real>
-struct HBondGlobalParams {
-  Real hb_sp2_range_span;
-  Real hb_sp2_BAH180_rise;
-  Real hb_sp2_outer_width;
-  Real hb_sp3_softmax_fade;
-  Real threshold_distance;
-  Real max_ha_dis;
-};
-
-template <typename Real>
-struct HBondPairParams {
-  Real acceptor_hybridization;  // integer, stored as float
-  Real acceptor_weight;
-  Real donor_weight;
-};
-
-}  // namespace potentials
-}  // namespace hbond
-}  // namespace score
-}  // namespace tmol
-
-namespace tmol {
 
 template <typename Real>
 struct enable_tensor_view<score::hbond::potentials::HBondPoly<Real>> {
@@ -57,9 +33,12 @@ struct enable_tensor_view<score::hbond::potentials::HBondPoly<Real>> {
 
   static const int nconsumed_dims = 1;
   static const int consumed_dims(int i) {
-    return (i == 0) ? sizeof(score::hbond::potentials::HBondPoly<Real>)
-                          / sizeof(Real)
-                    : 0;
+    // Primitive units, not Real units: the two agree when Real is a scalar
+    // and differ when it is a double-float, which is two float32 slots.
+    return (i == 0)
+               ? sizeof(score::hbond::potentials::HBondPoly<Real>)
+                     / sizeof(typename enable_tensor_view<Real>::PrimitiveType)
+               : 0;
   }
 
   typedef typename enable_tensor_view<Real>::PrimitiveType PrimitiveType;
@@ -74,9 +53,10 @@ struct enable_tensor_view<score::hbond::potentials::HBondPolynomials<Real>> {
 
   static const int nconsumed_dims = 1;
   static const int consumed_dims(int i) {
-    return (i == 0) ? sizeof(score::hbond::potentials::HBondPolynomials<Real>)
-                          / sizeof(Real)
-                    : 0;
+    return (i == 0)
+               ? sizeof(score::hbond::potentials::HBondPolynomials<Real>)
+                     / sizeof(typename enable_tensor_view<Real>::PrimitiveType)
+               : 0;
   }
 
   typedef typename enable_tensor_view<Real>::PrimitiveType PrimitiveType;

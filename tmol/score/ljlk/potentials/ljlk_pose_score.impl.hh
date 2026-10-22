@@ -1,7 +1,9 @@
 #pragma once
 
-#include <Eigen/Core>
-#include <Eigen/Geometry>
+#include <tmol/utility/portable/array.hh>
+#include <tmol/utility/portable/reduce_ops.hh>
+#include <tmol/utility/portable/math.hh>
+#include <tmol/utility/portable/matrix.hh>
 #include <vector>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
@@ -17,6 +19,7 @@
 #include <tmol/score/common/diamond_macros.hh>
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/launch_box_macros.hh>
+#include <tmol/score/common/pose_total_reduce.hh>
 #include <tmol/score/common/sphere_overlap.impl.hh>
 #include <tmol/score/common/tile_atom_pair_evaluation.hh>
 #include <tmol/score/common/tuple.hh>
@@ -26,61 +29,27 @@
 
 #include <tmol/score/ljlk/potentials/lj.hh>
 #include <tmol/score/ljlk/potentials/ljlk.hh>
+#include <tmol/score/ljlk/potentials/ljlk_ctx_tensor.hh>
+#include <tmol/score/ljlk/potentials/ljlk_kernels.hh>
+#include <tmol/score/ljlk/potentials/ljlk_mps_launch.hh>
 #include <tmol/score/ljlk/potentials/ljlk_pose_score.hh>
 #include <tmol/score/ljlk/potentials/lk_isotropic.hh>
 
 // Operator definitions; safe for CPU compilation
-#include <moderngpu/operators.hxx>
 
 #include <chrono>
 
-// The maximum number of inter-residue chemical bonds
-#define MAX_N_CONN 12
-#define TILE_SIZE 32
+// MAX_N_CONN (the maximum number of inter-residue chemical bonds) and
+// TILE_SIZE come from ljlk_kernels.hh, which the kernel bodies and this
+// dispatch must agree on.
 
 namespace tmol {
 namespace score {
 namespace ljlk {
 namespace potentials {
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+using tmol::portable::Vec;
 
-template <int TILE, template <typename> typename InterEnergyData, typename Real>
-EIGEN_DEVICE_FUNC int interres_count_pair_separation(
-    InterEnergyData<Real> const& inter_dat,
-    int atom_tile_ind1,
-    int atom_tile_ind2,
-    bool crossover_3full) {
-  int separation = inter_dat.min_separation;
-  if (separation <= inter_dat.max_important_bond_separation) {
-    separation = common::count_pair::shared_mem_inter_block_separation<TILE>(
-        inter_dat.max_important_bond_separation,
-        atom_tile_ind1,
-        atom_tile_ind2,
-        inter_dat.r1.n_conn,
-        inter_dat.r2.n_conn,
-        inter_dat.r1.path_dist,
-        inter_dat.r2.path_dist,
-        inter_dat.conn_seps);
-  }
-  if (crossover_3full && (separation == 3 || separation == 4)) separation = 5;
-  return separation;
-}
-
-//// kernel macros
-//    these define functions that are used in multiple lambda captures
-//    variables that are expected to be captured for each macro are specified
-
-// SCORE_INTER_LJ_ATOM_PAIR
-// input argument:  a function with signature (
-//     int atom_tile_idx1
-//     int atom_tile_idx2
-//     int start_atom1
-//     int start_atom2
-//     LJLKScoringData<Real> const &score_dat
-//     int cp_separation)
-//   ->std::array<Real, 2>
 #define SCORE_INTER_LJ_ATOM_PAIR(atom_pair_func)                            \
   TMOL_DEVICE_FUNC(                                                         \
       int start_atom1,                                                      \
@@ -111,7 +80,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 //     int start_atom2
 //     LJLKScoringData<Real> const &score_dat
 //     int cp_separation)
-//   ->std::array<Real, 2>
+//   ->tmol::portable::array<Real, 2>
 // captures:
 //    block_type_path_distance
 #define SCORE_INTRA_LJ_ATOM_PAIR(atom_pair_func)                             \
@@ -138,20 +107,25 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 //    coords (TView<Vec<Real, 3>, 2, D>)
 //    block_type_atom_types (TView<Int, 2, D>)
 //    type_params (TView<LJLKTypeParams<Real>, 1, D>)
-#define LOAD_BLOCK_COORDS_AND_PARAMS_INTO_SHARED                            \
-  TMOL_DEVICE_FUNC(                                                         \
-      int pose_ind,                                                         \
-      LJLKSingleResData<Real>& r_dat,                                       \
-      int n_atoms_to_load,                                                  \
-      int start_atom) {                                                     \
-    ljlk_load_block_coords_and_params_into_shared<DeviceOperations, D, nt>( \
-        rot_coords,                                                         \
-        block_type_atom_types,                                              \
-        type_params,                                                        \
-        pose_ind,                                                           \
-        r_dat,                                                              \
-        n_atoms_to_load,                                                    \
-        start_atom);                                                        \
+#define LOAD_BLOCK_COORDS_AND_PARAMS_INTO_SHARED   \
+  TMOL_DEVICE_FUNC(                                \
+      int pose_ind,                                \
+      LJLKSingleResData<Real>& r_dat,              \
+      int n_atoms_to_load,                         \
+      int start_atom) {                            \
+    ljlk_load_block_coords_and_params_into_shared< \
+        DeviceOperations,                          \
+        D,                                         \
+        nt,                                        \
+        Real,                                      \
+        Int>(                                      \
+        rot_coords,                                \
+        block_type_atom_types,                     \
+        type_params,                               \
+        pose_ind,                                  \
+        r_dat,                                     \
+        n_atoms_to_load,                           \
+        start_atom);                               \
   }
 
 // LOAD_BLOCK_INTO_SHARED
@@ -160,25 +134,31 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 //    block_type_atom_types (TView<Int, 2, D>)
 //    type_params (TView<LJLKTypeParams<Real>, 1, D>)
 //    block_type_path_distance (TView<Int, 3, D>)
-#define LOAD_BLOCK_INTO_SHARED                                       \
-  TMOL_DEVICE_FUNC(                                                  \
-      int pose_ind,                                                  \
-      LJLKSingleResData<Real>& r_dat,                                \
-      int n_atoms_to_load,                                           \
-      int start_atom,                                                \
-      bool count_pair_striking_dist,                                 \
-      unsigned char* __restrict__ conn_ats) {                        \
-    ljlk_load_block_into_shared<DeviceOperations, D, nt, TILE_SIZE>( \
-        rot_coords,                                                  \
-        block_type_atom_types,                                       \
-        type_params,                                                 \
-        block_type_path_distance,                                    \
-        pose_ind,                                                    \
-        r_dat,                                                       \
-        n_atoms_to_load,                                             \
-        start_atom,                                                  \
-        count_pair_striking_dist,                                    \
-        conn_ats);                                                   \
+#define LOAD_BLOCK_INTO_SHARED                \
+  TMOL_DEVICE_FUNC(                           \
+      int pose_ind,                           \
+      LJLKSingleResData<Real>& r_dat,         \
+      int n_atoms_to_load,                    \
+      int start_atom,                         \
+      bool count_pair_striking_dist,          \
+      unsigned char* __restrict__ conn_ats) { \
+    ljlk_load_block_into_shared<              \
+        DeviceOperations,                     \
+        D,                                    \
+        nt,                                   \
+        TILE_SIZE,                            \
+        Real,                                 \
+        Int>(                                 \
+        rot_coords,                           \
+        block_type_atom_types,                \
+        type_params,                          \
+        block_type_path_distance,             \
+        pose_ind,                             \
+        r_dat,                                \
+        n_atoms_to_load,                      \
+        start_atom,                           \
+        count_pair_striking_dist,             \
+        conn_ats);                            \
   }
 
 // LOAD_TILE_INVARIANT_INTERRES_DATA
@@ -190,38 +170,43 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 //    pose_stack_inter_block_bondsep (TView<int8_t, 5, D>)
 //    global_params (TView<LJGlobalParams<Real>, 1, D>)
 //    max_important_bond_separation (int)
-#define LOAD_TILE_INVARIANT_INTERRES_DATA                            \
-  TMOL_DEVICE_FUNC(                                                  \
-      int pose_ind,                                                  \
-      int rot_ind1,                                                  \
-      int rot_ind2,                                                  \
-      int block_ind1,                                                \
-      int block_ind2,                                                \
-      int block_type1,                                               \
-      int block_type2,                                               \
-      int n_atoms1,                                                  \
-      int n_atoms2,                                                  \
-      LJLKScoringData<Real>& inter_dat,                              \
-      shared_mem_union& shared) {                                    \
-    ljlk_load_tile_invariant_interres_data<DeviceOperations, D, nt>( \
-        rot_coord_offset,                                            \
-        pose_stack_near_blocks,                                      \
-        block_type_n_interblock_bonds,                               \
-        block_type_atoms_forming_chemical_bonds,                     \
-        pose_stack_inter_block_bondsep,                              \
-        global_params,                                               \
-        max_important_bond_separation,                               \
-        pose_ind,                                                    \
-        rot_ind1,                                                    \
-        rot_ind2,                                                    \
-        block_ind1,                                                  \
-        block_ind2,                                                  \
-        block_type1,                                                 \
-        block_type2,                                                 \
-        n_atoms1,                                                    \
-        n_atoms2,                                                    \
-        inter_dat,                                                   \
-        shared.m);                                                   \
+#define LOAD_TILE_INVARIANT_INTERRES_DATA        \
+  TMOL_DEVICE_FUNC(                              \
+      int pose_ind,                              \
+      int rot_ind1,                              \
+      int rot_ind2,                              \
+      int block_ind1,                            \
+      int block_ind2,                            \
+      int block_type1,                           \
+      int block_type2,                           \
+      int n_atoms1,                              \
+      int n_atoms2,                              \
+      LJLKScoringData<Real>& inter_dat,          \
+      shared_mem_union& shared) {                \
+    ljlk_load_tile_invariant_interres_data<      \
+        DeviceOperations,                        \
+        D,                                       \
+        nt,                                      \
+        Int,                                     \
+        Real>(                                   \
+        rot_coord_offset,                        \
+        pose_stack_near_blocks,                  \
+        block_type_n_interblock_bonds,           \
+        block_type_atoms_forming_chemical_bonds, \
+        pose_stack_inter_block_bondsep,          \
+        global_params,                           \
+        max_important_bond_separation,           \
+        pose_ind,                                \
+        rot_ind1,                                \
+        rot_ind2,                                \
+        block_ind1,                              \
+        block_ind2,                              \
+        block_type1,                             \
+        block_type2,                             \
+        n_atoms1,                                \
+        n_atoms2,                                \
+        inter_dat,                               \
+        shared.m);                               \
   }
 
 // LOAD_INTERRES1_TILE_DATA_TO_SHARED
@@ -230,23 +215,30 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 //    block_type_atom_types (TView<Int, 2, D>)
 //    type_params (TView<LJLKTypeParams<Real>, 1, D>)
 //    block_type_path_distance (TView<Int, 3, D>)
-#define LOAD_INTERRES1_TILE_DATA_TO_SHARED                            \
-  TMOL_DEVICE_FUNC(                                                   \
-      int tile_ind,                                                   \
-      int start_atom1,                                                \
-      int n_atoms_to_load1,                                           \
-      LJLKScoringData<Real>& inter_dat,                               \
-      shared_mem_union& shared) {                                     \
-    ljlk_load_interres1_tile_data_to_shared<DeviceOperations, D, nt>( \
-        rot_coords,                                                   \
-        block_type_atom_types,                                        \
-        type_params,                                                  \
-        block_type_path_distance,                                     \
-        tile_ind,                                                     \
-        start_atom1,                                                  \
-        n_atoms_to_load1,                                             \
-        inter_dat,                                                    \
-        shared.m);                                                    \
+#define LOAD_INTERRES1_TILE_DATA_TO_SHARED   \
+  TMOL_DEVICE_FUNC(                          \
+      int tile_ind,                          \
+      int start_atom1,                       \
+      int n_atoms_to_load1,                  \
+      LJLKScoringData<Real>& inter_dat,      \
+      shared_mem_union& shared) {            \
+    ljlk_load_interres1_tile_data_to_shared< \
+        DeviceOperations,                    \
+        D,                                   \
+        nt,                                  \
+        TILE_SIZE,                           \
+        MAX_N_CONN,                          \
+        Real,                                \
+        Int>(                                \
+        rot_coords,                          \
+        block_type_atom_types,               \
+        type_params,                         \
+        block_type_path_distance,            \
+        tile_ind,                            \
+        start_atom1,                         \
+        n_atoms_to_load1,                    \
+        inter_dat,                           \
+        shared.m);                           \
   }
 
 // LOAD_INTERRES2_TILE_DATA_TO_SHARED
@@ -256,23 +248,30 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 //    block_type_atom_types (TView<Int, 2, D>)
 //    type_params (TView<LJLKTypeParams<Real>, 1, D>)
 //    block_type_path_distance (TView<Int, 3, D>)
-#define LOAD_INTERRES2_TILE_DATA_TO_SHARED                            \
-  TMOL_DEVICE_FUNC(                                                   \
-      int tile_ind,                                                   \
-      int start_atom2,                                                \
-      int n_atoms_to_load2,                                           \
-      LJLKScoringData<Real>& inter_dat,                               \
-      shared_mem_union& shared) {                                     \
-    ljlk_load_interres2_tile_data_to_shared<DeviceOperations, D, nt>( \
-        rot_coords,                                                   \
-        block_type_atom_types,                                        \
-        type_params,                                                  \
-        block_type_path_distance,                                     \
-        tile_ind,                                                     \
-        start_atom2,                                                  \
-        n_atoms_to_load2,                                             \
-        inter_dat,                                                    \
-        shared.m);                                                    \
+#define LOAD_INTERRES2_TILE_DATA_TO_SHARED   \
+  TMOL_DEVICE_FUNC(                          \
+      int tile_ind,                          \
+      int start_atom2,                       \
+      int n_atoms_to_load2,                  \
+      LJLKScoringData<Real>& inter_dat,      \
+      shared_mem_union& shared) {            \
+    ljlk_load_interres2_tile_data_to_shared< \
+        DeviceOperations,                    \
+        D,                                   \
+        nt,                                  \
+        TILE_SIZE,                           \
+        MAX_N_CONN,                          \
+        Real,                                \
+        Int>(                                \
+        rot_coords,                          \
+        block_type_atom_types,               \
+        type_params,                         \
+        block_type_path_distance,            \
+        tile_ind,                            \
+        start_atom2,                         \
+        n_atoms_to_load2,                    \
+        inter_dat,                           \
+        shared.m);                           \
   }
 
 // LOAD_INTERRES_DATA_FROM_SHARED
@@ -302,9 +301,9 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
               start_atom2,                                                  \
               score_inter_ljlk_atom_pair,                                   \
               inter_dat);                                                   \
-      inter_dat.total_ljatr += std::get<0>(LJLK);                           \
-      inter_dat.total_ljrep += std::get<1>(LJLK);                           \
-      inter_dat.total_lk += std::get<2>(LJLK);                              \
+      inter_dat.total_ljatr += tmol::portable::get<0>(LJLK);                \
+      inter_dat.total_ljrep += tmol::portable::get<1>(LJLK);                \
+      inter_dat.total_lk += tmol::portable::get<2>(LJLK);                   \
     });                                                                     \
     DeviceOperations<D>::template for_each_in_workgroup<nt>(                \
         eval_scores_for_atom_pairs);                                        \
@@ -319,15 +318,17 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
   TMOL_DEVICE_FUNC(                                                           \
       LJLKScoringData<Real>& score_dat, shared_mem_union& shared) {           \
     auto reduce_energies = ([&](int tid) {                                    \
+      (void)cpu_pose_accum; /* nvcc: first-capture outside the */             \
+      /* constexpr-if below, which may not introduce a capture */             \
       Real const cta_total_ljatr =                                            \
           DeviceOperations<D>::template reduce_in_workgroup<nt>(              \
-              score_dat.total_ljatr, shared, mgpu::plus_t<Real>());           \
+              score_dat.total_ljatr, shared, tmol::portable::plus_t<Real>()); \
       Real const cta_total_ljrep =                                            \
           DeviceOperations<D>::template reduce_in_workgroup<nt>(              \
-              score_dat.total_ljrep, shared, mgpu::plus_t<Real>());           \
+              score_dat.total_ljrep, shared, tmol::portable::plus_t<Real>()); \
       Real const cta_total_lk =                                               \
           DeviceOperations<D>::template reduce_in_workgroup<nt>(              \
-              score_dat.total_lk, shared, mgpu::plus_t<Real>());              \
+              score_dat.total_lk, shared, tmol::portable::plus_t<Real>());    \
                                                                               \
       if (tid == 0) {                                                         \
         int const p = score_dat.pose_ind;                                     \
@@ -364,13 +365,13 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
     auto reduce_energies = ([&](int tid) {                                    \
       Real const cta_total_ljatr =                                            \
           DeviceOperations<D>::template reduce_in_workgroup<nt>(              \
-              score_dat.total_ljatr, shared, mgpu::plus_t<Real>());           \
+              score_dat.total_ljatr, shared, tmol::portable::plus_t<Real>()); \
       Real const cta_total_ljrep =                                            \
           DeviceOperations<D>::template reduce_in_workgroup<nt>(              \
-              score_dat.total_ljrep, shared, mgpu::plus_t<Real>());           \
+              score_dat.total_ljrep, shared, tmol::portable::plus_t<Real>()); \
       Real const cta_total_lk =                                               \
           DeviceOperations<D>::template reduce_in_workgroup<nt>(              \
-              score_dat.total_lk, shared, mgpu::plus_t<Real>());              \
+              score_dat.total_lk, shared, tmol::portable::plus_t<Real>());    \
       if (tid == 0) {                                                         \
         output[0][cta] = cta_total_ljatr;                                     \
         output[1][cta] = cta_total_ljrep;                                     \
@@ -385,26 +386,31 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 //    pose_stack_block_coord_offset (TView<Int, 2, D>)
 //    global_params (TView<LJGlobalParams<Real>, 1, D>)
 //    max_important_bond_separation (int)
-#define LOAD_TILE_INVARIANT_INTRARES_DATA                            \
-  TMOL_DEVICE_FUNC(                                                  \
-      int pose_ind,                                                  \
-      int rot_ind1,                                                  \
-      int block_ind1,                                                \
-      int block_type1,                                               \
-      int n_atoms1,                                                  \
-      LJLKScoringData<Real>& intra_dat,                              \
-      shared_mem_union& shared) {                                    \
-    ljlk_load_tile_invariant_intrares_data<DeviceOperations, D, nt>( \
-        rot_coord_offset,                                            \
-        global_params,                                               \
-        max_important_bond_separation,                               \
-        pose_ind,                                                    \
-        rot_ind1,                                                    \
-        block_ind1,                                                  \
-        block_type1,                                                 \
-        n_atoms1,                                                    \
-        intra_dat,                                                   \
-        shared.m);                                                   \
+#define LOAD_TILE_INVARIANT_INTRARES_DATA   \
+  TMOL_DEVICE_FUNC(                         \
+      int pose_ind,                         \
+      int rot_ind1,                         \
+      int block_ind1,                       \
+      int block_type1,                      \
+      int n_atoms1,                         \
+      LJLKScoringData<Real>& intra_dat,     \
+      shared_mem_union& shared) {           \
+    ljlk_load_tile_invariant_intrares_data< \
+        DeviceOperations,                   \
+        D,                                  \
+        nt,                                 \
+        Int,                                \
+        Real>(                              \
+        rot_coord_offset,                   \
+        global_params,                      \
+        max_important_bond_separation,      \
+        pose_ind,                           \
+        rot_ind1,                           \
+        block_ind1,                         \
+        block_type1,                        \
+        n_atoms1,                           \
+        intra_dat,                          \
+        shared.m);                          \
   }
 
 // LOAD_INTRARES1_TILE_DATA_TO_SHARED
@@ -412,22 +418,29 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 //    coords (TView<Vec<Real, 3>, 2, D>)
 //    block_type_atom_types (TView<Int, 2, D>)
 //    type_params (TView<LJLKTypeParams<Real>, 1, D>)
-#define LOAD_INTRARES1_TILE_DATA_TO_SHARED                            \
-  TMOL_DEVICE_FUNC(                                                   \
-      int tile_ind,                                                   \
-      int start_atom1,                                                \
-      int n_atoms_to_load1,                                           \
-      LJLKScoringData<Real>& intra_dat,                               \
-      shared_mem_union& shared) {                                     \
-    ljlk_load_intrares1_tile_data_to_shared<DeviceOperations, D, nt>( \
-        rot_coords,                                                   \
-        block_type_atom_types,                                        \
-        type_params,                                                  \
-        tile_ind,                                                     \
-        start_atom1,                                                  \
-        n_atoms_to_load1,                                             \
-        intra_dat,                                                    \
-        shared.m);                                                    \
+#define LOAD_INTRARES1_TILE_DATA_TO_SHARED   \
+  TMOL_DEVICE_FUNC(                          \
+      int tile_ind,                          \
+      int start_atom1,                       \
+      int n_atoms_to_load1,                  \
+      LJLKScoringData<Real>& intra_dat,      \
+      shared_mem_union& shared) {            \
+    ljlk_load_intrares1_tile_data_to_shared< \
+        DeviceOperations,                    \
+        D,                                   \
+        nt,                                  \
+        TILE_SIZE,                           \
+        MAX_N_CONN,                          \
+        Real,                                \
+        Int>(                                \
+        rot_coords,                          \
+        block_type_atom_types,               \
+        type_params,                         \
+        tile_ind,                            \
+        start_atom1,                         \
+        n_atoms_to_load1,                    \
+        intra_dat,                           \
+        shared.m);                           \
   }
 
 // LOAD_INTRARES2_TILE_DATA_TO_SHARED
@@ -436,22 +449,29 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 //    coords (TView<Vec<Real, 3>, 2, D>)
 //    block_type_atom_types (TView<Int, 2, D>)
 //    type_params (TView<LJLKTypeParams<Real>, 1, D>)
-#define LOAD_INTRARES2_TILE_DATA_TO_SHARED                            \
-  TMOL_DEVICE_FUNC(                                                   \
-      int tile_ind,                                                   \
-      int start_atom2,                                                \
-      int n_atoms_to_load2,                                           \
-      LJLKScoringData<Real>& intra_dat,                               \
-      shared_mem_union& shared) {                                     \
-    ljlk_load_intrares2_tile_data_to_shared<DeviceOperations, D, nt>( \
-        rot_coords,                                                   \
-        block_type_atom_types,                                        \
-        type_params,                                                  \
-        tile_ind,                                                     \
-        start_atom2,                                                  \
-        n_atoms_to_load2,                                             \
-        intra_dat,                                                    \
-        shared.m);                                                    \
+#define LOAD_INTRARES2_TILE_DATA_TO_SHARED   \
+  TMOL_DEVICE_FUNC(                          \
+      int tile_ind,                          \
+      int start_atom2,                       \
+      int n_atoms_to_load2,                  \
+      LJLKScoringData<Real>& intra_dat,      \
+      shared_mem_union& shared) {            \
+    ljlk_load_intrares2_tile_data_to_shared< \
+        DeviceOperations,                    \
+        D,                                   \
+        nt,                                  \
+        TILE_SIZE,                           \
+        MAX_N_CONN,                          \
+        Real,                                \
+        Int>(                                \
+        rot_coords,                          \
+        block_type_atom_types,               \
+        type_params,                         \
+        tile_ind,                            \
+        start_atom2,                         \
+        n_atoms_to_load2,                    \
+        intra_dat,                           \
+        shared.m);                           \
   }
 
 // LOAD_INTRARES_DATA_FROM_SHARED
@@ -486,9 +506,9 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
               start_atom2,                                                  \
               score_intra_ljlk_atom_pair,                                   \
               intra_dat);                                                   \
-      intra_dat.total_ljatr += std::get<0>(LJLK);                           \
-      intra_dat.total_ljrep += std::get<1>(LJLK);                           \
-      intra_dat.total_lk += std::get<2>(LJLK);                              \
+      intra_dat.total_ljatr += tmol::portable::get<0>(LJLK);                \
+      intra_dat.total_ljrep += tmol::portable::get<1>(LJLK);                \
+      intra_dat.total_lk += tmol::portable::get<2>(LJLK);                   \
     });                                                                     \
     DeviceOperations<D>::template for_each_in_workgroup<nt>(                \
         eval_scores_for_atom_pairs);                                        \
@@ -544,6 +564,15 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::
             neighbor_indices_t.view,
             reach);
     return neighbor_indices_t;
+  } else if constexpr (D == Device::MPS) {
+    // The compact block-neighbor list is a CPU/CUDA optimization; the Metal
+    // forward tests for MPS before reaching the paths that consume it, so
+    // this is unreachable rather than merely unported. The CPU branch below
+    // cannot be instantiated here in any case -- its spatial-sweep helper
+    // reads host memory, and an MPS tensor's data pointer is an MTLBuffer.
+    throw std::runtime_error(
+        "tmol: LJ/LK compact block neighbors are not available on the Metal "
+        "backend");
   } else {
     score::common::sphere_overlap::
         compute_block_spheres<DeviceOperations, D, Real, Int>::f(
@@ -735,14 +764,29 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
     scratch_rot_neighbors = scratch_rot_neighbors_t.view;
   }
 
+  // Metal accumulates whole-pose totals into per-block-pair cells and reduces
+  // them afterwards; see the same comment in elec_pose_score.impl.hh for why.
+  // In short: one atomic per threadgroup is already the CUDA shape, but
+  // thousands of them per pose still land in a varying order, float addition
+  // is not associative, and a line search that finite-differences the energy
+  // cannot tolerate a non-reproducible total. Writing a cell per threadgroup
+  // removes the atomic; summing the cells is fixed-order. The CPU path below
+  // already avoids this with a serial double accumulator.
+  bool const mps_cell_reduction =
+      D == tmol::Device::MPS && !output_block_pair_energies;
   TPack<Real, 4, D> output_t;
+  TPack<Real, 4, D> cells_t;
   if (output_block_pair_energies) {
     output_t =
         TPack<Real, 4, D>::zeros({3, n_poses, max_n_blocks, max_n_blocks});
   } else {
     output_t = TPack<Real, 4, D>::zeros({3, n_poses, 1, 1});
+    if (mps_cell_reduction) {
+      cells_t =
+          TPack<Real, 4, D>::zeros({3, n_poses, max_n_blocks, max_n_blocks});
+    }
   }
-  auto output = output_t.view;
+  auto output = mps_cell_reduction ? cells_t.view : output_t.view;
 
   // CPU workgroups execute serially. Accumulate their totals in double so
   // thousands of small block-pair terms are not rounded away in a large
@@ -783,270 +827,55 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
   // derivatives at all in the forward pass. The same energy-only kernel also
   // handles whole-pose calls that do not require gradients, avoiding the
   // register footprint and runtime branches of the derivative-capable kernel.
+  // State the kernel bodies read, named explicitly rather than captured
+  // implicitly by [=]. The two lambdas below close over this one object, and
+  // the Metal launch binds the same fields positionally; see ljlk_ctx.hh.
+  LJLKCtx<Real, Int, D> ctx;
+  ctx.rot_coords = rot_coords;
+  ctx.rot_coord_offset = rot_coord_offset;
+  ctx.block_ind_for_rot = block_ind_for_rot;
+  ctx.pose_ind_for_rot = pose_ind_for_rot;
+  ctx.block_type_ind_for_rot = block_type_ind_for_rot;
+  ctx.first_rot_block_type = first_rot_block_type;
+  ctx.rot_offset_for_block = rot_offset_for_block;
+  ctx.pose_stack_near_blocks = pose_stack_near_blocks;
+  ctx.pose_stack_inter_block_bondsep = pose_stack_inter_block_bondsep;
+  ctx.scratch_rot_neighbors = scratch_rot_neighbors;
+  ctx.shared_compact_block_neighbors = shared_compact_block_neighbors;
+  ctx.block_type_n_atoms = block_type_n_atoms;
+  ctx.block_type_atom_types = block_type_atom_types;
+  ctx.block_type_n_interblock_bonds = block_type_n_interblock_bonds;
+  ctx.block_type_atoms_forming_chemical_bonds =
+      block_type_atoms_forming_chemical_bonds;
+  ctx.block_type_path_distance = block_type_path_distance;
+  ctx.block_type_all_atoms_ligand_typed = block_type_all_atoms_ligand_typed;
+  ctx.type_params = type_params;
+  ctx.global_params = global_params;
+  ctx.output = output;
+  ctx.dV_dcoords = dV_dcoords;
+  ctx.max_n_blocks = max_n_blocks;
+  ctx.max_n_upper_triangle_inds = max_n_upper_triangle_inds;
+  // The store writes cells whenever the output view is cell-shaped.
+  ctx.output_block_pair_energies =
+      output_block_pair_energies || mps_cell_reduction;
+  ctx.use_shared_compact_block_neighbors = use_shared_compact_block_neighbors;
+  ctx.require_gradient = require_gradient;
+  ctx.max_dis = max_dis;
+
   auto eval_energies_by_block = ([=] TMOL_DEVICE_FUNC(int cta) {
-    auto atom_pair_ljlk_fn = ([=] TMOL_DEVICE_FUNC(
-                                  int atom_tile_ind1,
-                                  int atom_tile_ind2,
-                                  int,
-                                  int,
-                                  LJLKScoringData<Real> const& score_dat,
-                                  int cp_separation) {
-      return ljlk_atom_energy<Real, D>(
-          atom_tile_ind1, atom_tile_ind2, score_dat, cp_separation);
-    });
-
-    auto score_inter_ljlk_atom_pair =
-        ([=] SCORE_INTER_LJ_ATOM_PAIR(atom_pair_ljlk_fn));
-    auto score_intra_ljlk_atom_pair =
-        ([=] SCORE_INTRA_LJ_ATOM_PAIR(atom_pair_ljlk_fn));
-
-    auto load_block_coords_and_params_into_shared =
-        ([=] LOAD_BLOCK_COORDS_AND_PARAMS_INTO_SHARED);
-
-    auto load_block_into_shared = ([=] LOAD_BLOCK_INTO_SHARED);
-
-    SHARED_MEMORY union shared_mem_union {
-      shared_mem_union() {}
-      LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> m;
-      CTA_REAL_REDUCE_T_VARIABLE;
-    } shared;
-
-    int const max_important_bond_separation = 4;
-
-    int const pose_ind = cta / (max_n_upper_triangle_inds);
-    int const block_ind_pair = cta % (max_n_upper_triangle_inds);
-
-    // We do not have to kill half of our thread blocks simply because they
-    // represent the lower triangle now that we're using upper-triangle indices
-    auto upper_triangle_ind = common::upper_triangle_inds_from_linear_index(
-        block_ind_pair, max_n_blocks + 1);
-
-    int const block_ind1 = common::get<0>(upper_triangle_ind);
-    int const block_ind2 = common::get<1>(upper_triangle_ind) - 1;
-
-    // We still kill CTAs targetting non-neighboring block pairs, though,
-    // and that can be a lot
-    if (!use_shared_compact_block_neighbors
-        && scratch_rot_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
-      return;
-    }
-    int const rot_ind1 = rot_offset_for_block[pose_ind][block_ind1];
-    int const rot_ind2 = rot_offset_for_block[pose_ind][block_ind2];
-
-    if (rot_ind1 < 0 || rot_ind2 < 0) {
-      return;
-    }
-
-    int const block_type1 = block_type_ind_for_rot[rot_ind1];
-    int const block_type2 = block_type_ind_for_rot[rot_ind2];
-
-    if (block_type1 < 0 || block_type2 < 0) {
-      return;
-    }
-
-    int const n_atoms1 = block_type_n_atoms[block_type1];
-    int const n_atoms2 = block_type_n_atoms[block_type2];
-
-    auto load_tile_invariant_interres_data =
-        ([=] LOAD_TILE_INVARIANT_INTERRES_DATA);
-
-    auto load_interres1_tile_data_to_shared =
-        ([=] LOAD_INTERRES1_TILE_DATA_TO_SHARED);
-
-    auto load_interres2_tile_data_to_shared =
-        ([=] LOAD_INTERRES2_TILE_DATA_TO_SHARED);
-
-    auto load_interres_data_from_shared = ([=] LOAD_INTERRES_DATA_FROM_SHARED);
-
-    // Evaluate both the LJ and LK scores in separate dispatches
-    // over all atoms in the tile and the subset of heavy atoms in
-    // the tile
-    auto eval_interres_atom_pair_scores =
-        ([=] EVAL_INTERRES_ATOM_PAIR_SCORES_FUSED);
-
-    auto store_calculated_energies =
-        ([ =, cpu_pose_accum = cpu_pose_accum ] STORE_POSE_CALCULATED_ENERGIES);
-
-    auto load_tile_invariant_intrares_data =
-        ([=] LOAD_TILE_INVARIANT_INTRARES_DATA);
-
-    auto load_intrares1_tile_data_to_shared =
-        ([=] LOAD_INTRARES1_TILE_DATA_TO_SHARED);
-
-    auto load_intrares2_tile_data_to_shared =
-        ([=] LOAD_INTRARES2_TILE_DATA_TO_SHARED);
-
-    auto load_intrares_data_from_shared = ([=] LOAD_INTRARES_DATA_FROM_SHARED);
-
-    // Evaluate both the LJ and LK scores in separate dispatches
-    // over all atoms in the tile and the subset of heavy atoms in
-    // the tile
-    auto eval_intrares_atom_pair_scores =
-        ([=] EVAL_INTRARES_ATOM_PAIR_SCORES_FUSED);
-
-    tmol::score::common::tile_evaluate_rot_pair<
-        DeviceOperations,
-        D,
-        LJLKScoringData<Real>,
-        LJLKScoringData<Real>,
-        Real,
-        TILE_SIZE>(
-        shared,
-        pose_ind,
-        rot_ind1,
-        rot_ind2,
-        block_ind1,
-        block_ind2,
-        block_type1,
-        block_type2,
-        n_atoms1,
-        n_atoms2,
-        load_tile_invariant_interres_data,
-        load_interres1_tile_data_to_shared,
-        load_interres2_tile_data_to_shared,
-        load_interres_data_from_shared,
-        eval_interres_atom_pair_scores,
-        store_calculated_energies,
-        load_tile_invariant_intrares_data,
-        load_intrares1_tile_data_to_shared,
-        load_intrares2_tile_data_to_shared,
-        load_intrares_data_from_shared,
-        eval_intrares_atom_pair_scores,
-        store_calculated_energies);
+    typedef LJLKSharedMem<Real, TILE_SIZE, MAX_N_CONN, launch_t>
+        shared_mem_union;
+    SHARED_MEMORY shared_mem_union shared;
+    ljlk_eval_energies_by_block<DeviceOperations, D, Real, Int, launch_t>(
+        ctx, shared, cta, cpu_pose_accum);
   });
 
   auto eval_energies = ([=] TMOL_DEVICE_FUNC(int cta) {
-    auto atom_pair_ljlk_fn = ([=] TMOL_DEVICE_FUNC(
-                                  int atom_tile_ind1,
-                                  int atom_tile_ind2,
-                                  int start_atom1,
-                                  int start_atom2,
-                                  LJLKScoringData<Real> const& score_dat,
-                                  int cp_separation) {
-      return ljlk_atom_energy_and_derivs_full(
-          atom_tile_ind1,
-          atom_tile_ind2,
-          start_atom1,
-          start_atom2,
-          score_dat,
-          cp_separation,
-          dV_dcoords  // captured
-      );
-    });
-
-    auto score_inter_ljlk_atom_pair =
-        ([=] SCORE_INTER_LJ_ATOM_PAIR(atom_pair_ljlk_fn));
-    auto score_intra_ljlk_atom_pair =
-        ([=] SCORE_INTRA_LJ_ATOM_PAIR(atom_pair_ljlk_fn));
-
-    auto load_block_coords_and_params_into_shared =
-        ([=] LOAD_BLOCK_COORDS_AND_PARAMS_INTO_SHARED);
-
-    auto load_block_into_shared = ([=] LOAD_BLOCK_INTO_SHARED);
-
-    SHARED_MEMORY union shared_mem_union {
-      shared_mem_union() {}
-      LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> m;
-      CTA_REAL_REDUCE_T_VARIABLE;
-
-    } shared;
-
-    int const max_important_bond_separation = 4;
-
-    int const pose_ind = cta / (max_n_upper_triangle_inds);
-    int const block_ind_pair = cta % (max_n_upper_triangle_inds);
-
-    // We do not have to kill half of our thread blocks simply because they
-    // represent the lower triangle now that we're using upper-triangle indices
-    auto upper_triangle_ind = common::upper_triangle_inds_from_linear_index(
-        block_ind_pair, max_n_blocks + 1);
-
-    int const block_ind1 = common::get<0>(upper_triangle_ind);
-    int const block_ind2 = common::get<1>(upper_triangle_ind) - 1;
-
-    // We still kill CTAs targetting non-neighboring block pairs, though,
-    // and that can be a lot
-    if (!use_shared_compact_block_neighbors
-        && scratch_rot_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
-      return;
-    }
-    int const rot_ind1 = rot_offset_for_block[pose_ind][block_ind1];
-    int const rot_ind2 = rot_offset_for_block[pose_ind][block_ind2];
-
-    if (rot_ind1 < 0 || rot_ind2 < 0) {
-      return;
-    }
-
-    int const block_type1 = block_type_ind_for_rot[rot_ind1];
-    int const block_type2 = block_type_ind_for_rot[rot_ind2];
-
-    if (block_type1 < 0 || block_type2 < 0) {
-      return;
-    }
-
-    int const n_atoms1 = block_type_n_atoms[block_type1];
-    int const n_atoms2 = block_type_n_atoms[block_type2];
-
-    auto load_tile_invariant_interres_data =
-        ([=] LOAD_TILE_INVARIANT_INTERRES_DATA);
-
-    auto load_interres1_tile_data_to_shared =
-        ([=] LOAD_INTERRES1_TILE_DATA_TO_SHARED);
-
-    auto load_interres2_tile_data_to_shared =
-        ([=] LOAD_INTERRES2_TILE_DATA_TO_SHARED);
-
-    auto load_interres_data_from_shared = ([=] LOAD_INTERRES_DATA_FROM_SHARED);
-
-    auto eval_interres_atom_pair_scores =
-        ([=] EVAL_INTERRES_ATOM_PAIR_SCORES_FUSED);
-
-    auto store_calculated_energies =
-        ([ =, cpu_pose_accum = cpu_pose_accum ] STORE_POSE_CALCULATED_ENERGIES);
-
-    auto load_tile_invariant_intrares_data =
-        ([=] LOAD_TILE_INVARIANT_INTRARES_DATA);
-
-    auto load_intrares1_tile_data_to_shared =
-        ([=] LOAD_INTRARES1_TILE_DATA_TO_SHARED);
-
-    auto load_intrares2_tile_data_to_shared =
-        ([=] LOAD_INTRARES2_TILE_DATA_TO_SHARED);
-
-    auto load_intrares_data_from_shared = ([=] LOAD_INTRARES_DATA_FROM_SHARED);
-
-    auto eval_intrares_atom_pair_scores =
-        ([=] EVAL_INTRARES_ATOM_PAIR_SCORES_FUSED);
-
-    tmol::score::common::tile_evaluate_rot_pair<
-        DeviceOperations,
-        D,
-        LJLKScoringData<Real>,
-        LJLKScoringData<Real>,
-        Real,
-        TILE_SIZE>(
-        shared,
-        pose_ind,
-        rot_ind1,
-        rot_ind2,
-        block_ind1,
-        block_ind2,
-        block_type1,
-        block_type2,
-        n_atoms1,
-        n_atoms2,
-        load_tile_invariant_interres_data,
-        load_interres1_tile_data_to_shared,
-        load_interres2_tile_data_to_shared,
-        load_interres_data_from_shared,
-        eval_interres_atom_pair_scores,
-        store_calculated_energies,
-        load_tile_invariant_intrares_data,
-        load_intrares1_tile_data_to_shared,
-        load_intrares2_tile_data_to_shared,
-        load_intrares_data_from_shared,
-        eval_intrares_atom_pair_scores,
-        store_calculated_energies);
+    typedef LJLKSharedMem<Real, TILE_SIZE, MAX_N_CONN, launch_t>
+        shared_mem_union;
+    SHARED_MEMORY shared_mem_union shared;
+    ljlk_eval_energies<DeviceOperations, D, Real, Int, launch_t>(
+        ctx, shared, cta, cpu_pose_accum);
   });
 
   ///////////////////////////////////////////////////////////////////////
@@ -1079,7 +908,35 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
             max_dis);
   }
 
-  if (!output_block_pair_energies && use_shared_compact_block_neighbors) {
+  if (D == tmol::Device::MPS) {
+    // Metal cannot launch a device lambda -- there is nowhere for a closure
+    // to live, and entry points are compiled by a separate toolchain -- so
+    // the same kernel body is reached through a named entry rather than
+    // through eval_energies_by_block / eval_energies. The context those
+    // lambdas close over is the same object either way.
+    //
+    // This is tested ahead of the compact-block-neighbor paths because those
+    // launch through DeviceOperations, which on this backend would run the
+    // kernel on the CPU.
+    // Entry selection depends on whether gradients are wanted, not on the
+    // output shape: the cell store is independent of the derivative
+    // accumulation, so a whole-pose call with gradients gets both.
+    ljlk_mps_launch_if<D>(
+        require_gradient && !output_block_pair_energies
+            ? "ljlk_eval_energies_f32"
+            : "ljlk_eval_energies_by_block_f32",
+        ctx,
+        int64_t(n_poses) * int64_t(max_n_upper_triangle_inds));
+    if (mps_cell_reduction) {
+      // Compensated, fixed-order reduction rather than torch's tree sum.
+      // A tree sum is reproducible but still lets the total move by several
+      // ULP when a coordinate moves by a fraction of one, because its error
+      // term moves with its inputs; see pose_total_reduce_kernels.hh.
+      score::common::pose_total_reduce<DeviceOperations, D, Real>::f(
+          mgr, cells_t.view, output_t.view);
+    }
+  } else if (
+      !output_block_pair_energies && use_shared_compact_block_neighbors) {
     if (require_gradient) {
       score::common::sphere_overlap::launch_precomputed_block_neighbors<
           DeviceOperations,
@@ -1301,8 +1158,8 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::backward(
              int start_atom1,
              int start_atom2,
              LJLKScoringData<Real> const& score_dat,
-             int cp_separation) -> std::array<Real, 3> {
-          ljlk_atom_derivs(
+             int cp_separation) -> tmol::portable::array<Real, 3> {
+          ljlk_atom_derivs<Real, D>(
               atom_tile_ind1,
               atom_tile_ind2,
               start_atom1,
@@ -1315,8 +1172,8 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::backward(
                   [score_dat.block_ind2],
               dTdV[2][score_dat.pose_ind][score_dat.block_ind1]
                   [score_dat.block_ind2],
-              dV_dcoords  // captured
-          );
+              dV_dcoords,  // captured
+              type_params);
           return {0.0, 0.0, 0.0};
         });
 
@@ -1636,113 +1493,55 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
   // Define nt and reduce_t
   CTA_REAL_REDUCE_T_TYPEDEF;
 
+  // State the kernel body reads, named explicitly rather than captured
+  // implicitly by [=], so the Metal entry point can be handed the same
+  // fields; see ljlk_ctx.hh.
+  LJLKCtx<Real, Int, D, 2> ctx;
+  ctx.rot_coords = rot_coords;
+  ctx.rot_coord_offset = rot_coord_offset;
+  ctx.block_ind_for_rot = block_ind_for_rot;
+  ctx.pose_ind_for_rot = pose_ind_for_rot;
+  ctx.block_type_ind_for_rot = block_type_ind_for_rot;
+  ctx.first_rot_block_type = first_rot_block_type;
+  ctx.rot_offset_for_block = rot_offset_for_block;
+  ctx.pose_stack_near_blocks = pose_stack_near_blocks;
+  ctx.pose_stack_inter_block_bondsep = pose_stack_inter_block_bondsep;
+  ctx.dispatch_indices = dispatch_indices;
+  ctx.block_type_n_atoms = block_type_n_atoms;
+  ctx.block_type_atom_types = block_type_atom_types;
+  ctx.block_type_n_interblock_bonds = block_type_n_interblock_bonds;
+  ctx.block_type_atoms_forming_chemical_bonds =
+      block_type_atoms_forming_chemical_bonds;
+  ctx.block_type_path_distance = block_type_path_distance;
+  ctx.block_type_all_atoms_ligand_typed = block_type_all_atoms_ligand_typed;
+  ctx.type_params = type_params;
+  ctx.global_params = global_params;
+  ctx.output = output;
+  ctx.max_n_blocks = max_n_blocks;
+  ctx.output_block_pair_energies = true;
+  ctx.max_dis = max_dis;
+  // Unused by the rotamer-pair body -- it walks the dispatch list rather than
+  // the block-pair upper triangle, and computes no derivatives -- but the
+  // Metal launcher copies every scalar slot, so none may be left
+  // uninitialized.
+  ctx.max_n_upper_triangle_inds = 0;
+  ctx.use_shared_compact_block_neighbors = false;
+  ctx.require_gradient = false;
+
+  // Only the whole-pose CPU path accumulates in double; the rotamer path
+  // writes one cell per workgroup.
+  double* cpu_pose_accum = nullptr;
+
   auto eval_energies_by_block = ([=] TMOL_DEVICE_FUNC(int cta) {
-    auto atom_pair_ljlk_fn = ([=] TMOL_DEVICE_FUNC(
-                                  int atom_tile_ind1,
-                                  int atom_tile_ind2,
-                                  int,
-                                  int,
-                                  LJLKScoringData<Real> const& score_dat,
-                                  int cp_separation) {
-      return ljlk_atom_energy<Real, D>(
-          atom_tile_ind1, atom_tile_ind2, score_dat, cp_separation);
-    });
-
-    auto score_inter_ljlk_atom_pair =
-        ([=] SCORE_INTER_LJ_ATOM_PAIR(atom_pair_ljlk_fn));
-    auto score_intra_ljlk_atom_pair =
-        ([=] SCORE_INTRA_LJ_ATOM_PAIR(atom_pair_ljlk_fn));
-
-    auto load_block_coords_and_params_into_shared =
-        ([=] LOAD_BLOCK_COORDS_AND_PARAMS_INTO_SHARED);
-
-    auto load_block_into_shared = ([=] LOAD_BLOCK_INTO_SHARED);
-
-    SHARED_MEMORY union shared_mem_union {
-      shared_mem_union() {}
-      LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> m;
-      CTA_REAL_REDUCE_T_VARIABLE;
-    } shared;
-
-    int const max_important_bond_separation = 4;
-
-    int const pose_ind = dispatch_indices[0][cta];
-
-    int const rot_ind1 = dispatch_indices[1][cta];
-    int const rot_ind2 = dispatch_indices[2][cta];
-
-    int const block_ind1 = block_ind_for_rot[rot_ind1];
-    int const block_ind2 = block_ind_for_rot[rot_ind2];
-
-    int const block_type1 = block_type_ind_for_rot[rot_ind1];
-    int const block_type2 = block_type_ind_for_rot[rot_ind2];
-
-    if (block_type1 < 0 || block_type2 < 0) {
-      return;
-    }
-
-    int const n_atoms1 = block_type_n_atoms[block_type1];
-    int const n_atoms2 = block_type_n_atoms[block_type2];
-
-    auto load_tile_invariant_interres_data =
-        ([=] LOAD_TILE_INVARIANT_INTERRES_DATA);
-
-    auto load_interres1_tile_data_to_shared =
-        ([=] LOAD_INTERRES1_TILE_DATA_TO_SHARED);
-
-    auto load_interres2_tile_data_to_shared =
-        ([=] LOAD_INTERRES2_TILE_DATA_TO_SHARED);
-
-    auto load_interres_data_from_shared = ([=] LOAD_INTERRES_DATA_FROM_SHARED);
-
-    auto eval_interres_atom_pair_scores =
-        ([=] EVAL_INTERRES_ATOM_PAIR_SCORES_FUSED);
-
-    auto store_calculated_energies = ([=] STORE_ROTAMER_CALCULATED_ENERGIES);
-
-    auto load_tile_invariant_intrares_data =
-        ([=] LOAD_TILE_INVARIANT_INTRARES_DATA);
-
-    auto load_intrares1_tile_data_to_shared =
-        ([=] LOAD_INTRARES1_TILE_DATA_TO_SHARED);
-
-    auto load_intrares2_tile_data_to_shared =
-        ([=] LOAD_INTRARES2_TILE_DATA_TO_SHARED);
-
-    auto load_intrares_data_from_shared = ([=] LOAD_INTRARES_DATA_FROM_SHARED);
-
-    auto eval_intrares_atom_pair_scores =
-        ([=] EVAL_INTRARES_ATOM_PAIR_SCORES_FUSED);
-
-    tmol::score::common::tile_evaluate_rot_pair<
+    typedef LJLKSharedMem<Real, TILE_SIZE, MAX_N_CONN, launch_t>
+        shared_mem_union;
+    SHARED_MEMORY shared_mem_union shared;
+    ljlk_eval_rotamer_energies_by_block<
         DeviceOperations,
         D,
-        LJLKScoringData<Real>,
-        LJLKScoringData<Real>,
         Real,
-        TILE_SIZE>(
-        shared,
-        pose_ind,
-        rot_ind1,
-        rot_ind2,
-        block_ind1,
-        block_ind2,
-        block_type1,
-        block_type2,
-        n_atoms1,
-        n_atoms2,
-        load_tile_invariant_interres_data,
-        load_interres1_tile_data_to_shared,
-        load_interres2_tile_data_to_shared,
-        load_interres_data_from_shared,
-        eval_interres_atom_pair_scores,
-        store_calculated_energies,
-        load_tile_invariant_intrares_data,
-        load_intrares1_tile_data_to_shared,
-        load_intrares2_tile_data_to_shared,
-        load_intrares_data_from_shared,
-        eval_intrares_atom_pair_scores,
-        store_calculated_energies);
+        Int,
+        launch_t>(ctx, shared, cta, cpu_pose_accum);
   });
 
   ///////////////////////////////////////////////////////////////////////
@@ -1757,8 +1556,17 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
 
   assert(output_block_pair_energies);
   // Each pair writes its own score; backward recomputes its derivatives.
-  DeviceOperations<D>::template foreach_independent_workgroup<launch_t>(
-      mgr, dispatch_indices.size(1), eval_energies_by_block);
+  if (D == tmol::Device::MPS) {
+    // Metal has nowhere for a closure to live, so the identical body is
+    // reached through a named entry point instead.
+    ljlk_mps_launch_if<D>(
+        "ljlk_eval_rotamer_energies_by_block_f32",
+        ctx,
+        dispatch_indices.size(1));
+  } else {
+    DeviceOperations<D>::template foreach_independent_workgroup<launch_t>(
+        mgr, dispatch_indices.size(1), eval_energies_by_block);
+  }
 
   return {output_t, dV_dcoords_t, dispatch_indices_t};
 }  // LJLKRotamerScoreDispatch::forward
@@ -1902,8 +1710,8 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::backward(
              int start_atom1,
              int start_atom2,
              LJLKScoringData<Real> const& score_dat,
-             int cp_separation) -> std::array<Real, 3> {
-          ljlk_atom_derivs(
+             int cp_separation) -> tmol::portable::array<Real, 3> {
+          ljlk_atom_derivs<Real, D>(
               atom_tile_ind1,
               atom_tile_ind2,
               start_atom1,
@@ -1913,8 +1721,8 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::backward(
               dTdV[0][cta],
               dTdV[1][cta],
               dTdV[2][cta],
-              dV_dcoords  // captured
-          );
+              dV_dcoords,  // captured
+              type_params);
           return {0.0, 0.0, 0.0};
         });
 
