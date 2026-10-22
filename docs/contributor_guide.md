@@ -42,6 +42,12 @@ needs registering. A tutorial must:
   device-mismatch bugs; a test enforces it. Tag cells that need a GPU with
   `gpu-only`.
 
+`docs/tutorial/tmol_tutorial.ipynb` combines all of the section notebooks
+above into one notebook with a single shared Setup cell, for readers who want
+the whole walkthrough in one place. It doesn't match the `NN_name.ipynb`
+pattern, so it isn't part of CI's notebook discovery or GPU smoke -- update it
+by hand whenever a section notebook changes, so the two don't drift.
+
 ## Writing documentation
 
 - Lead with the operation or result. Put prerequisites next to the example.

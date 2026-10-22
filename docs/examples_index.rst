@@ -15,6 +15,15 @@ The shared ``notebook_setup`` module installs a tested TMol release with
 operators matching Colab's PyTorch CUDA major and downloads the example data.
 For local notebooks and supported environments, follow :doc:`installation`.
 
+Prefer one continuous walkthrough over switching between notebooks? The
+sections below are also available combined into a single notebook, sharing
+one Setup cell at the top.
+
+.. nbgallery::
+   :caption: Complete walkthrough
+
+   tutorial/tmol_tutorial
+
 .. nbgallery::
    :caption: Load, score, and optimize
 
