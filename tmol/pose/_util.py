@@ -94,21 +94,36 @@ def atom_label(pose_stack: PoseStack, pose: int, atom: int) -> str:
     return f"{residue_label(pose_stack, pose, block)} {name}"
 
 
+_RESIDUE_ID = re.compile(r"^(?P<number>\d+)(?P<insertion_code>[A-Za-z]*)$")
+
+
 def block_for_residue_label(
-    pose_stack: PoseStack, pose_index: int, chain: str, residue_number: int
+    pose_stack: PoseStack, pose_index: int, chain: str, residue_id: str
 ) -> int:
-    """Block index of one (chain, author residue number) label.
+    """Block index of one (chain, author residue label).
+
+    ``residue_id`` is a residue number as a string, with an optional PDB
+    insertion-code suffix (e.g. ``"12"`` or ``"12A"``).
 
     Raises ValueError if no block in the pose matches.
     """
+    match = _RESIDUE_ID.match(residue_id)
+    if not match:
+        raise ValueError(f"invalid residue id: {residue_id!r}")
+    residue_number = int(match.group("number"))
+    insertion_code = match.group("insertion_code")
+
     chain_labels = pose_stack.pdb_info.chain_labels[pose_index]
     residue_labels = pose_stack.pdb_info.residue_labels[pose_index]
+    residue_insertion_codes = pose_stack.pdb_info.residue_insertion_codes[pose_index]
     matches = numpy.flatnonzero(
-        (chain_labels == chain) & (residue_labels == residue_number)
+        (chain_labels == chain)
+        & (residue_labels == residue_number)
+        & (residue_insertion_codes == insertion_code)
     )
     if len(matches) == 0:
         raise ValueError(
-            f"no block found for chain {chain!r} residue {residue_number} "
+            f"no block found for chain {chain!r} residue {residue_id!r} "
             f"in pose {pose_index}"
         )
     return int(matches[0])
@@ -133,9 +148,6 @@ def blocks_for_residue_labels(
     matches = (residue_labels == queries[..., None]) & chain_mask
     block = numpy.where(matches.any(axis=-1), matches.argmax(axis=-1), -1)
     return torch.as_tensor(block, dtype=torch.int64, device=pose_stack.device)
-
-
-_RESIDUE_ID = re.compile(r"^(?P<number>\d+)(?P<insertion_code>[A-Za-z]*)$")
 
 
 def atom_for_residue_label(
