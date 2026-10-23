@@ -2,19 +2,15 @@ import numpy
 import torch
 
 from tmol.io._pdb_parsing import atom_record_dtype, _to_pdb
-from tmol.pose import (
-    PoseStack,
-    PackedBlockTypes,
-)
-from tmol.types import (
-    NDArray,
-    Tensor,
-    validate_args,
-)
+from tmol.pose._pose_stack import PoseStack
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.types._array import NDArray
+from tmol.types._torch import Tensor
+from tmol.types._functional import _validate_args
 from typing import Optional
 
 
-@validate_args
+@_validate_args
 def _write_pose_stack_pdb(
     pose_stack: PoseStack,
     fname_out: str,
@@ -35,7 +31,7 @@ def _write_pose_stack_pdb(
         fid.write(pdbstring)
 
 
-@validate_args
+@_validate_args
 def _atom_records_from_pose_stack(
     pose_stack: PoseStack,
     merge_fragments: bool = True,
@@ -77,7 +73,7 @@ def _atom_records_from_pose_stack(
     return records
 
 
-@validate_args
+@_validate_args
 def _atom_records_from_coords(
     pbt: "PackedBlockTypes",
     chain_ind_for_block: Tensor[torch.int64][:, :],
@@ -95,7 +91,7 @@ def _atom_records_from_coords(
     laid out in pose-stack form.
     """
 
-    from tmol.utility.tensor import exclusive_cumsum1d
+    from tmol.utility.tensor._common_operations import _exclusive_cumsum1d
 
     assert pose_like_coords.shape[0] == chain_ind_for_block.shape[0]
     assert pose_like_coords.shape[0] == block_types64.shape[0]
@@ -200,7 +196,7 @@ def _atom_records_from_coords(
         ]
     )
 
-    pose_atom_offsets = exclusive_cumsum1d(n_pose_atoms)
+    pose_atom_offsets = _exclusive_cumsum1d(n_pose_atoms)
 
     # ok, let's move everything to the cpu/numpy from here forward
     block_types64 = block_types64.cpu().numpy()

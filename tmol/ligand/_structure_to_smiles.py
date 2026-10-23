@@ -2,7 +2,7 @@
 
 This is the entry to tmol's unified ligand path: a CIF/atom-array ligand is
 converted to a SMILES string here, then handed to the existing
-SMILES -> params pipeline (:func:`nonstandard_residue_info_from_smiles_via_mol2`).
+SMILES -> params pipeline (:func:`_nonstandard_residue_info_from_smiles_via_mol2`).
 
 The SMILES always reflects the *input atoms as given* -- there is no residue-code
 / CCD-template lookup (that risks substituting an unrelated molecule when a CIF
@@ -15,7 +15,7 @@ bonds-absent input (such as a plain PDB ligand) is a hard error, because guessed
 bond orders would silently corrupt the generated params database.
 
 The SMILES is built with the shared ligand builder
-:func:`tmol.ligand._rdkit_mol.rdkit_mol_from_ligand_atom_array` -- the same
+:func:`tmol.ligand._rdkit_mol._rdkit_mol_from_ligand_atom_array` -- the same
 AtomArray -> RDKit path the params pipeline uses -- so the derived SMILES and
 the prepared molecule always agree on chemistry.
 """
@@ -26,8 +26,8 @@ import logging
 
 from biotite.structure import AtomArray
 from rdkit import Chem
-from tmol.ligand._input_repair import correct_carboxylate_bond_orders
-from tmol.ligand._rdkit_mol import rdkit_mol_from_ligand_atom_array
+from tmol.ligand._input_repair import _correct_carboxylate_bond_orders
+from tmol.ligand._rdkit_mol import _rdkit_mol_from_ligand_atom_array
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +63,7 @@ def _tag_source_atom_map(mol: Chem.Mol, atom_array: AtomArray) -> None:
         mol.GetAtomWithIdx(mol_idx).SetAtomMapNum(int(source_idx) + 1)
 
 
-def ligand_smiles_from_atom_array(
+def _ligand_smiles_from_atom_array(
     atom_array: AtomArray,
     *,
     res_name: str | None = None,
@@ -106,13 +106,13 @@ def ligand_smiles_from_atom_array(
     # Build from the explicit bonds
     #  -> then apply geometry bond-order corrections for common "mistakes"
     def _attempt(repair_chemistry: bool) -> str | None:
-        mol = rdkit_mol_from_ligand_atom_array(
+        mol = _rdkit_mol_from_ligand_atom_array(
             atom_array,
             res_name=res_name or "ligand",
             repair_chemistry=repair_chemistry,
             keep_hydrogens=keep_hydrogens,
         )
-        mol = correct_carboxylate_bond_orders(mol)
+        mol = _correct_carboxylate_bond_orders(mol)
         if with_atom_map:
             _tag_source_atom_map(mol, atom_array)
         return _mol_to_smiles(mol)

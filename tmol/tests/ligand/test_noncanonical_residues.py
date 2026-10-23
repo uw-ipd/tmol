@@ -21,17 +21,19 @@ import biotite.structure.io.pdbx as pdbx
 import numpy as np
 import pytest
 
-from tmol.database import ParameterDatabase
-from tmol.ligand import (
+from tmol import ParameterDatabase
+from tmol.ligand._preparation import (
     LigandPreparationError,
-    chem_comp_types_from_cif,
-    is_polymer_linking_component_type,
-    prepare_ligands,
-    prepare_polymer_residue,
+    _prepare_polymer_residue,
+    _ideal_coords_by_name,
 )
-from tmol.ligand._preparation import _ideal_coords_by_name
-from tmol.ligand._polymer_profile import alpha_profile
-from tmol.ligand._registry import rebuild_canonical_ordering
+from tmol.ligand._detect import (
+    _chem_comp_types_from_cif,
+    _is_polymer_linking_component_type,
+)
+from tmol.ligand import prepare_ligands
+from tmol.ligand._polymer_profile import _alpha_profile
+from tmol.ligand._registry import _rebuild_canonical_ordering
 from tmol.tests.data import data_path
 
 FIXTURE_DIR = data_path("ncaa_fixtures")
@@ -50,12 +52,12 @@ _FIXTURES: dict[str, tuple[str, float, int]] = {
 
 def _alpha():
     """The alpha profile, as derived from the default database."""
-    return alpha_profile(ParameterDatabase.get_default().chemical)
+    return _alpha_profile(ParameterDatabase.get_default().chemical)
 
 
 def _load(stem: str) -> struc.AtomArray:
     """A fixture as tmol reads it: bonded, and complete where the density was not."""
-    from tmol.io import atom_array_from_file
+    from tmol import atom_array_from_file
 
     return atom_array_from_file(FIXTURE_DIR / f"{stem}.cif")
 
@@ -76,9 +78,9 @@ def _residue(atom_array: struc.AtomArray, res_name: str) -> struc.AtomArray:
 def _prepare(stem: str, res_name: str, connection_atoms=None):
     param_db = ParameterDatabase.get_default()
     residue = _residue(_load(stem), res_name)
-    prep = prepare_polymer_residue(
+    prep = _prepare_polymer_residue(
         residue,
-        rebuild_canonical_ordering(param_db),
+        _rebuild_canonical_ordering(param_db),
         param_db,
         connection_atoms=connection_atoms,
     )
@@ -254,9 +256,9 @@ def test_polymer_residue_requires_a_bond_table() -> None:
     cif = pdbx.CIFFile.read(str(FIXTURE_DIR / "phosphopeptide_5ema.cif"))
     bondless = pdbx.get_structure(cif, model=1, include_bonds=False)
     with pytest.raises(ValueError, match="bond table"):
-        prepare_polymer_residue(
+        _prepare_polymer_residue(
             _residue(bondless, "SEP"),
-            rebuild_canonical_ordering(param_db),
+            _rebuild_canonical_ordering(param_db),
             param_db,
         )
 
@@ -268,7 +270,9 @@ def test_unsupported_backbone_is_refused_not_treated_as_a_ligand() -> None:
     # drop the backbone carbonyl carbon; nothing left matches a backbone
     residue = residue[residue.atom_name != "C"]
     with pytest.raises(LigandPreparationError, match="no supported backbone"):
-        prepare_polymer_residue(residue, rebuild_canonical_ordering(param_db), param_db)
+        _prepare_polymer_residue(
+            residue, _rebuild_canonical_ordering(param_db), param_db
+        )
 
 
 # --------------------------------------------------------------------------- #
@@ -288,7 +292,7 @@ def test_unsupported_backbone_is_refused_not_treated_as_a_ligand() -> None:
     ],
 )
 def test_is_polymer_linking_component_type(component_type, expected) -> None:
-    assert is_polymer_linking_component_type(component_type) is expected
+    assert _is_polymer_linking_component_type(component_type) is expected
 
 
 def test_chem_comp_types_from_cif(tmp_path) -> None:
@@ -305,19 +309,19 @@ def test_chem_comp_types_from_cif(tmp_path) -> None:
         "LIG non-polymer\n"
         "#\n"
     )
-    types = chem_comp_types_from_cif(cif_path)
+    types = _chem_comp_types_from_cif(cif_path)
     assert types[UNDEFINED_CODE] == "L-PEPTIDE LINKING"
     assert types["LIG"] == "NON-POLYMER"
-    assert is_polymer_linking_component_type(types[UNDEFINED_CODE])
-    assert not is_polymer_linking_component_type(types["LIG"])
+    assert _is_polymer_linking_component_type(types[UNDEFINED_CODE])
+    assert not _is_polymer_linking_component_type(types["LIG"])
 
 
 def test_declared_type_routes_an_unrecognized_residue() -> None:
     """An unrecognized residue name declared as polymer-linking is routed."""
-    from tmol.ligand import get_chem_comp_type
+    from tmol.ligand._detect import _get_chem_comp_type
 
     # nothing is declared for it unless the input file says so
-    assert get_chem_comp_type(UNDEFINED_CODE) is None
+    assert _get_chem_comp_type(UNDEFINED_CODE) is None
 
     atom_array = _load("phosphopeptide_5ema")
     renamed = atom_array.copy()
@@ -463,14 +467,14 @@ def test_prepare_ligands_routes_peptide_caps() -> None:
 def test_an_unlinked_cap_is_not_routed_to_the_polymer_path() -> None:
     """Only a cap that is actually bonded into a chain is a chain member."""
     from tmol.ligand._preparation import _routes_to_polymer_path
-    from tmol.ligand._detect import detect_nonstandard_residues
+    from tmol.ligand._detect import _detect_nonstandard_residues
 
     param_db = ParameterDatabase.get_default()
-    canonical_ordering = rebuild_canonical_ordering(param_db)
+    canonical_ordering = _rebuild_canonical_ordering(param_db)
     linked = _load(CAP_FIXTURE)
     detected = {
         lig.res_name: lig
-        for lig in detect_nonstandard_residues(linked, canonical_ordering)
+        for lig in _detect_nonstandard_residues(linked, canonical_ordering)
     }
     assert all(_routes_to_polymer_path(lig) for lig in detected.values())
 
@@ -484,20 +488,20 @@ def test_an_unlinked_cap_is_not_routed_to_the_polymer_path() -> None:
     )
     adrift = np.isin(unlinked.res_name, sorted(_CAPS))
     unlinked.coord[adrift] += 50.0
-    for lig in detect_nonstandard_residues(unlinked, canonical_ordering):
+    for lig in _detect_nonstandard_residues(unlinked, canonical_ordering):
         assert not lig.covalently_linked, lig.res_name
         assert not _routes_to_polymer_path(lig), lig.res_name
 
 
 def test_a_linked_fragment_is_not_mistaken_for_a_cap() -> None:
     """Cap profiles match their whole atom set, not a subset of it."""
-    from tmol.ligand._polymer_profile import profile_for_atom_array
+    from tmol.ligand._polymer_profile import _profile_for_atom_array
 
     residue = _residue(_load("phosphopeptide_5ema"), "SEP")
     # SEP carries both of NME's atoms, and more besides
     assert {"N", "C"} <= set(residue.atom_name)
-    assert profile_for_atom_array(residue) is _alpha()
+    assert _profile_for_atom_array(residue) is _alpha()
 
     # a two-atom fragment whose atoms are not the cap's is not claimed either
     fragment = residue[np.isin(residue.atom_name, ["N", "CA"])]
-    assert profile_for_atom_array(fragment) is None
+    assert _profile_for_atom_array(fragment) is None

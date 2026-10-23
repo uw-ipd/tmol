@@ -2,18 +2,16 @@ import numpy
 import torch
 import pandas
 
-from ._annotation_cache import AnnotationKey, cached_annotation, store_annotation
+from ._annotation_cache import AnnotationKey, _cached_annotation, _store_annotation
 
 from tmol.database import ParameterDatabase
 from ._chemical_database import AtomTypeParamResolver
 from tmol.chemical import RefinedResidueType
-from tmol.score import EnergyTerm
+from tmol.score._energy_term import EnergyTerm
 
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
-from tmol.types import NDArray
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
+from tmol.types._array import NDArray
 from tmol.utility import resolve_device
 
 from collections import OrderedDict
@@ -68,7 +66,7 @@ class AtomTypeDependentTerm(EnergyTerm):
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(AtomTypeDependentTerm, self).setup_block_type(block_type)
-        cached = cached_annotation(
+        cached = _cached_annotation(
             block_type, "_atom_type_annotation", self._atom_type_key
         )
         if cached is not None:
@@ -87,7 +85,7 @@ class AtomTypeDependentTerm(EnergyTerm):
 
         setattr(block_type, "atom_types", atom_types)
         setattr(block_type, "heavy_atom_inds", heavy_inds)
-        return store_annotation(
+        return _store_annotation(
             block_type,
             "_atom_type_annotation",
             self._atom_type_key,
@@ -100,7 +98,7 @@ class AtomTypeDependentTerm(EnergyTerm):
     ):  # noqa: C901
         super(AtomTypeDependentTerm, self).setup_packed_block_types(packed_block_types)
 
-        cached = cached_annotation(
+        cached = _cached_annotation(
             packed_block_types, "_atom_type_annotation", self._packed_atom_type_key
         )
         if cached is not None:
@@ -113,7 +111,7 @@ class AtomTypeDependentTerm(EnergyTerm):
         for bt in packed_block_types.active_block_types:
             self.setup_block_type(bt)
             block_params.append(
-                cached_annotation(bt, "_atom_type_annotation", self._atom_type_key)
+                _cached_annotation(bt, "_atom_type_annotation", self._atom_type_key)
             )
 
         atom_types = numpy.full(
@@ -181,7 +179,7 @@ class AtomTypeDependentTerm(EnergyTerm):
         setattr(packed_block_types, "atom_wildcard_ids", atom_wildcard_ids)
         setattr(packed_block_types, "atom_cross_ids", atom_cross_ids)
         setattr(packed_block_types, "atom_unique_id_index", atom_unique_id_index)
-        return store_annotation(
+        return _store_annotation(
             packed_block_types,
             "_atom_type_annotation",
             self._packed_atom_type_key,

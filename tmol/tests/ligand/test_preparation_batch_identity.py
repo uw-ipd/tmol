@@ -6,9 +6,12 @@ import attr
 import pytest
 import yaml
 
-from tmol.database import ParameterDatabase
+from tmol import ParameterDatabase
 from tmol.ligand import inject_params_files, load_params_file, write_params_file
-from tmol.ligand._registry import inject_ligand_preparations, rebuild_canonical_ordering
+from tmol.ligand._registry import (
+    _inject_ligand_preparations,
+    _rebuild_canonical_ordering,
+)
 from tmol.tests.ligand.test_ligand_entry_paths import _single_prep
 
 
@@ -29,16 +32,16 @@ def _assert_same(actual, expected):
     assert len({r.name for r in actual.chemical.residues}) == len(
         actual.chemical.residues
     )
-    rebuild_canonical_ordering(actual)
+    _rebuild_canonical_ordering(actual)
 
 
 @pytest.mark.parametrize("copies", [2, 20])
 def test_repeated_new_preparation_has_one_identity(prep, copies):
     base = ParameterDatabase.get_default()
-    expected = inject_ligand_preparations(base, [prep])
-    actual = inject_ligand_preparations(base, [replace(prep) for _ in range(copies)])
+    expected = _inject_ligand_preparations(base, [prep])
+    actual = _inject_ligand_preparations(base, [replace(prep) for _ in range(copies)])
     _assert_same(actual, expected)
-    assert inject_ligand_preparations(actual, [prep] * copies) is actual
+    assert _inject_ligand_preparations(actual, [prep] * copies) is actual
 
 
 def test_repeated_files_and_repeated_export_have_one_identity(prep, tmp_path):
@@ -89,11 +92,11 @@ def test_conflicting_batch_definitions_fail_before_injection(prep, field, preins
         )
     base = ParameterDatabase.get_default()
     if preinstalled:
-        base = inject_ligand_preparations(base, [prep])
+        base = _inject_ligand_preparations(base, [prep])
     snapshot = base.chemical
     for order in ([prep, changed], [changed, prep]):
         with pytest.raises(ValueError, match="Conflicting residue preparations"):
-            inject_ligand_preparations(base, order)
+            _inject_ligand_preparations(base, order)
     assert base.chemical is snapshot
 
 
@@ -102,9 +105,9 @@ def test_disjoint_shared_charges_on_duplicate_preps_are_preserved(prep, tmp_path
     second = replace(prep, variant_partial_charges={"ALA": {"N": -0.25}})
     merged = replace(prep, variant_partial_charges={"ALA": {"CA": 0.125, "N": -0.25}})
     base = ParameterDatabase.get_default()
-    expected = inject_ligand_preparations(base, [merged])
+    expected = _inject_ligand_preparations(base, [merged])
     for order in ([first, second], [second, first]):
-        _assert_same(inject_ligand_preparations(base, order), expected)
+        _assert_same(_inject_ligand_preparations(base, order), expected)
         path = tmp_path / "shared.tmol"
         write_params_file(order, path)
         _assert_same(inject_params_files(base, [path]), expected)
@@ -114,7 +117,7 @@ def test_disjoint_shared_charges_on_duplicate_preps_are_preserved(prep, tmp_path
 def test_installed_replacement_cannot_hide_conflicting_batch_metadata(prep, metadata):
     from tmol.ligand._parameter_replacements import _local_identity
 
-    base = inject_ligand_preparations(ParameterDatabase.get_default(), [prep])
+    base = _inject_ligand_preparations(ParameterDatabase.get_default(), [prep])
     name = prep.residue_type.name
     rt = next(r for r in base.chemical.residues if r.name == name)
     charges = dict(prep.partial_charges)
@@ -127,7 +130,7 @@ def test_installed_replacement_cannot_hide_conflicting_batch_metadata(prep, meta
             rt, prep.partial_charges, prep.cartbonded_params
         ),
     )
-    corrected = inject_ligand_preparations(base, [correction])
+    corrected = _inject_ligand_preparations(base, [correction])
     if metadata == "charges":
         first = replace(prep, variant_partial_charges={name: prep.partial_charges})
         second = replace(prep, variant_partial_charges={name: charges})
@@ -147,7 +150,7 @@ def test_installed_replacement_cannot_hide_conflicting_batch_metadata(prep, meta
         error = "Conflicting bonded parameters"
     for database in (base, corrected):
         with pytest.raises(ValueError, match=error):
-            inject_ligand_preparations(database, [first, second, correction])
+            _inject_ligand_preparations(database, [first, second, correction])
 
 
 @pytest.mark.parametrize("preinstalled", [False, True])
@@ -156,7 +159,7 @@ def test_conflicting_shared_charges_fail_even_when_one_matches_database(
 ):
     base = ParameterDatabase.get_default()
     if preinstalled:
-        base = inject_ligand_preparations(base, [prep])
+        base = _inject_ligand_preparations(base, [prep])
     old = {(p.res, p.atom): p.charge for p in base.scoring.elec.atom_charge_parameters}
     first = replace(prep, variant_partial_charges={"ALA": {"CA": old["ALA", "CA"]}})
     second = replace(
@@ -164,7 +167,7 @@ def test_conflicting_shared_charges_fail_even_when_one_matches_database(
     )
     for order in ([first, second], [second, first]):
         with pytest.raises(ValueError, match="Conflicting partial charges"):
-            inject_ligand_preparations(base, order)
+            _inject_ligand_preparations(base, order)
 
 
 def test_duplicate_yaml_charge_rows_cannot_hide_a_conflict(prep, tmp_path):
@@ -189,11 +192,11 @@ def test_element_maps_merge_across_duplicate_sources(prep):
     )
     first = replace(prep, residue_type=rt, atom_type_elements=None)
     second = replace(first, atom_type_elements={"BatchCarbon": "C"})
-    expected = inject_ligand_preparations(
+    expected = _inject_ligand_preparations(
         ParameterDatabase.get_default(), [second], strict_atom_types=True
     )
     for order in ([first, second], [second, first]):
-        actual = inject_ligand_preparations(
+        actual = _inject_ligand_preparations(
             ParameterDatabase.get_default(), order, strict_atom_types=True
         )
         _assert_same(actual, expected)
@@ -212,7 +215,7 @@ def test_conflicting_atom_type_elements_are_rejected(prep):
     second = replace(first, atom_type_elements={"BatchType": "N"})
     for order in ([first, second], [second, first]):
         with pytest.raises(ValueError, match="Conflicting atom type elements"):
-            inject_ligand_preparations(ParameterDatabase.get_default(), order)
+            _inject_ligand_preparations(ParameterDatabase.get_default(), order)
 
 
 def test_merging_shared_charges_does_not_mutate_reusable_preparations(prep):
@@ -221,7 +224,7 @@ def test_merging_shared_charges_does_not_mutate_reusable_preparations(prep):
     first = replace(prep, variant_partial_charges={"ALA": {"CA": 0.125}})
     second = replace(prep, variant_partial_charges={"ALA": {"N": -0.25}})
     expected = deepcopy([first, second])
-    inject_ligand_preparations(ParameterDatabase.get_default(), [first, second])
+    _inject_ligand_preparations(ParameterDatabase.get_default(), [first, second])
     assert [first, second] == expected
 
 

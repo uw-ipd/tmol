@@ -37,7 +37,7 @@ def _default_atom_types() -> list[Any]:
     return ParameterDatabase.get_default().chemical.atom_types
 
 
-def get_hbond_properties() -> dict[str, dict[str, Any]]:
+def _get_hbond_properties() -> dict[str, dict[str, Any]]:
     """Build hydrogen-bond related properties by atom-type name.
 
     Returns:
@@ -61,7 +61,7 @@ def get_hbond_properties() -> dict[str, dict[str, Any]]:
     return props
 
 
-def get_polar_classes() -> frozenset[str]:
+def _get_polar_classes() -> frozenset[str]:
     """Return configured legacy polar classes available in the database.
 
     Returns:

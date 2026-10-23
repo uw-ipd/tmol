@@ -3,7 +3,7 @@
 Builds an RDKit ``Mol`` from a ligand ``AtomArray`` while preserving the
 source's explicit bond orders and aromatic/subtype annotations. Protonation
 and partial-charge generation are handled upstream by the SMILES -> OpenBabel
-mol2 step (:func:`tmol.ligand._detect.nonstandard_residue_info_from_smiles_via_mol2`),
+mol2 step (:func:`tmol.ligand._detect._nonstandard_residue_info_from_smiles_via_mol2`),
 so this module does not protonate or recompute chemistry.
 """
 
@@ -22,7 +22,7 @@ from atomworks.io.utils.ccd import get_custom_ccd_entries
 from rdkit import Chem
 
 from tmol.ligand._detect import NonStandardResidueInfo, _strip_metals
-from tmol.ligand._input_repair import localize_overvalent_centers
+from tmol.ligand._input_repair import _localize_overvalent_centers
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ def _apply_source_subtypes(mol: Chem.Mol, atom_array: struc.AtomArray) -> None:
             atom.SetProp(_SOURCE_SUBTYPE_PROP, sub)
 
 
-def normalize_non_ring_aromatic_bonds(mol: Chem.Mol) -> None:
+def _normalize_non_ring_aromatic_bonds(mol: Chem.Mol) -> None:
     """Make single each aromatic bond on no cycle of aromatic bonds.
 
     Aromaticity belongs to a ring; elsewhere the order only marks delocalization
@@ -111,7 +111,7 @@ def _apply_atom_array_annotations(
     mol.SetProp(_SOURCE_AROMATIC_PROP, "1")
 
 
-def source_subtype(atom: Chem.Atom) -> str:
+def _source_subtype(atom: Chem.Atom) -> str:
     """Return the source mol2 atom-type subtype tag (e.g. ``ar``, ``2``,
     ``cat``, ``pl3``, ``3``) when known, else ``""``."""
     if atom.HasProp(_SOURCE_SUBTYPE_PROP):
@@ -119,7 +119,7 @@ def source_subtype(atom: Chem.Atom) -> str:
     return ""
 
 
-def source_carried_kekule(mol: Chem.Mol) -> bool:
+def _source_carried_kekule(mol: Chem.Mol) -> bool:
     """True iff the source molecule was constructed with Kekulé bond orders.
 
     Set when the input AtomArray carried
@@ -131,7 +131,7 @@ def source_carried_kekule(mol: Chem.Mol) -> bool:
     return mol.HasProp(_SOURCE_KEKULE_PROP) and mol.GetProp(_SOURCE_KEKULE_PROP) == "1"
 
 
-def source_has_aromatic_annotations(mol: Chem.Mol) -> bool:
+def _source_has_aromatic_annotations(mol: Chem.Mol) -> bool:
     """True iff aromatic atom flags were provided by the source input."""
     return (
         mol.HasProp(_SOURCE_AROMATIC_PROP) and mol.GetProp(_SOURCE_AROMATIC_PROP) == "1"
@@ -144,7 +144,7 @@ def _remove_hs_tolerant(mol: Chem.Mol) -> Chem.Mol:
     Kekulization can fail mid-pipeline for ligands with formal-charge
     nitrogens or unusual ring patterns. Falling back to ``sanitize=False``
     preserves the bond orders we already set (e.g. by
-    the shared AtomWorks converter); running ``sanitize_tolerant`` here
+    the shared AtomWorks converter); running ``_sanitize_tolerant`` here
     instead silently rewrites DOUBLE bonds back to SINGLE via the cleanup
     pass.
     """
@@ -224,7 +224,7 @@ def _assign_formal_charges_from_valence(mol: Chem.Mol) -> None:
             atom.SetFormalCharge(charge)
 
 
-def rdkit_mol_from_ligand_atom_array(
+def _rdkit_mol_from_ligand_atom_array(
     atom_array: struc.AtomArray,
     *,
     res_name: str = "ligand",
@@ -314,9 +314,9 @@ def rdkit_mol_from_ligand_atom_array(
         for t in raw_types
     ):
         mol.SetProp(_SOURCE_KEKULE_PROP, "1")
-    normalize_non_ring_aromatic_bonds(mol)
+    _normalize_non_ring_aromatic_bonds(mol)
     _apply_source_subtypes(mol, atom_array)
-    localize_overvalent_centers(mol)
+    _localize_overvalent_centers(mol)
     if repair_chemistry:
         # Last-resort normalizations that rewrite source bond orders; only the
         # SMILES fallback path enables these (see docstring).
@@ -324,7 +324,7 @@ def rdkit_mol_from_ligand_atom_array(
         mol = fix_charge_based_on_valence(mol)
     _assign_formal_charges_from_valence(mol)
 
-    assign_stereochemistry_from_3d(mol)
+    _assign_stereochemistry_from_3d(mol)
 
     if keep_hydrogens:
         arr_indices = list(range(len(atom_array)))
@@ -343,23 +343,23 @@ def rdkit_mol_from_ligand_atom_array(
     return mol
 
 
-def ligand_atom_array_to_rdkit_mol(
+def _ligand_atom_array_to_rdkit_mol(
     ligand_info: NonStandardResidueInfo,
     *,
     keep_hydrogens: bool = False,
 ) -> Chem.Mol:
     """Build an RDKit Mol from a detected ligand's AtomArray.
 
-    Thin wrapper over :func:`rdkit_mol_from_ligand_atom_array`.
+    Thin wrapper over :func:`_rdkit_mol_from_ligand_atom_array`.
     """
-    return rdkit_mol_from_ligand_atom_array(
+    return _rdkit_mol_from_ligand_atom_array(
         ligand_info.atom_array,
         res_name=ligand_info.res_name,
         keep_hydrogens=keep_hydrogens,
     )
 
 
-def transfer_tetrahedral_stereochemistry(
+def _transfer_tetrahedral_stereochemistry(
     mol: Chem.Mol,
     reference: Chem.Mol,
     atom_mapping: Mapping[int, int],
@@ -445,7 +445,7 @@ def _clear_undetermined_double_bond_stereo(mol: Chem.Mol, finite) -> None:
                 adjacent.SetBondDir(Chem.BondDir.NONE)
 
 
-def assign_stereochemistry_from_3d(mol: Chem.Mol) -> None:
+def _assign_stereochemistry_from_3d(mol: Chem.Mol) -> None:
     """Assign stereo from resolved geometry, leaving coordinates unchanged: three placed
     neighbours fix a centre, placed stereo atoms fix a double bond."""
     coords = mol.GetConformer().GetPositions()
@@ -485,7 +485,7 @@ def assign_stereochemistry_from_3d(mol: Chem.Mol) -> None:
     Chem.AssignStereochemistry(mol, cleanIt=True, force=True)
 
 
-def ccd_template_to_rdkit(atom_array: struc.AtomArray) -> Chem.Mol:
+def _ccd_template_to_rdkit(atom_array: struc.AtomArray) -> Chem.Mol:
     """A complete component template, hydrogens removed, with stereo from its geometry
     and then its declared R/S labels; raises if a declared label cannot be met."""
     if len(atom_array) == 0:
@@ -498,7 +498,7 @@ def ccd_template_to_rdkit(atom_array: struc.AtomArray) -> Chem.Mol:
     )
 
     try:
-        assign_stereochemistry_from_3d(mol)
+        _assign_stereochemistry_from_3d(mol)
     except (ValueError, RuntimeError):
         logger.warning(
             f"Failed to assign geometry-derived stereochemistry to {ccd_code}."

@@ -7,8 +7,8 @@ import torch
 import yaml
 import attr
 import cattr
-from tmol.database.scoring import (
-    DunbrackRotamerLibrary,
+from tmol.database.scoring import DunbrackRotamerLibrary
+from tmol.database.scoring._dunbrack_libraries import (
     RotamericDataForAA,
     RotamericAADunbrackLibrary,
     SemiRotamericAADunbrackLibrary,
@@ -19,7 +19,7 @@ rotamer_aliases = {
 }
 
 
-def create_rotameric_data_for_aa(aa_lines, nchi, rotamer_alias=None):
+def _create_rotameric_data_for_aa(aa_lines, nchi, rotamer_alias=None):
     rotamers = []
     rotamers_set = set([])
     for line in aa_lines:
@@ -87,16 +87,16 @@ def create_rotameric_data_for_aa(aa_lines, nchi, rotamer_alias=None):
     )
 
 
-def strip_comments(lines):
+def _strip_comments(lines):
     return [line for line in lines if (len(line) > 0 and line[0] != "#")]
 
 
-def create_rotameric_aa_dunbrack_library(aa3, lines, nchi_for_aa, rotamer_alias):
-    data_for_aa = create_rotameric_data_for_aa(lines, nchi_for_aa, rotamer_alias)
+def _create_rotameric_aa_dunbrack_library(aa3, lines, nchi_for_aa, rotamer_alias):
+    data_for_aa = _create_rotameric_data_for_aa(lines, nchi_for_aa, rotamer_alias)
     return RotamericAADunbrackLibrary(aa3, data_for_aa)
 
 
-def create_semi_rotameric_aa_dunbrack_library(  # noqa: C901
+def _create_semi_rotameric_aa_dunbrack_library(  # noqa: C901
     aa3,
     nchi,
     bb_rotamer_lines,
@@ -105,9 +105,9 @@ def create_semi_rotameric_aa_dunbrack_library(  # noqa: C901
     bbind_rotamer_def_lines,
 ):
     n_rotameric_chi = nchi - 1
-    bb_rotamer_lines = strip_comments(bb_rotamer_lines)
+    bb_rotamer_lines = _strip_comments(bb_rotamer_lines)
 
-    rotameric_data = create_rotameric_data_for_aa(bb_rotamer_lines, nchi)
+    rotameric_data = _create_rotameric_data_for_aa(bb_rotamer_lines, nchi)
     n_rotamers = rotameric_data.rotamers.shape[0]
     allchi_rot_to_rot_ind = {
         tuple(rotameric_data.rotamers[i, :].tolist()): i for i in range(n_rotamers)
@@ -183,7 +183,7 @@ def create_semi_rotameric_aa_dunbrack_library(  # noqa: C901
     )
 
 
-def create_dunbrack_rotamer_library(path_to_db_dir, path_to_reference_db_dir):
+def _create_dunbrack_rotamer_library(path_to_db_dir, path_to_reference_db_dir):
     nchi_for_aa = {
         "CYS": 1,
         "ASP": 2,
@@ -237,12 +237,12 @@ def create_dunbrack_rotamer_library(path_to_db_dir, path_to_reference_db_dir):
         # print("processing", lib_file)
         with gzip.GzipFile(lib_file) as fid:
             lines = [x.decode("utf-8") for x in fid.readlines()]
-        lines = strip_comments(lines)
+        lines = _strip_comments(lines)
         aa = rotameric_aas[i]
         rotamer_alias = None
         if aa in rotamer_aliases:
             rotamer_alias = rotamer_aliases[aa]
-        rot_lib = create_rotameric_aa_dunbrack_library(
+        rot_lib = _create_rotameric_aa_dunbrack_library(
             rotameric_aas[i], lines, nchi_for_aa[aa.upper()], rotamer_alias
         )
         rdls.append(rot_lib)
@@ -272,7 +272,7 @@ def create_dunbrack_rotamer_library(path_to_db_dir, path_to_reference_db_dir):
         with gzip.GzipFile(files[3]) as fid:
             bbind_rotamer_lines = [x.decode("utf-8") for x in fid.readlines()]
         # print("processing", files[0], files[1], files[2], files[3])
-        srot_lib = create_semi_rotameric_aa_dunbrack_library(
+        srot_lib = _create_semi_rotameric_aa_dunbrack_library(
             semirot_aas[i],
             nchi_for_aa[semirot_aas[i].upper()],
             rotamer_lines,
@@ -313,7 +313,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     torch.save(
-        create_dunbrack_rotamer_library(
+        _create_dunbrack_rotamer_library(
             args.path_to_db_dir,
             args.path_to_reference_db_dir,
         ),

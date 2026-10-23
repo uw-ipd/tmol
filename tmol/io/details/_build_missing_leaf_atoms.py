@@ -2,19 +2,17 @@ import numpy
 import torch
 import attr
 
-from tmol.types import (
-    Tensor,
-    NDArray,
-    validate_args,
-)
-from tmol.pose import PackedBlockTypes
+from tmol.types._torch import Tensor
+from tmol.types._array import NDArray
+from tmol.types._functional import _validate_args
+from tmol.pose._packed_block_types import PackedBlockTypes
 from tmol.chemical import RefinedResidueType
 
-from ._build_missing_context import build_missing_by_context
+from ._build_missing_context import _build_missing_by_context
 
 
-@validate_args
-def build_missing_leaf_atoms(
+@_validate_args
+def _build_missing_leaf_atoms(
     packed_block_types: PackedBlockTypes,
     block_types64: Tensor[torch.int64][:, :],
     real_block_atoms: Tensor[torch.bool][:, :, :],
@@ -87,7 +85,7 @@ def build_missing_leaf_atoms(
         if torch.any(context):
             pose_targets = torch.zeros_like(pose_stack_atom_is_missing)
             pose_targets[pose_at_is_real] = context[real_block_atoms]
-            pose_coords, pose_built = build_missing_by_context(
+            pose_coords, pose_built = _build_missing_by_context(
                 packed_block_types,
                 pose_coords,
                 pose_stack_atom_is_missing,
@@ -143,7 +141,7 @@ def build_missing_leaf_atoms(
                 #    grow them from what is placed
                 pose_targets = torch.zeros_like(missing_pose)
                 pose_targets[pose_at_is_real] = targets[real_block_atoms]
-                built, _ = build_missing_by_context(
+                built, _ = _build_missing_by_context(
                     packed_block_types,
                     built,
                     missing_pose,
@@ -294,7 +292,7 @@ def _build_coords_from_icoors(
     block_types,
     connections,
 ):
-    from tmol.io.details.compiled import gen_pose_leaf_atoms
+    from tmol.io.details.compiled._compiled import gen_pose_leaf_atoms
 
     return gen_pose_leaf_atoms(
         coords,
@@ -317,7 +315,7 @@ class BlockTypeLeafAtomsAnnotation:
     is_leaf: NDArray[bool][:]
 
 
-@validate_args
+@_validate_args
 def _annotate_packed_block_types_atom_is_leaf_atom(pbt: PackedBlockTypes):
     if hasattr(pbt, "is_leaf_atom"):
         return
@@ -370,7 +368,7 @@ def _annotate_packed_block_types_atom_is_leaf_atom(pbt: PackedBlockTypes):
     )
 
 
-@validate_args
+@_validate_args
 def _annotate_block_type_atom_is_leaf_atom(
     block_type: RefinedResidueType, is_hydrogen: Tensor[torch.int32][:]
 ):
@@ -436,7 +434,7 @@ class PackedBlockTypesLeafAtomICoorAnnotation:
     anc_uaids_backup: Tensor[torch.int32][:, :, 3, 3]
 
 
-@validate_args
+@_validate_args
 def _annotate_packed_block_types_w_leaf_atom_icoors(pbt: PackedBlockTypes):
     if hasattr(pbt, "build_missing_leaf_atom_icoor_ann"):
         return

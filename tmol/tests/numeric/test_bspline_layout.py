@@ -5,7 +5,7 @@ import math
 import pytest
 import torch
 
-from tmol.numeric import BSplineInterpolation
+from tmol.numeric._bspline import BSplineInterpolation
 from tmol.numeric.bspline_compiled import _compiled
 from tmol.tests._torch import requires_cuda
 
@@ -32,9 +32,9 @@ def _strided_copy(source, layout):
 
 @pytest.fixture(scope="module")
 def _cuda_bspline():
-    from tmol._load_ext import load_module
+    from tmol._load_ext import _load_module
 
-    return load_module(
+    return _load_module(
         __name__,
         __file__,
         ["bspline.cuda.cu"],

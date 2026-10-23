@@ -3,9 +3,9 @@ from collections.abc import Callable, Sequence
 import attr
 import torch
 
-from tmol.types import Tensor
-from tmol.utility._device import resolve_device
-from tmol.utility.tensor import exclusive_cumsum1d
+from tmol.types._torch import Tensor
+from tmol.utility import resolve_device
+from tmol.utility.tensor._common_operations import _exclusive_cumsum1d
 
 ConstraintFunction = Callable[
     [Tensor[torch.float32][:, :, 3], Tensor[torch.float32][:, :]],
@@ -97,7 +97,7 @@ class ConstraintSet:
                 n_poses = next(cs for cs in constraint_sets if cs is not None).n_poses
         if ps_offset is None:
             if from_multiple_pose_stacks:
-                ps_offset = exclusive_cumsum1d(
+                ps_offset = _exclusive_cumsum1d(
                     torch.tensor(
                         [cs.n_poses if cs is not None else 0 for cs in constraint_sets],
                         dtype=torch.int64,
@@ -108,7 +108,7 @@ class ConstraintSet:
                 ps_offset = torch.zeros(
                     (len(constraint_sets),), dtype=torch.int64, device=device
                 )
-        cs_offset = exclusive_cumsum1d(
+        cs_offset = _exclusive_cumsum1d(
             torch.tensor(
                 [
                     cs.constraint_atoms.shape[0] if cs is not None else 0

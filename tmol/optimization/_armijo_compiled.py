@@ -7,9 +7,9 @@ They are deliberately functional: returning fresh tensors keeps the optimizer
 compatible with both eager execution and a graph-captured scorer.
 """
 
-from tmol._load_ext import load_ops
+from tmol._load_ext import _load_ops
 
-_ops = load_ops(
+_ops = _load_ops(
     __name__,
     __file__,
     [

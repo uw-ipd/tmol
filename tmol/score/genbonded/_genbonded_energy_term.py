@@ -25,33 +25,29 @@ import numpy
 
 from typing import List
 
-from tmol.score import AtomTypeDependentTerm
+from tmol.score._atom_type_dependent_term import AtomTypeDependentTerm
 from tmol.score._annotation_cache import (
     AnnotationKey,
-    cached_annotation,
-    store_annotation,
+    _cached_annotation,
+    _store_annotation,
 )
 
 from tmol.database import ParameterDatabase
 from tmol.database.scoring._genbonded import _bond_btidx
 
-from tmol.score.genbonded.potentials import (
+from tmol.score.genbonded.potentials._compiled import (
     genbonded_pose_scores,
     genbonded_rotamer_scores,
 )
 
-from tmol.chemical import BondType, RefinedResidueType
-from tmol.chemical import MAX_PATHS_FROM_CONNECTION
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
-from tmol.score.common import (
-    make_hashtable_keys_values,
-    add_to_hashtable,
-)
-from tmol.score.na_torsion import scored_torsion_bonds
-from tmol.score.backbone_torsion import omega_connection
+from tmol.chemical._restypes import BondType
+from tmol.chemical import RefinedResidueType
+from tmol.chemical._constants import MAX_PATHS_FROM_CONNECTION
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
+from tmol.score.common._hash_util import _make_hashtable_keys_values, _add_to_hashtable
+from tmol.score.na_torsion._params import _scored_torsion_bonds
+from tmol.score.backbone_torsion._params import _omega_connection
 from tmol.utility.weak_identity_cache import WeakIdentityLRU
 
 # Maximum hierarchy depth for any atom type (concrete -> class -> X).
@@ -236,7 +232,8 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
     def resolve_torsion_params(self, block_type: RefinedResidueType, torsions):
         """For each torsion tuple (i,j,k,l), look up its genbonded parameters.
 
-        Returns (kept_torsions, params) where:
+        Returns (kept_torsions, params) where::
+
           kept_torsions : filtered list of (i,j,k,l) tuples that had a DB match
           params        : numpy float32 array of shape (N_kept, 5):
                           columns [k1, k2, k3, k4, offset]
@@ -257,7 +254,7 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
         rows = []
         cache = self._torsion_params_cache
         rosetta_typed = self.gen_database.rosetta_typed
-        na_bonds = scored_torsion_bonds(block_type, self._element_for_atom_type)
+        na_bonds = _scored_torsion_bonds(block_type, self._element_for_atom_type)
         linear = _linear_centers(block_type)
 
         for i, j, k, last in torsions:
@@ -385,7 +382,7 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(GenBondedEnergyTerm, self).setup_block_type(block_type)
-        previous = cached_annotation(
+        previous = _cached_annotation(
             block_type, "_genbonded_annotation", self._block_annotation_key
         )
         if previous is not None:
@@ -453,7 +450,7 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
             annotation,
         ):
             setattr(block_type, name, value)
-        return store_annotation(
+        return _store_annotation(
             block_type,
             "_genbonded_annotation",
             self._block_annotation_key,
@@ -473,7 +470,7 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
         self, packed_block_types: PackedBlockTypes
     ):
         super(GenBondedEnergyTerm, self).setup_packed_block_types(packed_block_types)
-        previous = cached_annotation(
+        previous = _cached_annotation(
             packed_block_types,
             "_genbonded_annotation",
             self._packed_annotation_key,
@@ -564,7 +561,7 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
                     conn_bond_bins[bt_idx, conn, path + 1] = _bond_btidx(
                         bt.bond_to_type[bond], bt.bond_to_ringness[bond]
                     )
-            omega_conn = omega_connection(bt)
+            omega_conn = _omega_connection(bt)
             if 0 <= omega_conn < n_conns:
                 conn_scored_elsewhere[bt_idx, omega_conn] = 1
 
@@ -612,7 +609,7 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
         )
         for name, value in zip(_PACKED_FIELDS, values):
             setattr(packed_block_types, name, value)
-        return store_annotation(
+        return _store_annotation(
             packed_block_types,
             "_genbonded_annotation",
             self._packed_annotation_key,
@@ -662,7 +659,7 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
                 offset = self._calculate_offset(entry.k1, entry.k2, entry.k3, entry.k4)
             hash_values[rank] = (entry.k1, entry.k2, entry.k3, entry.k4, offset)
         for key, rank in keys.items():
-            add_to_hashtable(hash_keys, hash_values, rank, key, hash_values[rank])
+            _add_to_hashtable(hash_keys, hash_values, rank, key, hash_values[rank])
 
         # Inter-block impropers are keyed by center type followed by an ordered
         # permutation of the three neighbor types. Store all six permutations;
@@ -670,7 +667,7 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
         # without special-casing unordered neighbors.
         n_improper_entries = len(self.gen_database.impropers) * 6
         if n_improper_entries:
-            improper_hash_keys, improper_hash_values = make_hashtable_keys_values(
+            improper_hash_keys, improper_hash_values = _make_hashtable_keys_values(
                 n_improper_entries, SCALE, key_len=5, value_len=5
             )
             improper_val_idx = 0
@@ -686,7 +683,7 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
                         *(type_to_idx[neighbor] for neighbor in neighbors),
                     )
                     values = (entry.k, entry.delta, 0.0, 0.0, 0.0)
-                    add_to_hashtable(
+                    _add_to_hashtable(
                         improper_hash_keys,
                         improper_hash_values,
                         improper_val_idx,
@@ -726,10 +723,10 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
 
     def get_packing_rotamer_score_term_function(self):
         from tmol.score.genbonded.potentials._compiled import (
-            iter_packing_rotamer_scores,
+            _iter_packing_rotamer_scores,
         )
 
-        return iter_packing_rotamer_scores
+        return _iter_packing_rotamer_scores
 
     def get_rotamer_score_term_function(self):
         return genbonded_rotamer_scores

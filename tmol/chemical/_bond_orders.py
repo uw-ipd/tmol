@@ -9,7 +9,7 @@ def _order_name(order):
     return order.upper() if isinstance(order, str) else BondType(int(order)).name
 
 
-def chemical_bond_orders(block_type, chem_db):
+def _chemical_bond_orders(block_type, chem_db):
     """One Lewis structure for a block type's bonds, by atom-name pair: io_bond_orders,
     then non-ring AROMATIC: one double to a terminal heteroatom per atom, rest single.
     Ring AROMATIC bonds stay AROMATIC.

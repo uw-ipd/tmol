@@ -5,25 +5,25 @@ import math
 
 import numpy
 from atomworks.experimental.protonation.geometry import build_coordinates
-from tmol.ligand._icoor_tree import vertex_angle
+from tmol.ligand._icoor_tree import _vertex_angle
 import torch
 
 from tmol.chemical import ResidueTypeSet
 from tmol.database import ParameterDatabase
 from tmol.io._build_context import PoseBuildContext
-from tmol.io._canonical_ordering import CanonicalOrdering, default_packed_block_types
+from tmol.io._canonical_ordering import CanonicalOrdering, _default_packed_block_types
 from tmol.pose._packed_block_types import PackedBlockTypes
 from tmol.pose._pose_stack import PoseStack
 from tmol.pose._pose_stack_builder import PoseStackBuilder
 from tmol.pose._sequence import (
-    resolve_block_type_names,
-    smiles_in_tokens,
-    tokenize_sequences,
+    _resolve_block_type_names,
+    _smiles_in_tokens,
+    _tokenize_sequences,
 )
 from tmol.utility import resolve_device
 
 
-def create_pose_stack_from_sequences(
+def _create_pose_stack_from_sequences(
     seqs,  # str | Sequence[str]
     packed_block_types: Optional[PackedBlockTypes] = None,
     device: Optional[torch.device] = None,
@@ -42,7 +42,7 @@ def create_pose_stack_from_sequences(
     if context is not None and param_db is not None:
         raise ValueError("pass either context= or param_db=, not both")
 
-    tokens, chain_lengths = tokenize_sequences(seqs)
+    tokens, chain_lengths = _tokenize_sequences(seqs)
 
     if context is not None:
         context_device = context.packed_block_types.device
@@ -58,11 +58,11 @@ def create_pose_stack_from_sequences(
         ligand_names = context.ligand_names
         canonical_ordering = context.canonical_ordering
     else:
-        smiles = smiles_in_tokens(tokens)
+        smiles = _smiles_in_tokens(tokens)
         if smiles:
-            from tmol.ligand import prepare_ligands_from_smiles
+            from tmol.ligand._preparation import _prepare_ligands_from_smiles
 
-            param_db, ligand_names = prepare_ligands_from_smiles(
+            param_db, ligand_names = _prepare_ligands_from_smiles(
                 smiles, param_db=param_db
             )
         else:
@@ -74,13 +74,13 @@ def create_pose_stack_from_sequences(
             restype_set = ResidueTypeSet.from_database(param_db.chemical)
         canonical_ordering = None
 
-    names, chain_lengths = resolve_block_type_names(
+    names, chain_lengths = _resolve_block_type_names(
         tokens, chain_lengths, restype_set, ligand_names, termini
     )
 
     if packed_block_types is None:
         if restype_set.chem_db is ParameterDatabase.get_default().chemical:
-            packed_block_types = default_packed_block_types(device)
+            packed_block_types = _default_packed_block_types(device)
         else:
             packed_block_types = PackedBlockTypes.from_restype_list(
                 restype_set.chem_db, restype_set, restype_set.residue_types, device
@@ -143,7 +143,7 @@ def extended_pose_stack_from_sequences(
     See tmol.pose._sequence for the grammar. Returns
     (PoseStack, PoseBuildContext) when return_context is set.
     """
-    pose_stack, build_context = create_pose_stack_from_sequences(
+    pose_stack, build_context = _create_pose_stack_from_sequences(
         seqs,
         device=device,
         param_db=param_db,
@@ -298,7 +298,7 @@ def _junction_transform(pose_stack, pose, block, bt, local, prev, placed):
         ]
     )
     dist = numpy.linalg.norm(src[2] - src[1])
-    angle = vertex_angle(src[0], src[1], src[2])
+    angle = _vertex_angle(src[0], src[1], src[2])
     torsion = numpy.radians(_junction_torsion_value(prev_bt, prev_conn))
 
     dst = numpy.array(

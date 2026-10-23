@@ -11,10 +11,12 @@ from tmol import (
     run_kin_min,
     FoldForest,
     MoveMap,
+    atom_array_from_file,
+    pose_stack_from_atom_array,
+    PoseStackBuilder,
 )
-from tmol.io import atom_array_from_file, pose_stack_from_atom_array
-from tmol.pose import PoseStackBuilder
-from tmol.optimization import CartesianSfxnNetwork, KinForestSfxnNetwork
+from tmol.optimization._sfxn_modules import CartesianSfxnNetwork
+from tmol.optimization import KinForestSfxnNetwork
 from tmol.kinematics import PoseStackKinematicsModule
 from tmol.tests.data import data_path
 

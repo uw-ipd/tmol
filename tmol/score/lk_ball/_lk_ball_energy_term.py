@@ -3,21 +3,17 @@ import torch
 
 from ._params import LKBallBlockTypeParams, LKBallPackedBlockTypesParams
 
-from .._annotation_cache import AnnotationKey, cached_annotation, store_annotation
+from .._annotation_cache import AnnotationKey, _cached_annotation, _store_annotation
 from .._atom_type_dependent_term import AtomTypeDependentTerm
 from ..hbond._hbond_dependent_term import HBondDependentTerm
 from ..ljlk._params import LJLKGlobalParams, LJLKParamResolver
 from tmol.database import ParameterDatabase
 
 from tmol.chemical import RefinedResidueType
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
-from tmol.score.common import (
-    arg_tile_subset_indices,
-    convert_float64,
-)
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
+from tmol.score.common._stack_condense import _arg_tile_subset_indices
+from tmol.score.common._convert_float64 import _convert_float64
 
 
 class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
@@ -112,7 +108,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
     def setup_block_type(self, block_type: RefinedResidueType):
         self.ljlk_param_resolver.validate_block_type(block_type)
         atom_params = super(LKBallEnergyTerm, self).setup_block_type(block_type)
-        cached = cached_annotation(
+        cached = _cached_annotation(
             block_type, "_lk_ball_annotation", self._lk_ball_block_key
         )
         if cached is not None:
@@ -142,7 +138,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         polar_inds = numpy.nonzero(atom_is_polar)[0].astype(numpy.int32)
 
         tile_size = LKBallEnergyTerm.tile_size
-        tiled_polar_orig_inds, tile_n_polar = arg_tile_subset_indices(
+        tiled_polar_orig_inds, tile_n_polar = _arg_tile_subset_indices(
             polar_inds, tile_size, block_type.n_atoms - 1
         )
         tiled_polar_orig_inds = tiled_polar_orig_inds.reshape(n_tiles, tile_size)
@@ -163,7 +159,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         )
         heavy_apolar_inds = numpy.nonzero(atom_is_heavy_apolar)[0].astype(numpy.int32)
 
-        tiled_heavy_apolar_orig_inds, tile_n_apolar = arg_tile_subset_indices(
+        tiled_heavy_apolar_orig_inds, tile_n_apolar = _arg_tile_subset_indices(
             heavy_apolar_inds, tile_size, block_type.n_atoms - 1
         )
         tiled_heavy_apolar_orig_inds = tiled_heavy_apolar_orig_inds.reshape(
@@ -211,7 +207,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             tile_lk_ball_params=tiled_bt_lk_ball_at_params,
         )
         setattr(block_type, "lk_ball_params", bt_lk_ball_params)
-        return store_annotation(
+        return _store_annotation(
             block_type,
             "_lk_ball_annotation",
             self._lk_ball_block_key,
@@ -221,7 +217,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(LKBallEnergyTerm, self).setup_packed_block_types(packed_block_types)
-        cached = cached_annotation(
+        cached = _cached_annotation(
             packed_block_types, "_lk_ball_annotation", self._lk_ball_packed_key
         )
         if cached is not None:
@@ -261,7 +257,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             tile_lk_ball_params=_t(tile_lk_ball_params),
         )
         setattr(packed_block_types, "lk_ball_params", lk_ball_params)
-        return store_annotation(
+        return _store_annotation(
             packed_block_types,
             "_lk_ball_annotation",
             self._lk_ball_packed_key,
@@ -289,7 +285,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         )
 
     def _gen_waters(self, common_args, pose_stack, hbond_params):
-        from tmol.score.lk_ball.potentials import gen_pose_waters
+        from tmol.score.lk_ball.potentials._compiled import gen_pose_waters
 
         args = [
             *common_args,
@@ -315,12 +311,12 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             self.ljlk_param_resolver.global_params.lkb_water_tors_ring,
         ]
         if common_args[0].dtype == torch.float64:
-            convert_float64(args)
+            _convert_float64(args)
 
         return gen_pose_waters(*args)
 
     def pose_score_lk_ball(self, *args):
-        from tmol.score.lk_ball.potentials import lk_ball_pose_score
+        from tmol.score.lk_ball.potentials._compiled import lk_ball_pose_score
 
         common_args = args[:-5]
         (
@@ -359,12 +355,12 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             getattr(pose_stack, "_lk_ball_allow_split_backward", False),
         ]
         if common_args[0].dtype == torch.float64:
-            convert_float64(args)
+            _convert_float64(args)
 
         return lk_ball_pose_score(*args)
 
     def rotamer_score_lk_ball(self, *args):
-        from tmol.score.lk_ball.potentials import lk_ball_rotamer_score_shared
+        from tmol.score.lk_ball.potentials._compiled import lk_ball_rotamer_score_shared
 
         common_args = args[:-5]
         (
@@ -400,7 +396,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             block_pair_scoring,
         ]
         if common_args[0].dtype == torch.float64:
-            convert_float64(args)
+            _convert_float64(args)
 
         return lk_ball_rotamer_score_shared(*args, shared_dispatch_indices)
 

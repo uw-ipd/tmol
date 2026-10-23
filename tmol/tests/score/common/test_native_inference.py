@@ -5,13 +5,14 @@ import gc
 import pytest
 import torch
 
-from tmol import pose_stack_from_file
-from tmol.pose import PoseStackBuilder
-from tmol.score.disulfide import DisulfideEnergyTerm
-from tmol.score.dunbrack import DunbrackEnergyTerm
-from tmol.score.elec import ElecEnergyTerm
-from tmol.score.genbonded import GenBondedEnergyTerm
-from tmol.score.hbond import HBondEnergyTerm
+from tmol import pose_stack_from_file, PoseStackBuilder
+from tmol.score import (
+    DisulfideEnergyTerm,
+    DunbrackEnergyTerm,
+    ElecEnergyTerm,
+    GenBondedEnergyTerm,
+    HBondEnergyTerm,
+)
 
 TERMS = [
     DisulfideEnergyTerm,

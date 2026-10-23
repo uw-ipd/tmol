@@ -5,12 +5,9 @@ import torch
 
 import attr
 
-from tmol.types import (
-    TensorGroup,
-    NDArray,
-    Tensor,
-    like_kwargs,
-)
+from tmol.types._tensor import TensorGroup
+from tmol.types._array import NDArray
+from tmol.types._torch import Tensor, _like_kwargs
 import tmol.types._tensor as tensor
 from tmol.tests import requires_cuda
 
@@ -225,7 +222,7 @@ def test_tensorgroup_cat():
     m2 = M.full((3, 7), 2)
 
     # Simple valid cat
-    m3 = tensor.cat((m1, m2), dim=1)
+    m3 = tensor._cat((m1, m2), dim=1)
 
     assert len(m3) == 3
 
@@ -243,7 +240,7 @@ def test_tensorgroup_cat():
     )
 
     # Negative dimension spec
-    m3 = tensor.cat((m1, m2), dim=-1)
+    m3 = tensor._cat((m1, m2), dim=-1)
 
     assert m3.foo.shape == (3, 10, 2)
     numpy.testing.assert_array_equal(
@@ -260,14 +257,14 @@ def test_tensorgroup_cat():
 
     # Invalid dimension, mismatch shape
     with pytest.raises(RuntimeError):
-        tensor.cat((m1, m2))
+        tensor._cat((m1, m2))
 
     # Invalid dimension, exeeds bounds
     with pytest.raises(IndexError):
-        tensor.cat((m1, m2), dim=3)
+        tensor._cat((m1, m2), dim=3)
 
     with pytest.raises(ValueError):
-        tensor.cat((m1, m2), dim=-5)
+        tensor._cat((m1, m2), dim=-5)
 
 
 def test_tensorgroup_to_dtypes():
@@ -290,19 +287,19 @@ def test_tensorgroup_to_dtypes():
     )
 
     cpu_het_group = TG.full(10, numpy.pi)
-    assert like_kwargs(cpu_het_group.s) == cpu_float
-    assert like_kwargs(cpu_het_group.d) == cpu_double
-    assert like_kwargs(cpu_het_group.sub.s) == cpu_float
+    assert _like_kwargs(cpu_het_group.s) == cpu_float
+    assert _like_kwargs(cpu_het_group.d) == cpu_double
+    assert _like_kwargs(cpu_het_group.sub.s) == cpu_float
 
     cpu_float_group = cpu_het_group.to(torch.float)
-    assert like_kwargs(cpu_float_group.s) == cpu_float
-    assert like_kwargs(cpu_float_group.d) == cpu_float
-    assert like_kwargs(cpu_float_group.sub.s) == cpu_float
+    assert _like_kwargs(cpu_float_group.s) == cpu_float
+    assert _like_kwargs(cpu_float_group.d) == cpu_float
+    assert _like_kwargs(cpu_float_group.sub.s) == cpu_float
 
     cpu_double_group = cpu_het_group.to(torch.double)
-    assert like_kwargs(cpu_double_group.s) == cpu_double
-    assert like_kwargs(cpu_double_group.d) == cpu_double
-    assert like_kwargs(cpu_double_group.sub.s) == cpu_double
+    assert _like_kwargs(cpu_double_group.s) == cpu_double
+    assert _like_kwargs(cpu_double_group.d) == cpu_double
+    assert _like_kwargs(cpu_double_group.sub.s) == cpu_double
 
     # Assert noop if not changes needed
     assert cpu_het_group.to(torch.float) is not cpu_het_group
@@ -339,21 +336,21 @@ def test_tensorgroup_to_device():
     )
 
     cpu_het_group = TG.full(10, numpy.pi)
-    assert like_kwargs(cpu_het_group.s) == cpu_float
-    assert like_kwargs(cpu_het_group.d) == cpu_double
-    assert like_kwargs(cpu_het_group.sub.s) == cpu_float
+    assert _like_kwargs(cpu_het_group.s) == cpu_float
+    assert _like_kwargs(cpu_het_group.d) == cpu_double
+    assert _like_kwargs(cpu_het_group.sub.s) == cpu_float
 
     cuda_het_group = cpu_het_group.to(torch.device("cuda"))
-    assert like_kwargs(cuda_het_group.s) == cuda_float
-    assert like_kwargs(cuda_het_group.d) == cuda_double
-    assert like_kwargs(cuda_het_group.sub.s) == cuda_float
+    assert _like_kwargs(cuda_het_group.s) == cuda_float
+    assert _like_kwargs(cuda_het_group.d) == cuda_double
+    assert _like_kwargs(cuda_het_group.sub.s) == cuda_float
 
     cuda_float_group = cpu_het_group.to(torch.device("cuda"), torch.float)
-    assert like_kwargs(cuda_float_group.s) == cuda_float
-    assert like_kwargs(cuda_float_group.d) == cuda_float
-    assert like_kwargs(cuda_float_group.sub.s) == cuda_float
+    assert _like_kwargs(cuda_float_group.s) == cuda_float
+    assert _like_kwargs(cuda_float_group.d) == cuda_float
+    assert _like_kwargs(cuda_float_group.sub.s) == cuda_float
 
     cuda_double_group = cuda_float_group.to(torch.double)
-    assert like_kwargs(cuda_double_group.s) == cuda_double
-    assert like_kwargs(cuda_double_group.d) == cuda_double
-    assert like_kwargs(cuda_double_group.sub.s) == cuda_double
+    assert _like_kwargs(cuda_double_group.s) == cuda_double
+    assert _like_kwargs(cuda_double_group.d) == cuda_double
+    assert _like_kwargs(cuda_double_group.sub.s) == cuda_double

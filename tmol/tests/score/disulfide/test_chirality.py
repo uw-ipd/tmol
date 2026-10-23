@@ -16,10 +16,7 @@ import biotite.structure.io.pdbx as pdbx
 import pytest
 import torch
 
-from tmol.database import ParameterDatabase
-from tmol.io import pose_stack_from_atom_array
-from tmol.score import ScoreFunction
-from tmol.score._score_types import ScoreType
+from tmol import ParameterDatabase, pose_stack_from_atom_array, ScoreFunction, ScoreType
 from tmol.tests.data import data_path
 
 HETEROCHIRAL_FIXTURE_ENERGY = -0.048889146701669

@@ -5,7 +5,7 @@ import pytest
 import torch
 import zstandard
 
-from tmol.io import (
+from tmol import (
     atom_array_from_file,
     atom_array_from_pose_stack,
     file_from_atom_array,

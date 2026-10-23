@@ -3,14 +3,12 @@ from typing import TYPE_CHECKING
 import attr
 import torch
 
-from tmol.types import Tensor
+from tmol.types._torch import Tensor
 from tmol.chemical import RefinedResidueType
-from tmol.pose import (
-    PDBInfo,
-    PackedBlockTypes,
-    ConstraintSet,
-    InterBlockBondsep,
-)
+from tmol.pose._pdb_info import PDBInfo
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._constraint_set import ConstraintSet
+from tmol.pose._inter_block_bondsep import InterBlockBondsep
 
 if TYPE_CHECKING:
     from tmol.pose._split_block_mapping import SplitBlockMapping
@@ -203,7 +201,7 @@ class PoseStack:
 
         :py:meth:`clone` deep-copies every tensor, including the connection
         tensors, even though nothing ever mutates them in place: they are
-        built once by :py:class:`~tmol.pose.PoseStackBuilder` and thereafter
+        built once by :py:class:`~tmol.PoseStackBuilder` and thereafter
         only read.
 
         Callers that vary coordinates while holding topology fixed -- the

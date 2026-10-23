@@ -1,6 +1,6 @@
-from tmol._load_ext import load_module
+from tmol._load_ext import _load_module
 
-_m = load_module(
+_m = _load_module(
     __name__,
     __file__,
     "_cubic_hermite_polynomial.cpp",

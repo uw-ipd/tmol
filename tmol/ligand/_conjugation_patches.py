@@ -20,8 +20,8 @@ import networkx
 import numpy as np
 from atomworks.io.utils.link_chemistry import get_leaving_atom_groups
 
-from tmol.ligand._icoor_tree import signed_dihedral_angle
-from tmol.ligand._input_repair import get_absent_substitution_leaving_groups
+from tmol.ligand._icoor_tree import _signed_dihedral_angle
+from tmol.ligand._input_repair import _get_absent_substitution_leaving_groups
 from tmol.database.chemical import (
     Atom,
     ChiSamples,
@@ -41,7 +41,7 @@ CONNECTION_PREFIX = "conj_"
 LINKAGE_SAMPLES = (60.0, -60.0, 180.0)
 
 
-def connection_name(atom: str) -> str:
+def _connection_name(atom: str) -> str:
     """The name a conjugation connection takes at an atom."""
     return CONNECTION_PREFIX + atom
 
@@ -73,7 +73,7 @@ def _leaves_excluding(residue_type, removed):
     return {a.name for a in residue_type.atoms if a.name not in removed} - referenced
 
 
-def leaving_atoms(residue_type, atom: str, chemdb, n_leaving: int = 1):
+def _leaving_atoms(residue_type, atom: str, chemdb, n_leaving: int = 1):
     """The hydrogens the bond displaces, or None where the site has none.
 
     Preparation fills the free valence a covalent bond left behind, so whatever
@@ -99,7 +99,7 @@ def leaving_atoms(residue_type, atom: str, chemdb, n_leaving: int = 1):
     return tuple(removed)
 
 
-def declared_heavy_leaving_groups(atom_array, chemdb):
+def _declared_heavy_leaving_groups(atom_array, chemdb):
     """Absent heavy leaving groups at connected sites, by (residue name, atom): a
     database type's are its lone heavy atoms (2RM9 isopeptide), others' templated."""
     if atom_array.bonds is None:
@@ -148,7 +148,7 @@ def declared_heavy_leaving_groups(atom_array, chemdb):
                 if group.isdisjoint(present[ri])
                 for missing in group
             )
-            absent = get_absent_substitution_leaving_groups(
+            absent = _get_absent_substitution_leaving_groups(
                 templates[name], names_coords[starts[ri] : starts[ri + 1]], {atom}
             )
             removed |= frozenset(absent.get(atom, ())) & heavy
@@ -178,7 +178,7 @@ def _displaced_atoms(residue_type, atom, chemdb, n_hydrogens, heavy_leaving=()):
     n_leaving = 1 if n_hydrogens is None else len(present) - n_hydrogens
     if n_leaving < 0:
         raise ValueError(f"Attachment adds hydrogens at {residue_type.name}.{atom}")
-    removed = list(leaving_atoms(residue_type, atom, chemdb, n_leaving) or ())
+    removed = list(_leaving_atoms(residue_type, atom, chemdb, n_leaving) or ())
     heavy = set(heavy_leaving) & {a.name for a in residue_type.atoms}
     for name in sorted(heavy):
         removed.append(name)
@@ -233,7 +233,7 @@ def _open_valence_frame(residue_type, atom, chemdb, distance, geometry=None):
         )
         if gp == parent and ggp is not None:
             return Icoor(
-                name=connection_name(atom),
+                name=_connection_name(atom),
                 parent=atom,
                 grand_parent=gp,
                 great_grand_parent=ggp,
@@ -264,11 +264,11 @@ def _open_valence_frame(residue_type, atom, chemdb, distance, geometry=None):
     gp, ggp = neighbors[:2]
     remote = xyz[atom] + direction / norm
     return Icoor(
-        name=connection_name(atom),
+        name=_connection_name(atom),
         parent=atom,
         grand_parent=gp,
         great_grand_parent=ggp,
-        phi=-signed_dihedral_angle(remote, xyz[atom], xyz[gp], xyz[ggp]),
+        phi=-_signed_dihedral_angle(remote, xyz[atom], xyz[gp], xyz[ggp]),
         theta=np.pi - _angle(remote, xyz[atom], xyz[gp]),
         d=float(distance if distance is not None else lengths.mean()),
     )
@@ -309,7 +309,7 @@ def _linkage_torsion(name, frame, atom, chi_name, across_connection=False):
     )
 
 
-def conjugation_patch(
+def _conjugation_patch(
     residue_type,
     atom: str,
     chemdb,
@@ -359,7 +359,7 @@ def conjugation_patch(
     if frame is None:
         return None
 
-    name = connection_name(atom)
+    name = _connection_name(atom)
     # a hydroxyl that loses its proton to a bond is an ether; the database
     #    says what each type becomes, or says nothing and it is left alone
     conjugated = {t.name: t.conjugated_type for t in chemdb.atom_types}
@@ -451,7 +451,7 @@ def conjugation_patch(
     )
 
 
-def conjugation_patches(
+def _conjugation_patches(
     residue_type,
     atoms,
     chemdb,
@@ -476,7 +476,7 @@ def conjugation_patches(
             number += 1
         chi_name = f"chi{number}"
         taken.add(chi_name)
-        patch = conjugation_patch(
+        patch = _conjugation_patch(
             residue_type,
             atom,
             chemdb,
@@ -492,7 +492,7 @@ def conjugation_patches(
     return tuple(patches)
 
 
-def combined_terminal_conjugation_patch(
+def _combined_terminal_conjugation_patch(
     residue_type, terminal_type, conjugation, chemdb
 ):
     """Compose a terminal form and N attachment as one base-relative patch.
@@ -503,14 +503,14 @@ def combined_terminal_conjugation_patch(
     history, then emit only its difference from the unpatched residue. This
     leaves unrelated attachment icoors untouched and able to compose normally.
     """
-    from tmol.database._patched_chemdb import RestypeGraphBuilder, do_patch
+    from tmol.database._patched_chemdb import RestypeGraphBuilder, _do_patch
 
     elements = {atom_type.name: atom_type.element for atom_type in chemdb.atom_types}
     builder = RestypeGraphBuilder(elements)
     # The terminal molecule already supplied the correct physical amine type.
     # Conjugation removes one proton but must not turn that free amine into Nbb.
     terminal_conjugation = attr.evolve(conjugation, modify_atoms=())
-    targets, _marked = do_patch(
+    targets, _marked = _do_patch(
         terminal_type,
         terminal_conjugation,
         builder.from_raw_res(terminal_type),
@@ -598,7 +598,7 @@ def combined_terminal_conjugation_patch(
     )
 
 
-def conjugation_charge_entries(
+def _conjugation_charge_entries(
     residue_type, atoms, chemdb, base_charges, hydrogens=None, heavy_leaving=None
 ):
     """``{variant name: {atom: charge}}`` for a residue's conjugation patches.
@@ -626,14 +626,14 @@ def conjugation_charge_entries(
             name not in base_charges for name in leaving
         ):
             continue
-        variant = f"{residue_type.name}:{connection_name(atom)}"
+        variant = f"{residue_type.name}:{_connection_name(atom)}"
         entries[variant] = {
             atom: base_charges[atom] + sum(base_charges[n] for n in leaving)
         }
     return entries
 
 
-def charges_for_database_residue(param_db, res_name):
+def _charges_for_database_residue(param_db, res_name):
     """The unpatched partial charges of a residue already in the database."""
     return {
         entry.atom: entry.charge

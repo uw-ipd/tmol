@@ -49,9 +49,24 @@ def test_ligand_all_excludes_vendored_and_internal_helpers():
 
 
 def test_documented_fragment_interaction_helper_is_public():
-    from tmol import score
+    import tmol
 
-    assert "calculate_fragment_interactions" in score.__all__
+    # tutorial_api_usage.csv makes it a top-level API name.
+    assert "calculate_fragment_interactions" in tmol.__all__
+
+
+def test_default_relax_minimizers_are_public():
+    from tmol import relax
+    from tmol.relax._fast_relax import (
+        DefaultCartesianMinimizer,
+        DefaultKinematicMinimizer,
+    )
+
+    assert relax.DefaultCartesianMinimizer is DefaultCartesianMinimizer
+    assert relax.DefaultKinematicMinimizer is DefaultKinematicMinimizer
+    assert {"DefaultCartesianMinimizer", "DefaultKinematicMinimizer"} <= set(
+        relax.__all__
+    )
 
 
 def test_extern_import_is_independent_of_vendored_tests():

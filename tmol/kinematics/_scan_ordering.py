@@ -7,13 +7,11 @@ from collections import defaultdict
 import scipy.sparse as sparse
 import scipy.sparse.csgraph as csgraph
 
-from tmol.types import (
-    NDArray,
-    Tensor,
-    ValidateAttrs,
-    validate_args,
-)
-from tmol.pose import PoseStack
+from tmol.types._array import NDArray
+from tmol.types._torch import Tensor
+from tmol.types._attrs import ValidateAttrs
+from tmol.types._functional import _validate_args
+from tmol.pose._pose_stack import PoseStack
 
 from ._datatypes import (
     NodeType,
@@ -25,7 +23,7 @@ from ._datatypes import (
 )
 
 
-def get_children(parents):
+def _get_children(parents):
     nelts = parents.shape[0]
 
     # Pass 1, count number of children for each parent.
@@ -74,7 +72,7 @@ def get_children(parents):
 #    genStarts - an N x 2 array giving indices where each gen begins
 #         genStarts[:,0] indexes nodes
 #         genStarts[:,1] indexes scanStarts
-def get_scans(parents, roots):
+def _get_scans(parents, roots):
     """Partitioning of a tree into linear subpaths.
 
     The tree is stored as a list of pointers to parent indices, with an
@@ -102,7 +100,7 @@ def get_scans(parents, roots):
     """
 
     nelts = parents.shape[0]
-    n_descendents, child_list_span, child_list = get_children(parents)
+    n_descendents, child_list_span, child_list = _get_children(parents)
 
     # scan storage - allocate upper bound for 4-connected graph
     # scan indices are emitted as a 1D array of nodes ('scans') with:
@@ -256,7 +254,7 @@ class KinForestScanOrdering(ValidateAttrs):
     backward_scan_paths: KinForestScanData
 
     @classmethod
-    @validate_args
+    @_validate_args
     def for_kinforest(cls, kinforest):
         """Calculate and cache refold ordering over kinforest
 
@@ -276,13 +274,13 @@ class KinForestScanOrdering(ValidateAttrs):
         return getattr(kinforest, cls.kinforest_cache_key)
 
     @classmethod
-    @validate_args
+    @_validate_args
     def calculate_from_kinforest(cls, kinforest: KinForest):
         """Setup for operations over KinForest.
         ``device`` is inferred from kinforest tensor device.
         """
 
-        nodes, scanStarts, genStarts = get_scans(
+        nodes, scanStarts, genStarts = _get_scans(
             kinforest.parent.cpu().numpy(), numpy.array([0])
         )
         forward_scan_paths = KinForestScanData(
@@ -329,8 +327,8 @@ class KinForestScanOrdering(ValidateAttrs):
         )
 
 
-@validate_args
-def construct_kin_module_data_for_pose(
+@_validate_args
+def _construct_kin_module_data_for_pose(
     pose_stack: PoseStack,
     fold_forest_edges: Tensor[torch.int32][:, :, 4],
 ):
@@ -343,7 +341,7 @@ def construct_kin_module_data_for_pose(
     Returns:
         Immutable topology and traversal data for forward and backward scans.
     """
-    from tmol.kinematics.compiled import (
+    from tmol.kinematics.compiled._compiled_ops import (
         calculate_ff_edge_delays,
         get_children,
         get_block_parent_connectivity_from_toposort,
@@ -1106,7 +1104,7 @@ def _tree_bond_indices(bt):
     return edges
 
 
-def block_group_kinforest_data(block_types, links, anchor: int = 0):
+def _block_group_kinforest_data(block_types, links, anchor: int = 0):
     """Spanning tree over a group of blocks joined by inter-block bonds.
 
     The single-block case of annotate_block_type_with_residue_kinforest_data,
@@ -1179,7 +1177,7 @@ def block_group_kinforest_data(block_types, links, anchor: int = 0):
     )
 
 
-def annotate_block_type_with_residue_kinforest_data(bt):
+def _annotate_block_type_with_residue_kinforest_data(bt):
     """Annotate a block type with the single-residue kinforest spanning tree,
     rooted at its default jump connection atom (CA for amino acids, O for water).
 
@@ -1244,7 +1242,7 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):  # noqa: C901
 
     # Compute (and cache) the MST and jump-rooted BFS once, reused below for
     # the i >= n_conn input types and by construct_single_residue_kinforest.
-    annotate_block_type_with_residue_kinforest_data(bt)
+    _annotate_block_type_with_residue_kinforest_data(bt)
     bond_graph_spanning_tree = bt._bond_graph_mst
 
     # As we are iterating across atoms, we need to keep track of which atoms

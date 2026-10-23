@@ -3,13 +3,11 @@ import numpy
 import torch
 import attrs
 
-from tmol.types import (
-    Tensor,
-    TensorGroup,
-    NDArray,
-    ConvertAttrs,
-    convert_args,
-)
+from tmol.types._torch import Tensor
+from tmol.types._tensor import TensorGroup
+from tmol.types._array import NDArray
+from tmol.types._attrs import ConvertAttrs
+from tmol.types._functional import _convert_args
 
 
 class NodeType(enum.IntEnum):
@@ -92,7 +90,7 @@ class KinForest(TensorGroup, ConvertAttrs):
     frame_z: Tensor[torch.int32][...]
 
     @classmethod
-    @convert_args
+    @_convert_args
     def node(
         cls,
         id: int,

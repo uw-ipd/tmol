@@ -5,8 +5,8 @@ import warnings
 from functools import wraps
 
 from .._cuda_env import (  # noqa: F401
-    get_cccl_include as _get_cccl_include,
-    setup as _cuda_env_setup,
+    _get_cccl_include,
+    _setup as _cuda_env_setup,
 )
 
 
@@ -58,11 +58,11 @@ else:
 #
 #
 # which version of torch are we compiling against?
-def get_torch_version():
+def _get_torch_version():
     return torch.__version__.split(".")[0:2]
 
 
-torch_major, torch_minor = get_torch_version()
+torch_major, torch_minor = _get_torch_version()
 
 
 def _required_cxx_standard(torch_major, torch_minor):
@@ -206,7 +206,7 @@ def _augment_kwargs(name, sources, **kwargs):
     return kwargs
 
 
-def cuda_if_available(sources):
+def _cuda_if_available(sources):
     """Filter cuda sources if cuda is not available."""
     if torch.cuda.is_available():
         return sources
@@ -214,20 +214,20 @@ def cuda_if_available(sources):
 
 
 @wraps(torch.utils.cpp_extension.load)
-def load(name, sources, **kwargs):
+def _load(name, sources, **kwargs):
     """Jit-compile torch cpp_extension with tmol paths."""
     kwargs = _augment_kwargs(name, sources, **kwargs)
     return torch.utils.cpp_extension.load(name, sources, **kwargs)
 
 
 @wraps(torch.utils.cpp_extension.load_inline)
-def load_inline(name, sources, **kwargs):
+def _load_inline(name, sources, **kwargs):
     """Jit-compile torch cpp_extension with tmol paths."""
     kwargs = _augment_kwargs(name, sources, **kwargs)
     return torch.utils.cpp_extension.load_inline(name, sources, **kwargs)
 
 
-def relpaths(src_path, paths):
+def _relpaths(src_path, paths):
     """Paths relative to the parent of given src file.
 
     Used to indiciate paths relative to a module's __file__.
@@ -242,7 +242,7 @@ def relpaths(src_path, paths):
     return [str(pathlib.Path(src_path).parent / s) for s in paths]
 
 
-def modulename(src_name):
+def _modulename(src_name):
     """Adapt module name to valid cpp extension name.
 
     Used to adapt a module __name__ to a valid extension name.

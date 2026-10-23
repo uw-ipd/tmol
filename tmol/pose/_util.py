@@ -11,9 +11,9 @@ from typing import List
 import numpy
 import torch
 
-from tmol.chemical import three2one
+from tmol.chemical._restypes import _three2one
 from tmol.numeric import coord_dihedrals
-from tmol.pose import PoseStack
+from tmol.pose._pose_stack import PoseStack
 
 
 def get_sequence(pose_stack: PoseStack, pose: int = 0) -> str:
@@ -26,7 +26,7 @@ def get_sequence(pose_stack: PoseStack, pose: int = 0) -> str:
     real = pose_stack.block_type_ind64[pose] >= 0
     type_inds = pose_stack.block_type_ind64[pose, real].tolist()
     block_types = [pbt.active_block_types[i] for i in type_inds]
-    return "".join(three2one(bt.name3) or "X" for bt in block_types)
+    return "".join(_three2one(bt.name3) or "X" for bt in block_types)
 
 
 def get_ligand_mask(pose_stack: PoseStack) -> torch.Tensor:

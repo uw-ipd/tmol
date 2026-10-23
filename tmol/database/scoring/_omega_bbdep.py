@@ -3,9 +3,9 @@ import torch
 
 from typing import Tuple
 
-from tmol.types import Tensor
+from tmol.types._torch import Tensor
 
-from ._content_hash import content_hash
+from ._content_hash import _content_hash
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -51,4 +51,4 @@ class OmegaBBDepDatabase:
 
     def content_id(self) -> str:
         """Identity derived from the lookup and the tables themselves."""
-        return content_hash(self.bbdep_omega_lookup, self.bbdep_omega_tables)
+        return _content_hash(self.bbdep_omega_lookup, self.bbdep_omega_tables)

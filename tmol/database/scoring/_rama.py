@@ -3,9 +3,9 @@ import torch
 
 from typing import Tuple
 
-from tmol.types import Tensor
+from tmol.types._torch import Tensor
 
-from ._content_hash import content_hash
+from ._content_hash import _content_hash
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -50,4 +50,4 @@ class RamaDatabase:
 
     def content_id(self) -> str:
         """Identity derived from the lookup and the tables themselves."""
-        return content_hash(self.rama_lookup, self.rama_tables)
+        return _content_hash(self.rama_lookup, self.rama_tables)

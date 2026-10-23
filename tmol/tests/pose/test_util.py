@@ -7,14 +7,15 @@ import numpy
 import pytest
 import torch
 
-from tmol.io import EXTENDED_BACKBONE_TORSIONS, extended_pose_stack_from_sequences
-from tmol.pose import (
+from tmol.io._pose_stack_from_sequence import EXTENDED_BACKBONE_TORSIONS
+from tmol import (
     atom_for_residue_label,
     block_for_residue_label,
     constraint_atoms_for_labels,
-    get_named_torsions,
+    extended_pose_stack_from_sequences,
     get_torsion_names,
 )
+from tmol.pose import get_named_torsions
 
 
 def _with_inserted_residue(pose_stack, pose, block, residue_number, insertion_code):

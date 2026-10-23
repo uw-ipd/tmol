@@ -3,12 +3,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from tmol.chemical import RefinedResidueType
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
-from tmol.pose._conjugated_groups import lockstep_group_for_block
-from tmol.score.common import (
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
+from tmol.pose._conjugated_groups import _lockstep_group_for_block
+from tmol.score.common._scoring_module import (
     TermWholePoseScoringModule,
     TermBlockPairScoringModule,
     TermRotamerScoringModule,
@@ -16,7 +14,7 @@ from tmol.score.common import (
 )
 
 if TYPE_CHECKING:
-    from tmol.pack.rotamer import RotamerSet
+    from tmol.pack import RotamerSet
 
 
 class EnergyTerm:
@@ -212,7 +210,7 @@ class EnergyTerm:
             rotamer_set,
             self.get_rotamer_score_term_attributes(pose_stack, rotamer_set),
             f,
-            lockstep_group_for_block(pose_stack, rotamer_set),
+            _lockstep_group_for_block(pose_stack, rotamer_set),
             self.get_block_neighbor_cutoff(),
             self.accepts_shared_rotamer_dispatch(),
             self.rotamer_dispatch_key(),

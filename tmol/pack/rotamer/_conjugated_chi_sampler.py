@@ -22,17 +22,19 @@ import torch
 
 from typing import Tuple
 
-from tmol.types import Tensor, validate_args
+from tmol.types._torch import Tensor
+from tmol.types._functional import _validate_args
 from tmol.chemical import RefinedResidueType
-from tmol.pose import PackedBlockTypes, PoseStack
-from tmol.pose._util import get_named_torsions
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
+from tmol.pose import get_named_torsions
 from tmol.pack.rotamer._chi_sampler import ChiSampler
-from tmol.pack.rotamer._conformer_sampler import sc_roots_for_chis
+from tmol.pack.rotamer._conformer_sampler import _sc_roots_for_chis
+from tmol.pose._conjugated_groups import _find_conjugated_groups
 from tmol.pack.rotamer._conjugated_groups import (
-    find_conjugated_groups,
-    group_sampled_chi,
-    group_sampling_topology,
-    resolve_group_atom,
+    _group_sampled_chi,
+    _group_sampling_topology,
+    _resolve_group_atom,
     GroupSamplingPlan,
 )
 from tmol.pack._packer_task import (
@@ -85,7 +87,7 @@ def _repeated_kinforest(rot_kf, count, device):
 
 def _fold_group_conformers(rot_kf, dofs):
     """Fold conformers in bounded scans; return original atom order."""
-    from tmol.kinematics.compiled import forward_only_op
+    from tmol.kinematics.compiled._compiled_ops import forward_only_op
 
     count, n_nodes = dofs.shape[:2]
     n_atoms = n_nodes - 1
@@ -125,7 +127,7 @@ def _fold_group_conformers(rot_kf, dofs):
 
 def _measure_member_dofs(rot_kf, coords):
     """Measure copies of one member in bounded inverse-kinematics batches."""
-    from tmol.kinematics.compiled import inverse_kin
+    from tmol.kinematics.compiled._compiled_ops import inverse_kin
 
     count, n_atoms = coords.shape[:2]
     if count == 0:
@@ -163,7 +165,7 @@ class ConjugatedChiSampler(ChiSampler):
     def sampler_name(cls):
         return "ConjugatedChiSampler"
 
-    @validate_args
+    @_validate_args
     def defines_rotamers_for_rt(self, rt: RefinedResidueType):
         # a type-level necessary condition; which blocks are actually sampled is
         #    decided per pose, since being bonded to a sidechain is not a
@@ -180,9 +182,9 @@ class ConjugatedChiSampler(ChiSampler):
         )
         return builds[bt_inds]
 
-    @validate_args
+    @_validate_args
     def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
-        return sc_roots_for_chis(rt, [cs.chi_dihedral for cs in _heavy_chi(rt)])
+        return _sc_roots_for_chis(rt, [cs.chi_dihedral for cs in _heavy_chi(rt)])
 
     def group_conformers(
         self, pose_stack: PoseStack, anchor_chi=None, budget=None, *, plans=None
@@ -205,12 +207,12 @@ class ConjugatedChiSampler(ChiSampler):
             plans = [
                 GroupSamplingPlan(
                     group,
-                    group_sampling_topology(
+                    _group_sampling_topology(
                         group, pose_stack, (0,) if first_owner else ()
                     ),
                     tuple(range(first_owner, len(group))),
                 )
-                for group in find_conjugated_groups(pose_stack)
+                for group in _find_conjugated_groups(pose_stack)
                 if len(group) > first_owner
             ]
         for sampling_plan in plans:
@@ -254,7 +256,7 @@ class ConjugatedChiSampler(ChiSampler):
                         _, first = numpy.unique(lib, axis=0, return_index=True)
                         lib = lib[numpy.sort(first)]
 
-            kept = group_sampled_chi(
+            kept = _group_sampled_chi(
                 group,
                 pose_stack,
                 expanded_limit,
@@ -273,7 +275,7 @@ class ConjugatedChiSampler(ChiSampler):
                 ]
                 uaids = bt.torsion_to_uaids[cs.chi_dihedral]
                 axis = [
-                    resolve_group_atom(u, owner, block_types, offsets, partners)
+                    _resolve_group_atom(u, owner, block_types, offsets, partners)
                     for u in uaids[1:3]
                 ]
                 if min(axis) < 0:
@@ -329,7 +331,7 @@ class ConjugatedChiSampler(ChiSampler):
     def _group_kinforest(self, pose_stack: PoseStack, group):
         """The kinforest that folds one group, cached on its shape."""
         from tmol.pack.rotamer._single_residue_kinforest import (
-            construct_block_group_kinforest,
+            _construct_block_group_kinforest,
         )
 
         pbt = pose_stack.packed_block_types
@@ -342,8 +344,8 @@ class ConjugatedChiSampler(ChiSampler):
             cache = OrderedDict()
             setattr(pbt, "conjugated_kinforest_cache", cache)
         if key not in cache:
-            topology = group_sampling_topology(group, pose_stack)
-            cache[key] = construct_block_group_kinforest(
+            topology = _group_sampling_topology(group, pose_stack)
+            cache[key] = _construct_block_group_kinforest(
                 topology.block_types,
                 group.links,
                 anchor=0,
@@ -361,8 +363,8 @@ class ConjugatedChiSampler(ChiSampler):
         beyond it: that is the whole point of building here rather than a block
         at a time. Returns conformers x group-atoms x 3.
         """
-        from tmol.kinematics.compiled import inverse_kin
-        from tmol.kinematics import KinForest
+        from tmol.kinematics.compiled._compiled_ops import inverse_kin
+        from tmol.kinematics._datatypes import KinForest
 
         rot_kf, offsets = self._group_kinforest(pose_stack, group)
         device = pose_stack.device
@@ -470,7 +472,7 @@ class ConjugatedChiSampler(ChiSampler):
                 gbt_for[(int(pose_of[i]), int(block_of[i]), int(bt_of[i]))] = i
 
         plans = []
-        for group in find_conjugated_groups(pose_stack):
+        for group in _find_conjugated_groups(pose_stack):
             first_owner = int(self.library_sampler is None)
             owners = tuple(
                 owner
@@ -487,7 +489,7 @@ class ConjugatedChiSampler(ChiSampler):
             fixed = tuple(owner for owner in range(len(group)) if owner not in owners)
             plans.append(
                 GroupSamplingPlan(
-                    group, group_sampling_topology(group, pose_stack, fixed), owners
+                    group, _group_sampling_topology(group, pose_stack, fixed), owners
                 )
             )
 
@@ -561,7 +563,7 @@ class ConjugatedChiSampler(ChiSampler):
         not from where it started.
         """
         from tmol.pack.rotamer._single_residue_kinforest import (
-            construct_single_residue_kinforest,
+            _construct_single_residue_kinforest,
         )
 
         pbt = pose_stack.packed_block_types
@@ -583,7 +585,7 @@ class ConjugatedChiSampler(ChiSampler):
                 bt = pbt.active_block_types[
                     int(pose_stack.block_type_ind[group.pose, block])
                 ]
-                construct_single_residue_kinforest(bt)
+                _construct_single_residue_kinforest(bt)
                 lo, hi = int(offsets[owner]), int(offsets[owner + 1])
                 member_dofs = _measure_member_dofs(
                     bt.rotamer_kinforest, folded[:, lo:hi]
@@ -627,7 +629,7 @@ class ConjugatedChiSampler(ChiSampler):
             topology = (
                 plans[group_index].topology
                 if plans is not None
-                else group_sampling_topology(group, pose_stack)
+                else _group_sampling_topology(group, pose_stack)
             )
             if any(
                 name.startswith("chi")

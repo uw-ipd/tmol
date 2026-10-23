@@ -15,12 +15,12 @@ from rdkit import Chem
 from atomworks.io.utils.atom_array_plus import concatenate_atom_array_plus
 from atomworks.io.utils.link_chemistry import get_leaving_atom_groups
 
-from tmol.ligand._polymer_profile import cap_residue, profile_for_atom_array
-from tmol.ligand._conjugation_patches import connection_name
+from tmol.ligand._polymer_profile import _cap_residue, _profile_for_atom_array
+from tmol.ligand._conjugation_patches import _connection_name
 from tmol.ligand._rdkit_mol import (
-    ccd_template_to_rdkit,
-    rdkit_mol_from_ligand_atom_array,
-    transfer_tetrahedral_stereochemistry,
+    _ccd_template_to_rdkit,
+    _rdkit_mol_from_ligand_atom_array,
+    _transfer_tetrahedral_stereochemistry,
 )
 
 
@@ -37,7 +37,7 @@ class CappedConjugateModel:
     connection_names: tuple[tuple[str, str], ...]
 
 
-def is_polymer_link(first, second):
+def _is_polymer_link(first, second):
     """A bond links two polymer residues only from one's up port to the other's down port."""
     return {first, second} == {"up", "down"}
 
@@ -55,7 +55,7 @@ def _polymer_connection(residue, atom):
     )
 
 
-def attachment_connection_name(
+def _attachment_connection_name(
     atom_array, index, partner, residue, partner_residue=None
 ):
     """A polymer ``down`` N takes only an incoming (thio)carbonyl (1MRO GL3); a port of a
@@ -64,12 +64,12 @@ def attachment_connection_name(
     declared = _polymer_connection(residue, atom)
     if declared is not None and partner_residue is not None:
         other = _polymer_connection(partner_residue, str(atom_array.atom_name[partner]))
-        if not is_polymer_link(declared, other):
-            return connection_name(atom)
+        if not _is_polymer_link(declared, other):
+            return _connection_name(atom)
     if declared != "down" or str(atom_array.element[index]).strip().upper() != "N":
-        return declared or connection_name(atom)
+        return declared or _connection_name(atom)
     if str(atom_array.element[partner]).strip().upper() != "C":
-        return connection_name(atom)
+        return _connection_name(atom)
     neighbors, orders = atom_array.bonds.get_bonds(partner)
     carbonyl = any(
         str(atom_array.element[neighbor]).strip().upper() in ("O", "S")
@@ -77,10 +77,10 @@ def attachment_connection_name(
         for neighbor, order in zip(neighbors, orders)
         if neighbor != index
     )
-    return declared if carbonyl else connection_name(atom)
+    return declared if carbonyl else _connection_name(atom)
 
 
-def conjugate_residue_definitions(chemical_database):
+def _conjugate_residue_definitions(chemical_database):
     """Residue definitions a cross-residue bond can be keyed on, by input name."""
     definitions = {
         r.name: r for r in chemical_database.residues if r.name == r.base_name
@@ -101,10 +101,10 @@ def _cross_residue_bonds(atom_array):
     return bonds[indices[bonds[:, 0]] != indices[bonds[:, 1]]]
 
 
-def unprepared_conjugate_partners(atom_array, chemical_database):
+def _unprepared_conjugate_partners(atom_array, chemical_database):
     """Residue names at a cross-residue bond that no definition describes.
 
-    These are exactly the residues :func:`iter_capped_conjugate_models` refuses
+    These are exactly the residues :func:`_iter_capped_conjugate_models` refuses
     to guess polymer connectivity for. A residue with no cross-residue bond is
     never looked up, so its absence from the database does not matter here.
     """
@@ -116,11 +116,11 @@ def unprepared_conjugate_partners(atom_array, chemical_database):
     # Every peptide bond is a cross-residue bond, so reduce to the distinct
     # names before building the definition table or comparing any strings.
     names = np.unique(atom_array.res_name[cross[:, :2].reshape(-1)])
-    definitions = conjugate_residue_definitions(chemical_database)
+    definitions = _conjugate_residue_definitions(chemical_database)
     return frozenset(str(name) for name in names if str(name) not in definitions)
 
 
-def without_cross_bonds_to(atom_array, residue_names):
+def _without_cross_bonds_to(atom_array, residue_names):
     """A copy with every cross-residue bond reaching ``residue_names`` removed.
 
     The residue itself is left in place: dropping a ligand tmol cannot prepare
@@ -138,7 +138,7 @@ def without_cross_bonds_to(atom_array, residue_names):
     return trimmed
 
 
-def iter_capped_conjugate_models(atom_array, chemical_database):
+def _iter_capped_conjugate_models(atom_array, chemical_database):
     """Yield owned models using a database in which input residues are prepared.
 
     Ordinary up/down polymer bonds are cut and replaced by the existing cap
@@ -151,7 +151,7 @@ def iter_capped_conjugate_models(atom_array, chemical_database):
         raise ValueError("Conjugate models require explicit input bonds")
     starts = struc.get_residue_starts(atom_array, add_exclusive_stop=True)
     indices = np.repeat(np.arange(len(starts) - 1), np.diff(starts))
-    definitions = conjugate_residue_definitions(chemical_database)
+    definitions = _conjugate_residue_definitions(chemical_database)
     residue_definitions = {}
 
     def definition(ri):
@@ -176,7 +176,7 @@ def iter_capped_conjugate_models(atom_array, chemical_database):
         ri = int(indices[index])
         return (
             ri,
-            attachment_connection_name(
+            _attachment_connection_name(
                 atom_array, index, partner, definition(ri), partner_definition(partner)
             ),
         )
@@ -198,7 +198,7 @@ def iter_capped_conjugate_models(atom_array, chemical_database):
                     "Each connection accepts one partner; resolve the input bond graph."
                 )
         ci, cj = port(first, second)[1], port(second, first)[1]
-        if is_polymer_link(ci, cj):
+        if _is_polymer_link(ci, cj):
             polymer_attached.update(
                 (
                     (ri, str(atom_array.atom_name[first])),
@@ -259,7 +259,7 @@ def _capped_group(
             connections = frozenset(
                 c.atom for c in residue_type.connections if c.name in ("up", "down")
             )
-            profile = profile_for_atom_array(source, connections, chemical_database)
+            profile = _profile_for_atom_array(source, connections, chemical_database)
             if profile is None:
                 raise ValueError(
                     f"No cap profile for polymer residue {ri} ({residue_type.name})"
@@ -282,7 +282,7 @@ def _capped_group(
                 else:
                     caps.append(cap)
             profile = attr.evolve(profile, caps=tuple(caps))
-            prepared, caps = cap_residue(source, profile, include_coordinates=False)
+            prepared, caps = _cap_residue(source, profile, include_coordinates=False)
             cap_names = set(caps.values())
         else:
             prepared = source[~np.isin(source.element, ("H", "D"))]
@@ -309,7 +309,7 @@ def _capped_group(
     source_atoms = np.asarray(source_atoms, dtype=np.int64)
     retained = source_atoms >= 0
     combined.coord[retained] = atom_array.coord[source_atoms[retained]]
-    molecule = rdkit_mol_from_ligand_atom_array(combined)
+    molecule = _rdkit_mol_from_ligand_atom_array(combined)
     _restore_template_stereochemistry(
         molecule, atom_array, source_atoms, starts, members, references
     )
@@ -341,7 +341,7 @@ def _restore_template_stereochemistry(
         if template is None:
             continue
         if name not in references:
-            reference = ccd_template_to_rdkit(template)
+            reference = _ccd_template_to_rdkit(template)
             references[name] = (
                 reference,
                 {
@@ -388,7 +388,7 @@ def _restore_template_stereochemistry(
                 if original < 0 or start <= original < stop:
                     continue
                 neighbors[missing[0]] = replacement
-            transfer_tetrahedral_stereochemistry(
+            _transfer_tetrahedral_stereochemistry(
                 molecule,
                 reference,
                 {atom.GetIdx(): center, **neighbors},
@@ -396,6 +396,6 @@ def _restore_template_stereochemistry(
             )
 
 
-def capped_conjugate_models(atom_array, chemical_database):
-    """Collect :func:`iter_capped_conjugate_models` into an owned tuple."""
-    return tuple(iter_capped_conjugate_models(atom_array, chemical_database))
+def _capped_conjugate_models(atom_array, chemical_database):
+    """Collect :func:`_iter_capped_conjugate_models` into an owned tuple."""
+    return tuple(_iter_capped_conjugate_models(atom_array, chemical_database))

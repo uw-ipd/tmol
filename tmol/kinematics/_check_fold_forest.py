@@ -1,12 +1,12 @@
 import numpy
 import numba
 
-from tmol.types import NDArray
-from tmol.kinematics import EdgeType
+from tmol.types._array import NDArray
+from tmol.kinematics._fold_forest import EdgeType
 
 
 @numba.jit(nopython=True)
-def mark_polymeric_bonds_in_foldforest_edges(
+def _mark_polymeric_bonds_in_foldforest_edges(
     n_poses: int,
     max_n_blocks: int,
     n_blocks: NDArray[int][:],
@@ -45,7 +45,7 @@ def mark_polymeric_bonds_in_foldforest_edges(
 
 
 @numba.jit(nopython=True)
-def bfs_proper_forest(  # noqa: C901
+def _bfs_proper_forest(  # noqa: C901
     roots: NDArray[numpy.int64][:, :],
     n_blocks: NDArray[numpy.int64][:],
     connections: NDArray[numpy.int64][:, :, :],
@@ -97,7 +97,7 @@ def bfs_proper_forest(  # noqa: C901
 
 
 @numba.jit(nopython=True)
-def ensure_jumps_numbered_and_distinct(
+def _ensure_jumps_numbered_and_distinct(
     edges: NDArray[numpy.int64][:, :, 4],
 ):
     n_poses = edges.shape[0]
@@ -138,14 +138,14 @@ def ensure_jumps_numbered_and_distinct(
 
 
 @numba.jit(nopython=True)
-def validate_fold_forest_jit(  # noqa: C901
+def _validate_fold_forest_jit(  # noqa: C901
     n_blocks: NDArray[numpy.int64][:],
     edges: NDArray[numpy.int64][:, :, 4],
 ):
     n_poses = n_blocks.shape[0]
     max_n_blocks = n_blocks.max()
     max_n_edges = edges.shape[1]
-    connections, count_bad, bad_edges = mark_polymeric_bonds_in_foldforest_edges(
+    connections, count_bad, bad_edges = _mark_polymeric_bonds_in_foldforest_edges(
         n_poses, max_n_blocks, n_blocks, edges
     )
     error = False
@@ -169,7 +169,7 @@ def validate_fold_forest_jit(  # noqa: C901
                 n_roots[i] += 1
 
     # and now a BFS
-    cycles_detected, missing = bfs_proper_forest(roots, n_blocks, connections)
+    cycles_detected, missing = _bfs_proper_forest(roots, n_blocks, connections)
 
     good = True
     for i in range(n_poses):
@@ -184,7 +184,7 @@ def validate_fold_forest_jit(  # noqa: C901
             break
 
     found_bad_jump, count_n_bad_jumps, bad_jump_numbers, count_n_jumps = (
-        ensure_jumps_numbered_and_distinct(edges)
+        _ensure_jumps_numbered_and_distinct(edges)
     )
     good = good and not found_bad_jump
 
@@ -350,7 +350,7 @@ def _append_unrooted_start_errors(n_poses, edges, errors):
                 )
 
 
-def validate_fold_forest(
+def _validate_fold_forest(
     n_blocks: NDArray[numpy.int64][:],
     edges: NDArray[numpy.int64][:, :, 4],
 ):
@@ -372,7 +372,7 @@ def validate_fold_forest(
         count_n_bad_jumps,
         bad_jump_numbers,
         count_n_jumps,
-    ) = validate_fold_forest_jit(n_blocks, edges)
+    ) = _validate_fold_forest_jit(n_blocks, edges)
 
     n_poses = n_blocks.shape[0]
 

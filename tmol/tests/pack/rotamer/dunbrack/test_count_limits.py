@@ -92,8 +92,8 @@ def test_public_sampler_rejects_possible_count_overflow(
     default_database, torch_device, library_count, n_brt
 ):
     import attr
-    from tmol.score.dunbrack import DunbrackParamResolver
-    from tmol.pack.rotamer.dunbrack import DunbrackChiSampler
+    from tmol.score.dunbrack._params import DunbrackParamResolver
+    from tmol.pack import DunbrackChiSampler
 
     resolver = DunbrackParamResolver.from_database(
         default_database.scoring.dun, torch_device

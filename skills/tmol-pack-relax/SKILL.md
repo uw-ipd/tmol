@@ -21,9 +21,12 @@ and a score function built from the same `ParameterDatabase`.
 ## Fixed-sequence repacking
 
 ```python
-from tmol.pack import PackerPalette, PackerTask, pack_rotamers
-from tmol.pack.rotamer import FixedAAChiSampler, IncludeCurrentSampler
-from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
+from tmol import PackerPalette, PackerTask, pack_rotamers
+from tmol.pack import (
+    FixedAAChiSampler,
+    IncludeCurrentSampler,
+    create_dunbrack_sampler_from_database,
+)
 
 task = PackerTask(pose, PackerPalette())
 task.restrict_to_repacking()
@@ -56,9 +59,7 @@ appears inactive.
 ## FastRelax
 
 ```python
-from tmol.kinematics import CartesianMoveMap, FoldForest
-from tmol.pack import PackerPalette
-from tmol.relax import fast_relax
+from tmol import CartesianMoveMap, FoldForest, PackerPalette, fast_relax
 
 relaxed = fast_relax(
     pose,

@@ -16,7 +16,7 @@ from uuid import uuid4
 
 if TYPE_CHECKING:
     from biotite.structure import AtomArray, AtomArrayStack
-    from tmol.pose import PoseStack
+    from tmol.pose._pose_stack import PoseStack
 
     StructureInput = PoseStack | AtomArray | AtomArrayStack | str | PathLike[str]
 else:
@@ -55,7 +55,7 @@ def _biotite_to_pdb_string(model: AtomArray | AtomArrayStack) -> str:
 
 def _pose_stack_to_pdb_string(pose_stack: PoseStack) -> str:
     """Serialize a PoseStack as PDB text."""
-    from tmol.io._structure_io import atom_array_from_pose_stack
+    from tmol.io._pose_stack_from_biotite import atom_array_from_pose_stack
 
     return _biotite_to_pdb_string(atom_array_from_pose_stack(pose_stack))
 
@@ -75,7 +75,7 @@ def _pdb_text(model: StructureInput) -> str:
 
     # Keep the PoseStack import lazy: importing this module should not load
     # compiled TMol code merely to render PDB text or a Biotite AtomArray.
-    from tmol.pose import PoseStack
+    from tmol.pose._pose_stack import PoseStack
 
     if isinstance(model, PoseStack):
         return _pose_stack_to_pdb_string(model)

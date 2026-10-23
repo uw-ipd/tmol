@@ -16,7 +16,7 @@ from tmol.optimization._armijo_compiled import (
 )
 
 
-def lbfgs_two_loop(grad, dirs, stps):
+def _lbfgs_two_loop(grad, dirs, stps):
     """L-BFGS search direction -H_k @ grad via the compact
     representation of Byrd, Nocedal & Schnabel, (Math. Prog. 63 (1994)):
         H_0 = I
@@ -29,10 +29,10 @@ def lbfgs_two_loop(grad, dirs, stps):
     grad is (N) or (k, N) and dirs/stps are (m, N) or (m, k, N); in the latter
     case each of the k batches gets its own inverse-Hessian estimate.
     """
-    return _lbfgs_two_loop(grad, dirs, stps)
+    return _lbfgs_two_loop_impl(grad, dirs, stps)
 
 
-def _lbfgs_two_loop(grad, dirs, stps, history_start=0):
+def _lbfgs_two_loop_impl(grad, dirs, stps, history_start=0):
     """Compact solve with histories kept in their physical circular slots."""
     unbatched = grad.dim() == 1
     if unbatched:
@@ -133,7 +133,7 @@ def _any_true(mask):
     return bool(mask) if mask.numel() == 1 else bool(mask.any())
 
 
-def armijo_linesearch_segmented(
+def _armijo_linesearch_segmented(
     func,
     derphi0,
     old_fval,
@@ -798,7 +798,7 @@ class LBFGS_Armijo(Optimizer):
                 with torch.inference_mode() if grad_pad.is_cuda else nullcontext():
                     d.copy_(
                         self._unpad(
-                            _lbfgs_two_loop(
+                            _lbfgs_two_loop_impl(
                                 grad_pad,
                                 old_dirs_view,
                                 old_stps_view,
@@ -870,7 +870,7 @@ class LBFGS_Armijo(Optimizer):
         # match Rosetta: start at 2x prev accepted step, capped at 1.0
         start_t = (ctx.t / 0.5).clamp(max=1.0)
 
-        accepted, _, ls_evals, status, trial_is_accepted = armijo_linesearch_segmented(
+        accepted, _, ls_evals, status, trial_is_accepted = _armijo_linesearch_segmented(
             linefn_vec,
             ctx.gtd_seg,
             ctx.prev_loss_vec,  # energies at x_backup

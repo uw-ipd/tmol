@@ -1,20 +1,18 @@
 import numpy
 import torch
 
-from .._annotation_cache import AnnotationKey, cached_annotation, store_annotation
+from .._annotation_cache import AnnotationKey, _cached_annotation, _store_annotation
 from .._atom_type_dependent_term import AtomTypeDependentTerm
 from .._bond_dependent_term import BondDependentTerm
 from ._params import LJLKTypeParams, LJLKGlobalParams
 
 from tmol.database import ParameterDatabase
-from tmol.score.common import tile_subset_indices
-from tmol.score.ljlk import LJLKParamResolver
+from tmol.score.common._stack_condense import _tile_subset_indices
+from tmol.score.ljlk._params import LJLKParamResolver
 
 from tmol.chemical import RefinedResidueType
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
 
 
 class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
@@ -66,15 +64,17 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
     def setup_block_type(self, block_type: RefinedResidueType):
         self._ljlk_param_resolver.validate_block_type(block_type)
         atom_params = super(LJLKEnergyTerm, self).setup_block_type(block_type)
-        cached = cached_annotation(block_type, "_ljlk_annotation", self._ljlk_block_key)
+        cached = _cached_annotation(
+            block_type, "_ljlk_annotation", self._ljlk_block_key
+        )
         if cached is not None:
             return cached
-        heavy_atoms_in_tile, n_in_tile = tile_subset_indices(
+        heavy_atoms_in_tile, n_in_tile = _tile_subset_indices(
             atom_params[1], self.tile_size
         )
         setattr(block_type, "ljlk_heavy_atoms_in_tile", heavy_atoms_in_tile)
         setattr(block_type, "ljlk_n_heavy_atoms_in_tile", n_in_tile)
-        return store_annotation(
+        return _store_annotation(
             block_type,
             "_ljlk_annotation",
             self._ljlk_block_key,
@@ -86,7 +86,7 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         atom_params = super(LJLKEnergyTerm, self).setup_packed_block_types(
             packed_block_types
         )
-        cached = cached_annotation(
+        cached = _cached_annotation(
             packed_block_types, "_ljlk_annotation", self._ljlk_packed_key
         )
         if cached is not None:
@@ -148,7 +148,7 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
             "ljlk_all_atoms_ligand_typed",
             torch.from_numpy(all_ligand).to(self.device),
         )
-        return store_annotation(
+        return _store_annotation(
             packed_block_types,
             "_ljlk_annotation",
             self._ljlk_packed_key,
@@ -179,12 +179,12 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         super(LJLKEnergyTerm, self).setup_poses(poses)
 
     def get_pose_score_term_function(self):
-        from tmol.score.ljlk.potentials import ljlk_pose_scores
+        from tmol.score.ljlk.potentials._compiled import ljlk_pose_scores
 
         return ljlk_pose_scores
 
     def get_rotamer_score_term_function(self):
-        from tmol.score.ljlk.potentials import ljlk_rotamer_scores
+        from tmol.score.ljlk.potentials._compiled import ljlk_rotamer_scores
 
         return ljlk_rotamer_scores
 

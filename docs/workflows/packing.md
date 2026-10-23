@@ -6,13 +6,12 @@ Fixed-sequence repacking changes conformations while preserving block identities
 Create a `PackerTask`, restrict it to repacking, and attach samplers:
 
 ```python
-from tmol.pack import pack_rotamers
-from tmol.pack import PackerPalette, PackerTask
-from tmol.pack.rotamer.dunbrack import (
+from tmol import pack_rotamers, PackerPalette, PackerTask
+from tmol.pack import (
     create_dunbrack_sampler_from_database,
+    FixedAAChiSampler,
+    IncludeCurrentSampler,
 )
-from tmol.pack.rotamer import FixedAAChiSampler
-from tmol.pack.rotamer import IncludeCurrentSampler
 
 task = PackerTask(pose_stack, PackerPalette())
 task.restrict_to_repacking()

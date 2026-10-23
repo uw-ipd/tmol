@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from tmol.io import atom_array_from_file, pose_stack_from_atom_array
+from tmol import atom_array_from_file, pose_stack_from_atom_array
 from tmol.tests.data import data_path
 
 

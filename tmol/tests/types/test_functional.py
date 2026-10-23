@@ -8,13 +8,10 @@ import pytest
 import typing
 from typing import Union, Tuple, List
 
-from tmol.types import (
-    validate_args,
-    convert_args,
-    NDArray,
-)
-from tmol.types._validators import get_validator
-from tmol.types._converters import get_converter
+from tmol.types._functional import _validate_args, _convert_args
+from tmol.types._array import NDArray
+from tmol.types._validators import _get_validator
+from tmol.types._converters import _get_converter
 
 
 @contextmanager
@@ -35,7 +32,7 @@ def test_successful_union_releases_value_and_caller(nested):
     if nested:
         annotation = Union[List[int], List[annotation]]
 
-    @validate_args
+    @_validate_args
     def consume(value: annotation):
         pass
 
@@ -60,13 +57,13 @@ def test_successful_union_conversion_releases_original_value():
     with collect_without_cyclic_gc():
         value = Convertible()
         value_ref = weakref.ref(value)
-        converted = get_converter(Union[int, float])(value)
+        converted = _get_converter(Union[int, float])(value)
         del value
         assert converted == 1.25
         assert value_ref() is None
 
 
-@pytest.mark.parametrize("factory", [get_validator, get_converter])
+@pytest.mark.parametrize("factory", [_get_validator, _get_converter])
 def test_rejected_union_releases_value_after_error_is_handled(factory):
     class Value:
         pass
@@ -87,22 +84,22 @@ def f(*args, **kwargs):
     return (args, kwargs)
 
 
-@validate_args
+@_validate_args
 def int_func(val: int):
     assert isinstance(val, int)
 
 
-@validate_args
+@_validate_args
 def union_func(val: typing.Optional[int]):
     assert isinstance(val, (int, type(None)))
 
 
-@validate_args
+@_validate_args
 def anytuple_func(val: typing.Tuple):
     assert isinstance(val, tuple)
 
 
-@validate_args
+@_validate_args
 def nest_tuple_func(val: typing.Tuple[typing.Tuple[int, int], "str"]):
     (i, i2), s = val
 
@@ -111,32 +108,32 @@ def nest_tuple_func(val: typing.Tuple[typing.Tuple[int, int], "str"]):
     assert isinstance(s, str)
 
 
-@validate_args
+@_validate_args
 def tuple_func(val: typing.Tuple[str, int]):
     s, i = val
     assert isinstance(s, str)
     assert isinstance(i, int)
 
 
-@validate_args
+@_validate_args
 def ellipsis_tuple_func(val: typing.Tuple[int, ...]):
     for i in val:
         assert isinstance(i, int)
 
 
-@validate_args
+@_validate_args
 def str_func(val: str):
     assert isinstance(val, str)
 
 
-@validate_args
+@_validate_args
 def array_func(val: NDArray[float][..., 3]):
     assert isinstance(val, numpy.ndarray)
     assert val.ndim >= 1
     assert val.shape[-1] == 3
 
 
-@validate_args
+@_validate_args
 def union_array_func(val: Union[float, NDArray[float][:]]):
     if isinstance(val, numpy.ndarray):
         assert val.ndim == 1
@@ -144,7 +141,7 @@ def union_array_func(val: Union[float, NDArray[float][:]]):
         assert isinstance(val, float)
 
 
-@validate_args
+@_validate_args
 def tuple_array_func(
     val: Tuple[float, NDArray[float][:]],
 ) -> NDArray[float][:]:
@@ -156,7 +153,7 @@ def tuple_array_func(
     return m * v
 
 
-@validate_args
+@_validate_args
 def list_int_func(val: List[int]) -> int:
     tot = 0
     for x in val:
@@ -164,12 +161,12 @@ def list_int_func(val: List[int]) -> int:
     return tot
 
 
-@validate_args
+@_validate_args
 def list_func(val: List) -> str:
     return ", ".join([str(x) for x in val])
 
 
-@validate_args
+@_validate_args
 def list_union_func(val: List[Union[int, str]]):
     return ", ".join([str(x) for x in val])
 
@@ -276,29 +273,29 @@ def test_func_validation(example):
             func(*args, **kwargs)
 
 
-@convert_args
+@_convert_args
 def int_cfunc(val: int):
     assert isinstance(val, int)
 
 
-@convert_args
+@_convert_args
 def str_cfunc(val: str):
     assert isinstance(val, str)
 
 
-@convert_args
+@_convert_args
 def array_cfunc(val: NDArray[float][..., 3]):
     assert isinstance(val, numpy.ndarray)
     assert val.ndim >= 1
     assert val.shape[-1] == 3
 
 
-@convert_args
+@_convert_args
 def union_cfunc(val: typing.Optional[int]):
     assert isinstance(val, (int, type(None)))
 
 
-@convert_args
+@_convert_args
 def tuple_cfunc(val: typing.Tuple[str, int]):
     s, i = val
     assert isinstance(s, str)
@@ -361,12 +358,12 @@ def test_return_annotation():
     def ret_none(a: int, b: int):
         return a + b
 
-    assert validate_args(ret_valid)(1, 2) == 3
-    assert validate_args(ret_none)(1, 2) == 3
+    assert _validate_args(ret_valid)(1, 2) == 3
+    assert _validate_args(ret_none)(1, 2) == 3
 
     with pytest.raises(TypeError):
-        validate_args(ret_invalid)(1, 2)
+        _validate_args(ret_invalid)(1, 2)
 
-    assert convert_args(ret_valid)(1, 2) == 3
-    assert convert_args(ret_none)(1, 2) == 3
-    assert convert_args(ret_invalid)(1, 2) == "3"
+    assert _convert_args(ret_valid)(1, 2) == 3
+    assert _convert_args(ret_none)(1, 2) == 3
+    assert _convert_args(ret_invalid)(1, 2) == "3"

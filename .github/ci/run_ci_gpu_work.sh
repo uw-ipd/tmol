@@ -21,7 +21,7 @@ echo "=== build ==="
 echo "=== representative CUDA JIT compile ==="
 TMOL_USE_JIT=1 python - <<'PY'
 import torch
-from tmol.kinematics.compiled import forward_kin_op
+from tmol.kinematics.compiled._compiled_ops import forward_kin_op
 
 assert torch.cuda.is_available()
 print("loaded", forward_kin_op, "with torch", torch.__version__)

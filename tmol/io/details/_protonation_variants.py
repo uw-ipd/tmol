@@ -10,13 +10,13 @@ from tmol.database.chemical import (
     DEPROTONATED_VAR_IND,
     NEUTRAL_TERMINUS,
     NEUTRAL_TERMINUS_VAR_BASE,
-    special_case_variant_index,
+    _special_case_variant_index,
 )
 
 logger = logging.getLogger(__name__)
 
 
-def select_protonation_variants(
+def _select_protonation_variants(
     canonical_ordering,
     chemical_db,
     res_types,
@@ -99,7 +99,7 @@ def _variant_atoms(canonical_ordering, chemical_db, res_types):
         c = wanted.get(res.io_equiv_class)
         if c is None:
             continue
-        v = special_case_variant_index(res)
+        v = _special_case_variant_index(res)
         index = canonical_ordering.restypes_atom_index_mapping[res.io_equiv_class]
         linked[c].update(index[x.atom] for x in res.connections if x.atom in index)
         element = {}
@@ -147,7 +147,7 @@ def _with_metal_donor_variants(
     return out
 
 
-def neutral_terminus_patches(canonical_ordering, chemical_db, res_types, variants):
+def _neutral_terminus_patches(canonical_ordering, chemical_db, res_types, variants):
     """The neutral amino terminus, for each base type of a class a residue asks it of.
 
     The database's patch applies to no type, so its forms exist only where needed.

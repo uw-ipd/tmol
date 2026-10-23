@@ -64,7 +64,7 @@ def _connection_key(record):
     )
 
 
-def validate_replacements(parameter_database, rows, *, allow_missing=False):
+def _validate_replacements(parameter_database, rows, *, allow_missing=False):
     """Validate complete records; return whether all targets are installed.
 
     The digest covers the exact residue definition, effective atom charges,
@@ -114,16 +114,16 @@ def validate_replacements(parameter_database, rows, *, allow_missing=False):
     return installed
 
 
-def install_replacements(parameter_database, rows, connections=(), *, atom_types=None):
+def _install_replacements(parameter_database, rows, connections=(), *, atom_types=None):
     """Install explicit replacements atomically, checking their baseline.
 
     Reinstalling the same result is a no-op. Applying it to changed local
     chemistry/charges/bonded records raises instead of silently mixing fits.
     The input database is never modified.
     """
-    from tmol.database import inject_residue_params
+    from tmol.database import _inject_residue_params
 
-    installed = validate_replacements(parameter_database, rows)
+    installed = _validate_replacements(parameter_database, rows)
     cart = parameter_database.scoring.cartbonded
     replacements = {}
     for record in connections:
@@ -147,7 +147,7 @@ def install_replacements(parameter_database, rows, connections=(), *, atom_types
     retained = tuple(
         r for r in cart.connection_params if _connection_key(r) not in replacements
     )
-    extended = inject_residue_params(
+    extended = _inject_residue_params(
         parameter_database,
         [],
         atom_types=atom_types,

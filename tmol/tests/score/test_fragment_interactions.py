@@ -4,7 +4,8 @@ from typing import cast
 import pytest
 import torch
 
-from tmol.pose import PoseStack, SplitBlockMapping
+from tmol import PoseStack
+from tmol.pose._split_block_mapping import SplitBlockMapping
 from tmol.score._fragment_interactions import (
     _LegacyFragmentMapping,
     _fragment_mapping_data,

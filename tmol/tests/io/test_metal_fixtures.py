@@ -10,19 +10,22 @@ import torch
 from yaml import safe_load
 
 import tmol.io.details._metal_detection as metal_detection
-from tmol.io import (
-    add_metal_coordination,
+from tmol.io._metal_coordination import (
+    _add_metal_coordination,
+    _remove_metal_coordination,
+)
+from tmol import (
     atom_array_from_file,
     atom_array_from_pose_stack,
-    canonical_form_from_pose_stack,
     pose_stack_from_atom_array,
-    pose_stack_from_canonical_form,
-    remove_metal_coordination,
+    EdgeType,
+    FoldForest,
+    PoseStackBuilder,
 )
+from tmol.io._pose_stack_deconstruction import _canonical_form_from_pose_stack
+from tmol.io._pose_stack_construction import _pose_stack_from_canonical_form
 from tmol.io._write_pose_stack_pdb import _write_pose_stack_pdb
-from tmol.database.chemical import site_connections
-from tmol.kinematics import EdgeType, FoldForest
-from tmol.pose import PoseStackBuilder
+from tmol.database.chemical import _site_connections
 from tmol.tests.data import data_path
 
 FIXTURE_DIR = data_path("metal_fixtures")
@@ -40,7 +43,7 @@ def built():
         if stem in cache:
             return cache[stem]
         captured = []
-        find = metal_detection.find_metal_geometries
+        find = metal_detection._find_metal_geometries
 
         def recording(canonical_ordering, chemical_db, res_types, coords, **kwargs):
             variants, assignments = find(
@@ -49,14 +52,14 @@ def built():
             captured.append((canonical_ordering, res_types, assignments))
             return variants, assignments
 
-        metal_detection.find_metal_geometries = recording
+        metal_detection._find_metal_geometries = recording
         try:
             structure = atom_array_from_file(FIXTURE_DIR / f"{stem}.cif.zst")
             pose_stack = pose_stack_from_atom_array(
                 structure, torch.device("cpu"), prepare_ligands=True, no_optH=True
             )
         finally:
-            metal_detection.find_metal_geometries = find
+            metal_detection._find_metal_geometries = find
         cache[stem] = (pose_stack, captured[-1])
         return cache[stem]
 
@@ -159,7 +162,7 @@ def test_every_donor_is_connected_to_its_metal(built, stem):
     for (pose, metal), got in assignments:
         metal_bt = pbt.active_block_types[int(pose_stack.block_type_ind[pose, metal])]
         partners = set()
-        for name in site_connections(metal_bt):
+        for name in _site_connections(metal_bt):
             res, conn = irc[pose, metal, metal_bt.connection_to_cidx[name]].tolist()
             if res >= 0:
                 bt = pbt.active_block_types[int(pose_stack.block_type_ind[pose, res])]
@@ -220,8 +223,8 @@ def metal_bonds(pose_stack):
 @pytest.mark.parametrize("stem", EXPECTED)
 def test_round_trip_keeps_metal_coordination(built, stem):
     pose_stack, (co, _, _) = built(stem)
-    cf = canonical_form_from_pose_stack(co, pose_stack)
-    rebuilt = pose_stack_from_canonical_form(
+    cf = _canonical_form_from_pose_stack(co, pose_stack)
+    rebuilt = _pose_stack_from_canonical_form(
         co,
         pose_stack.packed_block_types,
         *cf,
@@ -240,7 +243,7 @@ def test_remove_then_add_a_donor(built):
     bonds = metal_bonds(pose_stack)
     (site,) = [k for (m, k), d in bonds.items() if m == zn and d == (his, "ND1")]
 
-    opened = remove_metal_coordination(co, pose_stack, 0, zn, site)
+    opened = _remove_metal_coordination(co, pose_stack, 0, zn, site)
     assert (zn, site) not in metal_bonds(opened)
     assert len(metal_bonds(opened)) == len(bonds) - 1
     his_bt = opened.packed_block_types.active_block_types[
@@ -249,7 +252,7 @@ def test_remove_then_add_a_donor(built):
     assert all(c.kinematic for c in his_bt.connections), his_bt.name
 
     # the donor goes back to the site its virtual still points at
-    closed = add_metal_coordination(co, opened, 0, zn, his, "ND1")
+    closed = _add_metal_coordination(co, opened, 0, zn, his, "ND1")
     assert metal_bonds(closed) == bonds
     assert block_type_names(closed) == block_type_names(pose_stack)
 
@@ -262,8 +265,8 @@ def test_one_atom_bridges_two_metals(built):
     (site,) = [
         k for (m, k), d in metal_bonds(pose_stack).items() if d == (his118, "NE2")
     ]
-    opened = remove_metal_coordination(co, pose_stack, 0, cu, site)
-    bridged = add_metal_coordination(co, opened, 0, cu, his61, "ND1", site=site)
+    opened = _remove_metal_coordination(co, pose_stack, 0, cu, site)
+    bridged = _add_metal_coordination(co, opened, 0, cu, his61, "ND1", site=site)
 
     holders = [m for (m, _), d in metal_bonds(bridged).items() if d == (his61, "ND1")]
     assert sorted(holders) == sorted([cu, residue_index(pose_stack, "A", 203)])
@@ -438,7 +441,7 @@ def test_declared_metal_bonds_are_coordination(built, bond_type):
         no_optH=True,
     )
     assert labeled_metal_bonds(rebuilt) == labeled_metal_bonds(pose_stack)
-    cf = canonical_form_from_pose_stack(context.canonical_ordering, rebuilt)
+    cf = _canonical_form_from_pose_stack(context.canonical_ordering, rebuilt)
     assert cf.covalent_bonds is None
 
 

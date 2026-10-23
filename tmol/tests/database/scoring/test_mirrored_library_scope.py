@@ -4,7 +4,7 @@ import attr
 import pytest
 
 from tmol.database.scoring._dunbrack_libraries import DunMappingParams
-from tmol.database.scoring._mirrored_dunbrack import with_mirrored_libraries
+from tmol.database.scoring._mirrored_dunbrack import _with_mirrored_libraries
 
 
 @pytest.fixture
@@ -48,16 +48,16 @@ def lookup(database):
 
 @pytest.mark.parametrize("requested", [{}, {"ALA": "DALA"}])
 def test_no_required_library_is_a_no_op(original_libraries, requested):
-    assert with_mirrored_libraries(original_libraries, requested) is original_libraries
+    assert _with_mirrored_libraries(original_libraries, requested) is original_libraries
 
 
 def test_generate_only_the_requested_library(original_libraries):
-    result = with_mirrored_libraries(original_libraries, {"ARG": "DARG"})
+    result = _with_mirrored_libraries(original_libraries, {"ARG": "DARG"})
     before, after = tables(original_libraries), tables(result)
     assert set(after) - set(before) == {lookup(result)["DARG"]}
     assert all(after[name] is lib for name, lib in before.items())
     assert after[lookup(result)["DARG"]].rotameric_data.backbone_is_mirrored
-    assert with_mirrored_libraries(result, {"ARG": "DARG"}) is result
+    assert _with_mirrored_libraries(result, {"ARG": "DARG"}) is result
 
 
 def test_original_table_name_starting_with_d_does_not_disable_generation(
@@ -83,13 +83,13 @@ def test_original_table_name_starting_with_d_does_not_disable_generation(
             for row in original_libraries.dun_lookup
         ),
     )
-    result = with_mirrored_libraries(renamed, {"ARG": "DARG"})
+    result = _with_mirrored_libraries(renamed, {"ARG": "DARG"})
     assert lookup(result)["DARG"] == "ddifferent_original"
 
 
 def test_incremental_generation_preserves_existing_libraries(original_libraries):
-    first = with_mirrored_libraries(original_libraries, {"ARG": "DARG"})
-    second = with_mirrored_libraries(first, {"ARG": "DARG", "PHE": "DPHE"})
+    first = _with_mirrored_libraries(original_libraries, {"ARG": "DARG"})
+    second = _with_mirrored_libraries(first, {"ARG": "DARG", "PHE": "DPHE"})
     before, after = tables(first), tables(second)
     assert set(after) - set(before) == {lookup(second)["DPHE"]}
     assert all(after[name] is lib for name, lib in before.items())
@@ -102,7 +102,7 @@ def test_explicit_target_mapping_is_authoritative(original_libraries):
         original_libraries,
         dun_lookup=(*original_libraries.dun_lookup, DunMappingParams(chosen, "DARG")),
     )
-    result = with_mirrored_libraries(source, {"ARG": "DARG", "PHE": "DPHE"})
+    result = _with_mirrored_libraries(source, {"ARG": "DARG", "PHE": "DPHE"})
     assert lookup(result)["DARG"] == chosen
     assert set(tables(result)) - set(tables(source)) == {lookup(result)["DPHE"]}
 
@@ -115,7 +115,7 @@ def test_generated_name_collision_is_explicit(original_libraries):
         rotameric_libraries=(*original_libraries.rotameric_libraries, colliding),
     )
     with pytest.raises(ValueError, match="collision"):
-        with_mirrored_libraries(source, {"ARG": "DARG"})
+        _with_mirrored_libraries(source, {"ARG": "DARG"})
 
 
 def test_missing_source_table_fails_at_generation(original_libraries):
@@ -127,20 +127,20 @@ def test_missing_source_table_fails_at_generation(original_libraries):
         ),
     )
     with pytest.raises(ValueError, match="absent"):
-        with_mirrored_libraries(source, {"PRIVATE": "DPRIVATE"})
+        _with_mirrored_libraries(source, {"PRIVATE": "DPRIVATE"})
 
 
 def test_selective_libraries_preserve_native_sampling(
     original_libraries, default_database, torch_device
 ):
     import torch
-    from tmol.pack.rotamer.dunbrack import DunbrackChiSampler
-    from tmol.score.dunbrack import DunbrackParamResolver
+    from tmol.pack import DunbrackChiSampler
+    from tmol.score.dunbrack._params import DunbrackParamResolver
     from tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler import (
         _table_indices,
     )
 
-    selective = with_mirrored_libraries(original_libraries, {"ARG": "DARG"})
+    selective = _with_mirrored_libraries(original_libraries, {"ARG": "DARG"})
 
     def integer(values):
         return torch.tensor(values, dtype=torch.int32, device=torch_device)
@@ -170,6 +170,6 @@ def test_selective_libraries_preserve_native_sampling(
 
 def test_conflicting_target_requests_are_rejected(original_libraries):
     with pytest.raises(ValueError, match="Conflicting"):
-        with_mirrored_libraries(
+        _with_mirrored_libraries(
             original_libraries, {"ARG": "PRIVATE", "PHE": "PRIVATE"}
         )

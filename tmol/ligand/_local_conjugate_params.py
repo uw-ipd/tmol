@@ -19,9 +19,14 @@ import numpy as np
 from rdkit import Chem
 
 from tmol.database.chemical import RawResidueType
-from tmol.database.scoring import AngleGroup, CartRes, ConnectionCartRes, LengthGroup
+from tmol.database.scoring._cartbonded import (
+    AngleGroup,
+    CartRes,
+    ConnectionCartRes,
+    LengthGroup,
+)
 from tmol.ligand import _connection_params as connection
-from tmol.ligand._atom_typing import assign_tmol_atom_types
+from tmol.ligand._atom_typing import _assign_tmol_atom_types
 from tmol.ligand._conjugation_patches import CONNECTION_PREFIX
 from tmol.ligand._parameter_replacements import _baseline_charges, _local_identity
 
@@ -88,7 +93,7 @@ def _atomic_state(atom):
 
 def _typing(mol):
     # The classifier may update perception; retain the force-field molecule.
-    return {a.index: a.atom_type for a in assign_tmol_atom_types(Chem.Mol(mol))}
+    return {a.index: a.atom_type for a in _assign_tmol_atom_types(Chem.Mol(mol))}
 
 
 def _equivalent_hydrogens(mol, props, indices):
@@ -130,11 +135,13 @@ def _reference_mapping(
     return free_mapping, removed
 
 
-def install_conjugate_parameters(parameter_database, result):
+def _install_conjugate_parameters(parameter_database, result):
     """Install private generated parameters with the shared baseline guard."""
-    from tmol.ligand._parameter_replacements import install_replacements
+    from tmol.ligand._parameter_replacements import _install_replacements
 
-    return install_replacements(parameter_database, result.residues, result.connections)
+    return _install_replacements(
+        parameter_database, result.residues, result.connections
+    )
 
 
 def _correct_bonds(rt, mol, mapping):
@@ -375,8 +382,8 @@ def _correct_icoors(rt, mol, props, mapping, neighbors, atoms, bonded, baseline)
             # frame dependency by a stable heavy neighbor. This avoids an
             # H -> connection -> H construction cycle for an acylated amine.
             from tmol.chemical._ideal_coords import (
-                build_coords_from_icoors,
-                frame_from_coords,
+                _build_coords_from_icoors,
+                _frame_from_coords,
             )
 
             great = next(
@@ -408,8 +415,8 @@ def _correct_icoors(rt, mol, props, mapping, neighbors, atoms, bonded, baseline)
             geometry = np.asarray(
                 [[value.phi, value.theta, value.d] for value in rt.icoors]
             )
-            xyz = build_coords_from_icoors(ancestors, geometry)
-            frame = frame_from_coords(
+            xyz = _build_coords_from_icoors(ancestors, geometry)
+            frame = _frame_from_coords(
                 xyz[names[great]], xyz[names[grand]], xyz[names[conn.atom]]
             )
             vector = xyz[names[conn.name]] - xyz[names[conn.atom]]
@@ -462,7 +469,7 @@ def _corrected_residue_names(connection_params):
     return previously_corrected
 
 
-def generate_conjugate_parameters(
+def _generate_conjugate_parameters(
     atom_array,
     parameter_database,
     *,
@@ -595,7 +602,7 @@ def generate_conjugate_parameters(
                     raise ConjugateContextConflict(rt.name)
                 rows[rt.name] = row
 
-    connections = connection.generate_conjugate_connection_params(
+    connections = connection._generate_conjugate_connection_params(
         atom_array,
         parameter_database,
         ph=ph,

@@ -6,7 +6,8 @@ from biotite.structure.io.pdbx import CIFFile, CIFBlock, CIFCategory, set_struct
 import numpy as np
 import pytest
 
-from tmol.io import atom_array_from_file, canonical_form_from_biotite
+from tmol import atom_array_from_file
+from tmol.io import canonical_form_from_biotite
 from tmol.io._atomworks_reader import (
     INFERRED_POLYMER_BOND,
     _declared_cif_pairs,

@@ -10,7 +10,7 @@ import attr
 import torch
 
 
-def content_hash(*parts) -> str:
+def _content_hash(*parts) -> str:
     """A sha256 over attrs records, tensors and scalars, in the order given."""
     digest = hashlib.sha256()
     for part in parts:

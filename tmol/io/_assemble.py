@@ -37,9 +37,9 @@ def _atom_array_from_small_molecule(
         A single-residue AtomArray with a populated bond list.
     """
     # tmol.ligand imports tmol.io
-    from tmol.ligand._detect import nonstandard_residue_info_from_file
+    from tmol.ligand._detect import _nonstandard_residue_info_from_file
 
-    info = nonstandard_residue_info_from_file(mol2_path, res_name=res_name)
+    info = _nonstandard_residue_info_from_file(mol2_path, res_name=res_name)
     atom_array = as_atom_array_plus(info.atom_array.copy())
     atom_array.chain_id[:] = chain_id
     atom_array.res_id[:] = res_id
@@ -117,7 +117,7 @@ def _with_unique_chain_ids(parts: list[struc.AtomArray]) -> list[struc.AtomArray
     return result
 
 
-def assemble_input(*parts: struc.AtomArray) -> struc.AtomArray:
+def _assemble_input(*parts: struc.AtomArray) -> struc.AtomArray:
     """Join separately-read parts with their bonds, annotations and templates; a chain
     ID claimed by an earlier part is moved to a free one.
 

@@ -1,3 +1,3 @@
 """Compiled Cartesian bonded potentials."""
 
-from ._compiled import cartbonded_pose_scores, cartbonded_rotamer_scores  # noqa: F401
+from . import _compiled  # noqa: F401

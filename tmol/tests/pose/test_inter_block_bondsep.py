@@ -5,14 +5,14 @@ import numpy as np
 import pytest
 import torch
 
-from tmol.chemical import MAX_SIG_BOND_SEPARATION as CAP
-from tmol.io import (
+from tmol.chemical._constants import MAX_SIG_BOND_SEPARATION as CAP
+from tmol import (
     atom_array_from_file,
-    build_context_from_atom_array,
     pose_stack_from_atom_array,
     pose_stack_from_file,
+    PoseStackBuilder,
 )
-from tmol.pose import PoseStackBuilder
+from tmol.io import build_context_from_atom_array
 
 DATA = Path(__file__).parents[1] / "data"
 

@@ -19,12 +19,8 @@ import pytest
 import torch
 from biotite.structure.io import pdb
 
-from tmol.io import (
-    atom_array_from_file,
-    canonical_ordering_for_biotite,
-    pose_stack_from_atom_array,
-    pose_stack_from_file,
-)
+from tmol import atom_array_from_file, pose_stack_from_atom_array, pose_stack_from_file
+from tmol.io._pose_stack_from_biotite import _canonical_ordering_for_biotite
 from tmol.tests.data import data_path
 
 SEED = 20260915
@@ -85,7 +81,7 @@ def _unresolved_atom_names(array):
 
 def _noncanonical_names(array):
     """Residue names the default ordering does not already describe."""
-    known = set(canonical_ordering_for_biotite().restype_io_equiv_classes)
+    known = set(_canonical_ordering_for_biotite().restype_io_equiv_classes)
     return sorted({str(n) for n in np.unique(array.res_name)} - known)
 
 

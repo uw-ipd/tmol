@@ -7,9 +7,14 @@ import pytest
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.distance import cdist
 
-from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-from tmol.pack.rotamer import IncludeCurrentSampler, FixedAAChiSampler, build_rotamers
-from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
+from tmol import PackerPalette, PackerTask
+from tmol.pack import (
+    SetPackerTask,
+    IncludeCurrentSampler,
+    FixedAAChiSampler,
+    build_rotamers,
+    create_dunbrack_sampler_from_database,
+)
 from tmol.tests.score.test_mirror_image_scoring import _pose, MIRROR_PAIR
 
 

@@ -1,9 +1,8 @@
 import numpy
 
 from tmol.chemical import ResidueTypeSet
-from tmol.pack.rotamer import (
-    construct_single_residue_kinforest,
-    # coalesce_single_residue_kinforests,
+from tmol.pack.rotamer._single_residue_kinforest import (
+    _construct_single_residue_kinforest,
 )
 
 
@@ -11,7 +10,7 @@ def test_annotate_restypes(default_database):
     rts = ResidueTypeSet.from_database(default_database.chemical)
 
     for rt in rts.residue_types:
-        construct_single_residue_kinforest(rt)
+        _construct_single_residue_kinforest(rt)
         assert hasattr(rt, "rotamer_kinforest")
 
         assert isinstance(rt.rotamer_kinforest.kinforest_idx, numpy.ndarray)

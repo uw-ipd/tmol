@@ -7,14 +7,15 @@ import yaml
 import attr
 import cattr
 
-from tmol.database.scoring import OmegaBBDepDatabase, OmegaBBDepTables
+from tmol.database.scoring import OmegaBBDepDatabase
+from tmol.database.scoring._omega_bbdep import OmegaBBDepTables
 
 # A conversion script from rosetta omega bbdep tables to
 # tmol probability tables.  For each of five classes
 # of AA (general, gly, val+ile, pro, and prepro) it computes
 
 
-def parse_lines_as_ndarrays(lines, mucol=4, sigmacol=5):
+def _parse_lines_as_ndarrays(lines, mucol=4, sigmacol=5):
     mu = numpy.zeros((36, 36), dtype=float)
     sigma = numpy.zeros((36, 36), dtype=float)
     for line in lines:
@@ -28,22 +29,22 @@ def parse_lines_as_ndarrays(lines, mucol=4, sigmacol=5):
     return mu, sigma
 
 
-def parse_all_tables(r3_bbdepomega_dir):
+def _parse_all_tables(r3_bbdepomega_dir):
     # load tables
     tables = {}
     for tid in ["all", "gly", "prepro", "pro", "valile"]:
-        tables[tid] = parse_lines_as_ndarrays(
+        tables[tid] = _parse_lines_as_ndarrays(
             open(r3_bbdepomega_dir + "omega_ppdep." + tid + ".txt").readlines()
         )
 
     return tables
 
 
-def create_omega_db(r3_bbdepomega_dir):
+def _create_omega_db(r3_bbdepomega_dir):
     """
     Write the BBDep omega binary file
     """
-    tables = parse_all_tables(r3_bbdepomega_dir)
+    tables = _parse_all_tables(r3_bbdepomega_dir)
 
     bbdep_omega_tables = []
     # write tables
@@ -96,4 +97,4 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    torch.save(create_omega_db(args.r3_bbdepomega_dir), args.output)
+    torch.save(_create_omega_db(args.r3_bbdepomega_dir), args.output)

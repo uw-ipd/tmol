@@ -9,7 +9,7 @@ def test_required_cxx_standard():
 
 def test_active_torch_cxx_standard_flags_match():
     expected = _cpp_extension._required_cxx_standard(
-        *_cpp_extension.get_torch_version()
+        *_cpp_extension._get_torch_version()
     )
 
     assert f"--std=c++{expected}" in _cpp_extension._required_flags
