@@ -468,6 +468,32 @@
 schedule. <a class="reference internal" href="top_level.html#tmol.fast_relax" title="tmol.fast_relax"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmol.fast_relax()</span></code></a> is imported from the top-level package and
 documented in <a class="reference internal" href="top_level.html"><span class="doc">Top-level API</span></a>; <a class="reference internal" href="#module-tmol.relax" title="tmol.relax"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmol.relax</span></code></a> exports its default schedule.</p>
 <p id="module-tmol.relax">Packing and minimization protocols for structural relaxation.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.relax.DefaultCartesianMinimizer">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmol.relax.</span></span><span class="sig-name descname"><span class="pre">DefaultCartesianMinimizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cuda_graph</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/relax/_fast_relax.html#DefaultCartesianMinimizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.relax.DefaultCartesianMinimizer" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Cartesian minimizer that reuses rendering for unchanged pose topology.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.relax.DefaultCartesianMinimizer.release_retained_state">
+<span class="sig-name descname"><span class="pre">release_retained_state</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/tmol/relax/_fast_relax.html#DefaultCartesianMinimizer.release_retained_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.relax.DefaultCartesianMinimizer.release_retained_state" title="Link to this definition">#</a></dt>
+<dd><p>Release scorer and optimizer storage between relax stages.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.relax.DefaultKinematicMinimizer">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmol.relax.</span></span><span class="sig-name descname"><span class="pre">DefaultKinematicMinimizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cuda_graph</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/relax/_fast_relax.html#DefaultKinematicMinimizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.relax.DefaultKinematicMinimizer" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Kinematic minimizer that reuses rendering for unchanged pose topology.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.relax.DefaultKinematicMinimizer.release_retained_state">
+<span class="sig-name descname"><span class="pre">release_retained_state</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/tmol/relax/_fast_relax.html#DefaultKinematicMinimizer.release_retained_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.relax.DefaultKinematicMinimizer.release_retained_state" title="Link to this definition">#</a></dt>
+<dd><p>Release scorer and optimizer storage between relax stages.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 
@@ -508,6 +534,25 @@ documented in <a class="reference internal" href="top_level.html"><span class="d
                 <dialog id="pst-secondary-sidebar-modal"></dialog>
                 <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
 
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.relax.DefaultCartesianMinimizer"><code class="docutils literal notranslate"><span class="pre">DefaultCartesianMinimizer</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.relax.DefaultCartesianMinimizer.release_retained_state"><code class="docutils literal notranslate"><span class="pre">DefaultCartesianMinimizer.release_retained_state()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.relax.DefaultKinematicMinimizer"><code class="docutils literal notranslate"><span class="pre">DefaultKinematicMinimizer</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.relax.DefaultKinematicMinimizer.release_retained_state"><code class="docutils literal notranslate"><span class="pre">DefaultKinematicMinimizer.release_retained_state()</span></code></a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
 
   <div class="sidebar-secondary-item">
 
