@@ -7,7 +7,8 @@ import torch
 
 from tmol import fast_relax
 import tmol.relax._fast_relax as fast_relax_module
-from tmol.relax._fast_relax import _resolve_cuda_graph_mode, DefaultKinematicMinimizer
+from tmol.relax import DefaultKinematicMinimizer
+from tmol.relax._fast_relax import _resolve_cuda_graph_mode
 from tmol.optimization._minimizers import CartesianMinimizer
 
 from tmol import (
