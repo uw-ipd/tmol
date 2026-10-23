@@ -177,7 +177,7 @@ def run_kin_min(
 ) -> PoseStack:
     """Run minimization on a PoseStack in internal DOF space.
 
-    Builds a ``KinForestSfxnNetwork`` and delegates to :func:`run_min`.
+    Builds a ``KinForestSfxnNetwork`` and delegates to :func:`_run_min`.
 
     Args:
         pose_stack: Structures and coordinates to minimize.
@@ -423,7 +423,7 @@ def run_cart_min(
 ) -> PoseStack:
     """Run minimization on a PoseStack in Cartesian coordinate space.
 
-    Builds a ``CartesianSfxnNetwork`` and delegates to :func:`run_min`.
+    Builds a ``CartesianSfxnNetwork`` and delegates to :func:`_run_min`.
 
     Args:
         pose_stack: Structures and coordinates to minimize.

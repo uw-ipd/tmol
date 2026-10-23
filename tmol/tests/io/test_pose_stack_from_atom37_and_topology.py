@@ -10,10 +10,13 @@ import torch
 from tmol.io._pose_stack_from_biotite import (
     Atom37MappingError,
     _canonical_ordering_for_biotite,
-    _prepare_atom37_pose_builder,
 )
-from tmol.io import build_context_from_atom_array, canonical_form_from_biotite
-from tmol.io._pose_stack_from_atomworks import _pose_stack_from_atom37_and_topology
+from tmol.io import (
+    prepare_atom37_pose_builder,
+    build_context_from_atom_array,
+    canonical_form_from_biotite,
+    pose_stack_from_atom37_and_topology,
+)
 from tmol import pose_stack_from_atom_array
 from tmol.tests.data import data_path
 
@@ -104,10 +107,10 @@ def test_all_nan_atom37_coordinate_is_missing_not_reference_fallback(
 
 def _build_atom37_pose(adapter, atom37, structure, context):
     if adapter == "direct":
-        return _pose_stack_from_atom37_and_topology(
+        return pose_stack_from_atom37_and_topology(
             atom37, structure, context, no_optH=True
         )
-    return _prepare_atom37_pose_builder(structure, context)(atom37, opt_h=False)
+    return prepare_atom37_pose_builder(structure, context)(atom37, opt_h=False)
 
 
 @pytest.mark.parametrize("adapter", ["direct", "prepared"])
@@ -206,7 +209,7 @@ def test_atom37_pose_supports_protein_dna_and_rna(filename, torch_device):
     atom37.requires_grad_(True)
     context = build_context_from_atom_array(structure, torch_device)
 
-    pose = _pose_stack_from_atom37_and_topology(atom37, structure, context)
+    pose = pose_stack_from_atom37_and_topology(atom37, structure, context)
 
     assert pose.n_poses == 2
     assert torch.isfinite(pose.coords[pose.real_atoms]).all()
@@ -233,10 +236,10 @@ def test_prepared_atom37_builder_matches_direct_pose(filename, closed, torch_dev
     structure, atom37 = _atomized_atom37(structure, torch_device, n_poses=2)
     context = build_context_from_atom_array(structure, torch_device)
 
-    expected = _pose_stack_from_atom37_and_topology(
+    expected = pose_stack_from_atom37_and_topology(
         atom37, structure, context, no_optH=True
     )
-    builder = _prepare_atom37_pose_builder(structure, context)
+    builder = prepare_atom37_pose_builder(structure, context)
     if closed:
         bonds = builder._canonical_form(
             builder._canonical_coords(atom37)
@@ -257,7 +260,7 @@ def test_prepared_atom37_builder_is_reusable_and_differentiable(
 ):
     structure, atom37 = _atomized_atom37(_first_residues(biotite_1ubq, 2), torch_device)
     context = build_context_from_atom_array(structure, torch_device)
-    builder = _prepare_atom37_pose_builder(structure, context)
+    builder = prepare_atom37_pose_builder(structure, context)
 
     first_coords = atom37.detach().clone().requires_grad_(True)
     first_pose = builder(first_coords, opt_h=False)
@@ -304,7 +307,7 @@ def test_prepared_atom37_builder_is_reusable_and_differentiable(
     second_coords[:, :, 1] += 1
     second_coords.requires_grad_(True)
     second_pose = builder(second_coords, opt_h=False)
-    expected_second = _pose_stack_from_atom37_and_topology(
+    expected_second = pose_stack_from_atom37_and_topology(
         second_coords, structure, context, no_optH=True
     )
     assert second_pose.packed_block_types is context.packed_block_types
@@ -334,7 +337,7 @@ def test_prepared_atom37_builder_is_reusable_and_differentiable(
 
     batched_coords = second_coords.detach().expand(2, -1, -1, -1).clone()
     batched_pose = builder(batched_coords, opt_h=False)
-    expected_batched = _pose_stack_from_atom37_and_topology(
+    expected_batched = pose_stack_from_atom37_and_topology(
         batched_coords, structure, context, no_optH=True
     )
     torch.testing.assert_close(batched_pose.coords, expected_batched.coords)
@@ -344,7 +347,7 @@ def test_prepared_atom37_builder_is_reusable_and_differentiable(
     nonfinite_coords = second_coords.detach().clone()
     nonfinite_coords[:, oxygen, 1] = torch.nan
     actual_nonfinite = builder(nonfinite_coords, opt_h=False)
-    expected_nonfinite = _pose_stack_from_atom37_and_topology(
+    expected_nonfinite = pose_stack_from_atom37_and_topology(
         nonfinite_coords, structure, context, no_optH=True
     )
     torch.testing.assert_close(actual_nonfinite.coords, expected_nonfinite.coords)
@@ -367,12 +370,12 @@ def test_explicit_opth_flags_preserve_previous_results(
     structure = structure[structure.element != "H"]
     structure, atom37 = _atomized_atom37(structure, torch_device)
     context = build_context_from_atom_array(structure, torch_device)
-    builder = _prepare_atom37_pose_builder(structure, context)
+    builder = prepare_atom37_pose_builder(structure, context)
     preserved = builder(atom37)
     coords = atom37.detach().requires_grad_(True)
 
     torch.manual_seed(0)
-    expected = _pose_stack_from_atom37_and_topology(
+    expected = pose_stack_from_atom37_and_topology(
         coords, structure, context, no_optH=False
     )
     torch.manual_seed(0)
@@ -396,7 +399,7 @@ def test_prepared_atom37_builder_replays_variable_leaf_presence(
     structure, atom37 = _atomized_atom37(structure, torch_device, n_poses=2)
     atom37.requires_grad_(True)
     context = build_context_from_atom_array(structure, torch_device)
-    builder = _prepare_atom37_pose_builder(structure, context)
+    builder = prepare_atom37_pose_builder(structure, context)
 
     first = builder(atom37, opt_h=False)
     assert torch.isfinite(first.coords[first.real_atoms]).all()
@@ -421,7 +424,7 @@ def test_prepared_atom37_builder_replays_variable_leaf_presence(
 
     second_coords = atom37.detach().clone()
     second_coords[:, oxygen, 1] = torch.tensor([1.0, 2.0, 3.0], device=torch_device)
-    expected_second = _pose_stack_from_atom37_and_topology(
+    expected_second = pose_stack_from_atom37_and_topology(
         second_coords, structure, context, no_optH=True
     )
     actual_second = builder(second_coords, opt_h=False)
@@ -441,7 +444,7 @@ def test_prepared_atom37_builder_falls_back_for_ambiguous_histidine_hydrogen(
     structure, _ = _atomized_atom37(structure, torch_device)
     context = build_context_from_atom_array(structure, torch_device)
 
-    builder = _prepare_atom37_pose_builder(structure, context)
+    builder = prepare_atom37_pose_builder(structure, context)
 
     assert not builder._topology_cache_safe
 
@@ -463,7 +466,7 @@ def test_atom37_pose_uses_ligand_context(torch_device, prebuilt):
         ligand_seed=20260909,
     )
 
-    pose = _pose_stack_from_atom37_and_topology(atom37, structure, context)
+    pose = pose_stack_from_atom37_and_topology(atom37, structure, context)
 
     assert any(
         block.name == "LG1" for block in pose.packed_block_types.active_block_types
@@ -514,7 +517,7 @@ def test_atom37_pose_can_return_atom_mapping(biotite_1ubq, torch_device):
     structure, atom37 = _atomized_atom37(_first_residues(biotite_1ubq, 1), torch_device)
     context = build_context_from_atom_array(structure, torch_device)
 
-    pose, details = _pose_stack_from_atom37_and_topology(
+    pose, details = pose_stack_from_atom37_and_topology(
         atom37,
         structure,
         context,
@@ -532,7 +535,7 @@ def test_atom37_gradients_survive_hydrogen_optimization(biotite_1ubq, torch_devi
     atom37.requires_grad_(True)
     context = build_context_from_atom_array(structure, torch_device)
 
-    pose = _pose_stack_from_atom37_and_topology(
+    pose = pose_stack_from_atom37_and_topology(
         atom37,
         structure,
         context,

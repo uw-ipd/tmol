@@ -46,12 +46,12 @@ def test_sdf_ligand_writes_params_like_its_mol2(tmp_path):
     """Parameters are written from 3GE7's SDF as from its MOL2: one residue with
     the MOL2's heavy atoms and net charge."""
     from tmol.ligand._detect import _nonstandard_residue_info_from_file
-    from tmol.ligand._params_io import _write_params_from_mol2
+    from tmol.ligand import write_params_from_mol2
 
     infos = []
     for ext in ("mol2", "sdf"):
         path = _unpacked(tmp_path, f"cyclic_acylguanidinium_3ge7.{ext}.zst")
-        _write_params_from_mol2(path, tmp_path / f"{ext}.tmol", res_name="AFQ")
+        write_params_from_mol2(path, tmp_path / f"{ext}.tmol", res_name="AFQ")
         infos.append(_nonstandard_residue_info_from_file(path, res_name="AFQ"))
         assert "AFQ" in (tmp_path / f"{ext}.tmol").read_text()
     mol2, sdf = (info.atom_array for info in infos)

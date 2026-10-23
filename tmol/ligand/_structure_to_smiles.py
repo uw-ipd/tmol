@@ -2,7 +2,7 @@
 
 This is the entry to tmol's unified ligand path: a CIF/atom-array ligand is
 converted to a SMILES string here, then handed to the existing
-SMILES -> params pipeline (:func:`nonstandard_residue_info_from_smiles_via_mol2`).
+SMILES -> params pipeline (:func:`_nonstandard_residue_info_from_smiles_via_mol2`).
 
 The SMILES always reflects the *input atoms as given* -- there is no residue-code
 / CCD-template lookup (that risks substituting an unrelated molecule when a CIF
@@ -15,7 +15,7 @@ bonds-absent input (such as a plain PDB ligand) is a hard error, because guessed
 bond orders would silently corrupt the generated params database.
 
 The SMILES is built with the shared ligand builder
-:func:`tmol.ligand._rdkit_mol.rdkit_mol_from_ligand_atom_array` -- the same
+:func:`tmol.ligand._rdkit_mol._rdkit_mol_from_ligand_atom_array` -- the same
 AtomArray -> RDKit path the params pipeline uses -- so the derived SMILES and
 the prepared molecule always agree on chemistry.
 """

@@ -10,9 +10,8 @@ from tmol import (
     extended_pose_stack_from_sequences,
     pose_stack_from_atom_array,
 )
-from tmol.ligand._preparation import _prepare_ligand_from_smiles
+from tmol.ligand import prepare_ligand_from_smiles, smiles_from_pose_stack
 from tmol.ligand._block_type_smiles import _smiles_from_block_type
-from tmol.ligand import smiles_from_pose_stack
 from tmol.tests.data import data_path
 
 
@@ -94,7 +93,7 @@ def test_atom_map_numbers_block_type_atoms(default_types):
     ids=["gdp", "retinal", "nitro", "sulfoxide", "estradiol"],
 )
 def test_prepared_ligand_round_trips(smiles):
-    db, _ = _prepare_ligand_from_smiles(smiles, protonate=False, res_name="LIG", seed=1)
+    db, _ = prepare_ligand_from_smiles(smiles, protonate=False, res_name="LIG", seed=1)
     rt = next(
         r
         for r in ResidueTypeSet.from_database(db.chemical).residue_types

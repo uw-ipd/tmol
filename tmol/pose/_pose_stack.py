@@ -201,7 +201,7 @@ class PoseStack:
 
         :py:meth:`clone` deep-copies every tensor, including the connection
         tensors, even though nothing ever mutates them in place: they are
-        built once by :py:class:`~tmol.pose.PoseStackBuilder` and thereafter
+        built once by :py:class:`~tmol.PoseStackBuilder` and thereafter
         only read.
 
         Callers that vary coordinates while holding topology fixed -- the

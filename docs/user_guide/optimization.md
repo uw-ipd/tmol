@@ -9,7 +9,7 @@ rigid-body degrees of freedom. FastRelax alternates packing and minimization.
 Use `run_cart_min()` to optimize coordinates directly:
 
 ```python
-from tmol.optimization import run_cart_min
+from tmol import run_cart_min
 
 minimized_pose_stack = run_cart_min(pose_stack, sfxn)
 ```
@@ -30,8 +30,8 @@ new pose with harmonic coordinate restraints targeting a copy of each residue
 type's declared main-chain atom coordinates:
 
 ```python
-from tmol.score.constraint import create_mainchain_coordinate_constraints
-from tmol.score import ScoreType
+from tmol.score import create_mainchain_coordinate_constraints
+from tmol import ScoreType
 
 constrained_pose = create_mainchain_coordinate_constraints(pose_stack)
 sfxn.set_weight(ScoreType.constraint, 1.0)
@@ -46,8 +46,8 @@ four-atom torsions.
 
 ## Missing side chains and hydrogens
 
-`pose_stack_from_atom_array()` automatically routes blocks with missing heavy
-atoms through `build_missing_sidechains()`. By default it also optimizes
+`pose_stack_from_atom_array()` automatically rebuilds the missing heavy atoms
+of incomplete side chains by packing them. By default it also optimizes
 supported hydrogen positions and NHQ flips. Pass `no_optH=True` to preserve
 finite supplied protein hydrogens and build only missing atoms.
 
@@ -73,9 +73,7 @@ an error. These starting conformers are not recovered experimental coordinates.
 Kinematic minimization optimizes internal degrees of freedom over a fold forest:
 
 ```python
-from tmol.kinematics import FoldForest
-from tmol.kinematics import MoveMap
-from tmol.optimization import run_kin_min
+from tmol import FoldForest, MoveMap, run_kin_min
 
 fold_forest = FoldForest.reasonable_fold_forest(pose_stack)
 move_map = MoveMap.from_pose_stack(pose_stack)
@@ -99,9 +97,7 @@ Use Cartesian masks to select atoms; use a `MoveMap` to select torsions and jump
 score-function weights:
 
 ```python
-from tmol.kinematics import CartesianMoveMap, FoldForest
-from tmol.pack import PackerPalette
-from tmol.relax import fast_relax
+from tmol import CartesianMoveMap, FoldForest, PackerPalette, fast_relax
 
 palette = PackerPalette()
 move_map = CartesianMoveMap()  # coord_mask=None allows all atom coordinates

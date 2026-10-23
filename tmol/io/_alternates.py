@@ -118,7 +118,7 @@ def _one_alternate(atoms):
 
 
 def _pdb_lines_with_one_alternate(lines, model):
-    """The PDB lines less the alternates ``one_alternate`` drops and their LINKs."""
+    """The PDB lines less the alternates ``_one_alternate`` drops and their LINKs."""
     atom = np.array([line.startswith(("ATOM  ", "HETATM")) for line in lines])
     if not any(lines[i][16:17].strip() for i in np.flatnonzero(atom)):
         return lines

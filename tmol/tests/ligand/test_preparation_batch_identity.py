@@ -7,8 +7,7 @@ import pytest
 import yaml
 
 from tmol import ParameterDatabase
-from tmol.ligand._params_file import _inject_params_files
-from tmol.ligand import load_params_file, write_params_file
+from tmol.ligand import inject_params_files, load_params_file, write_params_file
 from tmol.ligand._registry import (
     _inject_ligand_preparations,
     _rebuild_canonical_ordering,
@@ -51,10 +50,10 @@ def test_repeated_files_and_repeated_export_have_one_identity(prep, tmp_path):
     write_params_file(prep, one)
     write_params_file([prep, replace(prep)], many)
     assert len(load_params_file(many)) == 1
-    expected = _inject_params_files(base, [one])
-    actual = _inject_params_files(base, [one, many, one])
+    expected = inject_params_files(base, [one])
+    actual = inject_params_files(base, [one, many, one])
     _assert_same(actual, expected)
-    assert _inject_params_files(actual, [one, many]) is actual
+    assert inject_params_files(actual, [one, many]) is actual
 
 
 @pytest.mark.parametrize("field", ["residue", "charges", "bonded"])
@@ -111,7 +110,7 @@ def test_disjoint_shared_charges_on_duplicate_preps_are_preserved(prep, tmp_path
         _assert_same(_inject_ligand_preparations(base, order), expected)
         path = tmp_path / "shared.tmol"
         write_params_file(order, path)
-        _assert_same(_inject_params_files(base, [path]), expected)
+        _assert_same(inject_params_files(base, [path]), expected)
 
 
 @pytest.mark.parametrize("metadata", ["charges", "bonded"])
@@ -242,10 +241,10 @@ def test_each_path_is_read_once_per_batch(prep, tmp_path, monkeypatch):
         return original(path)
 
     monkeypatch.setattr(_params_file, "load_params_file", counted)
-    _inject_params_files(ParameterDatabase.get_default(), [str(path), path, str(path)])
+    inject_params_files(ParameterDatabase.get_default(), [str(path), path, str(path)])
     assert calls == [path]
     # Each batch still calls the reader; its metadata cache owns parse reuse.
-    _inject_params_files(ParameterDatabase.get_default(), [path])
+    inject_params_files(ParameterDatabase.get_default(), [path])
     assert calls == [path, path]
 
     # Cached prototypes must not leak mutable charge edits to a later caller.

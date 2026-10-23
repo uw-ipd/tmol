@@ -104,7 +104,7 @@ def _cross_residue_bonds(atom_array):
 def _unprepared_conjugate_partners(atom_array, chemical_database):
     """Residue names at a cross-residue bond that no definition describes.
 
-    These are exactly the residues :func:`iter_capped_conjugate_models` refuses
+    These are exactly the residues :func:`_iter_capped_conjugate_models` refuses
     to guess polymer connectivity for. A residue with no cross-residue bond is
     never looked up, so its absence from the database does not matter here.
     """
@@ -397,5 +397,5 @@ def _restore_template_stereochemistry(
 
 
 def _capped_conjugate_models(atom_array, chemical_database):
-    """Collect :func:`iter_capped_conjugate_models` into an owned tuple."""
+    """Collect :func:`_iter_capped_conjugate_models` into an owned tuple."""
     return tuple(_iter_capped_conjugate_models(atom_array, chemical_database))

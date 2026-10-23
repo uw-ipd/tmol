@@ -71,7 +71,7 @@ def _mirror_wells(wells: torch.Tensor, n_per_column: torch.Tensor) -> torch.Tens
 
 
 def _reflect(table: torch.Tensor, dims, start, step) -> torch.Tensor:
-    """Permute reflected points onto the grid from ``reflected_grid_start``.
+    """Permute reflected points onto the grid from ``_reflected_grid_start``.
 
     Point k moves to (c - k) modulo the number of bins, where c is the nearest
     integer to -2*start/step. Changing the target origin to -start-c*step

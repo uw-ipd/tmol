@@ -82,7 +82,7 @@ def mutate_residue(
             beta2016 on the pose stack's device.
         param_db: Parameter database used to build the Dunbrack sampler;
             defaults to the score function's own database.
-        seed: Packer seed, as for :func:`~tmol.pack.pack_rotamers`.
+        seed: Packer seed, as for :func:`~tmol.pack_rotamers`.
 
     Returns:
         A new PoseStack with the requested block mutated.
@@ -104,7 +104,7 @@ def mutate_to_sequence(
     """Mutate every real block of one pose whose identity doesn't match ``sequence``.
 
     ``sequence`` is a one-letter sequence, as returned by
-    :func:`~tmol.pose.get_sequence`, for the real (non-padding) blocks of one
+    :func:`~tmol.get_sequence`, for the real (non-padding) blocks of one
     pose, in block order. Positions whose current three-letter code already
     matches their requested letter are left untouched; every differing
     position is redesigned to the requested identity in a single packing run.
@@ -117,7 +117,7 @@ def mutate_to_sequence(
             beta2016 on the pose stack's device.
         param_db: Parameter database used to build the Dunbrack sampler;
             defaults to the score function's own database.
-        seed: Packer seed, as for :func:`~tmol.pack.pack_rotamers`.
+        seed: Packer seed, as for :func:`~tmol.pack_rotamers`.
 
     Returns:
         A new PoseStack with every differing position mutated to match.

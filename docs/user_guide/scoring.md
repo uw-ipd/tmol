@@ -8,8 +8,11 @@ Calculate whole-pose scores, coordinate gradients, and block-pair contributions.
 import torch
 import tmol
 
-from tmol.io import atom_array_from_file, pose_stack_from_atom_array
-from tmol.score import beta2016_score_function
+from tmol import (
+    atom_array_from_file,
+    pose_stack_from_atom_array,
+    beta2016_score_function,
+)
 
 device = torch.device("cuda" if tmol.has_cuda() and torch.cuda.is_available() else "cpu")
 structure = atom_array_from_file("1ubq.cif")
@@ -54,7 +57,7 @@ When a structure introduces ligand residue types at load time, the score
 function must be created from the ligand-extended parameter database:
 
 ```python
-from tmol.score import beta2016_score_function
+from tmol import beta2016_score_function
 
 sfxn = beta2016_score_function(
     pose_stack.device,
@@ -109,7 +112,7 @@ For a ligand represented by connected fragment blocks, attribute its
 interaction with an explicit partner mask in one connected-pose score:
 
 ```python
-from tmol.score import calculate_fragment_interactions
+from tmol import calculate_fragment_interactions
 
 fragment_scores = calculate_fragment_interactions(
     pose_stack,

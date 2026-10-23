@@ -345,9 +345,9 @@ def test_smiles_path_is_not_routed_to_the_polymer_path() -> None:
     the SMILES entry point takes an explicit polymer argument, it must keep
     producing a connection-free ligand.
     """
-    from tmol.ligand._preparation import _prepare_ligand_from_smiles
+    from tmol.ligand import prepare_ligand_from_smiles
 
-    param_db, _ordering = _prepare_ligand_from_smiles(
+    param_db, _ordering = prepare_ligand_from_smiles(
         "N[C@@H](COP(=O)([O-])[O-])C(=O)[O-]",
         param_db=ParameterDatabase.get_default(),
         res_name="PSR",

@@ -293,7 +293,7 @@ def _name_hydrogens_by_parent(
 ) -> list[AtomTypeAssignment]:
     """Name each hydrogen after the heavy atom it is bonded to.
 
-    Parents are taken in atom order and named by ``hydrogen_names_by_parent``.
+    Parents are taken in atom order and named by ``_hydrogen_names_by_parent``.
     """
     name_by_index = {at.index: at.atom_name for at in atom_types}
     hydrogens_of: dict[int, list[int]] = {}
@@ -420,16 +420,16 @@ def prepare_single_ligand(
     protonation state and authoritative per-atom partial charges (the OpenBabel
     MMFF94 charges produced by the SMILES -> mol2 step). Protonation and charge
     generation are *not* done here -- they happen upstream in
-    :func:`tmol.ligand._detect.nonstandard_residue_info_from_smiles_via_mol2`.
+    ``tmol.ligand._detect._nonstandard_residue_info_from_smiles_via_mol2``.
 
     Charges are mapped onto atoms by stable RDKit index (source atom order),
     so they are independent of the atom renaming below and never recomputed.
 
     Returns a :class:`LigandPreparation` -- the same struct
-    :func:`tmol.ligand._params_file.load_params_file` produces for each residue
+    :func:`tmol.ligand.load_params_file` produces for each residue
     defined in a ``.tmol`` file, so the AtomArray-driven path and the params-file
     path converge on a single abstraction that
-    :func:`inject_ligand_preparations` consumes.
+    :func:`_inject_ligand_preparations` consumes.
 
     Args:
         ligand_info: A SMILES-derived ligand (``skip_protonation=True`` with
@@ -1903,10 +1903,10 @@ def prepare_ligands(  # noqa: C901
             as the third return value.
         chem_comp_types: ``{comp_id: type}`` read from the input file's
             ``_chem_comp`` table (see
-            :func:`tmol.ligand.chem_comp_types_from_cif`), consulted where the
+            ``tmol.ligand._detect._chem_comp_types_from_cif``), consulted where the
             file does not number the residue along a polymer sequence. A
             polymer-linking type routes the residue to
-            :func:`prepare_polymer_residue` instead of the free-molecule
+            :func:`_prepare_polymer_residue` instead of the free-molecule
             ligand path.
         seed: Fixed RNG seed for the 3D conformer each residue is built from.
             ``None`` is random, which makes the prepared residue types differ
@@ -2405,7 +2405,7 @@ def _inject_single(
     return param_db, _rebuild_canonical_ordering(param_db)
 
 
-def _prepare_ligand_from_cif(
+def prepare_ligand_from_cif(
     cif_path: str,
     *,
     param_db: Optional[ParameterDatabase] = None,
@@ -2441,7 +2441,7 @@ def _prepare_ligand_from_cif(
     return _inject_single(prep, param_db, strict_atom_types)
 
 
-def _prepare_ligand_from_smiles(
+def prepare_ligand_from_smiles(
     smiles: str,
     *,
     param_db: Optional[ParameterDatabase] = None,
@@ -2510,7 +2510,7 @@ def _prepare_ligands_from_smiles(
             continue
         name = _unused_ligand_name(taken)
         taken.add(name)
-        param_db, _ = _prepare_ligand_from_smiles(
+        param_db, _ = prepare_ligand_from_smiles(
             smi,
             param_db=param_db,
             ph=ph,
@@ -2570,7 +2570,7 @@ def _prepare_mol2(mol2_path, res_name=None, *, ph=7.4, mode="auto", seed=None):
         raise ValueError(f"{mol2_path}: {error}") from error
 
 
-def _prepare_ligand_from_mol2(
+def prepare_ligand_from_mol2(
     mol2_path: str,
     *,
     param_db: Optional[ParameterDatabase] = None,

@@ -2,7 +2,7 @@ Input and Output
 ================
 
 The public :mod:`tmol.io` API converts common structure representations to and
-from :class:`tmol.pose.PoseStack`.
+from :class:`tmol.PoseStack`.
 
 Once the residue types are resolved, :func:`tmol.io.pose_stack_from_atom37`
 builds a pose from tensors alone, for canonical and noncanonical chemistry
@@ -18,8 +18,8 @@ guidance, and search workloads should bind their fixed topology once with
 each coordinate batch and preserves ordinary finite authored protein hydrogens
 by default. Generated ligand types rebuild their hydrogen coordinates.
 
-Use :func:`tmol.io.atom_array_from_file` or
-:func:`tmol.io.pose_stack_from_file` for PDB, CIF, compressed CIF and binary CIF.
+Use :func:`tmol.atom_array_from_file` or
+:func:`tmol.pose_stack_from_file` for PDB, CIF, compressed CIF and binary CIF.
 The reader options are ``model`` and ``assembly_id``. Reading preserves
 supplied names, coordinates, hydrogens and covalent bonds; declared unresolved
 heavy atoms carry NaN coordinates. Chemistry the file leaves out is completed
@@ -43,7 +43,7 @@ and repeated construction. Direct AtomArray inputs follow the same contract.
        "complex.cif", device, prepare_ligands=True, return_context=True,
    )
 
-:func:`tmol.io.pose_stack_from_file` also accepts MOL2 and SDF, file text and
+:func:`tmol.pose_stack_from_file` also accepts MOL2 and SDF, file text and
 streams. File and AtomArray inputs preserve matching supplied heavy-atom
 coordinates for ordinary protein residues and build missing hydrogens. By
 default, hydrogens are packed with OptH; pass ``no_optH=True`` to preserve finite
@@ -53,8 +53,8 @@ coordinates of hydrogens that sit at bond length from the parent their name
 gives them, ``"names"`` (the default) keeps the names but rebuilds coordinates,
 and ``"rebuild"`` generates names and rebuilds coordinates.
 
-Write with :func:`tmol.io.file_from_pose_stack` or
-:func:`tmol.io.file_from_atom_array`, which produce PDB or CIF and return the
+Write with :func:`tmol.file_from_pose_stack` or
+:func:`tmol.file_from_atom_array`, which produce PDB or CIF and return the
 text when no path is given.
 
 .. automodule:: tmol.io

@@ -232,7 +232,8 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
     def resolve_torsion_params(self, block_type: RefinedResidueType, torsions):
         """For each torsion tuple (i,j,k,l), look up its genbonded parameters.
 
-        Returns (kept_torsions, params) where:
+        Returns (kept_torsions, params) where::
+
           kept_torsions : filtered list of (i,j,k,l) tuples that had a DB match
           params        : numpy float32 array of shape (N_kept, 5):
                           columns [k1, k2, k3, k4, offset]

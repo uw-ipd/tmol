@@ -13,8 +13,7 @@ atoms at NaN:
 import torch
 import tmol
 
-from tmol.io import pose_stack_from_file
-from tmol.score import beta2016_score_function
+from tmol import pose_stack_from_file, beta2016_score_function
 
 device = torch.device("cuda" if tmol.has_cuda() and torch.cuda.is_available() else "cpu")
 pose_stack, context = pose_stack_from_file(
@@ -40,17 +39,19 @@ preparation, strict errors and reusable parameter bundles.
 
 ## Direct prediction tensors
 
-Canonical proteins in AtomWorks' `UNIFIED_ATOM37_ENCODING` can use
-`pose_stack_from_canonical_aa_atom37(coords, residue_type, chain_iid)` directly. Coordinates
-have shape `[batch, residues, 37, 3]`; token IDs and chain IDs have shape
-`[batch, residues]`. The function uses AtomWorks' token order and atom names.
-Tensor shape alone does not identify an encoding.
+Prediction tensors go through `tmol.io.pose_stack_from_atom37()`. Build the
+predictor's slot layout once with `tmol.io.atom37_slot_map_for_ordering()`,
+naming the atom that occupies each slot of each residue type; this works for
+AtomWorks' `UNIFIED_ATOM37_ENCODING`, atom14, or any other named layout.
+Coordinates have shape `[batch, residues, slots, 3]`; residue-type indices and
+chain IDs have shape `[batch, residues]`. Residue-type indices refer to the
+canonical ordering of the context from `tmol.io.build_context_from_atom_array()`,
+so translate the predictor's token IDs into that ordering first. Tensor shape
+alone does not identify an encoding.
 
-For atom14 or another named layout, map the predictor's token IDs and atom
-names into `CanonicalForm`, then call `pose_stack_from_canonical_form()`. The
+The
 {download}`executable model-input tutorial <../model_input_example.ipynb>`
-implements OpenFold and RoseTTAFold2 examples using this shared contract. It
-shows final-recycle selection, explicit masks, batched scoring and gradients,
+implements OpenFold and RoseTTAFold2 examples. It shows final-recycle selection, explicit masks, batched scoring and gradients,
 and both preservation and rebuilding of RF2's supplied hydrogen slots. Those
 model-specific mappings belong in the caller; TMol has no separate OpenFold or
 RF2 constructor.
@@ -90,8 +91,8 @@ per (ordering, layout) pair from the residue-type table; omit it to use the
 standard Atom37 layout, which covers the canonical amino acids.
 
 The `AtomArray` entry points below remain the way to *derive* these tensors
-when chemistry has to be read from a structure. Everything ends in the same
-constructor, `pose_stack_from_canonical_form_and_context()`.
+when chemistry has to be read from a structure. Both routes build the pose with
+the same internal constructor.
 
 ## Differentiable AtomWorks Atom37 coordinates
 
@@ -108,7 +109,7 @@ from tmol.io import (
     build_context_from_atom_array,
     prepare_atom37_pose_builder,
 )
-from tmol.score import beta2016_score_function
+from tmol import beta2016_score_function
 
 # atom_array is the AtomWorks-produced topology. atom37_slots is a per-atom
 # integer array from the same unified encoding; use -1 for an unmapped atom.

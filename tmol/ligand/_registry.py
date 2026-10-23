@@ -263,11 +263,11 @@ class LigandPreparation:
       types the (already protonated, already charged) SMILES-derived molecule,
       builds the residue, and extracts cartbonded params, returning one
       ``LigandPreparation`` per ligand.
-    * **Params-file path** — :func:`tmol.ligand._params_file.load_params_file`
+    * **Params-file path** — :func:`tmol.ligand.load_params_file`
       parses a ``.tmol`` YAML and returns ``list[LigandPreparation]``
       describing the residues defined in that file.
 
-    Either list is then handed to :func:`inject_ligand_preparations`,
+    Either list is then handed to :func:`_inject_ligand_preparations`,
     the single chokepoint that extends the ``ParameterDatabase``. Tests
     can equally roundtrip ``AtomArray → LigandPreparation → .tmol →
     LigandPreparation`` and expect bit-equivalent injection.
@@ -502,7 +502,7 @@ def _inject_ligand_preparations(
     ``.tmol`` file or an AtomArray), this function aggregates their
     residue types, atom types, charges, and cartbonded params and
     evolves the input ``ParameterDatabase`` via
-    :func:`tmol.database.inject_residue_params`.
+    :func:`tmol.database._inject_residue_params`.
 
     Base definitions whose name already exists in ``param_db`` are skipped.
     Their additional patches, variant charges and connection records are still

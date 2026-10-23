@@ -14,11 +14,14 @@ from ._pose_stack_from_atom37 import (  # noqa: F401
     atom37_slot_map_for_ordering,
     pose_stack_from_atom37,
 )
-from . import _pose_stack_from_atomworks  # noqa: F401
+from ._pose_stack_from_atomworks import (  # noqa: F401
+    pose_stack_from_atom37_and_topology,
+)
 from . import _cif  # noqa: F401
 from ._pose_stack_from_biotite import (  # noqa: F401
     build_context_from_atom_array,
     canonical_form_from_biotite,
+    prepare_atom37_pose_builder,
 )
 from . import _structure_io  # noqa: F401
 from . import _assemble  # noqa: F401
@@ -30,4 +33,6 @@ __all__ = [
     "canonical_form_from_biotite",
     "fetch_cif",
     "pose_stack_from_atom37",
+    "pose_stack_from_atom37_and_topology",
+    "prepare_atom37_pose_builder",
 ]

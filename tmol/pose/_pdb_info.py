@@ -22,6 +22,7 @@ class PDBInfo:
     those changes to also update the PDBInfo object accordingly.
 
     Datamembers:
+
     residue_labels: numpy array of strings giving residue ids for each residue.
         shape: [n_poses x max_n_residues]
     residue_insertion_codes: numpy array of strings giving insertion codes

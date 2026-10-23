@@ -34,7 +34,7 @@ your own mmCIF containing a nonstandard polymer:
 
 ```python
 import torch
-from tmol.io import atom_array_from_file, pose_stack_from_atom_array
+from tmol import atom_array_from_file, pose_stack_from_atom_array
 
 array = atom_array_from_file("modified_polymer.cif")
 pose, context = pose_stack_from_atom_array(
@@ -99,8 +99,7 @@ For full protein-ligand structures, load with Biotite and let
 import torch
 import tmol
 
-from tmol.database import ParameterDatabase
-from tmol.io import atom_array_from_file, pose_stack_from_atom_array
+from tmol import ParameterDatabase, atom_array_from_file, pose_stack_from_atom_array
 
 device = torch.device("cuda" if tmol.has_cuda() and torch.cuda.is_available() else "cpu")
 structure = atom_array_from_file("complex.cif")
@@ -118,7 +117,7 @@ Known residues need only residue names, atom names, and coordinates. For example
 prepare a ligand from MOL2 once, then load coordinate-only PDB or CIF complexes:
 
 ```python
-from tmol.io import pose_stack_from_file
+from tmol import pose_stack_from_file
 from tmol.ligand import write_params_from_mol2
 
 write_params_from_mol2(
@@ -153,10 +152,8 @@ When scoring many structures that contain the same ligand definitions, build
 the structure-independent context once:
 
 ```python
-from tmol.io import (
-    build_context_from_atom_array,
-    pose_stack_from_atom_array,
-)
+from tmol.io import build_context_from_atom_array
+from tmol import pose_stack_from_atom_array
 
 context = build_context_from_atom_array(struct0, device, prepare_ligands=True)
 for structure in structures:
@@ -173,7 +170,7 @@ set, and packed block types for every structure.
 For manual edits or cold reuse, write `.tmol` params and load them later:
 
 ```python
-from tmol.database import ParameterDatabase
+from tmol import ParameterDatabase
 from tmol.ligand import prepare_ligands
 
 param_db, co = prepare_ligands(

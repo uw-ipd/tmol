@@ -291,10 +291,10 @@ def test_ligand_smiles_are_protonated_at_ph_7_4(smiles, expected) -> None:
 def test_prepare_ligand_from_cif_helper_loads_reference_fixture() -> None:
     """The CIF helper prepares a ligand and registers it under its CIF name, L_1."""
     from tmol import ParameterDatabase
-    from tmol.ligand._preparation import _prepare_ligand_from_cif
+    from tmol.ligand import prepare_ligand_from_cif
 
     cif_path = PLI_CIF_INPUT_DIR / "ada.ligand.cif"
-    param_db, _ = _prepare_ligand_from_cif(
+    param_db, _ = prepare_ligand_from_cif(
         str(cif_path),
         param_db=ParameterDatabase.get_default(),
     )

@@ -1,7 +1,7 @@
 """Write ligand params files in tmol's ``.tmol`` format.
 
 Single home for ligand params I/O. :func:`write_params_file` serializes a
-:class:`~tmol.ligand._registry.LigandPreparation`; the tmol reader is
+``LigandPreparation``; the tmol reader is
 re-exported from :mod:`tmol.ligand._params_file`.
 """
 
@@ -243,7 +243,7 @@ def write_params_file(
     """Write a ligand ``LigandPreparation`` as a tmol ``.tmol`` file.
 
     Args:
-        preparation: A :class:`~tmol.ligand._registry.LigandPreparation` (its
+        preparation: A ``LigandPreparation`` (its
             ``residue_type`` / ``partial_charges`` / ``cartbonded_params`` are
             used), or a list of them.
         path: Output file, holding every supplied residue.
@@ -301,7 +301,7 @@ def write_params_file(
     )
 
 
-def _write_params_from_mol2(
+def write_params_from_mol2(
     mol2_path: str | Path,
     out_path: str | Path,
     *,

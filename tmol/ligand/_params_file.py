@@ -182,7 +182,7 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
     The returned list is the same abstraction the AtomArray pipeline
     produces (see :func:`tmol.ligand.prepare_single_ligand`), so the
     caller can pass it directly to
-    :func:`tmol.ligand._registry.inject_ligand_preparations` regardless
+    ``tmol.ligand._registry._inject_ligand_preparations`` regardless
     of which input form (file or AtomArray) it came from.
 
     The ``.tmol`` schema is the nested
@@ -406,7 +406,7 @@ def _load_params_files(paths):
     ]
 
 
-def _inject_params_files(
+def inject_params_files(
     param_db: ParameterDatabase,
     paths: list[str | Path],
     *,

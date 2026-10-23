@@ -26,7 +26,7 @@ paths described in the {doc}`model input tutorial </model_inputs>`.
 ```python
 import torch
 
-from tmol.io import pose_stack_from_file
+from tmol import pose_stack_from_file
 
 device = torch.device("cuda")
 pose_stack = pose_stack_from_file("input.cif", device)
@@ -40,8 +40,7 @@ passes any other keyword arguments to `pose_stack_from_atom_array()`.
 Read the `AtomArray` yourself when you want to inspect or edit it first:
 
 ```python
-from tmol.database import ParameterDatabase
-from tmol.io import atom_array_from_file, pose_stack_from_atom_array
+from tmol import ParameterDatabase, atom_array_from_file, pose_stack_from_atom_array
 
 structure = atom_array_from_file("input.cif")
 
@@ -73,7 +72,7 @@ file output:
 ```python
 import numpy
 
-from tmol.io import atom_array_from_pose_stack, selection_gallery
+from tmol import atom_array_from_pose_stack, selection_gallery
 
 built = atom_array_from_pose_stack(pose_stack)
 selection_gallery(
@@ -91,7 +90,7 @@ checks, inspect its `AtomArray`, context, block types, and connectivity.
 ## Write
 
 ```python
-from tmol.io import file_from_atom_array, file_from_pose_stack
+from tmol import file_from_atom_array, file_from_pose_stack
 
 file_from_pose_stack(pose_stack, "output.cif")
 pdb_text = file_from_pose_stack(pose_stack, format="pdb")

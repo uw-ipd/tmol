@@ -25,7 +25,7 @@ class ParameterDatabase:
 
     The process-global accessor ``get_default()`` returns a shared read-only
     instance.  To add ligand or custom residue data, use
-    :func:`inject_residue_params` which returns a **new** database.
+    :func:`_inject_residue_params` which returns a **new** database.
     """
 
     __default = None

@@ -156,10 +156,10 @@ def test_mapped_smiles_preserves_heavy_atom_source_order(stem: str) -> None:
 def test_prepare_ligand_from_cif_registers_residue(stem: str, variant: str) -> None:
     """The CIF helper prepares and registers the ligand for both variants."""
     from tmol import ParameterDatabase
-    from tmol.ligand._preparation import _prepare_ligand_from_cif
+    from tmol.ligand import prepare_ligand_from_cif
 
     code, _ = _LIGANDS[stem]
-    param_db, _ = _prepare_ligand_from_cif(
+    param_db, _ = prepare_ligand_from_cif(
         str(FIXTURE_DIR / f"{stem}.{variant}.cif"),
         param_db=ParameterDatabase.get_default(),
     )
@@ -181,11 +181,11 @@ def test_cif_to_params_golden(stem: str, variant: str) -> None:
     from collections import Counter
 
     from tmol import ParameterDatabase
-    from tmol.ligand._preparation import _prepare_ligand_from_cif
+    from tmol.ligand import prepare_ligand_from_cif
 
     code, _ = _LIGANDS[stem]
     golden = _GOLDEN_PARAMS[stem]
-    param_db, _ = _prepare_ligand_from_cif(
+    param_db, _ = prepare_ligand_from_cif(
         str(FIXTURE_DIR / f"{stem}.{variant}.cif"),
         param_db=ParameterDatabase.get_default(),
     )
@@ -234,9 +234,9 @@ def test_fused_purine_ligand_uses_openbabel_charges(variant: str) -> None:
     confirms the OpenBabel charges are carried through to the prepared residue.
     """
     from tmol import ParameterDatabase
-    from tmol.ligand._preparation import _prepare_ligand_from_cif
+    from tmol.ligand import prepare_ligand_from_cif
 
-    param_db, _ = _prepare_ligand_from_cif(
+    param_db, _ = prepare_ligand_from_cif(
         str(FIXTURE_DIR / f"sah.{variant}.cif"),
         param_db=ParameterDatabase.get_default(),
     )

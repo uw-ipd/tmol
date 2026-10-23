@@ -703,8 +703,8 @@ def test_known_and_unknown_chemistry_share_file_contract(
         pose_stack_from_file,
         pose_stack_from_atom_array,
     )
-    from tmol.ligand._preparation import _prepare_ligand_from_mol2
-    from tmol.ligand._params_io import _write_params_from_mol2
+    from tmol.ligand import prepare_ligand_from_mol2
+    from tmol.ligand import write_params_from_mol2
     from tmol.ligand import nonstandard_residue_info_from_mol2
     from tmol.ligand._preparation import LigandPreparationError
     from tmol.tests.io.test_atomworks_corpus_regressions import _score_and_minimize
@@ -713,8 +713,8 @@ def test_known_and_unknown_chemistry_share_file_contract(
     mol2 = DATA / "protein_ligand_test/ace.lig.mol2"
     source = nonstandard_residue_info_from_mol2(mol2, res_name="ZZQ").atom_array
     params_path = tmp_path / "ligand.tmol"
-    param_db, _ = _prepare_ligand_from_mol2(mol2, res_name="ZZQ", seed=17)
-    _write_params_from_mol2(mol2, params_path, res_name="ZZQ", seed=17)
+    param_db, _ = prepare_ligand_from_mol2(mol2, res_name="ZZQ", seed=17)
+    write_params_from_mol2(mol2, params_path, res_name="ZZQ", seed=17)
     declared_bonds = source.bonds
     source.bonds = None
 

@@ -386,7 +386,7 @@ class PreparedAtom37PoseBuilder:
 
 
 @_validate_args
-def _prepare_atom37_pose_builder(
+def prepare_atom37_pose_builder(
     biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
     context: PoseBuildContext,
 ) -> PreparedAtom37PoseBuilder:
@@ -523,7 +523,7 @@ def build_context_from_atom_array(
             Residues defined in these files skip the RDKit/OB pipeline.
         chem_comp_types: ``{comp_id: type}`` from the input file's
             ``_chem_comp`` table (see
-            ``tmol.ligand.chem_comp_types_from_cif``), which says whether a
+            ``tmol.ligand._detect._chem_comp_types_from_cif``), which says whether a
             residue belongs to a polymer where the file does not number it
             along a sequence. Only used when prepare_ligands=True.
         ligand_seed: Fixed RNG seed for the conformer each prepared residue
@@ -542,9 +542,9 @@ def build_context_from_atom_array(
     # aliased names are resolved before ligand detection, or the residue the
     #    alias points at would be prepared as a nonstandard one
     if ligand_params_files and not prepare_ligands:
-        from tmol.ligand._params_file import _inject_params_files
+        from tmol.ligand import inject_params_files
 
-        param_db = _inject_params_files(
+        param_db = inject_params_files(
             param_db or ParameterDatabase.get_default(),
             ligand_params_files,
             strict_atom_types=strict_atom_types,

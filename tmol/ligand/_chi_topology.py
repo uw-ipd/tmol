@@ -9,7 +9,7 @@ sets, not byte-identical CHI numbering.
 The classifier is pure: it consumes the RDKit ``Mol``, the deterministic
 atom-tree already built by :mod:`tmol.ligand._residue_builder`
 (``order``/``parent``/``grandparents``), the per-atom names, and the
-``RosettaTypingState`` produced by :func:`tmol.ligand._atom_typing.assign_tmol_atom_types`
+``RosettaTypingState`` produced by :func:`tmol.ligand._atom_typing._assign_tmol_atom_types`
 (``return_state=True``).  It emits named ``Torsion`` objects (``chi1``..``chiN``)
 and, for polar-hydrogen rotations, matching ``ChiSamples``.
 
@@ -174,7 +174,7 @@ def _build_chi_topology(  # noqa: C901
     """Classify rotatable bonds and return ``(torsions, chi_samples)``.
 
     ``order``/``parent``/``grandparents`` are the kept-atom tree from
-    ``build_residue_type`` (indices are RDKit atom indices; ``parent[root]``
+    ``_build_residue_type`` (indices are RDKit atom indices; ``parent[root]``
     is the root itself).  ``atom_names[idx]`` is the final residue atom name
     (or ``None`` for dropped atoms).  ``typing_state`` is a
     :class:`~tmol.ligand._atom_typing.RosettaTypingState`.

@@ -292,8 +292,8 @@ def test_fragmentation_uses_ligand_already_in_parameter_database(torch_device):
 
 
 def test_fragmented_ligand_preserves_atom37_routing(torch_device):
-    from tmol.io._pose_stack_from_atomworks import _pose_stack_from_atom37_and_topology
-    from tmol.io._pose_stack_from_biotite import _prepare_atom37_pose_builder
+    from tmol.io import pose_stack_from_atom37_and_topology
+    from tmol.io import prepare_atom37_pose_builder
 
     structure, params_path, preparation = _load_fixture()
     annotated = _annotate_at_bridge(structure, preparation)
@@ -311,7 +311,7 @@ def test_fragmented_ligand_preserves_atom37_routing(torch_device):
     atom37[0, :, 1] = torch.as_tensor(annotated.coord, device=torch_device)
     atom37.requires_grad_(True)
 
-    pose = _pose_stack_from_atom37_and_topology(atom37, annotated, context)
+    pose = pose_stack_from_atom37_and_topology(atom37, annotated, context)
 
     assert len(pose.split_block_mapping.entries) == 2
     assert torch.isfinite(pose.coords[pose.real_atoms]).all()
@@ -319,7 +319,7 @@ def test_fragmented_ligand_preserves_atom37_routing(torch_device):
     assert torch.count_nonzero(atom37.grad) > 0
 
     prepared_coords = atom37.detach().clone().requires_grad_(True)
-    builder = _prepare_atom37_pose_builder(annotated, context)
+    builder = prepare_atom37_pose_builder(annotated, context)
     prepared_pose = builder(prepared_coords, opt_h=False)
     assert len(prepared_pose.split_block_mapping.entries) == 2
     prepared_pose.coords[prepared_pose.real_atoms].sum().backward()
@@ -327,7 +327,7 @@ def test_fragmented_ligand_preserves_atom37_routing(torch_device):
 
     shifted_coords = atom37.detach().clone()
     shifted_coords[:, :, 1, 0] += 0.25
-    expected_shifted = _pose_stack_from_atom37_and_topology(
+    expected_shifted = pose_stack_from_atom37_and_topology(
         shifted_coords, annotated, context, no_optH=True
     )
     actual_shifted = builder(shifted_coords, opt_h=False)

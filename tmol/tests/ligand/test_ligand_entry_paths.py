@@ -58,7 +58,7 @@ def _smallest_mol2() -> Path:
 def test_seeded_preparation_owns_its_molecule(smiles, torch_device):
     import numpy as np
     from tmol import pose_stack_from_atom_array
-    from tmol.ligand._preparation import _prepare_ligand_from_smiles
+    from tmol.ligand import prepare_ligand_from_smiles
     from tmol.ligand._conformer_generation import _generate_conformer
     from tmol.ligand._detect import _nonstandard_residue_info_from_smiles_via_mol2
 
@@ -70,7 +70,7 @@ def test_seeded_preparation_owns_its_molecule(smiles, torch_device):
     info = _nonstandard_residue_info_from_smiles_via_mol2(
         smiles, res_name="LG1", protonate=False, seed=47
     )
-    database, _ = _prepare_ligand_from_smiles(
+    database, _ = prepare_ligand_from_smiles(
         smiles, res_name="LG1", protonate=False, seed=47
     )
     pose = pose_stack_from_atom_array(
@@ -93,8 +93,8 @@ def test_seeded_preparation_owns_its_molecule(smiles, torch_device):
 def test_prepare_ligand_from_mol2_registers_residue(fixture, torch_device, tmp_path):
     import torch
     from tmol import pose_stack_from_atom_array
-    from tmol.ligand._preparation import _prepare_ligand_from_mol2
-    from tmol.ligand._params_io import _write_params_from_mol2
+    from tmol.ligand import prepare_ligand_from_mol2
+    from tmol.ligand import write_params_from_mol2
     from tmol.ligand import nonstandard_residue_info_from_mol2
 
     path = DATA / "protein_ligand_test" / f"{fixture}.lig.mol2"
@@ -157,7 +157,7 @@ def test_prepare_ligand_from_mol2_registers_residue(fixture, torch_device, tmp_p
     if fixture == "na":
         assert info.atom_array.charge[info.atom_array.atom_name == "NH2"] == 1
         assert info.atom_array.charge.sum() == 0
-    param_db, ordering = _prepare_ligand_from_mol2(path, res_name="LG1", seed=17)
+    param_db, ordering = prepare_ligand_from_mol2(path, res_name="LG1", seed=17)
     assert len(set(info.atom_names)) == len(info.atom_names)
     names = set(ordering.restypes_ordered_atom_names["LG1"])
     assert set(info.atom_array.atom_name[info.atom_array.element != "H"]) <= names
@@ -187,7 +187,7 @@ def test_prepare_ligand_from_mol2_registers_residue(fixture, torch_device, tmp_p
         assert torch.all((lengths > 0.9) & (lengths < 1.2))
     _score_and_minimize_ligand(pose, param_db)
     output = tmp_path / "ligand.tmol"
-    _write_params_from_mol2(path, output, res_name="LG1", seed=17)
+    write_params_from_mol2(path, output, res_name="LG1", seed=17)
     assert output.is_file()
     if fixture == "na":
         # Inferred guanidinium charge may repair this old Tripos file, but a
@@ -197,7 +197,7 @@ def test_prepare_ligand_from_mol2_registers_residue(fixture, torch_device, tmp_p
             path.read_text() + "\n@<TRIPOS>UNITY_ATOM_ATTR\n23 1\ncharge 0\n"
         )
         with pytest.raises(ValueError, match="sanitizable chemical graph"):
-            _prepare_ligand_from_mol2(contradictory)
+            prepare_ligand_from_mol2(contradictory)
 
 
 def test_partially_protonated_atom_array_builds_complete_ligand(torch_device):
@@ -254,11 +254,8 @@ def test_neutralized_mol2_protonation_workflow(
     from atomworks.io.utils.io_utils import to_cif_file
     from tmol import pose_stack_from_atom_array
     from tmol.ligand import load_params_file
-    from tmol.ligand._preparation import (
-        _prepare_ligand_from_cif,
-        _prepare_ligand_from_mol2,
-    )
-    from tmol.ligand._params_io import _write_params_from_mol2
+    from tmol.ligand import prepare_ligand_from_cif, prepare_ligand_from_mol2
+    from tmol.ligand import write_params_from_mol2
     from tmol.ligand import nonstandard_residue_info_from_mol2
     from tmol.ligand._openbabel_compat import _build_charged_3d_mol2_mol
 
@@ -273,23 +270,23 @@ def test_neutralized_mol2_protonation_workflow(
     heavy = source.atom_array[source.atom_array.element != "H"]
     cif_path = tmp_path / "neutralized.cif"
     to_cif_file(source.atom_array, cif_path, ccd_entries={"L_1": source.atom_array})
-    cif_database, _ = _prepare_ligand_from_cif(cif_path, res_name="L_1", seed=17)
+    cif_database, _ = prepare_ligand_from_cif(cif_path, res_name="L_1", seed=17)
 
     damaged = tmp_path / "untrusted_addH.mol2"
     lines = path.read_text().splitlines()
     lines[4] = "MULLIKEN_CHARGES"
     damaged.write_text("\n".join(lines) + "\n")
     with pytest.raises(ValueError, match="authoritative partial charges"):
-        _prepare_ligand_from_mol2(damaged, mode="keep")
+        prepare_ligand_from_mol2(damaged, mode="keep")
     with pytest.raises(ValueError, match="MOL2 mode"):
-        _prepare_ligand_from_mol2(path, mode="unknown")
+        prepare_ligand_from_mol2(path, mode="unknown")
     for input_path, options, charge in (
         (path, {"mode": "auto"}, 0),
         (path, {"mode": "keep"}, 0),
         (path, {"mode": "regenerate"}, expected_charge),
         (damaged, {}, expected_charge),
     ):
-        database, _ = _prepare_ligand_from_mol2(
+        database, _ = prepare_ligand_from_mol2(
             input_path, res_name="L_1", seed=17, **options
         )
         charges = {
@@ -339,15 +336,15 @@ def test_neutralized_mol2_protonation_workflow(
         )
         _score_and_minimize_ligand(pose, database)
         output = tmp_path / "ligand.tmol"
-        _write_params_from_mol2(input_path, output, res_name="L_1", seed=17, **options)
+        write_params_from_mol2(input_path, output, res_name="L_1", seed=17, **options)
         loaded = load_params_file(output)[0]
         assert loaded.partial_charges == charges
         assert set(loaded.partial_charges) == {atom.name for atom in bt.atoms}
 
 
 def test_mol2_rejects_undefined_bonds_and_unparameterized_chemistry(tmp_path):
-    from tmol.ligand._preparation import _prepare_ligand_from_mol2
-    from tmol.ligand._params_io import _write_params_from_mol2
+    from tmol.ligand import prepare_ligand_from_mol2
+    from tmol.ligand import write_params_from_mol2
 
     methane = tmp_path / "methane.mol2"
     methane.write_text(
@@ -355,8 +352,8 @@ def test_mol2_rejects_undefined_bonds_and_unparameterized_chemistry(tmp_path):
         "@<TRIPOS>ATOM\n1 C 0.0 0.0 0.0 C.3 1 LIG 0.0\n"
     )
     for operation in (
-        lambda: _prepare_ligand_from_mol2(methane),
-        lambda: _write_params_from_mol2(methane, tmp_path / "methane.tmol"),
+        lambda: prepare_ligand_from_mol2(methane),
+        lambda: write_params_from_mol2(methane, tmp_path / "methane.tmol"),
     ):
         with pytest.raises(ValueError, match="no CS4 atom type"):
             operation()
@@ -366,9 +363,9 @@ def test_mol2_rejects_undefined_bonds_and_unparameterized_chemistry(tmp_path):
     ):
         path = DATA / "protein_ligand_test" / f"{fixture}.lig.mol2"
         with pytest.raises(ValueError, match=message):
-            _prepare_ligand_from_mol2(path)
+            prepare_ligand_from_mol2(path)
         with pytest.raises(ValueError, match=message):
-            _write_params_from_mol2(path, tmp_path / "ligand.tmol")
+            write_params_from_mol2(path, tmp_path / "ligand.tmol")
 
 
 def test_prepare_ligand_from_cif_preserves_selected_model(torch_device, tmp_path):
@@ -378,7 +375,8 @@ def test_prepare_ligand_from_cif_preserves_selected_model(torch_device, tmp_path
     import numpy as np
     import torch
     from tmol import pose_stack_from_atom_array
-    from tmol.ligand._preparation import _ligand_info_from_cif, _prepare_ligand_from_cif
+    from tmol.ligand._preparation import _ligand_info_from_cif
+    from tmol.ligand import prepare_ligand_from_cif
 
     cif = pdbx.CIFFile.read(DATA / "ligand_cif_fixtures" / "vww.bonds_present.cif")
     original = pdbx.get_structure(cif, model=1, include_bonds=True)
@@ -392,7 +390,7 @@ def test_prepare_ligand_from_cif_preserves_selected_model(torch_device, tmp_path
     assert info.atom_names == tuple(original.atom_name)
     assert np.all(info.atom_array.res_name == "LONG_LIGAND")
     np.testing.assert_array_equal(info.coords, original.coord)
-    database, ordering = _prepare_ligand_from_cif(path, res_name="LONG_LIGAND")
+    database, ordering = prepare_ligand_from_cif(path, res_name="LONG_LIGAND")
     assert set(info.atom_names) <= set(
         ordering.restypes_ordered_atom_names["LONG_LIGAND"]
     )
@@ -410,7 +408,7 @@ def test_prepare_ligand_from_cif_preserves_selected_model(torch_device, tmp_path
     multiple = tmp_path / "two_residues.cif"
     cif.write(multiple)
     with pytest.raises(ValueError, match="exactly one residue"):
-        _prepare_ligand_from_cif(multiple)
+        prepare_ligand_from_cif(multiple)
 
 
 def test_nonstandard_residue_info_from_mol2_block_roundtrips() -> None:
@@ -438,20 +436,20 @@ def _single_prep():
 
 
 def test_write_params_from_mol2_both_formats(tmp_path) -> None:
-    from tmol.ligand._params_io import _write_params_from_mol2
+    from tmol.ligand import write_params_from_mol2
 
     rosetta = tmp_path / "lig.params"
-    _write_params_from_mol2(str(_smallest_mol2()), str(rosetta), res_name="LG1")
+    write_params_from_mol2(str(_smallest_mol2()), str(rosetta), res_name="LG1")
     assert rosetta.exists() and rosetta.stat().st_size > 0
 
     tmol_out = tmp_path / "lig.tmol"
-    _write_params_from_mol2(str(_smallest_mol2()), str(tmol_out), res_name="LG1")
+    write_params_from_mol2(str(_smallest_mol2()), str(tmol_out), res_name="LG1")
     assert tmol_out.exists() and tmol_out.stat().st_size > 0
 
 
 def test_tmol_params_roundtrip_and_inject(tmp_path) -> None:
     from tmol.ligand import inject_params_file, load_params_file
-    from tmol.ligand._params_file import _inject_params_files
+    from tmol.ligand import inject_params_files
     from tmol.ligand import write_params_file
 
     prep = _single_prep()
@@ -467,7 +465,7 @@ def test_tmol_params_roundtrip_and_inject(tmp_path) -> None:
     injected = inject_params_file(ParameterDatabase.get_default(), tmol_file)
     assert any(r.name == prep.residue_type.name for r in injected.chemical.residues)
 
-    injected_multi = _inject_params_files(ParameterDatabase.get_default(), [tmol_file])
+    injected_multi = inject_params_files(ParameterDatabase.get_default(), [tmol_file])
     assert any(
         r.name == prep.residue_type.name for r in injected_multi.chemical.residues
     )
@@ -556,10 +554,10 @@ _DIVERSE_SMILES = {
 @pytest.mark.parametrize("name", sorted(_DIVERSE_SMILES))
 def test_prepare_ligand_from_smiles_registers(name: str) -> None:
     """Each diverse ligand prepares and registers via the SMILES path."""
-    from tmol.ligand._preparation import _prepare_ligand_from_smiles
+    from tmol.ligand import prepare_ligand_from_smiles
 
     smiles = _DIVERSE_SMILES[name]
-    param_db, _ = _prepare_ligand_from_smiles(
+    param_db, _ = prepare_ligand_from_smiles(
         smiles,
         param_db=ParameterDatabase.get_default(),
         res_name="LG1",
@@ -590,10 +588,10 @@ def _load_full_array(cif_path: Path):
 @pytest.mark.parametrize("name", _CIF_LIGANDS)
 def test_prepare_ligand_from_cif_inputs(name: str) -> None:
     """Diverse real ligand CIFs prepare end-to-end via the unified path."""
-    from tmol.ligand._preparation import _prepare_ligand_from_cif
+    from tmol.ligand import prepare_ligand_from_cif
 
     cif = CIF_INPUTS / f"{name}.ligand.cif"
-    param_db, _ = _prepare_ligand_from_cif(
+    param_db, _ = prepare_ligand_from_cif(
         str(cif), param_db=ParameterDatabase.get_default()
     )
     # At least one new (non-canonical) residue should have been registered.

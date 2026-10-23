@@ -3,7 +3,7 @@
 Builds an RDKit ``Mol`` from a ligand ``AtomArray`` while preserving the
 source's explicit bond orders and aromatic/subtype annotations. Protonation
 and partial-charge generation are handled upstream by the SMILES -> OpenBabel
-mol2 step (:func:`tmol.ligand._detect.nonstandard_residue_info_from_smiles_via_mol2`),
+mol2 step (:func:`tmol.ligand._detect._nonstandard_residue_info_from_smiles_via_mol2`),
 so this module does not protonate or recompute chemistry.
 """
 
@@ -144,7 +144,7 @@ def _remove_hs_tolerant(mol: Chem.Mol) -> Chem.Mol:
     Kekulization can fail mid-pipeline for ligands with formal-charge
     nitrogens or unusual ring patterns. Falling back to ``sanitize=False``
     preserves the bond orders we already set (e.g. by
-    the shared AtomWorks converter); running ``sanitize_tolerant`` here
+    the shared AtomWorks converter); running ``_sanitize_tolerant`` here
     instead silently rewrites DOUBLE bonds back to SINGLE via the cleanup
     pass.
     """
@@ -350,7 +350,7 @@ def _ligand_atom_array_to_rdkit_mol(
 ) -> Chem.Mol:
     """Build an RDKit Mol from a detected ligand's AtomArray.
 
-    Thin wrapper over :func:`rdkit_mol_from_ligand_atom_array`.
+    Thin wrapper over :func:`_rdkit_mol_from_ligand_atom_array`.
     """
     return _rdkit_mol_from_ligand_atom_array(
         ligand_info.atom_array,

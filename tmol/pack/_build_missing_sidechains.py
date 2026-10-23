@@ -54,7 +54,7 @@ def _build_missing_sidechains(
         no_optH: When True, skip OptH and preserve old Dunbrack-only behavior.
         has_missing_atoms: Cached value of ``block_has_missing_atoms.any()``.
             Supplying it avoids a device synchronization in repeated builds.
-        seed: Packer seed, as for :func:`~tmol.pack.pack_rotamers`.
+        seed: Packer seed, as for :func:`~tmol.pack_rotamers`.
 
     Returns:
         PoseStack with missing sidechains built and (by default) hydrogens

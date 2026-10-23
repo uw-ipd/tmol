@@ -29,7 +29,7 @@ class AnnotationKey:
     """Identify an annotation by live source objects and scalar settings.
 
     Equal but distinct sources intentionally do not match. Sources are expected
-    to be immutable snapshots; call :func:`invalidate_annotation` after an
+    to be immutable snapshots; call :func:`_invalidate_annotation` after an
     unsupported in-place mutation of data used by an annotation.
     """
 

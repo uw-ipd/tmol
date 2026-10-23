@@ -44,13 +44,13 @@ def _mirror(grid: numpy.ndarray) -> numpy.ndarray:
 
 
 def _check_registration(table) -> None:
-    """Refuse a table whose bins are not the ones ``mirror`` assumes.
+    """Refuse a table whose bins are not the ones ``_mirror`` assumes.
 
-    ``mirror`` reflects by index, which is the reflection through the origin
+    ``_mirror`` reflects by index, which is the reflection through the origin
     only for a grid that starts at -pi and spans exactly one period with no
     duplicated wrap row. Checking the symmetrized table against its own mirror
-    cannot establish that: ``symmetrize_energies`` averages a table with its
-    mirror, and ``mirror`` is an involution, so the result is symmetric under
+    cannot establish that: ``_symmetrize_energies`` averages a table with its
+    mirror, and ``_mirror`` is an involution, so the result is symmetric under
     it by construction and the comparison is true for every input, including a
     table registered somewhere else entirely. The bbdep-omega tables start at
     pi/36, so a table of that provenance is a real thing to guard against.

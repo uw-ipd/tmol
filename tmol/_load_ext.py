@@ -87,7 +87,7 @@ def _load_module(module_name: str, file: str, sources, precompiled_path: str):
     In JIT mode, compiles the given sources and returns the resulting module.
     In AOT mode, imports and returns ``precompiled_path``.
 
-    ``cuda_if_available`` is applied automatically, so CUDA source files are
+    ``_cuda_if_available`` is applied automatically, so CUDA source files are
     silently dropped when CUDA is unavailable.
 
     Args:

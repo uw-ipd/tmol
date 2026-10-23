@@ -5,7 +5,7 @@ import pytest
 from rdkit import Chem
 
 from tmol import pose_stack_from_atom_array
-from tmol.ligand._preparation import _prepare_ligand_from_mol2
+from tmol.ligand import prepare_ligand_from_mol2
 from tmol.ligand._detect import _nonstandard_residue_info_from_mol2_block
 from tmol.ligand._rdkit_mol import _ligand_atom_array_to_rdkit_mol
 from tmol.tests.data import data_path
@@ -52,7 +52,7 @@ def test_prepared_charge_recovers_source_resonance_and_scores(code, torch_device
     } == {frozenset((int(row[1]) - 1, int(row[2]) - 1)) for row in bonds}
     assert actual.GetNumAtoms() == len(atoms)  # Includes every supplied hydrogen.
     assert not any(atom.GetNumRadicalElectrons() for atom in actual.GetAtoms())
-    database, _ = _prepare_ligand_from_mol2(path, res_name="LIG", mode="keep")
+    database, _ = prepare_ligand_from_mol2(path, res_name="LIG", mode="keep")
     pose = pose_stack_from_atom_array(
         info.atom_array,
         torch_device,

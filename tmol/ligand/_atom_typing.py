@@ -130,7 +130,7 @@ def _sanitize_tolerant(mol: Chem.Mol) -> None:
     orders / aromaticity flags rather than dropping the mol on the floor.
 
     When the molecule carries explicit aromatic flags from the source
-    (see :func:`source_carried_kekule`), we skip ``SETAROMATICITY`` /
+    (see :func:`_source_carried_kekule`), we skip ``SETAROMATICITY`` /
     ``KEKULIZE`` from the start so RDKit's re-perception cannot
     overwrite the source-supplied flags / Kekulé bond orders.
     """

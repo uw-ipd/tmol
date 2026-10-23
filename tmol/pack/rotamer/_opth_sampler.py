@@ -233,6 +233,7 @@ class OptHSampler(ConformerSampler):
     atoms at their input-conformation positions.
 
     When flip_NHQ is True (default), also builds flip rotamers for:
+
     - ASN/GLN: current conformation + 180-degree rotation of the last chi.
     - HIS/HIS_D: {HIS, HIS_D} x {current chi2, chi2+180} = 4 rotamers.
       All atoms through CG are taken from the input; ring atoms are rebuilt

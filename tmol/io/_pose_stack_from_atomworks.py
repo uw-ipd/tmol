@@ -65,7 +65,7 @@ def _pose_stack_from_canonical_aa_atom37(
     chain_iid : Tensor[int64], shape [batch, n_res]
         Chain identifiers (integer IDs, not string labels).
     **kwargs
-        Additional arguments passed to ``pose_stack_from_canonical_form``.
+        Additional arguments passed to ``_pose_stack_from_canonical_form``.
 
     Returns
     -------
@@ -87,7 +87,7 @@ def _pose_stack_from_canonical_aa_atom37(
 
 
 @_validate_args
-def _pose_stack_from_atom37_and_topology(
+def pose_stack_from_atom37_and_topology(
     atom37_coords: torch.Tensor,
     biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
     context: PoseBuildContext,
@@ -97,7 +97,7 @@ def _pose_stack_from_atom37_and_topology(
     """Build a differentiable PoseStack from atom37 coordinates and a topology.
 
     This is the **topology-supplied** Atom37 entry point. Unlike
-    :func:`pose_stack_from_canonical_aa_atom37`, which reads residue identity
+    :func:`_pose_stack_from_canonical_aa_atom37`, which reads residue identity
     from a 1..20 token tensor and so covers only canonical amino acids, this
     supports any chemistry shared by AtomWorks and the supplied TMol context
     (including ordinary ligands and nucleic acids): the *chemical topology* is
@@ -106,7 +106,7 @@ def _pose_stack_from_atom37_and_topology(
 
     The topology is only read to derive residue identity and the Atom37 slot
     map. Once derived, construction is pure tensor work in the shared
-    :py:func:`~tmol.io.pose_stack_from_canonical_form_and_context`. When the
+    ``_pose_stack_from_canonical_form_and_context``. When the
     same topology is scored repeatedly, use
     :py:func:`~tmol.io.prepare_atom37_pose_builder` to pay that derivation once;
     the returned builder never touches the ``AtomArray`` again. Unmapped finite reference atoms

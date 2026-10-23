@@ -29,7 +29,7 @@ UNSATURATED = (int(BondType.DOUBLE), int(BondType.TRIPLE), int(BondType.AROMATIC
 
 
 def _dihedral(a, b, c, d):
-    """The IUPAC dihedral a-b-c-d, which ``signed_dihedral_angle`` negates."""
+    """The IUPAC dihedral a-b-c-d, which ``_signed_dihedral_angle`` negates."""
     return -_signed_dihedral_angle(a, b, c, d)
 
 

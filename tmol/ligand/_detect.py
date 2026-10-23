@@ -68,7 +68,7 @@ class NonStandardResidueInfo:
             ``partial_charges`` on the mol2 / SMILES-via-mol2 path.
         original_single_bonds: Optional set of ``frozenset({name_a, name_b})``
             pairs that the source mol2 records as literal single (order ``'1'``)
-            bonds, keyed by disambiguated atom name. ``build_chi_topology`` uses
+            bonds, keyed by disambiguated atom name. ``_build_chi_topology`` uses
             these to honor the mol2 bond order (Rosetta-faithful) instead of
             RDKit's post-kekulization order. Only set on the mol2 / SMILES-via-
             mol2 paths; ``None`` elsewhere.
@@ -516,7 +516,7 @@ def _nonstandard_residue_info_from_mol2_block(
     In-memory analogue of :func:`nonstandard_residue_info_from_mol2` — parses a
     TRIPOS mol2 block directly, with no temp-file write/read. Preferred for
     high-throughput SMILES batches (see
-    :func:`nonstandard_residue_info_from_smiles_via_mol2`).
+    :func:`_nonstandard_residue_info_from_smiles_via_mol2`).
     """
     from tmol.ligand._openbabel_compat import (
         OpenBabelUnavailableError,
@@ -804,7 +804,7 @@ def _nonstandard_residue_info_from_smiles_via_mol2(
     1. optionally pKa-protonate the SMILES with Dimorphite-DL (``protonate``),
     2. generate a 3D mol2 with MMFF94 partial charges via OpenBabel (kept
        in memory as a string — no temp file), then
-    3. read that mol2 with :func:`nonstandard_residue_info_from_mol2_block`.
+    3. read that mol2 with :func:`_nonstandard_residue_info_from_mol2_block`.
 
     This never builds a biotite atom-array from an RDKit embedding and never
     recomputes MMFF on a reconstructed graph — the OpenBabel MMFF94 charges
@@ -1099,7 +1099,7 @@ def _polymer_entity_residues(atom_array: struc.AtomArray) -> Optional[frozenset[
     An mmCIF says which of its entities are polymers, and that is what
     separates a chain from a ligand, a glycan or solvent -- including for a
     terminal cap, which is typed NON-POLYMER despite being part of the chain.
-    :func:`tmol.io.atom_array_from_file` records it per atom.
+    :func:`tmol.atom_array_from_file` records it per atom.
 
     Failing that, ``label_seq_id`` is read as a proxy: a polymer entity numbers
     its residues along its sequence. It is only a proxy -- a generated file may
