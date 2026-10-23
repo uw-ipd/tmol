@@ -55,9 +55,12 @@ __all__ = [
     "ScoreType",
     "atom_array_from_file",
     "atom_array_from_pose_stack",
+    "atom_for_residue_label",
     "beta2016_score_function",
     "block_for_residue_label",
+    "blocks_for_residue_labels",
     "calculate_fragment_interactions",
+    "constraint_atoms_for_labels",
     "extended_pose_stack_from_sequences",
     "fast_relax",
     "file_from_atom_array",
@@ -133,7 +136,10 @@ for _module, _names in (
     (
         "tmol.pose._util",
         (
+            "atom_for_residue_label",
             "block_for_residue_label",
+            "blocks_for_residue_labels",
+            "constraint_atoms_for_labels",
             "get_ligand_mask",
             "get_sequence",
             "get_torsion_names",

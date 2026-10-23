@@ -49,4 +49,4 @@ can follow packing; select its movable atoms separately.
 
 ## Examples and reference
 
-{doc}`DNA/RNA tutorial </tutorial/03_metals_and_nucleic_acids>` · {doc}`Packing </workflows/packing>` · {doc}`Scoring API </api/score>`
+{ref}`DNA/RNA tutorial </tutorial/01_tmol_tutorial.ipynb#3.-metals-and-nucleic-acids>` · {doc}`Packing </workflows/packing>` · {doc}`Scoring API </api/score>`

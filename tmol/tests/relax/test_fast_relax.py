@@ -46,10 +46,29 @@ def test_accept_best_with_different_atom_counts(
     )
     import attrs
 
-    small = attrs.evolve(small, coords=small.coords[:, :small_width])
+    small = attrs.evolve(
+        small,
+        coords=small.coords[:, :small_width],
+        pdb_info=attrs.evolve(
+            small.pdb_info,
+            atom_occupancy=small.pdb_info.atom_occupancy[:, :small_width],
+            atom_b_factor=small.pdb_info.atom_b_factor[:, :small_width],
+        ),
+    )
     assert small.coords.shape[1] < large.coords.shape[1]
     assert small.packed_block_types is large.packed_block_types
     best, candidate = (small, large) if grow else (large, small)
+    # distinct b-factors show which pose each row's pdb_info came from
+    best, candidate = (
+        attrs.evolve(
+            pose,
+            pdb_info=attrs.evolve(
+                pose.pdb_info,
+                atom_b_factor=numpy.full_like(pose.pdb_info.atom_b_factor, b_factor),
+            ),
+        )
+        for pose, b_factor in ((best, 1.0), (candidate, 2.0))
+    )
     original_best = best.coords.clone()
     original_candidate = candidate.coords.clone()
     sfxn = ScoreFunction(param_db=default_database, device=torch_device)
@@ -76,6 +95,12 @@ def test_accept_best_with_different_atom_counts(
             result.coords[row, : expected.coords.shape[1]], expected.coords[row]
         )
         assert not bool(result.coords[row, expected.coords.shape[1] :].any())
+        for name in ("atom_occupancy", "atom_b_factor"):
+            merged = getattr(result.pdb_info, name)
+            expected_info = getattr(expected.pdb_info, name)[row]
+            assert merged.shape[1] == result.coords.shape[1]
+            numpy.testing.assert_equal(merged[row, : len(expected_info)], expected_info)
+            assert not merged[row, len(expected_info) :].any()
     torch.testing.assert_close(best.coords, original_best)
     torch.testing.assert_close(candidate.coords, original_candidate)
 

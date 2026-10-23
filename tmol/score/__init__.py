@@ -95,6 +95,7 @@ __all__ = [
     "RefEnergyTerm",
     "ScoreTermFactory",
     "constrain_all_ca",
+    "constrain_closest_interchain_ca_pair",
     "create_mainchain_coordinate_constraints",
 ]
 
@@ -116,6 +117,7 @@ _LAZY_ATTRS = {
     "RefEnergyTerm": "tmol.score.ref._ref_energy_term",
     "ScoreTermFactory": "tmol.score.terms._score_term_factory",
     "constrain_all_ca": "tmol.score.constraint._utility",
+    "constrain_closest_interchain_ca_pair": "tmol.score.constraint._utility",
     "create_mainchain_coordinate_constraints": "tmol.score.constraint._utility",
 }
 

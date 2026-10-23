@@ -34,7 +34,7 @@ ATOMWORKS_ATOM37_NAMES = {
 
 
 @_validate_args
-def _pose_stack_from_canonical_aa_atom37(
+def pose_stack_from_canonical_aa_atom37(
     coords: torch.Tensor,
     residue_type: torch.Tensor,
     chain_iid: torch.Tensor,
@@ -61,7 +61,8 @@ def _pose_stack_from_canonical_aa_atom37(
     coords : Tensor, shape [batch, n_res, 37, 3]
         Atom coordinates in the atomworks atom37 layout.
     residue_type : Tensor[int64], shape [batch, n_res]
-        Atomworks token indices. Must be in 1..20 (standard protein only).
+        Atomworks token indices in 1..20 (standard protein only), or 0 for
+        padding.
     chain_iid : Tensor[int64], shape [batch, n_res]
         Chain identifiers (integer IDs, not string labels).
     **kwargs
@@ -74,7 +75,8 @@ def _pose_stack_from_canonical_aa_atom37(
     Raises
     ------
     ValueError
-        If any ``residue_type`` value is outside 1..20 (protein-only).
+        If any ``residue_type`` value is outside 1..20 (protein-only) and not
+        0 (padding).
     """
     from tmol.io._pose_stack_construction import _pose_stack_from_canonical_form
 
@@ -97,7 +99,7 @@ def pose_stack_from_atom37_and_topology(
     """Build a differentiable PoseStack from atom37 coordinates and a topology.
 
     This is the **topology-supplied** Atom37 entry point. Unlike
-    :func:`_pose_stack_from_canonical_aa_atom37`, which reads residue identity
+    :func:`pose_stack_from_canonical_aa_atom37`, which reads residue identity
     from a 1..20 token tensor and so covers only canonical amino acids, this
     supports any chemistry shared by AtomWorks and the supplied TMol context
     (including ordinary ligands and nucleic acids): the *chemical topology* is
@@ -176,7 +178,8 @@ def _canonical_form_from_atomworks(
     coords : Tensor, shape [batch, n_res, 37, 3]
         Atom coordinates in the atomworks atom37 layout.
     residue_type : Tensor[int64], shape [batch, n_res]
-        Atomworks token indices. Must be in 1..20 (standard protein only).
+        Atomworks token indices in 1..20 (standard protein only), or 0 for
+        padding, as atomworks_from_pose_stack writes it.
     chain_iid : Tensor[int64], shape [batch, n_res]
         Chain identifiers.
 
@@ -185,17 +188,16 @@ def _canonical_form_from_atomworks(
     CanonicalForm
     """
 
-    # Validate protein-only
-    if (residue_type < _ATOMWORKS_MIN_PROTEIN_IDX).any() or (
-        residue_type > _ATOMWORKS_MAX_PROTEIN_IDX
-    ).any():
-        bad = residue_type[
-            (residue_type < _ATOMWORKS_MIN_PROTEIN_IDX)
-            | (residue_type > _ATOMWORKS_MAX_PROTEIN_IDX)
-        ]
+    # Validate protein-only; 0 is padding and maps to no residue type
+    out_of_range = (residue_type != 0) & (
+        (residue_type < _ATOMWORKS_MIN_PROTEIN_IDX)
+        | (residue_type > _ATOMWORKS_MAX_PROTEIN_IDX)
+    )
+    if out_of_range.any():
+        bad = residue_type[out_of_range]
         raise ValueError(
             f"residue_type must be in range [{_ATOMWORKS_MIN_PROTEIN_IDX}, "
-            f"{_ATOMWORKS_MAX_PROTEIN_IDX}] (protein only). "
+            f"{_ATOMWORKS_MAX_PROTEIN_IDX}] (protein only) or 0 (padding). "
             f"Got out-of-range values: {bad.unique().tolist()}"
         )
 
@@ -222,7 +224,7 @@ def _canonical_form_from_atomworks(
 # ---------------------------------------------------------------------------
 
 
-def _atomworks_from_pose_stack(
+def atomworks_from_pose_stack(
     pose_stack: PoseStack,
 ) -> tuple:
     """Convert a PoseStack back to atomworks UNIFIED_ATOM37_ENCODING tensors.

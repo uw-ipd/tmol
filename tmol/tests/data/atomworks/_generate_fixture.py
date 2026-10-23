@@ -16,7 +16,7 @@ import torch
 os.environ.setdefault("TORCH_CUDA_ARCH_LIST", "7.0 8.0 9.0+PTX")
 
 import tmol  # noqa: E402
-from tmol.io._pose_stack_from_atomworks import _atomworks_from_pose_stack  # noqa: E402
+from tmol.io import atomworks_from_pose_stack  # noqa: E402
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PDB_DIR = os.path.join(SCRIPT_DIR, "..", "pdb")
@@ -38,7 +38,7 @@ def main():
     print(f"  PoseStack: {pose_stack.n_poses} poses, {pose_stack.max_n_blocks} blocks")
 
     print("Converting to atomworks format...")
-    aw_coords, aw_residue_type, aw_chain_iid = _atomworks_from_pose_stack(pose_stack)
+    aw_coords, aw_residue_type, aw_chain_iid = atomworks_from_pose_stack(pose_stack)
 
     ps_coords = pose_stack.coords.detach().clone()
 

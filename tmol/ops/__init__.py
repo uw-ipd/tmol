@@ -10,6 +10,8 @@ from ._score_utils import (  # noqa: F401
     get_chain_mask,
     per_residue_block_pair_energies,
     res_mask_to_coord_mask,
+    select_blocks_from_pose_stack,
+    select_from_pose_stack,
 )
 
 __all__ = [
@@ -22,4 +24,6 @@ __all__ = [
     "get_chain_mask",
     "per_residue_block_pair_energies",
     "res_mask_to_coord_mask",
+    "select_blocks_from_pose_stack",
+    "select_from_pose_stack",
 ]
