@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from types import SimpleNamespace
 
 import attr
 import numpy
@@ -24,7 +23,6 @@ from tmol.dock.ga import (
 )
 from tmol.dock.ligand_dofs import (
     _block_kinforest_nodes,
-    _local_torsion_atoms,
 )
 from tmol.dock.scoring_backend import (
     _LightweightGridObjective,
@@ -634,25 +632,6 @@ def test_ga_operators_handle_appended_sidechain_chis(cdk2_pose_and_db):
             operator_name,
             sidechain_error.tolist(),
         )
-
-
-@pytest.mark.parametrize(
-    "uaids, expected",
-    [
-        (((0, -1), (1, 0), (2, -1), (3, -1)), "reaches another block"),
-        (((0, -1), (1, -1), (-1, -1), (3, -1)), "unresolved atom"),
-    ],
-)
-def test_sidechain_torsion_locality_error_is_generic(uaids, expected):
-    block_type = SimpleNamespace(
-        ordered_torsions=[uaids],
-        torsions=[SimpleNamespace(name="chi1")],
-    )
-
-    with pytest.raises(ValueError, match=expected) as exc_info:
-        _local_torsion_atoms(block_type, 0)
-
-    assert "ligand torsion" not in str(exc_info.value)
 
 
 @pytest.mark.parametrize(

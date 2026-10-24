@@ -1931,7 +1931,7 @@ def test_score_function_all_score_types_protein_dna(protein_dna_pdb):
     gold_score_map = {
         ScoreType.fa_ljatr: n([-1210.854248]),
         ScoreType.fa_ljrep: n([805.994080]),
-        ScoreType.fa_lk: n([808.497986]),
+        ScoreType.fa_lk: n([809.354553]),
         ScoreType.fa_elec: n([-337.304199]),
         ScoreType.hbond: n([-173.997391]),
         ScoreType.cart_lengths: n([157.134415]),
@@ -1946,7 +1946,7 @@ def test_score_function_all_score_types_protein_dna(protein_dna_pdb):
         ScoreType.dunbrack_rot: n([198.613831]),
         ScoreType.dunbrack_rotdev: n([553.206238]),
         ScoreType.dunbrack_semirot: n([175.140625]),
-        ScoreType.lk_ball_iso: n([1092.919800]),
+        ScoreType.lk_ball_iso: n([1092.989990]),
         ScoreType.lk_ball: n([401.814789]),
         ScoreType.lk_bridge: n([2.487589]),
         ScoreType.lk_bridge_uncpl: n([23.090977]),

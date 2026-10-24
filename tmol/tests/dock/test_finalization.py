@@ -11,7 +11,6 @@ import torch
 import tmol.dock.finalization as finalization_module
 from tmol.database import ParameterDatabase
 from tmol.dock import (
-    ContinuousBackend,
     GAPool,
     GAResult,
     GASchedule,
@@ -577,27 +576,3 @@ def test_cdk2_flexible_grid_docking_exact_finalization_e2e():
     assert bad_bonds == 0
 
 
-def test_finalize_false_does_not_call_finalization(monkeypatch):
-    reference, param_db = _load_cdk2_pose()
-    ligand_block = _ligand_block(reference)
-
-    def fail_if_called(*args, **kwargs):
-        raise AssertionError("finalization was called")
-
-    monkeypatch.setattr("tmol.dock.finalization.finalize_ga_docking", fail_if_called)
-    result = run_docking(
-        reference,
-        ligand_block,
-        ContinuousBackend(param_db, kin_dtype=torch.float64),
-        schedule=GASchedule(generations=1, npool=1, maxiter=1),
-        seed=20260824,
-        finalize=False,
-    )
-    assert result.finalization is None
-    assert torch.equal(
-        result.best_pose_stack.coords, result.ga_result.best_pose_stack.coords
-    )
-    assert torch.equal(result.best_energies, result.ga_result.best_energies)
-    assert torch.equal(result.best_genes, result.ga_result.best_genes)
-    assert torch.equal(result.ranked_energies, result.ga_result.ranked_energies)
-    assert torch.equal(result.ranked_genes, result.ga_result.ranked_genes)

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from dataclasses import fields
+from typing import ClassVar
+
 import torch
 
 
@@ -75,3 +78,26 @@ def validate_ligand_coords(
         raise ValueError(f"live {label} data must match coordinate device")
     if ligand_coords.dtype != reference.dtype:
         raise TypeError(f"live {label} data must match coordinate dtype")
+
+
+class LiveData:
+    """Mixin for frozen dataclasses of tensors moved between device and dtype."""
+
+    # Floating fields that stay float64 whatever the scoring dtype.
+    _float64_fields: ClassVar[frozenset] = frozenset()
+
+    def to(self, device: torch.device | str, dtype: torch.dtype):
+        """Copy on ``device`` with coordinates and parameters in ``dtype``."""
+        if dtype not in (torch.float32, torch.float64):
+            raise TypeError("live scoring dtype must be float32 or float64")
+        values = {}
+        for field in fields(self):
+            value = getattr(self, field.name)
+            if isinstance(value, torch.Tensor):
+                if value.dtype.is_floating_point:
+                    value = value.to(
+                        dtype=torch.float64 if field.name in self._float64_fields else dtype
+                    )
+                value = value.to(device=device).contiguous()
+            values[field.name] = value
+        return type(self)(**values)

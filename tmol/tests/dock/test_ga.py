@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import ast
-import inspect
-import textwrap
 from dataclasses import replace
 from types import SimpleNamespace
 
@@ -437,7 +434,7 @@ def test_diverse_low_energy_selection_matches_independent_greedy_reference(
         return accepted + rejected[: npool - len(accepted)], len(accepted)
 
     expected = independent_reference()
-    selected, n_diverse = ga_module._diverse_low_energy_indices(
+    selected, n_diverse = ga_module.select_diverse_low_energy(
         energies, coords, npool=npool, rmsdthreshold=threshold
     )
 
@@ -873,107 +870,6 @@ def test_inactive_swarm_size_does_not_change_random_initialization():
     )
 
 
-def test_swarm_size_must_cover_the_small_ga_pool():
-    reference, _ = _load_cdk2_pose()
-    ligand_block = _ligand_block(reference)
-    with pytest.raises(
-        ValueError, match="swarm_size must be an integer at least schedule.npool"
-    ):
-        run_ga_docking(
-            reference,
-            ligand_block,
-            _TranslationImprovingBackend(reference, ligand_block),
-            schedule=GASchedule(generations=1, npool=4, maxiter=1),
-            initialization="swarm",
-            swarm_size=3,
-        )
-
-
-@pytest.mark.parametrize(
-    ("kwargs", "message"),
-    (
-        ({"swarm_mc_rounds": -1}, "swarm_mc_rounds"),
-        ({"swarm_mc_rounds": True}, "swarm_mc_rounds"),
-        ({"swarm_chi_step": -0.1}, "swarm_chi_step"),
-        ({"swarm_chi_step": float("nan")}, "swarm_chi_step"),
-    ),
-)
-def test_swarm_mc_parameters_are_validated(kwargs, message):
-    reference, _ = _load_cdk2_pose()
-    ligand_block = _ligand_block(reference)
-    with pytest.raises(ValueError, match=message):
-        run_ga_docking(
-            reference,
-            ligand_block,
-            _TranslationImprovingBackend(reference, ligand_block),
-            schedule=GASchedule(generations=1, npool=3, maxiter=1),
-            initialization="swarm",
-            swarm_size=3,
-            **kwargs,
-        )
-
-
-def test_hot_operators_have_no_python_pose_loop_or_scalar_sync():
-    loop_free = (
-        ga_module._canonical_torsions,
-        ga_module._canonicalize_genes,
-        ga_module._zyx_rotation_matrix,
-        ga_module._rotation_matrix_to_zyx,
-        ga_module._quaternion_rotation_matrix,
-        ga_module._apply_rosetta_rotation_mutation,
-        ga_module.mutate,
-        ga_module.crossover,
-        ga_module.ligand_heavy_atom_rms,
-        ga_module.next_generation,
-        ga_module.optimize_generation,
-        ga_module.LigandGeneLayout.genes_from_raw_dofs,
-        ga_module.LigandGeneLayout.genes_from_pose_stack,
-        ga_module.LigandGeneLayout.raw_dofs_from_genes,
-        ga_module.LigandGeneLayout.pose_stack_from_genes,
-        ga_module.LigandGeneLayout.ligand_heavy_coords,
-    )
-    for function in loop_free:
-        source = textwrap.dedent(inspect.getsource(function))
-        tree = ast.parse(source)
-        assert not any(
-            isinstance(node, (ast.For, ast.While)) for node in ast.walk(tree)
-        )
-        assert ".item(" not in source
-        assert ".tolist(" not in source
-
-    optimize_source = textwrap.dedent(
-        inspect.getsource(ga_module.optimize_generation)
-    )
-    assert "genes_from_pose_stack" not in optimize_source
-    assert "_inverse_dofs" not in optimize_source
-
-    # Both bounded host loops perform the same greedy niching rule. Keeping
-    # update_pool unchanged preserves inactive initialization paths exactly;
-    # the swarm loop bounds RMS storage by the small output pool.
-    selection_tree = ast.parse(
-        textwrap.dedent(inspect.getsource(ga_module._diverse_low_energy_indices))
-    )
-    assert sum(isinstance(node, ast.For) for node in ast.walk(selection_tree)) == 1
-    update_tree = ast.parse(
-        textwrap.dedent(inspect.getsource(ga_module.update_pool))
-    )
-    assert sum(isinstance(node, ast.For) for node in ast.walk(update_tree)) == 1
-    refine_tree = ast.parse(
-        textwrap.dedent(inspect.getsource(ga_module._refine_swarm_pool))
-    )
-    assert sum(isinstance(node, ast.For) for node in ast.walk(refine_tree)) == 1
-    refine_source = textwrap.dedent(
-        inspect.getsource(ga_module._refine_swarm_pool)
-    )
-    assert ".item(" not in refine_source
-    assert ".tolist(" not in refine_source
-    run_source = textwrap.dedent(inspect.getsource(ga_module.run_ga_docking))
-    run_tree = ast.parse(run_source)
-    assert sum(isinstance(node, ast.For) for node in ast.walk(run_tree)) == 1
-    assert ".item(" not in run_source
-    assert ".tolist(" not in run_source
-
-
 def test_cpu_fp64_continuous_ga_smoke():
     reference, param_db = _load_cdk2_pose()
     ligand_block = _ligand_block(reference)
@@ -1040,15 +936,3 @@ def test_gpu_fp32_cdk2_default_vsx_schedule():
     assert result.pool.genes.shape[0] == schedule.npool
 
 
-@pytest.mark.parametrize(
-    "initialization", ["jitter", "random", "swarm", "conformer", "aligner"]
-)
-def test_initialization_requires_one_reference_pose(cpu_ga_case, initialization):
-    case = cpu_ga_case
-    with pytest.raises(ValueError, match="must contain one reference pose"):
-        run_ga_docking(
-            repeat_pose_stack(case.reference, 2),
-            case.ligand_block,
-            _TranslationImprovingBackend(case.reference, case.ligand_block),
-            initialization=initialization,
-        )

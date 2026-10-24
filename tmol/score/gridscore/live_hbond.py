@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, fields
-from typing import Sequence
+from dataclasses import dataclass
+from typing import ClassVar, Sequence
 
 import torch
 
@@ -17,17 +17,19 @@ from ._movable import (
     sidechain_context_blocks,
     validated_sidechain_blocks,
 )
-from ._common import build_cell_list, cell_grid, validate_ligand_coords
+from ._common import LiveData, build_cell_list, cell_grid, validate_ligand_coords
 
 
 @dataclass(frozen=True)
-class LiveHBondData:
+class LiveHBondData(LiveData):
     """One shared rigid-receptor hbond structure and one ligand topology.
 
     Receptor coordinates and cell lists occur once, independently of the
     number of ligand poses. Ligand tensors contain only block-local atom
     indices, so every pose supplies its own current base geometry.
     """
+
+    _float64_fields: ClassVar[frozenset] = frozenset({"pair_polynomials"})
 
     n_ligand_atoms: int
     receptor_donors: torch.Tensor
@@ -48,193 +50,6 @@ class LiveHBondData:
     pair_polynomials: torch.Tensor
     global_params: torch.Tensor
 
-    def __post_init__(self):
-        if (
-            not isinstance(self.n_ligand_atoms, int)
-            or isinstance(self.n_ligand_atoms, bool)
-            or self.n_ligand_atoms < 1
-        ):
-            raise ValueError("n_ligand_atoms must be a positive integer")
-        tensor_values = {
-            field.name: getattr(self, field.name)
-            for field in fields(self)
-            if field.name != "n_ligand_atoms"
-        }
-        if not all(isinstance(value, torch.Tensor) for value in tensor_values.values()):
-            raise TypeError("all live hbond arrays must be tensors")
-        devices = {value.device for value in tensor_values.values()}
-        if len(devices) != 1:
-            raise ValueError("all live hbond arrays must share one device")
-        if not all(value.is_contiguous() for value in tensor_values.values()):
-            raise ValueError("all live hbond arrays must be contiguous")
-
-        real_dtype = self.receptor_donors.dtype
-        if real_dtype not in (torch.float32, torch.float64):
-            raise TypeError("live hbond coordinates must be float32 or float64")
-        real_names = (
-            "receptor_donors",
-            "receptor_acceptors",
-            "cell_origin",
-            "pair_params",
-            "global_params",
-        )
-        if any(tensor_values[name].dtype != real_dtype for name in real_names):
-            raise TypeError("live hbond real arrays must share one dtype")
-        if self.pair_polynomials.dtype != torch.float64:
-            raise TypeError("hbond polynomial parameters must be float64")
-        integer_names = set(tensor_values) - set(real_names) - {"pair_polynomials"}
-        if any(tensor_values[name].dtype != torch.int64 for name in integer_names):
-            raise TypeError("live hbond index arrays must be int64")
-
-        n_receptor_donors = self.receptor_donors.shape[0]
-        n_receptor_acceptors = self.receptor_acceptors.shape[0]
-        n_ligand_donors = self.ligand_donor_atoms.shape[0]
-        n_ligand_acceptors = self.ligand_acceptor_atoms.shape[0]
-        expected_shapes = {
-            "receptor_donors": (n_receptor_donors, 2, 3),
-            "receptor_donor_types": (n_receptor_donors,),
-            "receptor_acceptors": (n_receptor_acceptors, 3, 3),
-            "receptor_acceptor_types": (n_receptor_acceptors,),
-            "ligand_donor_atoms": (n_ligand_donors, 2),
-            "ligand_donor_types": (n_ligand_donors,),
-            "ligand_acceptor_atoms": (n_ligand_acceptors, 3),
-            "ligand_acceptor_types": (n_ligand_acceptors,),
-            "cell_origin": (3,),
-            "cell_dims": (3,),
-            "pair_params": (
-                self.pair_params.shape[0],
-                self.pair_params.shape[1],
-                3,
-            ),
-            "pair_polynomials": (
-                self.pair_params.shape[0],
-                self.pair_params.shape[1],
-                48,
-            ),
-            "global_params": (1, 6),
-        }
-        for name, expected in expected_shapes.items():
-            if tuple(tensor_values[name].shape) != expected:
-                raise ValueError(f"{name} must have shape {expected}")
-        if self.receptor_donor_cell_offsets.ndim != 1:
-            raise ValueError("receptor donor cell offsets must be one-dimensional")
-        n_cells = self.receptor_donor_cell_offsets.shape[0] - 1
-        cell_shapes = {
-            "receptor_donor_cell_offsets": (n_cells + 1,),
-            "receptor_donor_cell_indices": (n_receptor_donors,),
-            "receptor_acceptor_cell_offsets": (n_cells + 1,),
-            "receptor_acceptor_cell_indices": (n_receptor_acceptors,),
-        }
-        for name, expected in cell_shapes.items():
-            if tuple(tensor_values[name].shape) != expected:
-                raise ValueError(f"{name} must have shape {expected}")
-
-        # The CPU constructor is the trust boundary. Device copies originate
-        # from this validated object; the kernel additionally guards every
-        # dynamic index so malformed device data yields NaN instead of OOB.
-        if self.receptor_donors.device.type != "cpu":
-            return
-        if bool(
-            torch.any(self.cell_dims <= 0) or int(torch.prod(self.cell_dims)) != n_cells
-        ):
-            raise ValueError("cell_dims must be positive and match cell offsets")
-        if not all(
-            bool(torch.isfinite(tensor).all())
-            for tensor in (
-                self.receptor_donors,
-                self.receptor_acceptors,
-                self.cell_origin,
-                self.global_params,
-            )
-        ):
-            raise ValueError("live hbond coordinates and global params must be finite")
-        if not float(self.global_params[0, 5]) > 0:
-            raise ValueError("live hbond cutoff must be positive")
-
-        def check_range(value: torch.Tensor, upper: int, name: str) -> None:
-            if value.numel() and bool(
-                torch.any(value < 0) or torch.any(value >= upper)
-            ):
-                raise ValueError(f"{name} contains an out-of-range index")
-
-        check_range(
-            self.ligand_donor_atoms,
-            self.n_ligand_atoms,
-            "ligand_donor_atoms",
-        )
-        check_range(
-            self.ligand_acceptor_atoms,
-            self.n_ligand_atoms,
-            "ligand_acceptor_atoms",
-        )
-        check_range(
-            self.ligand_donor_types,
-            self.pair_params.shape[0],
-            "ligand_donor_types",
-        )
-        check_range(
-            self.receptor_donor_types,
-            self.pair_params.shape[0],
-            "receptor_donor_types",
-        )
-        check_range(
-            self.ligand_acceptor_types,
-            self.pair_params.shape[1],
-            "ligand_acceptor_types",
-        )
-        check_range(
-            self.receptor_acceptor_types,
-            self.pair_params.shape[1],
-            "receptor_acceptor_types",
-        )
-
-        for kind, offsets, indices, n_sites in (
-            (
-                "donor",
-                self.receptor_donor_cell_offsets,
-                self.receptor_donor_cell_indices,
-                n_receptor_donors,
-            ),
-            (
-                "acceptor",
-                self.receptor_acceptor_cell_offsets,
-                self.receptor_acceptor_cell_indices,
-                n_receptor_acceptors,
-            ),
-        ):
-            if (
-                int(offsets[0]) != 0
-                or int(offsets[-1]) != n_sites
-                or bool(torch.any(offsets[1:] < offsets[:-1]))
-            ):
-                raise ValueError(f"receptor {kind} cell offsets are not valid CSR")
-            check_range(indices, n_sites, f"receptor_{kind}_cell_indices")
-            if n_sites and not torch.equal(
-                torch.sort(indices).values, torch.arange(n_sites, dtype=torch.int64)
-            ):
-                raise ValueError(f"receptor {kind} cell indices must be a permutation")
-
-    def to(self, device: torch.device | str, dtype: torch.dtype) -> "LiveHBondData":
-        """Return the structure on a scoring device and coordinate dtype."""
-
-        if dtype not in (torch.float32, torch.float64):
-            raise TypeError("live hbond dtype must be float32 or float64")
-        device = torch.device(device)
-        values = {}
-        for field in fields(self):
-            value = getattr(self, field.name)
-            if not isinstance(value, torch.Tensor):
-                values[field.name] = value
-                continue
-            if value.dtype.is_floating_point:
-                target_dtype = (
-                    torch.float64 if field.name == "pair_polynomials" else dtype
-                )
-                value = value.to(device=device, dtype=target_dtype)
-            else:
-                value = value.to(device=device)
-            values[field.name] = value.contiguous()
-        return LiveHBondData(**values)
 
 
 def _empty_coords(n_sites: int, n_points: int) -> torch.Tensor:

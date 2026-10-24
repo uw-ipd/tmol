@@ -255,21 +255,3 @@ def test_failed_conformer_generation_falls_back_byte_identically(
     assert "falling back to blind random initialization" in caplog.text
 
 
-@pytest.mark.parametrize(
-    "kwargs",
-    (
-        {"n_conformers": 0},
-        {"energy_window": -1.0},
-        {"cluster_rmsd": -1.0},
-    ),
-)
-def test_conformer_library_rejects_invalid_parameters(kwargs):
-    reference, _ = _load_cdk2_pose()
-    ligand_block = _ligand_block(reference)
-    with pytest.raises(ValueError):
-        generate_conformer_library(
-            CDK2_MOL2,
-            reference.block_type(0, ligand_block),
-            reference.packed_block_types,
-            **kwargs,
-        )

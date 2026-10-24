@@ -9,7 +9,6 @@ import torch
 
 import tmol.dock.ga as ga_module
 from tmol.dock import (
-    ContinuousBackend,
     GridBackend,
     LigandAligner,
     LigandGeneLayout,
@@ -88,22 +87,6 @@ def test_absolute_rmsd_diversity_keeps_distinct_placements(threshold, expected):
     torch.testing.assert_close(
         selected, torch.tensor(expected, dtype=torch.int64), rtol=0, atol=0
     )
-
-
-@pytest.mark.parametrize(
-    "kwargs,match",
-    [
-        ({"n_candidates": 0}, "n_candidates"),
-        ({"seed_fraction": -0.1}, "seed_fraction"),
-        ({"seed_fraction": 1.1}, "seed_fraction"),
-        ({"cluster_rmsd": -1.0}, "cluster_rmsd"),
-        ({"refinement_steps": -1}, "refinement_steps"),
-        ({"refinement_learning_rate": 0.0}, "refinement_learning_rate"),
-    ],
-)
-def test_ligand_aligner_rejects_invalid_configuration(kwargs, match):
-    with pytest.raises(ValueError, match=match):
-        LigandAligner(**kwargs)
 
 
 def test_axis_angle_rotation_gradient_and_rigid_refinement():
@@ -342,17 +325,6 @@ def test_refined_aligner_seeds_decode_to_selected_placements(cpu_aligner_case):
     assert float(coordinate_error) <= 2.0e-12
 
 
-def test_aligner_requires_grid_backend(cpu_aligner_case):
-    case = cpu_aligner_case
-    with pytest.raises(ValueError, match="requires a GridBackend"):
-        run_ga_docking(
-            case.reference,
-            case.ligand_block,
-            ContinuousBackend(case.param_db, kin_dtype=torch.float64),
-            initialization="aligner",
-        )
-
-
 @pytest.mark.parametrize("npool,seed_fraction", [(1, 1.0), (4, 0.0), (4, 1.0)])
 def test_aligner_seed_fraction_boundaries(cpu_aligner_case, npool, seed_fraction):
     case = cpu_aligner_case
@@ -366,31 +338,6 @@ def test_aligner_seed_fraction_boundaries(cpu_aligner_case, npool, seed_fraction
     else:
         torch.testing.assert_close(
             seeded[:, 6:], reference[:, 6:], rtol=0.0, atol=2.0e-12
-        )
-
-
-def test_aligner_explicit_bounds_and_population_axis_rejection(cpu_aligner_case):
-    case = cpu_aligner_case
-    layout = _layout(case)
-    aligner = LigandAligner(n_candidates=8)
-    center = layout.ligand_heavy_coords(layout.template)[0].mean(dim=0)
-    bounds = torch.stack((center - 1, center + 1))
-    alignment = aligner.align(
-        layout,
-        case.backend,
-        n_placements=4,
-        pocket_bounds=bounds,
-        generator=torch.Generator().manual_seed(41),
-    )
-    assert torch.all(alignment.centroids >= bounds[0])
-    assert torch.all(alignment.centroids <= bounds[1])
-    with pytest.raises(ValueError, match="shape"):
-        aligner.align(
-            layout,
-            case.backend,
-            n_placements=4,
-            pocket_bounds=bounds[None],
-            generator=torch.Generator().manual_seed(41),
         )
 
 

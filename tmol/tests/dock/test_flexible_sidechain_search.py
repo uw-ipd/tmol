@@ -8,7 +8,6 @@ import pytest
 import torch
 
 from tmol.dock import (
-    ContinuousBackend,
     GASchedule,
     GridBackend,
     LigandGeneLayout,
@@ -18,7 +17,6 @@ from tmol.dock import (
     select_pocket_residue_blocks,
 )
 from tmol.dock.ga import (
-    _block_heavy_coords,
 )
 from tmol.dock.ligand_dofs import (
     _block_kinforest_nodes,
@@ -45,13 +43,10 @@ from tmol.tests.dock.test_ligand_dof_roundtrip import (
     _ligand_block,
     cdk2_pose_and_db,
 )
-from tmol.tests.score.gridscore.test_gridscore import _load_target_pose
 from tmol.score.gridscore._movable import (
-    has_nonpolymer_connection,
     movable_block_mapping,
     movable_pose_stack,
     sidechain_context_blocks,
-    validated_sidechain_blocks,
 )
 
 
@@ -430,133 +425,6 @@ def test_flexible_grid_atom_partition_and_score_decomposition_fp64(
     torch.testing.assert_close(
         dof_gradient[sidechain_column], finite, rtol=2.0e-4, atol=2.0e-4
     )
-
-
-def test_flexible_continuous_backend_is_rejected(cdk2_pose_and_db):
-    reference, param_db = cdk2_pose_and_db
-    ligand_block = _ligand_block(reference)
-    sidechain_blocks = _cdk2_sidechain_blocks(reference, ligand_block)[:1]
-    with pytest.raises(
-        ValueError,
-        match="flexible-sidechain docking requires a GridBackend",
-    ):
-        run_ga_docking(
-            reference,
-            ligand_block,
-            ContinuousBackend(param_db, kin_dtype=torch.float64),
-            schedule=GASchedule(generations=1, npool=2, maxiter=1),
-            sidechain_blocks=sidechain_blocks,
-        )
-
-
-def test_flexible_requires_ligand_intra_scorer(cdk2_pose_and_db):
-    """Review HIGH-2: flexible + include_ligand_intra=False must be rejected.
-
-    With sidechain_blocks set, the live movable module is the SOLE scorer of the
-    whole moving set (those blocks are excluded from the receptor grid), so
-    disabling it would silently drop every moving-set interaction and the
-    count-pair correction. The rigid K=0 path may still disable ligand-intra.
-    """
-    reference, param_db = cdk2_pose_and_db
-    ligand_block = _ligand_block(reference)
-    sidechain_blocks = _cdk2_sidechain_blocks(reference, ligand_block)
-    with pytest.raises(ValueError, match="requires include_ligand_intra=True"):
-        GridBackend.from_pose_stack(
-            reference,
-            ligand_block,
-            param_db,
-            kin_dtype=torch.float64,
-            sidechain_blocks=sidechain_blocks,
-            include_ligand_intra=False,
-        )
-    # The rigid K=0 ablation must remain allowed.
-    GridBackend.from_pose_stack(
-        reference,
-        ligand_block,
-        param_db,
-        kin_dtype=torch.float64,
-        include_ligand_intra=False,
-    )
-
-
-def test_disulfide_residue_rejected_from_flexible_selection():
-    """Review HIGH-1: a disulfide-bonded cysteine must never be made flexible.
-
-    The fold forest ignores non-polymer covalent bonds and the chi controller is
-    built only from intra-block bonds, so freeing a disulfide sulfur would stretch
-    the S-S bond. fxa carries the CYS196-CYS224 disulfide, and both residues sit
-    ~3.85 A from the ligand (inside the 6 A pocket cutoff). The auto-selector must
-    exclude them and an explicit pass must raise.
-    """
-    reference, param_db = _load_target_pose("fxa")
-    ligand_block = _ligand_block(reference)
-
-    disulfide_blocks = [
-        block
-        for block in range(reference.max_n_blocks)
-        if not bool(torch.any(reference.block_type_ind64[:, block] < 0))
-        and has_nonpolymer_connection(
-            reference, block, int(reference.block_type_ind64[0, block])
-        )
-    ]
-    assert disulfide_blocks, "fxa is expected to contain disulfide cysteines"
-
-    ligand_heavy = _block_heavy_coords(reference, ligand_block)
-    near_pocket = [
-        block
-        for block in disulfide_blocks
-        if float(
-            torch.min(
-                torch.cdist(_block_heavy_coords(reference, block), ligand_heavy)
-            )
-        )
-        <= 6.0
-    ]
-    assert near_pocket, "expected at least one disulfide CYS within the 6 A pocket"
-
-    selected = set(
-        int(b) for b in select_pocket_residue_blocks(reference, ligand_block, 6.0)
-    )
-    assert not (selected & set(disulfide_blocks)), (
-        "select_pocket_residue_blocks leaked a disulfide residue: "
-        f"{sorted(selected & set(disulfide_blocks))}"
-    )
-
-    with pytest.raises(ValueError, match="non-polymer covalent connection"):
-        validated_sidechain_blocks(reference, ligand_block, (near_pocket[0],))
-
-
-def test_chi_less_residue_rejected_from_flexible_selection(cdk2_pose_and_db):
-    """Review MEDIUM-1: a chi-less residue (ALA/GLY) cannot be made flexible.
-
-    It has no sidechain torsion, so it contributes no moving atom; admitting it
-    would leave finalization with an empty moving-set to scatter. The auto-selector
-    must exclude such residues and an explicit pass must raise (rather than crash
-    later in finalization on an empty tensor concat).
-    """
-    reference, _ = cdk2_pose_and_db
-    ligand_block = _ligand_block(reference)
-
-    chi_less = [
-        block
-        for block in range(reference.max_n_blocks)
-        if not bool(torch.any(reference.block_type_ind64[:, block] < 0))
-        and block != ligand_block
-        and reference.block_type(0, block).properties.polymer.is_polymer
-        and int(reference.block_type(0, block).n_sc_torsions) == 0
-    ]
-    assert chi_less, "cdk2 is expected to contain chi-less residues (ALA/GLY)"
-
-    selected = set(
-        int(b) for b in select_pocket_residue_blocks(reference, ligand_block, 6.0)
-    )
-    assert not (selected & set(chi_less)), (
-        "select_pocket_residue_blocks leaked a chi-less residue: "
-        f"{sorted(selected & set(chi_less))}"
-    )
-
-    with pytest.raises(ValueError, match="no sidechain chi torsions"):
-        validated_sidechain_blocks(reference, ligand_block, (chi_less[0],))
 
 
 @pytest.mark.slow

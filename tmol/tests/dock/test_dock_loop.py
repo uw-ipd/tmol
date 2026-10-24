@@ -400,6 +400,3 @@ def test_initial_dof_jitter_is_seeded_bounded_and_ligand_dof_only(
     )
 
 
-def test_scoring_backend_is_abstract():
-    with pytest.raises(TypeError):
-        ScoringBackend()

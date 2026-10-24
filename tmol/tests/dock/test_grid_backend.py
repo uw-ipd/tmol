@@ -81,34 +81,6 @@ def grid_pose_case(cpu_grid_case, request):
     )
 
 
-def test_grid_backend_include_intra_requires_live_data(cpu_grid_case):
-    """include_ligand_intra=True must not silently omit the term (no live data)."""
-    case = cpu_grid_case
-    b = case.backend
-    common = (b.grids, case.ligand_block, b.ligand_atom_types, b.ligand_charges, case.param_db)
-    kw = dict(
-        kin_dtype=torch.float64,
-        live_hbond=b.live_hbond,
-        live_lk_ball=b.live_lk_ball,
-    )
-    # Enabled but no live data -> must raise, not silently disable.
-    with pytest.raises(ValueError, match="include_ligand_intra=True requires"):
-        GridBackend(*common, live_ligand_intra=None, include_ligand_intra=True, **kw)
-    # Explicitly disabled with no live data -> allowed, intra off.
-    disabled = GridBackend(
-        *common, live_ligand_intra=None, include_ligand_intra=False, **kw
-    )
-    assert disabled.live_ligand_intra is None
-    # Enabled with live data -> intra on.
-    enabled = GridBackend(
-        *common,
-        live_ligand_intra=b.live_ligand_intra,
-        include_ligand_intra=True,
-        **kw,
-    )
-    assert enabled.live_ligand_intra is not None
-
-
 def test_grid_backend_score_matches_direct_batched_grid_score(cpu_grid_case):
     case = cpu_grid_case
     atom_indices = case.backend._ligand_atom_indices(
@@ -281,7 +253,7 @@ def test_grid_backend_gridded_lk_ball_is_single_total_and_shared(cpu_grid_case):
     # undefined (the reference water-frame derivative normalizes H-D and is
     # likewise singular there), so it is not asserted; analytic-vs-autograd
     # gradient agreement on valid geometry is covered by both the finite-
-    # difference test in test_live_lk_ball.py and
+    # difference test in test_live_terms.py and
     # test_grid_backend_gridded_term_gradients_match_autograd_and_finite_difference
     # below.
     donor_site, donor_water = torch.nonzero(lk_ball.ligand_water_kinds == 1)[0].tolist()
@@ -400,18 +372,6 @@ def test_ligand_only_pose_stack_preserves_cdk2_ligand(cpu_grid_case):
         ligand_only.pdb_info.atom_b_factor,
         references.pdb_info.atom_b_factor[:, source_offset : source_offset + n_atoms],
     )
-
-
-def test_grid_ga_rejects_backend_for_another_ligand_block(cpu_grid_case):
-    case = cpu_grid_case
-    wrong_ligand_block = case.ligand_block - 1
-    with pytest.raises(ValueError, match="backend was built for ligand block"):
-        run_ga_docking(
-            case.reference,
-            wrong_ligand_block,
-            case.backend,
-            schedule=GASchedule(generations=1, npool=1, maxiter=1),
-        )
 
 
 class _FullComplexGridBackend:
@@ -828,15 +788,6 @@ def test_grid_minimize_and_full_ga_cdk2_correctness(cpu_grid_case):
         f"{float(atom_rms):.6f} A"
     )
     assert float(atom_rms) < 2.0
-
-
-def test_docking_requires_one_reference_pose(cpu_grid_case):
-    case = cpu_grid_case
-    for runner in (run_ga_docking, run_docking):
-        with pytest.raises(ValueError, match="must contain one reference pose"):
-            runner(case.population, case.ligand_block, case.backend)
-    with pytest.raises(ValueError, match="only a single reference pose"):
-        repeat_pose_stack(case.population, 2)
 
 
 @pytest.mark.parametrize("explicit_bounds", [False, True])

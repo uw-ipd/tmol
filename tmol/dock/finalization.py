@@ -71,9 +71,12 @@ def _refine_fa_rep_scaled(base_fa_ljrep, param_db, device, rep_mult):
 
 
 def _soft_hard_refine(
-    promoted, coord_mask, *, param_db, device, exact_sfxn, schedule, cycles
+    promoted, minimize, *, param_db, device, exact_sfxn, schedule, cycles
 ):
-    """Run soft-to-hard cycles, accepting each pose's best exact-energy state."""
+    """Run soft-to-hard cycles, accepting each pose's best exact-energy state.
+
+    ``minimize(pose_stack, step_sfxn, tol, max_iter)`` runs one ramp step.
+    """
     # beta2016_score_function MEMOIZES when param_db is None, so a None db would
     # make the soft/hard/exact score functions ALIAS one object (set_weight on
     # "hard" would clobber "soft"). Resolve an explicit database so every stage
@@ -90,28 +93,20 @@ def _soft_hard_refine(
         for rep_mult, tol, max_iter in schedule
     ]
     best_coords = promoted.coords.clone()
-    best_energy = _score_pose_stack(promoted, exact_sfxn)
     # A non-finite pre-refine score (e.g. a severe clash scoring to +/-inf/NaN)
     # must not block accept-to-best: seed it to +inf so any finite refined-cycle
     # energy is accepted. A candidate that stays non-finite ranks last (dH/dG=inf)
     # rather than poisoning the sort with NaN.
+    best_energy = _score_pose_stack(promoted, exact_sfxn)
     best_energy = torch.where(
         torch.isfinite(best_energy),
         best_energy,
         torch.full_like(best_energy, float("inf")),
     )
     current = promoted
-    # Cartesian L-BFGS, not Rosetta torsion-space linmin; preserve the rep ramp
-    # and accept-to-best. Omit Rosetta's preliminary cycle and global optH.
     for _ in range(cycles):
         for step_sfxn, tol, max_iter in step_sfxns:
-            current = run_cart_min(
-                current,
-                step_sfxn,
-                coord_mask=coord_mask,
-                # LBFGS_Armijo accepts relative energy tolerance via rtol.
-                optimizer_kwargs={"max_iter": max_iter, "rtol": tol},
-            )
+            current = minimize(current, step_sfxn, tol, max_iter)
         energy = _score_pose_stack(current, exact_sfxn)
         improved = torch.isfinite(energy) & (energy < best_energy)
         best_coords = torch.where(
@@ -132,61 +127,6 @@ def _ligand_cartmin(
         coord_mask=ligand_coord_mask,
         optimizer_kwargs={"max_iter": max_iter, "rtol": rtol},
     )
-
-
-def _torsion_soft_hard_refine(
-    promoted, ligand_block, *, param_db, device, exact_sfxn, schedule, cycles
-):
-    """Refine ligand jump and named torsions, accepting best exact energies."""
-    # An explicit database keeps the soft/hard score functions independent.
-    if param_db is None:
-        param_db = ParameterDatabase.get_default()
-    base_fa_ljrep = float(exact_sfxn.get_weight(ScoreType.fa_ljrep))
-    step_sfxns = [
-        (
-            _refine_fa_rep_scaled(base_fa_ljrep, param_db, device, rep_mult),
-            tol,
-            max_iter,
-        )
-        for rep_mult, tol, max_iter in schedule
-    ]
-    ldofs = build_ligand_docking_dofs(promoted, ligand_block, sidechain_blocks=())
-    ff, mm = ldofs.fold_forest, ldofs.move_map
-    best_coords = promoted.coords.clone()
-    best_energy = _score_pose_stack(promoted, exact_sfxn)
-    # Non-finite starting energies must not block accept-to-best.
-    best_energy = torch.where(
-        torch.isfinite(best_energy),
-        best_energy,
-        torch.full_like(best_energy, float("inf")),
-    )
-    current = promoted
-    # Fixed-hydrogen harness: omit whole-pose optH (including His/Asn/Gln
-    # flips) and its extra pre-optH torsional cycle. Ramp steps minimize only;
-    # ligand rotamer/proton-chi packing is not reproduced.
-    # Ignore ramp_repack_min's third (coordinate-constraint ramp) argument:
-    # Rosetta dockrigid defaults ramp_down_constraints to false, so it is inert.
-    for _ in range(cycles):
-        for step_sfxn, tol, max_iter in step_sfxns:
-            current = run_kin_min(
-                current,
-                step_sfxn,
-                ff,
-                mm,
-                # rtol maps Rosetta's fractional-energy tolerance. In float32,
-                # 1e-5 is below the optimizer's dtype floor (harmless warning);
-                # the hard step then stops by gradient/atol/max_iter.
-                optimizer_kwargs={"max_iter": max_iter, "rtol": tol},
-                kin_dtype=promoted.coords.dtype,
-            )
-        energy = _score_pose_stack(current, exact_sfxn)
-        improved = torch.isfinite(energy) & (energy < best_energy)
-        best_coords = torch.where(
-            improved[:, None, None], current.coords, best_coords
-        )
-        best_energy = torch.where(improved, energy, best_energy)
-        current = attr.evolve(current, coords=best_coords.clone())
-    return attr.evolve(promoted, coords=best_coords), best_energy
 
 
 def _ligand_atom_indices(pose_stack: PoseStack, ligand_block: int) -> torch.Tensor:
@@ -475,9 +415,19 @@ def finalize_ga_docking(
         # hard-rep minimization (repeat 1, fa_rep 1.0, tol 1e-5, <=200 iter), NOT
         # a soft->hard ramp. Reproduce that here (ligand + flexible-sidechain atoms
         # move in Cartesian space; accept-to-best as in Rosetta).
+        def cartesian_step(pose, step_sfxn, tol, max_iter):
+            # Cartesian L-BFGS, not Rosetta torsion-space linmin; preserves the
+            # rep ramp and accept-to-best, omits the preliminary cycle and optH.
+            return run_cart_min(
+                pose,
+                step_sfxn,
+                coord_mask=coord_mask,
+                optimizer_kwargs={"max_iter": max_iter, "rtol": tol},
+            )
+
         refined, complex_energy = _soft_hard_refine(
             promoted,
-            coord_mask,
+            cartesian_step,
             param_db=backend.param_db,
             device=promoted.device,
             exact_sfxn=exact_sfxn,
@@ -488,9 +438,25 @@ def finalize_ga_docking(
         # RIGID: bracket torsion-space soft-to-hard with ligand Cartesian min.
         ligand_mask = coord_mask  # No flexible sidechains: ligand atoms only.
         promoted = _ligand_cartmin(promoted, exact_sfxn, ligand_mask)
-        promoted, _ = _torsion_soft_hard_refine(
+        ldofs = build_ligand_docking_dofs(promoted, ligand_block, sidechain_blocks=())
+
+        def torsion_step(pose, step_sfxn, tol, max_iter):
+            # Fixed-hydrogen harness: no whole-pose optH, ramp steps minimize
+            # only. rtol maps Rosetta's fractional-energy tolerance (in float32
+            # 1e-5 is below the dtype floor, so the hard step stops on
+            # gradient/atol/max_iter instead).
+            return run_kin_min(
+                pose,
+                step_sfxn,
+                ldofs.fold_forest,
+                ldofs.move_map,
+                optimizer_kwargs={"max_iter": max_iter, "rtol": tol},
+                kin_dtype=pose.coords.dtype,
+            )
+
+        promoted, _ = _soft_hard_refine(
             promoted,
-            ligand_block,
+            torsion_step,
             param_db=backend.param_db,
             device=promoted.device,
             exact_sfxn=exact_sfxn,

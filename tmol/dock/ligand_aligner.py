@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 
 import torch
 
+from tmol.dock._diversity import select_diverse_low_energy
+
 if TYPE_CHECKING:
     from tmol.dock.ga import LigandGeneLayout
     from tmol.dock.scoring_backend import GridBackend
@@ -530,44 +532,12 @@ def _select_diverse_indices(
     n_select: int,
     rmsd_threshold: float,
 ) -> torch.Tensor:
-    """Greedily select energy-ranked placements using absolute-coordinate RMSD."""
+    """Energy-ranked RMS-diverse placements, returned lowest energy first."""
 
-    if energies.ndim != 1 or heavy_coordinates.shape[0] != energies.shape[0]:
-        raise ValueError("coordinate and energy candidate dimensions must match")
-    n_candidates = energies.shape[0]
-    if n_select < 1 or n_select > n_candidates:
-        raise ValueError("n_select must be between one and the candidate count")
-    order = torch.argsort(energies, stable=True)
-    ranked = heavy_coordinates[order]
-    selected_rank = torch.full(
-        (n_select,), -1, dtype=torch.int64, device=energies.device
+    selected, _ = select_diverse_low_energy(
+        energies, heavy_coordinates, npool=n_select, rmsdthreshold=rmsd_threshold
     )
-    selected_mask = torch.zeros(n_candidates, dtype=torch.bool, device=energies.device)
-    selected_count = torch.zeros((), dtype=torch.int64, device=energies.device)
-    for rank in range(n_candidates):
-        candidate_distances = torch.sqrt(
-            torch.mean(torch.sum((ranked[rank] - ranked) ** 2, dim=-1), dim=-1)
-        )
-        sufficiently_distant = torch.all(
-            ~selected_mask | (candidate_distances >= rmsd_threshold)
-        )
-        accept = sufficiently_distant & (selected_count < n_select)
-        column = selected_count.clamp_max(n_select - 1).reshape(1)
-        previous = selected_rank.gather(0, column)
-        selected_rank.scatter_(0, column, torch.where(accept, rank, previous))
-        selected_mask[rank] = accept
-        selected_count += accept.to(torch.int64)
-
-    ranked_columns = torch.arange(n_candidates, device=energies.device)
-    rejected_rank = torch.where(~selected_mask, ranked_columns, n_candidates)
-    rejected = torch.argsort(rejected_rank, stable=True)
-    output_columns = torch.arange(n_select, device=energies.device)
-    fill_columns = (output_columns - selected_count).clamp_min(0)
-    filled = rejected.gather(0, fill_columns)
-    selected_rank = torch.where(output_columns < selected_count, selected_rank, filled)
-    selected = order.gather(0, selected_rank)
-    rerank = torch.argsort(energies[selected], stable=True)
-    return selected[rerank]
+    return selected[torch.argsort(energies[selected], stable=True)]
 
 
 __all__ = ["LigandAligner", "LigandAlignment"]

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, fields
+from dataclasses import dataclass
 from typing import Sequence
 
 import torch
@@ -18,13 +18,13 @@ from ._movable import (
     sidechain_context_blocks,
     validated_sidechain_blocks,
 )
-from ._common import build_cell_list, cell_grid, validate_ligand_coords
+from ._common import LiveData, build_cell_list, cell_grid, validate_ligand_coords
 
 MAX_N_WATER = 4
 
 
 @dataclass(frozen=True)
-class LiveLKBallData:
+class LiveLKBallData(LiveData):
     """One shared rigid-receptor LK-ball structure and ligand topology."""
 
     n_ligand_atoms: int
@@ -48,196 +48,6 @@ class LiveLKBallData:
     receptor_polar_cell_indices: torch.Tensor
     global_params: torch.Tensor
 
-    def __post_init__(self):
-        if (
-            not isinstance(self.n_ligand_atoms, int)
-            or isinstance(self.n_ligand_atoms, bool)
-            or self.n_ligand_atoms < 1
-        ):
-            raise ValueError("n_ligand_atoms must be a positive integer")
-        tensors = {
-            field.name: getattr(self, field.name)
-            for field in fields(self)
-            if field.name != "n_ligand_atoms"
-        }
-        if not all(isinstance(value, torch.Tensor) for value in tensors.values()):
-            raise TypeError("all live LK-ball arrays must be tensors")
-        if len({value.device for value in tensors.values()}) != 1:
-            raise ValueError("all live LK-ball arrays must share one device")
-        if not all(value.is_contiguous() for value in tensors.values()):
-            raise ValueError("all live LK-ball arrays must be contiguous")
-
-        real_dtype = self.receptor_coords.dtype
-        if real_dtype not in (torch.float32, torch.float64):
-            raise TypeError("live LK-ball coordinates must be float32 or float64")
-        real_names = {
-            "ligand_atom_params",
-            "ligand_water_params",
-            "receptor_coords",
-            "receptor_params",
-            "receptor_waters",
-            "cell_origin",
-            "global_params",
-        }
-        if any(tensors[name].dtype != real_dtype for name in real_names):
-            raise TypeError("live LK-ball real arrays must share one dtype")
-        if any(
-            value.dtype != torch.int64
-            for name, value in tensors.items()
-            if name not in real_names
-        ):
-            raise TypeError("live LK-ball index arrays must be int64")
-
-        n_heavy = self.receptor_coords.shape[0]
-        n_polar = self.receptor_polar_atoms.shape[0]
-        n_ligand_polar = self.ligand_polar_atoms.shape[0]
-        expected_shapes = {
-            "ligand_atom_params": (self.n_ligand_atoms, 9),
-            "ligand_heavy_atoms": (self.ligand_heavy_atoms.shape[0],),
-            "ligand_polar_atoms": (n_ligand_polar,),
-            "ligand_atom_to_polar": (self.n_ligand_atoms,),
-            "ligand_water_kinds": (n_ligand_polar, MAX_N_WATER),
-            "ligand_water_atoms": (n_ligand_polar, MAX_N_WATER, 3),
-            "ligand_water_params": (n_ligand_polar, MAX_N_WATER, 3),
-            "ligand_water_is_ring": (n_ligand_polar, MAX_N_WATER),
-            "receptor_coords": (n_heavy, 3),
-            "receptor_params": (n_heavy, 9),
-            "receptor_waters": (n_heavy, MAX_N_WATER, 3),
-            "receptor_polar_atoms": (n_polar,),
-            "cell_origin": (3,),
-            "cell_dims": (3,),
-            "global_params": (1, 5),
-        }
-        for name, expected in expected_shapes.items():
-            if tuple(tensors[name].shape) != expected:
-                raise ValueError(f"{name} must have shape {expected}")
-
-        if self.receptor_cell_offsets.ndim != 1:
-            raise ValueError("receptor cell offsets must be one-dimensional")
-        n_cells = self.receptor_cell_offsets.shape[0] - 1
-        cell_shapes = {
-            "receptor_cell_offsets": (n_cells + 1,),
-            "receptor_cell_indices": (n_heavy,),
-            "receptor_polar_cell_offsets": (n_cells + 1,),
-            "receptor_polar_cell_indices": (n_polar,),
-        }
-        for name, expected in cell_shapes.items():
-            if tuple(tensors[name].shape) != expected:
-                raise ValueError(f"{name} must have shape {expected}")
-
-        if self.receptor_coords.device.type != "cpu":
-            return
-        if bool(
-            torch.any(self.cell_dims <= 0) or int(torch.prod(self.cell_dims)) != n_cells
-        ):
-            raise ValueError("cell_dims must be positive and match cell offsets")
-        if not all(
-            bool(torch.isfinite(tensor).all())
-            for tensor in (
-                self.ligand_atom_params,
-                self.ligand_water_params,
-                self.receptor_coords,
-                self.receptor_params,
-                self.cell_origin,
-                self.global_params,
-            )
-        ):
-            raise ValueError("live LK-ball coordinates and parameters must be finite")
-        cutoff = float(self.global_params[0, 4])
-        if not cutoff > 0:
-            raise ValueError("live LK-ball cutoff must be positive")
-
-        def check_range(value: torch.Tensor, upper: int, name: str) -> None:
-            if value.numel() and bool(
-                torch.any(value < 0) or torch.any(value >= upper)
-            ):
-                raise ValueError(f"{name} contains an out-of-range index")
-
-        check_range(self.ligand_heavy_atoms, self.n_ligand_atoms, "ligand_heavy_atoms")
-        check_range(self.ligand_polar_atoms, self.n_ligand_atoms, "ligand_polar_atoms")
-        check_range(self.receptor_polar_atoms, n_heavy, "receptor_polar_atoms")
-        if bool(torch.any((self.ligand_atom_to_polar < -1))):
-            raise ValueError("ligand_atom_to_polar contains an invalid index")
-        active_polar = self.ligand_atom_to_polar >= 0
-        check_range(
-            self.ligand_atom_to_polar[active_polar],
-            n_ligand_polar,
-            "ligand_atom_to_polar",
-        )
-        if n_ligand_polar and not torch.equal(
-            self.ligand_atom_to_polar[self.ligand_polar_atoms],
-            torch.arange(n_ligand_polar, dtype=torch.int64),
-        ):
-            raise ValueError("ligand polar lookup does not match ligand_polar_atoms")
-        if bool(
-            torch.any((self.ligand_water_kinds < 0) | (self.ligand_water_kinds > 2))
-        ):
-            raise ValueError("ligand_water_kinds must be 0, 1, or 2")
-        active_water = self.ligand_water_kinds != 0
-        if bool(torch.any(self.ligand_water_atoms[~active_water] != -1)):
-            raise ValueError("inactive ligand water atoms must be -1")
-        check_range(
-            self.ligand_water_atoms[active_water][:, :2],
-            self.n_ligand_atoms,
-            "ligand_water_atoms",
-        )
-        acceptor_water = self.ligand_water_kinds == 2
-        check_range(
-            self.ligand_water_atoms[acceptor_water][:, 2],
-            self.n_ligand_atoms,
-            "ligand acceptor water atoms",
-        )
-
-        for kind, offsets, indices, expected_count, upper in (
-            (
-                "receptor",
-                self.receptor_cell_offsets,
-                self.receptor_cell_indices,
-                n_heavy,
-                n_heavy,
-            ),
-            (
-                "receptor polar",
-                self.receptor_polar_cell_offsets,
-                self.receptor_polar_cell_indices,
-                n_polar,
-                n_heavy,
-            ),
-        ):
-            if (
-                int(offsets[0]) != 0
-                or int(offsets[-1]) != expected_count
-                or bool(torch.any(offsets[1:] < offsets[:-1]))
-            ):
-                raise ValueError(f"{kind} cell offsets are not valid CSR")
-            check_range(indices, upper, f"{kind}_cell_indices")
-        if n_heavy and not torch.equal(
-            torch.sort(self.receptor_cell_indices).values,
-            torch.arange(n_heavy, dtype=torch.int64),
-        ):
-            raise ValueError("receptor cell indices must be a permutation")
-        if n_polar and not torch.equal(
-            torch.sort(self.receptor_polar_cell_indices).values,
-            torch.sort(self.receptor_polar_atoms).values,
-        ):
-            raise ValueError("receptor polar cell indices must match polar atoms")
-
-    def to(self, device: torch.device | str, dtype: torch.dtype) -> "LiveLKBallData":
-        """Return the structure on a scoring device and coordinate dtype."""
-
-        if dtype not in (torch.float32, torch.float64):
-            raise TypeError("live LK-ball dtype must be float32 or float64")
-        device = torch.device(device)
-        values = {}
-        for field in fields(self):
-            value = getattr(self, field.name)
-            if not isinstance(value, torch.Tensor):
-                values[field.name] = value
-            elif value.dtype.is_floating_point:
-                values[field.name] = value.to(device=device, dtype=dtype).contiguous()
-            else:
-                values[field.name] = value.to(device=device).contiguous()
-        return LiveLKBallData(**values)
 
 
 def _pack_type_params(term: LKBallEnergyTerm) -> torch.Tensor:

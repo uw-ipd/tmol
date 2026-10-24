@@ -22,7 +22,7 @@ from tmol.tests.ligand.test_ligand_receptor_perterm_baseline import (
     _TERM_ORDER,
 )
 from tmol.tests.score.gridscore.test_gridscore import _load_target_pose
-from tmol.tests.score.gridscore.test_live_hbond import (
+from tmol.tests.score.gridscore.test_live_terms import (
     _ligand_block,
     _ligand_coords,
 )

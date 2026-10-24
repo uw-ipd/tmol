@@ -26,9 +26,8 @@ import numpy
 import torch
 
 from tmol.dock.conformer_seed import generate_conformer_library
-from tmol.dock.dock_loop import (
-    DockingPerturbation,
-)
+from tmol.dock._diversity import ligand_heavy_atom_rms, select_diverse_low_energy
+from tmol.dock.dock_loop import DockingPerturbation
 from tmol.dock.ligand_aligner import LigandAligner
 from tmol.dock.ligand_dofs import (
     LigandDockingDOFs,
@@ -504,51 +503,24 @@ class DockingResult:
     ga_result: GAResult
     finalization: DockingFinalization | None = None
 
-    @property
-    def finalized_pose_stack(self) -> PoseStack | None:
-        return None if self.finalization is None else self.finalization.pose_stack
+    # Finalization outputs, exposed here as ``None`` until finalization has run.
+    _FINALIZATION_FIELDS = {
+        "finalized_pose_stack": "pose_stack",
+        "pre_refine_energies": "pre_refine_energies",
+        "complex_energies": "complex_energies",
+        "free_ligand_energies": "free_ligand_energies",
+        "free_receptor_energies": "free_receptor_energies",
+        "nchi": "nchi",
+        "dH": "dH",
+        "TdS": "TdS",
+        "dG": "dG",
+    }
 
-    @property
-    def pre_refine_energies(self) -> torch.Tensor | None:
-        return (
-            None if self.finalization is None else self.finalization.pre_refine_energies
-        )
-
-    @property
-    def complex_energies(self) -> torch.Tensor | None:
-        return None if self.finalization is None else self.finalization.complex_energies
-
-    @property
-    def free_ligand_energies(self) -> torch.Tensor | None:
-        return (
-            None
-            if self.finalization is None
-            else self.finalization.free_ligand_energies
-        )
-
-    @property
-    def free_receptor_energies(self) -> torch.Tensor | None:
-        return (
-            None
-            if self.finalization is None
-            else self.finalization.free_receptor_energies
-        )
-
-    @property
-    def nchi(self) -> torch.Tensor | None:
-        return None if self.finalization is None else self.finalization.nchi
-
-    @property
-    def dH(self) -> torch.Tensor | None:
-        return None if self.finalization is None else self.finalization.dH
-
-    @property
-    def TdS(self) -> torch.Tensor | None:
-        return None if self.finalization is None else self.finalization.TdS
-
-    @property
-    def dG(self) -> torch.Tensor | None:
-        return None if self.finalization is None else self.finalization.dG
+    def __getattr__(self, name: str):
+        field = DockingResult._FINALIZATION_FIELDS.get(name)
+        if field is None:
+            raise AttributeError(name)
+        return None if self.finalization is None else getattr(self.finalization, field)
 
 
 def _place_ligand_in_reference(
@@ -928,86 +900,6 @@ def crossover(
     return _canonicalize_genes(result)
 
 
-def ligand_heavy_atom_rms(
-    coords1: torch.Tensor, coords2: torch.Tensor
-) -> torch.Tensor:
-    """Unsymmetrized heavy-atom coordinate RMS with broadcasting."""
-
-    if coords1.shape[-2:] != coords2.shape[-2:]:
-        raise ValueError("ligand coordinate tensors must have matching atom shapes")
-    delta = coords1 - coords2
-    return torch.sqrt(torch.mean(torch.sum(delta * delta, dim=-1), dim=-1))
-
-
-def _diverse_low_energy_indices(
-    energies: torch.Tensor,
-    coords: torch.Tensor,
-    *,
-    npool: int,
-    rmsdthreshold: float,
-) -> tuple[torch.Tensor, torch.Tensor]:
-    """Select energy-ranked RMS niches, then fill from rejected candidates.
-
-    The bounded host loop walks candidate energy ranks; RMS storage is limited
-    to the selected pool instead of an atom-expanded all-pairs candidate tensor.
-    """
-
-    if energies.ndim != 1:
-        raise ValueError("energies must have shape [candidate]")
-    if coords.ndim != 3 or coords.shape[0] != energies.shape[0]:
-        raise ValueError("coords must have shape [candidate, heavy_atom, 3]")
-    if coords.shape[-1] != 3 or coords.shape[1] < 1:
-        raise ValueError("coords must contain at least one 3D heavy atom")
-    if not isinstance(npool, int) or isinstance(npool, bool) or npool < 1:
-        raise ValueError("npool must be a positive integer")
-    n_candidates = energies.shape[0]
-    if npool > n_candidates:
-        raise ValueError("npool cannot exceed the number of candidates")
-    if not math.isfinite(rmsdthreshold) or rmsdthreshold < 0:
-        raise ValueError("rmsdthreshold must be finite and nonnegative")
-
-    order = torch.argsort(energies)
-    selected_order = torch.full((npool,), -1, dtype=torch.int64, device=energies.device)
-    selected_mask = torch.zeros(n_candidates, dtype=torch.bool, device=energies.device)
-    selected_count = torch.zeros((), dtype=torch.int64, device=energies.device)
-    selected_coords = coords[:1].expand(npool, -1, -1).clone()
-    pool_columns = torch.arange(npool, device=energies.device)
-
-    for rank in range(n_candidates):
-        candidate = order[rank : rank + 1]
-        candidate_coords = coords.index_select(0, candidate)
-        candidate_distances = ligand_heavy_atom_rms(candidate_coords, selected_coords)
-        active_selected = pool_columns < selected_count
-        sufficiently_distant = torch.all(
-            ~active_selected | (candidate_distances >= rmsdthreshold)
-        )
-        accept = sufficiently_distant & (selected_count < npool)
-        write_column = selected_count.clamp_max(npool - 1).reshape(1)
-        previous = selected_order.gather(0, write_column)
-        selected_order.scatter_(
-            0, write_column, torch.where(accept, candidate, previous)
-        )
-        selected_mask.scatter_(0, candidate, accept.reshape(1))
-        write_coords = write_column[:, None, None].expand(-1, coords.shape[1], 3)
-        previous_coords = selected_coords.gather(0, write_coords)
-        selected_coords.scatter_(
-            0, write_coords, torch.where(accept, candidate_coords, previous_coords)
-        )
-        selected_count += accept.to(torch.int64)
-
-    selected_in_rank_order = selected_mask.gather(0, order)
-    rejected_rank = torch.where(
-        ~selected_in_rank_order,
-        torch.arange(n_candidates, device=energies.device),
-        n_candidates,
-    )
-    rejected_order = order.gather(0, torch.argsort(rejected_rank))
-    fill_columns = (pool_columns - selected_count).clamp_min(0)
-    filled = rejected_order.gather(0, fill_columns)
-    selected = torch.where(pool_columns < selected_count, selected_order, filled)
-    return selected, selected_count
-
-
 def next_generation(
     genes: torch.Tensor,
     npoolout: int,
@@ -1188,37 +1080,10 @@ def update_pool(
     )
     if genes.shape[0] <= npool:
         raise ValueError("combined parent and offspring pools must exceed npool")
-    order = torch.argsort(energies)
-    distances = ligand_heavy_atom_rms(coords[:, None], coords[None, :])
-
-    selected: list[int] = []
-    selected_mask = torch.zeros(
-        genes.shape[0], dtype=torch.bool, device=genes.device
+    selected_tensor, n_diverse = select_diverse_low_energy(
+        energies, coords, npool=npool, rmsdthreshold=rmsdthreshold
     )
-    for candidate in order.detach().cpu().tolist():
-        if not selected:
-            selected.append(candidate)
-            selected_mask[candidate] = True
-        else:
-            sufficiently_distant = (
-                ~selected_mask
-                | (distances[candidate] >= rmsdthreshold)
-            )
-            if bool(torch.all(sufficiently_distant)):
-                selected.append(candidate)
-                selected_mask[candidate] = True
-        if len(selected) == npool:
-            break
-    n_diverse = len(selected)
-
-    selected_tensor = torch.tensor(
-        selected, dtype=torch.int64, device=genes.device
-    )
-    if n_diverse < npool:
-        rejected_in_energy_order = order[~selected_mask[order]]
-        selected_tensor = torch.cat(
-            (selected_tensor, rejected_in_energy_order[: npool - n_diverse])
-        )
+    n_diverse = int(n_diverse)
 
     candidate_coords = torch.cat(
         (offspring.pose_stack.coords, parents.pose_stack.coords), dim=0
@@ -1255,7 +1120,7 @@ def _subsample_swarm_pool(
     # while retained coordinates are the backend's minimized pose coordinates.
     swarm_from_genes = swarm_layout.pose_stack_from_genes(swarm.genes)
     heavy_coords = swarm_layout.ligand_heavy_coords(swarm_from_genes)
-    selected, n_diverse = _diverse_low_energy_indices(
+    selected, n_diverse = select_diverse_low_energy(
         swarm.energies,
         heavy_coords,
         npool=npool,
@@ -1821,25 +1686,9 @@ def run_docking(
     ligand_block: int,
     backend: ScoringBackend,
     *,
-    schedule: GASchedule = GASchedule(),
-    seed: int = 0,
-    pocket_bounds: torch.Tensor | None = None,
-    random_placement: RandomPlacement = RandomPlacement(),
-    initialization: Literal[
-        "jitter", "random", "conformer", "aligner", "swarm"
-    ] = "random",
-    swarm_size: int = 4000,
-    swarm_mc_rounds: int = 0,
-    swarm_chi_step: float = 0.52359878,
     finalize: bool = False,
     top_k: int = 1,
-    sidechain_blocks: tuple[int, ...] | None = None,
-    ligand_mol2: str | Path | None = None,
-    n_conformers: int = 200,
-    seed_fraction: float = 0.5,
-    energy_window: float = 20.0,
-    cluster_rmsd: float = 0.5,
-    ligand_aligner: LigandAligner = LigandAligner(),
+    **ga_kwargs,
 ) -> DockingResult:
     """Run one prepared ligand through the selected initialization and GA docking.
 
@@ -1857,37 +1706,26 @@ def run_docking(
     coordinates from these genes reproduces the pre-refine pose, NOT
     ``best_pose_stack``. Use ``best_pose_stack`` / ``finalization.pose_stack``
     for the refined coordinates and the genes only as grid-GA provenance.
+
+    ``ga_kwargs`` are the keyword arguments of :func:`run_ga_docking`
+    (``schedule``, ``seed``, ``initialization`` -- here ``"random"`` unless
+    given -- and the pocket, swarm and conformer-seeding options).
     """
 
     if not isinstance(finalize, bool):
         raise TypeError("finalize must be bool")
+    ga_kwargs.setdefault("initialization", "random")
+    npool = ga_kwargs.get("schedule", GASchedule()).npool
     if finalize and (
         not isinstance(top_k, int)
         or isinstance(top_k, bool)
         or top_k < 1
-        or top_k > schedule.npool
+        or top_k > npool
     ):
         raise ValueError("top_k must be between 1 and schedule.npool")
 
     ga_result = run_ga_docking(
-        pose_stack,
-        ligand_block,
-        backend,
-        schedule=schedule,
-        seed=seed,
-        initialization=initialization,
-        swarm_size=swarm_size,
-        swarm_mc_rounds=swarm_mc_rounds,
-        swarm_chi_step=swarm_chi_step,
-        pocket_bounds=pocket_bounds,
-        random_placement=random_placement,
-        sidechain_blocks=sidechain_blocks,
-        ligand_mol2=ligand_mol2,
-        n_conformers=n_conformers,
-        seed_fraction=seed_fraction,
-        energy_window=energy_window,
-        cluster_rmsd=cluster_rmsd,
-        ligand_aligner=ligand_aligner,
+        pose_stack, ligand_block, backend, **ga_kwargs
     )
     if not finalize:
         return DockingResult(

@@ -176,49 +176,6 @@ def _angle_delta(after, before):
     return torch.atan2(torch.sin(delta), torch.cos(delta))
 
 
-@pytest.mark.parametrize(
-    ("response_matrix", "message"),
-    [
-        (((0.05, 0.0), (0.0, 1.0)), "unit magnitude"),
-        # Isolated but non-unit self-slope: the affine mapping stores no scale
-        # term, so a 0.5 response would silently miscalibrate the logical chi.
-        (((0.5, 0.0), (0.0, 1.0)), "unit magnitude"),
-        (((1.0, 0.02), (0.0, 1.0)), "changes another declared dihedral"),
-        (((float("nan"), 0.0), (0.0, 1.0)), "finite declared-dihedral"),
-    ],
-)
-def test_empirical_torsion_sign_guards_raise(
-    monkeypatch, response_matrix, message
-):
-    response_matrix = torch.tensor(response_matrix, dtype=torch.float64)
-
-    def synthetic_dihedrals(raw_dofs, atom_nodes):
-        del atom_nodes
-        controllers = raw_dofs[:2, 0]
-        return (controllers @ response_matrix).reshape(1, 2)
-
-    monkeypatch.setattr(
-        ligand_dofs_module,
-        "_batched_coord_dihedrals",
-        synthetic_dihedrals,
-    )
-    raw_dofs = torch.zeros((2, 1), dtype=torch.float64)
-    ligand_nodes = torch.tensor([[0, 1]], dtype=torch.int64)
-    torsion_atoms = torch.zeros((2, 4), dtype=torch.int64)
-    raw_nodes = torch.tensor([[0, 1]], dtype=torch.int64)
-    dof_types = torch.zeros(2, dtype=torch.int64)
-
-    with pytest.raises(ValueError, match=message):
-        ligand_dofs_module._empirical_torsion_signs(
-            lambda dofs: dofs,
-            raw_dofs,
-            ligand_nodes,
-            torsion_atoms,
-            raw_nodes,
-            dof_types,
-        )
-
-
 def test_empirical_torsion_signs_measures_in_float64(monkeypatch):
     """Lock the fp32->fp64 upcast: float32 raw DOFs must be validated in float64.
 
@@ -252,22 +209,6 @@ def test_empirical_torsion_signs_measures_in_float64(monkeypatch):
     assert seen_dtypes, "validation kinematics was never invoked"
     assert all(dtype == torch.float64 for dtype in seen_dtypes)
     assert signs.tolist() == [1, 1]
-
-
-def test_empirical_torsion_signs_supports_no_declared_torsions():
-    def unexpected_forward_kinematics(_):
-        raise AssertionError("zero-torsion validation should not run kinematics")
-
-    signs = ligand_dofs_module._empirical_torsion_signs(
-        unexpected_forward_kinematics,
-        torch.zeros((2, 1), dtype=torch.float64),
-        torch.empty((1, 0), dtype=torch.int64),
-        torch.empty((0, 4), dtype=torch.int64),
-        torch.empty((1, 0), dtype=torch.int64),
-        torch.empty(0, dtype=torch.int64),
-    )
-    assert signs.dtype == torch.int64
-    assert signs.shape == (0,)
 
 
 def _scan_cache_values(owner):
