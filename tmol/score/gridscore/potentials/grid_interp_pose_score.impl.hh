@@ -48,68 +48,6 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
-auto GridInterpDispatch<DeviceOps, D, Real, Int>::forward(
-    ContextManager& mgr,
-    TView<Real, 4, D> coefficients,
-    TView<Vec<Real, 3>, 1, D> indices,
-    TView<Int, 1, D> grid_indices) -> TPack<Real, 1, D> {
-  int const n_points = indices.size(0);
-  Int const nx = coefficients.size(1);
-  Int const ny = coefficients.size(2);
-  Int const nz = coefficients.size(3);
-  Int const n_grids = coefficients.size(0);
-  auto output_t = TPack<Real, 1, D>::empty({n_points});
-  auto output = output_t.view;
-
-  LAUNCH_BOX_32;
-  auto interpolate_point = [=] TMOL_DEVICE_FUNC(int point) {
-    Vec<Real, 3> const index = indices[point];
-    Int const grid = grid_indices[point];
-    // Guard the double->int64 cast below: reject non-finite AND finite-but-huge
-    // indices whose floor would overflow Int (undefined behavior). The bound
-    // (2^30) is far beyond any real grid dimension, so valid ligand coordinates
-    // are never rejected; pathological inputs yield NaN instead of UB.
-    Real const max_index = Real(1 << 30);
-    if (grid < 0 || grid >= n_grids
-        || !std::isfinite(index[0]) || std::abs(index[0]) > max_index
-        || !std::isfinite(index[1]) || std::abs(index[1]) > max_index
-        || !std::isfinite(index[2]) || std::abs(index[2]) > max_index) {
-      output[point] = std::numeric_limits<Real>::quiet_NaN();
-      return;
-    }
-
-    Int first[3];
-    Real weights[3][4];
-    for (int axis = 0; axis < 3; ++axis) {
-      Real const first_real = std::floor(index[axis] - Real(1));
-      first[axis] = static_cast<Int>(first_real);
-      cubic_bspline_weights(index[axis] - first_real - Real(1), weights[axis]);
-    }
-
-    Real value = 0;
-    for (int x_offset = 0; x_offset < 4; ++x_offset) {
-      Int const x = mirror_grid_index(first[0] + x_offset, nx);
-      for (int y_offset = 0; y_offset < 4; ++y_offset) {
-        Int const y = mirror_grid_index(first[1] + y_offset, ny);
-        Real const xy_weight = weights[0][x_offset] * weights[1][y_offset];
-        for (int z_offset = 0; z_offset < 4; ++z_offset) {
-          Int const z = mirror_grid_index(first[2] + z_offset, nz);
-          value += xy_weight * weights[2][z_offset]
-                   * coefficients[grid][x][y][z];
-        }
-      }
-    }
-    output[point] = value;
-  };
-  DeviceOps<D>::template forall<launch_t>(mgr, n_points, interpolate_point);
-  return output_t;
-}
-
-template <
-    template <tmol::Device> class DeviceOps,
-    tmol::Device D,
-    typename Real,
-    typename Int>
 auto GridInterpDispatch<DeviceOps, D, Real, Int>::forward_with_derivatives(
     ContextManager& mgr,
     TView<Real, 4, D> coefficients,
@@ -186,15 +124,21 @@ auto GridInterpDispatch<DeviceOps, D, Real, Int>::forward_with_derivatives(
           weight_derivatives[axis]);
     }
 
+    Int stencil[3][4];
+    for (int axis = 0; axis < 3; ++axis) {
+      for (int tap = 0; tap < 4; ++tap) {
+        stencil[axis][tap] = mirror_grid_index(first[axis] + tap, dims[axis]);
+      }
+    }
+
     Real value = 0;
     Real gradient[3] = {Real(0), Real(0), Real(0)};
     for (int x_offset = 0; x_offset < 4; ++x_offset) {
-      Int const x = mirror_grid_index(first[0] + x_offset, dims[0]);
       for (int y_offset = 0; y_offset < 4; ++y_offset) {
-        Int const y = mirror_grid_index(first[1] + y_offset, dims[1]);
         for (int z_offset = 0; z_offset < 4; ++z_offset) {
-          Int const z = mirror_grid_index(first[2] + z_offset, dims[2]);
-          Real const coefficient = coefficients[grid][x][y][z];
+          Real const coefficient =
+              coefficients[grid][stencil[0][x_offset]][stencil[1][y_offset]]
+                          [stencil[2][z_offset]];
           value += weights[0][x_offset] * weights[1][y_offset]
                    * weights[2][z_offset] * coefficient;
           gradient[0] += weight_derivatives[0][x_offset]

@@ -334,6 +334,12 @@ _GOLDEN_PER_TERM = {
         ),
     },
 }
+# ``metal_coordination`` post-dates the capture and is zero for these metal-free
+# complexes, so the goldens gain a trailing zero row entry.
+_GOLDEN_PER_TERM = {
+    target: {name: (*values, 0.0) for name, values in rows.items()}
+    for target, rows in _GOLDEN_PER_TERM.items()
+}
 
 _ROSETTA_INTERFACE_COLUMNS = {
     "fa_ljatr": ("dG_fa_atr",),
@@ -390,9 +396,9 @@ def _weighted_perterm_from_fixtures(
     target: str, torch_device: torch.device, dtype: torch.dtype
 ):
     from tmol.database import ParameterDatabase
-    from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_biotite
     from tmol.score import beta2016_score_function
-    from tmol.score.score_utils import calculate_block_pair_ddg
+    from tmol.ops import calculate_block_pair_ddg
 
     pose_stack, context = pose_stack_from_biotite(
         _load_complex_cif(target),

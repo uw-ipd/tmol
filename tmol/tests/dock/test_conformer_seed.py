@@ -2,28 +2,20 @@
 
 from __future__ import annotations
 
-import attr
 import numpy as np
 import pytest
 import torch
 
 import tmol.dock.ga as ga_module
-from tmol.dock import (
-    ContinuousBackend,
-    GASchedule,
-    LigandGeneLayout,
-    build_ligand_docking_dofs,
-    generate_conformer_library,
-    run_ga_docking,
-)
-from tmol.dock.dock_loop import _repeat_pose_stack
+from tmol.dock import ContinuousBackend, GASchedule
+from tmol.dock.conformer_seed import generate_conformer_library
+from tmol.dock.ga import run_ga_docking
 from tmol.tests.data import data_path
 from tmol.tests.dock.test_ga import _TranslationImprovingBackend
 from tmol.tests.dock.test_ligand_dof_roundtrip import (
     _ligand_block,
     _load_cdk2_pose,
 )
-
 
 PLI_DATA_DIR = data_path("protein_ligand_test")
 CDK2_MOL2 = PLI_DATA_DIR / "cdk2.lig.mol2"
@@ -70,95 +62,6 @@ def test_conformer_library_is_deterministic_and_identity_mapped(
     np.testing.assert_array_equal(library.coords, repeated.coords)
     np.testing.assert_array_equal(library.energies, repeated.energies)
     assert library.atom_mapping == repeated.atom_mapping
-
-
-def test_conformer_seeded_genes_preserve_random_placement_and_valid_bonds(
-    cdk2_conformer_library,
-):
-    reference, _ = _load_cdk2_pose()
-    ligand_block = _ligand_block(reference)
-    npool = 10
-    population = _repeat_pose_stack(reference, npool)
-    layout = LigandGeneLayout.from_pose_stack(
-        population,
-        build_ligand_docking_dofs(population, ligand_block),
-    )
-
-    random = ga_module._random_initial_genes(
-        layout,
-        pocket_bounds=None,
-        placement=ga_module.RandomPlacement(),
-        generator=torch.Generator().manual_seed(73),
-    )
-    seeded = ga_module._conformer_initial_genes(
-        layout,
-        cdk2_conformer_library.coords,
-        seed_fraction=0.5,
-        pocket_bounds=None,
-        placement=ga_module.RandomPlacement(),
-        generator=torch.Generator().manual_seed(73),
-    )
-    torch.testing.assert_close(seeded[0], random[0], rtol=0.0, atol=0.0)
-    torch.testing.assert_close(
-        seeded[6:, 6:], random[6:, 6:], rtol=0.0, atol=0.0
-    )
-    assert torch.any(seeded[1:6, 6:] != random[1:6, 6:])
-
-    expected_coords = layout.template.coords.clone()
-    expected_rows = torch.arange(1, 6)
-    expected_atoms = (
-        layout.template.block_coord_offset64[expected_rows, ligand_block, None]
-        + layout.ligand_local_atoms[None, :]
-    )
-    expected_library_rows = cdk2_conformer_library.coords[
-        np.arange(expected_rows.shape[0])
-        % cdk2_conformer_library.coords.shape[0]
-    ]
-    expected_coords[expected_rows[:, None], expected_atoms] = torch.as_tensor(
-        expected_library_rows,
-        dtype=expected_coords.dtype,
-    )
-    expected_pose = attr.evolve(layout.template, coords=expected_coords)
-    expected_genes = layout.genes_from_pose_stack(expected_pose)
-    torch.testing.assert_close(
-        seeded[1:6, 6:],
-        expected_genes[1:6, 6:],
-        rtol=0.0,
-        atol=0.0,
-    )
-
-    random_pose = layout.pose_stack_from_genes(random)
-    seeded_pose = layout.pose_stack_from_genes(seeded)
-    torch.testing.assert_close(
-        layout.ligand_heavy_coords(seeded_pose).mean(dim=1),
-        layout.ligand_heavy_coords(random_pose).mean(dim=1),
-        rtol=0.0,
-        atol=1.0e-9,
-    )
-
-    block_type = reference.block_type(0, ligand_block)
-    atom_index = block_type.atom_to_idx
-    local_bonds = torch.tensor(
-        [(atom_index[a], atom_index[b]) for a, b, *_ in block_type.bonds],
-        dtype=torch.int64,
-    )
-    pose_indices = torch.arange(seeded_pose.n_poses)
-    ligand_coords = seeded_pose.coords[
-        pose_indices[:, None],
-        seeded_pose.block_coord_offset64[:, ligand_block, None]
-        + torch.arange(block_type.n_atoms)[None, :],
-    ]
-    bond_lengths = torch.linalg.vector_norm(
-        ligand_coords[:, local_bonds[:, 0]] - ligand_coords[:, local_bonds[:, 1]],
-        dim=2,
-    )
-    template_lengths = bond_lengths[0]
-    torch.testing.assert_close(
-        bond_lengths,
-        template_lengths[None, :].expand_as(bond_lengths),
-        rtol=0.0,
-        atol=1.0e-9,
-    )
 
 
 def test_conformer_ga_is_deterministic_and_builds_library_once(
@@ -216,9 +119,7 @@ def test_conformer_ga_is_deterministic_and_builds_library_once(
     )
 
 
-def test_failed_conformer_generation_falls_back_byte_identically(
-    monkeypatch, caplog
-):
+def test_failed_conformer_generation_falls_back_byte_identically(monkeypatch, caplog):
     reference, _ = _load_cdk2_pose()
     ligand_block = _ligand_block(reference)
     schedule = GASchedule(
@@ -255,21 +156,21 @@ def test_failed_conformer_generation_falls_back_byte_identically(
     assert "falling back to blind random initialization" in caplog.text
 
 
-@pytest.mark.parametrize(
-    "kwargs",
-    (
-        {"n_conformers": 0},
-        {"energy_window": -1.0},
-        {"cluster_rmsd": -1.0},
-    ),
-)
-def test_conformer_library_rejects_invalid_parameters(kwargs):
+def test_atom_mapping_falls_back_to_graph_match_for_symmetric_ligand():
+    from rdkit import Chem
+
+    from tmol.dock.conformer_seed import _block_atom_mapping, _mapping_is_valid
+
     reference, _ = _load_cdk2_pose()
-    ligand_block = _ligand_block(reference)
-    with pytest.raises(ValueError):
-        generate_conformer_library(
-            CDK2_MOL2,
-            reference.block_type(0, ligand_block),
-            reference.packed_block_types,
-            **kwargs,
-        )
+    block_type = reference.block_type(0, _ligand_block(reference))
+    pbt = reference.packed_block_types
+    mol = Chem.MolFromMol2File(str(CDK2_MOL2), removeHs=False)
+    n_atoms = mol.GetNumAtoms()
+    # Reversed atom order with names that match nothing: neither the name-based
+    # nor the identity mapping is valid, and cdk2's symmetric aryl ring makes the
+    # graph isomorphism ambiguous. Any isomorphism must be accepted.
+    mol = Chem.RenumberAtoms(mol, list(reversed(range(n_atoms))))
+    names = tuple(f"X{i}" for i in range(n_atoms))
+    mapping = _block_atom_mapping(mol, names, block_type, pbt)
+    assert sorted(mapping) == list(range(n_atoms))
+    assert _mapping_is_valid(mol, block_type, pbt, mapping)

@@ -1,9 +1,11 @@
 from ._util import LazyContentsMapping, LazyFileMapping  # noqa: F401
 
+import io
 import pytest
 import os
 import torch
 import biotite.structure.io
+import zstandard
 from pathlib import Path
 
 from . import pdb  # noqa: E402
@@ -19,6 +21,24 @@ def data_path(*parts: str) -> Path:
     in a test file, which breaks if the file's depth changes).
     """
     return Path(__file__).parent.joinpath(*parts)
+
+
+def read_text(path) -> str:
+    """Read a text fixture, transparently decompressing ``.zst`` files."""
+    path = Path(path)
+    raw = path.read_bytes()
+    if path.suffix == ".zst":
+        raw = zstandard.ZstdDecompressor().stream_reader(io.BytesIO(raw)).read()
+    return raw.decode()
+
+
+def load_cif_structure(path, **kwargs):
+    """First model of a (possibly ``.zst``-compressed) CIF as an ``AtomArray``."""
+    import biotite.structure.io.pdbx as pdbx
+
+    cif = pdbx.CIFFile.read(io.StringIO(read_text(path)))
+    structure = pdbx.get_structure(cif, model=1, **kwargs)
+    return structure
 
 
 def load_cif(pdb_code):

@@ -5,8 +5,8 @@ from __future__ import annotations
 from collections import deque
 from pathlib import Path
 
+from tmol.tests.data import load_cif_structure
 import biotite.structure as struc
-import biotite.structure.io
 import numpy as np
 import pytest
 import torch
@@ -36,13 +36,9 @@ MULTI_CUTS = {
 
 
 def _load_fixture(target=TARGET):
-    structure = biotite.structure.io.load_structure(
-        str(DATA_DIR / f"{target}.tmol.nomin.cif"),
-        model=1,
-        include_bonds=True,
+    structure = load_cif_structure(
+        DATA_DIR / f"{target}.tmol.nomin.cif.zst", include_bonds=True
     )
-    if isinstance(structure, struc.AtomArrayStack):
-        structure = structure[0]
     params_path = DATA_DIR / f"{target}.xtal-lig.mmff94.tmol"
     preparation = load_params_file(params_path)[0]
     return structure, params_path, preparation

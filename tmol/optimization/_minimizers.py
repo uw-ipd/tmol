@@ -24,25 +24,21 @@ if TYPE_CHECKING:
 
 def build_kinforest_network(
     pose_stack: PoseStack,
-    sfxn: ScoreFunction | None,
+    sfxn: ScoreFunction,
     ff: FoldForest,
     mm: MoveMap,
     verbose: bool = False,
     kin_dtype: torch.dtype = torch.float32,
-    whole_pose_scoring_module=None,
 ) -> KinForestSfxnNetwork:
     """Build a differentiable kinematic scoring network for a pose stack.
 
     Args:
         pose_stack: Structures and topology to score.
-        sfxn: Score function to render against ``pose_stack``. May be ``None``
-            when ``whole_pose_scoring_module`` is supplied.
+        sfxn: Score function to render against ``pose_stack``.
         ff: Fold forest defining the kinematic tree.
         mm: Internal-coordinate degrees of freedom allowed to move.
         verbose: Print synchronized setup timings.
         kin_dtype: Floating-point dtype for kinematic degrees of freedom.
-        whole_pose_scoring_module: Optional pre-rendered scoring module to use
-            instead of rendering one from ``sfxn``.
 
     Returns:
         A network mapping movable kinematic degrees of freedom to pose energies.
@@ -70,7 +66,6 @@ def build_kinforest_network(
         kin_module,
         minimizer_map.dof_mask,
         kin_dtype=kin_dtype,
-        whole_pose_scoring_module=whole_pose_scoring_module,
     )
     if verbose:
         synchronize_device(pose_stack.device)

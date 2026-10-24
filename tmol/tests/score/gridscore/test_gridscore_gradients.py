@@ -5,16 +5,9 @@ from __future__ import annotations
 import pytest
 import torch
 
-from tmol.score.gridscore import (
-    GridGeometry,
-    GridSet,
-    interpolate_grid,
-    score_ligand_grid,
-    score_ligand_grid_batched,
-    score_ligand_grid_batched_with_gradients,
-    xform_rep,
-)
-from tmol.score.gridscore.grid import _interpolate_grid_and_penalty
+from tmol.score.gridscore import GridScorer, GridSet
+from tmol.score.gridscore.grid import GridGeometry, xform_rep
+from tmol.score.gridscore.scorer import interpolate_grid
 
 
 def _finite_difference(function, coordinates, step=1.0e-6):
@@ -110,8 +103,8 @@ def test_compiled_spatial_derivative_matches_finite_difference_and_autograd(devi
         50.0,
     )
     differentiable_indices = indices.detach().clone().requires_grad_(True)
-    autograd_values, autograd_penalties = _interpolate_grid_and_penalty(
-        coefficients, differentiable_indices, grid_indices
+    autograd_values, autograd_penalties = interpolate_grid(
+        coefficients, differentiable_indices, grid_indices, penalty=True
     )
     value_grad = torch.autograd.grad(
         autograd_values.sum(), differentiable_indices, retain_graph=True
@@ -127,16 +120,14 @@ def test_compiled_spatial_derivative_matches_finite_difference_and_autograd(devi
     finite_total = _finite_difference(
         lambda query: sum(
             tensor.sum()
-            for tensor in _interpolate_grid_and_penalty(
-                coefficients, query, grid_indices
+            for tensor in interpolate_grid(
+                coefficients, query, grid_indices, penalty=True
             )
         ),
         indices,
     )
     value_error = torch.max(torch.abs(analytic - finite_value))
-    total_error = torch.max(
-        torch.abs(analytic + analytic_penalty - finite_total)
-    )
+    total_error = torch.max(torch.abs(analytic + analytic_penalty - finite_total))
     autograd_error = torch.max(torch.abs(value_grad - analytic))
     autograd_total_error = torch.max(
         torch.abs(total_grad - analytic - analytic_penalty)
@@ -189,49 +180,30 @@ def test_grid_interface_coordinate_gradient_gate_per_channel_and_total(device):
         device=device,
     )
     coordinates = (
-        grid.geometry.origin
-        + grid.geometry.voxel_spacing * fractional_indices
+        grid.geometry.origin + grid.geometry.voxel_spacing * fractional_indices
     ).detach()
     atom_types = ("A", "B", "C", "B")
-    charges = torch.tensor(
-        [0.25, -0.4, 0.7, -0.15], dtype=torch.float64, device=device
-    )
+    charges = torch.tensor([0.25, -0.4, 0.7, -0.15], dtype=torch.float64, device=device)
 
-    differentiable = coordinates.clone().requires_grad_(True)
-    channels = score_ligand_grid(grid, differentiable, atom_types, charges)
+    scorer = GridScorer(grid, atom_types, charges, device=device, dtype=torch.float64)
+    # Per-channel analytic gradient (weighted) against finite differences.
+    _, channel_gradients, _, _ = scorer._grid_channels(coordinates[None])
     channel_errors = []
     for channel in range(4):
-        analytic = torch.autograd.grad(
-            channels[channel], differentiable, retain_graph=True
-        )[0]
+        analytic = scorer._weights[channel] * channel_gradients[0, :, channel]
         finite = _finite_difference(
-            lambda query, channel=channel: score_ligand_grid(
-                grid, query, atom_types, charges
-            )[channel],
+            lambda query, channel=channel: scorer.grid_channels(query[None])[
+                0, channel
+            ],
             coordinates,
         )
         channel_errors.append(torch.max(torch.abs(analytic - finite)))
 
     differentiable_total = coordinates.clone().requires_grad_(True)
-    total = score_ligand_grid_batched(
-        grid,
-        differentiable_total.unsqueeze(0),
-        atom_types,
-        charges,
-    )[0]
+    total = scorer(differentiable_total[None])[0]
     analytic_total = torch.autograd.grad(total, differentiable_total)[0]
-    direct_total, direct_gradient = score_ligand_grid_batched_with_gradients(
-        grid,
-        differentiable_total.unsqueeze(0),
-        atom_types,
-        charges,
-    )
-    finite_total = _finite_difference(
-        lambda query: score_ligand_grid_batched(
-            grid, query.unsqueeze(0), atom_types, charges
-        )[0],
-        coordinates,
-    )
+    direct_total, direct_gradient = scorer.value_and_grad(differentiable_total[None])
+    finite_total = _finite_difference(lambda query: scorer(query[None])[0], coordinates)
     total_error = torch.max(torch.abs(analytic_total - finite_total))
     print(
         f"{device} grid interface gradient max errors: "
@@ -262,12 +234,10 @@ def test_grid_edge_transition_is_c1_cpu_fp64():
         query = torch.tensor(
             [[x_index, 2.2, 3.4]], dtype=torch.float64, requires_grad=True
         )
-        values, penalties = _interpolate_grid_and_penalty(
-            coefficients, query, grid_indices
+        values, penalties = interpolate_grid(
+            coefficients, query, grid_indices, penalty=True
         )
-        slopes.append(
-            torch.autograd.grad((values + penalties).sum(), query)[0][0, 0]
-        )
+        slopes.append(torch.autograd.grad((values + penalties).sum(), query)[0][0, 0])
     # The mirror spline has zero endpoint slope; the OOB quadratic also has
     # zero slope at zero overshoot. Both one-sided derivatives converge to it.
     assert abs(float(slopes[1])) < 1.0e-12

@@ -34,6 +34,7 @@ def cubic_hermite_polynomial():
     return cubic_hermite_polynomial
 
 
+@hypothesis.settings(suppress_health_check=[hypothesis.HealthCheck.too_slow])
 @hypothesis.given(real, real, real, real)
 def test_unit_interpolate(cubic_hermite_polynomial, p0, dp0, p1, dp1):
     from tmol.score.common import interpolate_t, interpolate_dt
@@ -98,6 +99,7 @@ def test_interpolate(cubic_hermite_polynomial, x0, p0, dpdx0, x1, p1, dpdx1):
         assert interpolate_dx(x1, x0, p0, dpdx0, x1, p1, dpdx1) == approx(dpdx1)
 
 
+@hypothesis.settings(suppress_health_check=[hypothesis.HealthCheck.too_slow])
 @hypothesis.given(real, real, real, real, real, real)
 def test_interpolate_to_zero(cubic_hermite_polynomial, x0, p0, dpdx0, x1, p1, dpdx1):
     from tmol.score.common import (
