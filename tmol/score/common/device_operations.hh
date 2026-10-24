@@ -104,6 +104,17 @@ struct DeviceOperations {
       OP op,
       T identity) -> TPack<T, 1, D>;
 
+  // Sort keys independently within segments. Segment start indices must be
+  // sorted in ascending order; duplicate starts represent empty segments.
+  template <typename T, typename Int, typename Comp>
+  static void segmented_sort(
+      ContextManager& mgr,
+      T* keys,
+      int n,
+      Int* seg_start_inds,
+      int n_segs,
+      Comp comp);
+
   template <int N_T, int WIDTH, typename T>
   static void copy_contiguous_data(
       T* __restrict__ dst, T* __restrict__ src, int n);
