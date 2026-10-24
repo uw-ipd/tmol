@@ -101,20 +101,14 @@ def _graph_atom_mapping(
         mol_graph,
         node_match=lambda left, right: left["element"] == right["element"],
     )
-    matches = matcher.isomorphisms_iter()
-    try:
-        match = next(matches)
-    except StopIteration as exc:
+    # Symmetry-equivalent atoms (phenyl ortho/meta carbons, carboxylate oxygens,
+    # methyl hydrogens) admit several isomorphisms; any of them places the
+    # conformer on the block atoms with the same chemistry, so the first
+    # (deterministic) match is taken.
+    match = next(matcher.isomorphisms_iter(), None)
+    if match is None:
         raise ValueError(
             "mol2 molecule and ligand block are not element/connectivity isomorphic"
-        ) from exc
-    try:
-        next(matches)
-    except StopIteration:
-        pass
-    else:
-        raise ValueError(
-            "mol2-to-ligand graph mapping is ambiguous without matching atom names"
         )
     return tuple(match[index] for index in range(len(block_type.atoms)))
 

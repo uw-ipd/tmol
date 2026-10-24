@@ -157,3 +157,23 @@ def test_failed_conformer_generation_falls_back_byte_identically(monkeypatch, ca
     assert torch.equal(fallback.pool.genes, random.pool.genes)
     assert torch.equal(fallback.pool.energies, random.pool.energies)
     assert "falling back to blind random initialization" in caplog.text
+
+
+def test_atom_mapping_falls_back_to_graph_match_for_symmetric_ligand():
+    from rdkit import Chem
+
+    from tmol.dock.conformer_seed import _block_atom_mapping, _mapping_is_valid
+
+    reference, _ = _load_cdk2_pose()
+    block_type = reference.block_type(0, _ligand_block(reference))
+    pbt = reference.packed_block_types
+    mol = Chem.MolFromMol2File(str(CDK2_MOL2), removeHs=False)
+    n_atoms = mol.GetNumAtoms()
+    # Reversed atom order with names that match nothing: neither the name-based
+    # nor the identity mapping is valid, and cdk2's symmetric aryl ring makes the
+    # graph isomorphism ambiguous. Any isomorphism must be accepted.
+    mol = Chem.RenumberAtoms(mol, list(reversed(range(n_atoms))))
+    names = tuple(f"X{i}" for i in range(n_atoms))
+    mapping = _block_atom_mapping(mol, names, block_type, pbt)
+    assert sorted(mapping) == list(range(n_atoms))
+    assert _mapping_is_valid(mol, block_type, pbt, mapping)
