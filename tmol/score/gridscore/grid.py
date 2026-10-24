@@ -276,6 +276,7 @@ class GridSet:
                 raise ValueError(f"{name} must have shape {typed_shape}")
         if tuple(self.fa_elec.shape) != shared_shape:
             raise ValueError(f"fa_elec must have shape {shared_shape}")
+
         def check_coefficients(grid_name: str, coefficient_name: str) -> None:
             grid = getattr(self, grid_name)
             coefficients = getattr(self, coefficient_name)

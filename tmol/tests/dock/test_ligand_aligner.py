@@ -118,9 +118,7 @@ def test_axis_angle_rotation_gradient_and_rigid_refinement():
         refinement_top_k=1,
         refinement_learning_rate=0.1,
     )
-    refined = aligner._refine_candidates(
-        QuadraticBackend(), coordinates, atom_indices
-    )
+    refined = aligner._refine_candidates(QuadraticBackend(), coordinates, atom_indices)
     original_energy = QuadraticBackend._score_ligand_coordinates(coordinates)[0]
     refined_energy = QuadraticBackend._score_ligand_coordinates(refined)[0]
     assert refined_energy < original_energy
@@ -153,9 +151,7 @@ def test_candidate_generation_and_scoring_are_streamed():
     )
     ligand_indices = torch.tensor([0, 1], dtype=torch.int64)
     heavy_indices = torch.tensor([0, 1], dtype=torch.int64)
-    bounds = torch.tensor(
-        [[0.0, 0.0, 0.0], [4.0, 0.0, 0.0]], dtype=torch.float64
-    )
+    bounds = torch.tensor([[0.0, 0.0, 0.0], [4.0, 0.0, 0.0]], dtype=torch.float64)
     unit_positions = torch.zeros((5, 3), dtype=torch.float64)
     unit_positions[:, 0] = torch.arange(5, dtype=torch.float64) / 4
     rotations = torch.eye(3, dtype=torch.float64)[None].expand(5, -1, -1)
@@ -202,9 +198,7 @@ def _assert_seeded_coordinates_match_alignment(
         generator=expected_generator,
     )
     coordinate_error = torch.max(
-        torch.abs(
-            decoded.coords[1 : n_seeded + 1] - expected_alignment.coordinates
-        )
+        torch.abs(decoded.coords[1 : n_seeded + 1] - expected_alignment.coordinates)
     )
     return genes, expected_alignment, coordinate_error
 
@@ -290,8 +284,7 @@ def test_aligner_seed_genes_are_deterministic_rigid_and_diverse(cpu_aligner_case
     pairwise_placement_rmsd = torch.sqrt(
         torch.mean(
             torch.sum(
-                (placed[1 : n_seeded + 1, None] - placed[None, 1 : n_seeded + 1])
-                ** 2,
+                (placed[1 : n_seeded + 1, None] - placed[None, 1 : n_seeded + 1]) ** 2,
                 dim=-1,
             ),
             dim=-1,

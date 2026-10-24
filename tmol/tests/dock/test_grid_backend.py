@@ -83,13 +83,9 @@ def grid_pose_case(cpu_grid_case, request):
 
 def test_grid_backend_score_matches_direct_batched_grid_score(cpu_grid_case):
     case = cpu_grid_case
-    atom_indices = case.backend._ligand_atom_indices(
-        case.population, case.ligand_block
-    )
+    atom_indices = case.backend._ligand_atom_indices(case.population, case.ligand_block)
     pose_indices = torch.arange(case.population.n_poses, dtype=torch.int64)
-    ligand_coordinates = case.population.coords[
-        pose_indices[:, None], atom_indices
-    ]
+    ligand_coordinates = case.population.coords[pose_indices[:, None], atom_indices]
     expected = score_ligand_grid_batched(
         case.backend._grid_for(torch.device("cpu"), torch.float64),
         ligand_coordinates,
@@ -97,9 +93,7 @@ def test_grid_backend_score_matches_direct_batched_grid_score(cpu_grid_case):
         case.backend._charges_for(torch.device("cpu"), torch.float64),
         score_function=case.backend._score_function(torch.device("cpu")),
         live_hbond=case.backend._hbond_for(torch.device("cpu"), torch.float64),
-        live_ligand_intra=case.backend._intra_for(
-            torch.device("cpu"), torch.float64
-        ),
+        live_ligand_intra=case.backend._intra_for(torch.device("cpu"), torch.float64),
         live_lk_ball=case.backend._lk_ball_for(torch.device("cpu"), torch.float64),
         lk_ball_grid=case.backend.lk_ball_grid,
     )
@@ -544,9 +538,7 @@ def test_grid_minimize_returns_direct_optimizer_gene(
     proposed = case.layout.pose_stack_from_genes(genes)
     captured = {}
 
-    monkeypatch.setattr(
-        case.backend, "value_only_line_search", value_only_line_search
-    )
+    monkeypatch.setattr(case.backend, "value_only_line_search", value_only_line_search)
 
     def capture_noop_step(optimizer, closure, value_only_closure=None):
         energies = closure()
@@ -558,9 +550,7 @@ def test_grid_minimize_returns_direct_optimizer_gene(
             gradient = optimizer._params[0].grad.clone()
             values = value_only_closure()
             assert not values.requires_grad
-            torch.testing.assert_close(
-                values, energies, rtol=1.0e-7, atol=1.0e-7
-            )
+            torch.testing.assert_close(values, energies, rtol=1.0e-7, atol=1.0e-7)
             torch.testing.assert_close(
                 optimizer._params[0].grad, gradient, rtol=0.0, atol=0.0
             )
@@ -568,9 +558,7 @@ def test_grid_minimize_returns_direct_optimizer_gene(
             assert value_only_closure is None
         return energies.sum()
 
-    monkeypatch.setattr(
-        scoring_backend_module.LBFGS_Armijo, "step", capture_noop_step
-    )
+    monkeypatch.setattr(scoring_backend_module.LBFGS_Armijo, "step", capture_noop_step)
     result = case.backend.minimize(
         proposed,
         case.docking_dofs,
@@ -628,8 +616,7 @@ def test_lightweight_grid_dof_gradient_matches_finite_difference(grid_pose_case)
         minus[column] -= step
         segment = int(objective.segment_ids[column])
         finite[column] = (
-            objective.energy(plus)[segment]
-            - objective.energy(minus)[segment]
+            objective.energy(plus)[segment] - objective.energy(minus)[segment]
         ) / (2.0 * step)
 
     max_error = torch.max(torch.abs(analytic - finite))
@@ -645,9 +632,7 @@ def test_lightweight_grid_minimize_matches_autograd_reference(
     grid_pose_case, monkeypatch, value_only_line_search
 ):
     case = grid_pose_case
-    monkeypatch.setattr(
-        case.backend, "value_only_line_search", value_only_line_search
-    )
+    monkeypatch.setattr(case.backend, "value_only_line_search", value_only_line_search)
     genes = case.layout.genes_from_pose_stack(case.population)
     genes[:, :6] += torch.tensor(
         [0.2, -0.1, 0.15, 0.08, -0.06, 0.04], dtype=genes.dtype
@@ -688,9 +673,7 @@ def test_lightweight_grid_minimize_matches_autograd_reference(
 
     reference_energy = case.backend.score(reference)
     lightweight_energy = case.backend.score(lightweight.pose_stack)
-    atom_indices = case.backend._ligand_atom_indices(
-        proposed, case.ligand_block
-    )
+    atom_indices = case.backend._ligand_atom_indices(proposed, case.ligand_block)
     pose_indices = torch.arange(proposed.n_poses, dtype=torch.int64)
     delta = (
         reference.coords[pose_indices[:, None], atom_indices]
@@ -791,9 +774,7 @@ def test_grid_minimize_and_full_ga_cdk2_correctness(cpu_grid_case):
 
 
 @pytest.mark.parametrize("explicit_bounds", [False, True])
-def test_random_initial_placement_is_seeded_and_bounded(
-    cpu_grid_case, explicit_bounds
-):
+def test_random_initial_placement_is_seeded_and_bounded(cpu_grid_case, explicit_bounds):
     case = cpu_grid_case
     population = repeat_pose_stack(case.reference, 16)
     docking_dofs = build_ligand_docking_dofs(population, case.ligand_block)
@@ -894,9 +875,7 @@ def test_run_docking_returns_ranked_single_cdk2_output(
     assert torch.isfinite(result.ranked_genes).all()
     assert torch.isfinite(result.ranked_energies).all()
     assert torch.isfinite(result.best_pose_stack.coords).all()
-    assert torch.all(
-        result.ranked_energies[:, 1:] >= result.ranked_energies[:, :-1]
-    )
+    assert torch.all(result.ranked_energies[:, 1:] >= result.ranked_energies[:, :-1])
     torch.testing.assert_close(
         result.best_energies, result.ranked_energies[:, 0], rtol=0.0, atol=0.0
     )

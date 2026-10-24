@@ -76,9 +76,7 @@ def _genes_from_kinforest_dofs(
 
     kmd = kf_network.kin_module.kmd
     raw_dofs = kf_network.full_dofs.detach().clone()
-    raw_dofs.reshape(-1)[kf_network._dof_flat_idx] = (
-        kf_network.masked_dofs.detach()
-    )
+    raw_dofs.reshape(-1)[kf_network._dof_flat_idx] = kf_network.masked_dofs.detach()
     return _genes_from_raw_kinforest_dofs(
         pose_stack,
         docking_dofs,
@@ -98,12 +96,9 @@ def _genes_from_raw_kinforest_dofs(
 ) -> torch.Tensor:
     """Map raw kinematic DOFs directly to the docking gene layout."""
 
-    jump_mask = (
-        (forest.doftype == int(NodeType.jump))
-        & torch.all(
-            dof_mask[:, : int(JumpDOFTypes.RBdel_gamma) + 1],
-            dim=1,
-        )
+    jump_mask = (forest.doftype == int(NodeType.jump)) & torch.all(
+        dof_mask[:, : int(JumpDOFTypes.RBdel_gamma) + 1],
+        dim=1,
     )
     jump_node_list = torch.nonzero(jump_mask, as_tuple=False).flatten()
     if jump_node_list.numel() != pose_stack.n_poses:
@@ -122,12 +117,8 @@ def _genes_from_raw_kinforest_dofs(
         torch.arange(6, dtype=torch.int64, device=pose_stack.device)[None, :],
     ]
 
-    block_type_index = int(
-        pose_stack.block_type_ind64[0, docking_dofs.ligand_block]
-    )
-    block_type = pose_stack.packed_block_types.active_block_types[
-        block_type_index
-    ]
+    block_type_index = int(pose_stack.block_type_ind64[0, docking_dofs.ligand_block])
+    block_type = pose_stack.packed_block_types.active_block_types[block_type_index]
     if ligand_nodes is None:
         ligand_nodes = _ligand_kinforest_nodes(
             pose_stack,
@@ -173,9 +164,9 @@ def _genes_from_raw_kinforest_dofs(
         device=pose_stack.device,
     )
     if all_torsions:
-        offsets = torch.stack(
-            [mapping.offset for mapping in all_torsions], dim=1
-        ).to(dtype=raw_dofs.dtype)
+        offsets = torch.stack([mapping.offset for mapping in all_torsions], dim=1).to(
+            dtype=raw_dofs.dtype
+        )
     else:
         offsets = torch.empty(
             (pose_stack.n_poses, 0),
@@ -284,9 +275,7 @@ class ContinuousBackend(ScoringBackend):
         """Run docking-DOF minimization and return optimizer-authored genes."""
 
         if maxiter is not None and (
-            not isinstance(maxiter, int)
-            or isinstance(maxiter, bool)
-            or maxiter < 1
+            not isinstance(maxiter, int) or isinstance(maxiter, bool) or maxiter < 1
         ):
             raise ValueError("maxiter must be a positive integer")
         kin_dtype = self.kin_dtype or pose_stack.coords.dtype
@@ -308,13 +297,9 @@ class ContinuousBackend(ScoringBackend):
                 raise ValueError(
                     "initial raw DOFs and pose stack must be on the same device"
                 )
-            kf_network.full_dofs = initial_raw_dofs.to(
-                dtype=kin_dtype
-            ).detach().clone()
+            kf_network.full_dofs = initial_raw_dofs.to(dtype=kin_dtype).detach().clone()
             with torch.no_grad():
-                kf_network.masked_dofs.copy_(
-                    kf_network.full_dofs[kf_network.dof_mask]
-                )
+                kf_network.masked_dofs.copy_(kf_network.full_dofs[kf_network.dof_mask])
         optimizer_kwargs = {"value_only_line_search": self.value_only_line_search}
         if maxiter is not None:
             optimizer_kwargs["max_iter"] = maxiter
@@ -348,14 +333,10 @@ class _GridPoseObjective(torch.nn.Module):
         self.pose_indices = torch.arange(
             pose_stack.n_poses, dtype=torch.int64, device=pose_stack.device
         )
-        self.atom_indices = backend._movable_atom_indices(
-            pose_stack, ligand_block
-        )
+        self.atom_indices = backend._movable_atom_indices(pose_stack, ligand_block)
 
     def forward(self, coordinates: torch.Tensor) -> torch.Tensor:
-        ligand_coordinates = coordinates[
-            self.pose_indices[:, None], self.atom_indices
-        ]
+        ligand_coordinates = coordinates[self.pose_indices[:, None], self.atom_indices]
         return self.backend._score_ligand_coordinates(ligand_coordinates)
 
 
@@ -373,9 +354,7 @@ class _LightweightGridObjective:
         self.backend = backend
         self.pose_stack = pose_stack
         self.docking_dofs = docking_dofs
-        kin_module = PoseStackKinematicsModule(
-            pose_stack, docking_dofs.fold_forest
-        )
+        kin_module = PoseStackKinematicsModule(pose_stack, docking_dofs.fold_forest)
         full_kmd = kin_module.kmd
         self.forest = full_kmd.forest
         self.dof_mask = MinimizerMap(
@@ -411,9 +390,7 @@ class _LightweightGridObjective:
                 full_kmd.forest.frame_z,
                 full_kmd.forest.doftype,
             )
-        ligand_block_type = pose_stack.block_type(
-            0, docking_dofs.ligand_block
-        )
+        ligand_block_type = pose_stack.block_type(0, docking_dofs.ligand_block)
         self.ligand_nodes = _ligand_kinforest_nodes(
             pose_stack,
             docking_dofs.ligand_block,
@@ -439,20 +416,14 @@ class _LightweightGridObjective:
         if initial_raw_dofs is None:
             self.full_dofs = full_dofs.detach().clone()
         else:
-            self.full_dofs = (
-                initial_raw_dofs.to(dtype=kin_dtype).detach().clone()
-            )
-        self.initial_masked_dofs = self.full_dofs.reshape(-1)[
-            self.dof_flat_idx
-        ].clone()
+            self.full_dofs = initial_raw_dofs.to(dtype=kin_dtype).detach().clone()
+        self.initial_masked_dofs = self.full_dofs.reshape(-1)[self.dof_flat_idx].clone()
 
         self.ligand_atom_indices = backend._ligand_atom_indices(
             pose_stack, docking_dofs.ligand_block
         )
         self.sidechain_nodes, self.sidechain_atom_indices = (
-            _sidechain_coordinate_indices(
-                pose_stack, docking_dofs, self.forest
-            )
+            _sidechain_coordinate_indices(pose_stack, docking_dofs, self.forest)
         )
         if backend.sidechain_blocks:
             movable_node_parts = []
@@ -475,9 +446,9 @@ class _LightweightGridObjective:
             pose_stack.max_n_pose_atoms,
             rounding_mode="floor",
         )
-        pose_for_dof = pose_for_node.unsqueeze(1).expand(
-            self.full_dofs.shape
-        ).reshape(-1)
+        pose_for_dof = (
+            pose_for_node.unsqueeze(1).expand(self.full_dofs.shape).reshape(-1)
+        )
         self.segment_ids = pose_for_dof[self.dof_flat_idx].to(torch.int64)
         if bool(torch.any(self.segment_ids < 0)):
             raise ValueError("root node DOFs cannot be minimized")
@@ -527,9 +498,7 @@ class _LightweightGridObjective:
             )
             movable_coords = kin_coords[self.movable_nodes]
             energies, movable_gradients = (
-                self.backend._score_ligand_coordinates_with_gradients(
-                    movable_coords
-                )
+                self.backend._score_ligand_coordinates_with_gradients(movable_coords)
             )
             coordinate_gradients = torch.zeros_like(kin_coords)
             coordinate_gradients[self.movable_nodes.reshape(-1)] = (
@@ -547,9 +516,7 @@ class _LightweightGridObjective:
             masked_gradients = dof_gradients.reshape(-1)[self.dof_flat_idx]
         return energies, masked_gradients
 
-    def final_result(
-        self, masked_dofs: torch.Tensor
-    ) -> MinimizationResult:
+    def final_result(self, masked_dofs: torch.Tensor) -> MinimizationResult:
         """Build output coordinates and gene directly from final raw DOFs."""
 
         with torch.no_grad():
@@ -564,9 +531,9 @@ class _LightweightGridObjective:
                 self.ligand_nodes
             ].to(full_coords.dtype)
             if self.sidechain_nodes.shape[1]:
-                full_coords[
-                    pose_indices[:, None], self.sidechain_atom_indices
-                ] = kin_coords[self.sidechain_nodes].to(full_coords.dtype)
+                full_coords[pose_indices[:, None], self.sidechain_atom_indices] = (
+                    kin_coords[self.sidechain_nodes].to(full_coords.dtype)
+                )
             minimized_pose = attrs.evolve(self.pose_stack, coords=full_coords)
             genes = _genes_from_raw_kinforest_dofs(
                 self.pose_stack,
@@ -640,9 +607,7 @@ class GridBackend(ScoringBackend):
         self.value_only_line_search = value_only_line_search
         if not isinstance(include_ligand_intra, bool):
             raise TypeError("include_ligand_intra must be bool")
-        unknown_types = sorted(
-            set(ligand_atom_types) - set(grids.atom_type_names)
-        )
+        unknown_types = sorted(set(ligand_atom_types) - set(grids.atom_type_names))
         if unknown_types:
             raise ValueError(
                 f"ligand atom types are absent from the grid: {unknown_types}"
@@ -650,9 +615,9 @@ class GridBackend(ScoringBackend):
         self.grids = grids
         self.ligand_block = ligand_block
         self.ligand_atom_types = tuple(ligand_atom_types)
-        self.ligand_charges = ligand_charges.detach().to(
-            device="cpu", dtype=torch.float64
-        ).contiguous()
+        self.ligand_charges = (
+            ligand_charges.detach().to(device="cpu", dtype=torch.float64).contiguous()
+        )
         self.param_db = param_db
         self.kin_dtype = kin_dtype
         if live_hbond is not None and not isinstance(live_hbond, LiveHBondData):
@@ -660,9 +625,7 @@ class GridBackend(ScoringBackend):
         if live_ligand_intra is not None and not isinstance(
             live_ligand_intra, LiveLigandIntraData
         ):
-            raise TypeError(
-                "live_ligand_intra must be LiveLigandIntraData or None"
-            )
+            raise TypeError("live_ligand_intra must be LiveLigandIntraData or None")
         if grid_atom_indices is not None:
             if (
                 grid_atom_indices.ndim != 1
@@ -675,14 +638,11 @@ class GridBackend(ScoringBackend):
                     "ligand_atom_types"
                 )
             if movable_n_atoms is None or movable_n_atoms < 1:
-                raise ValueError(
-                    "movable_n_atoms is required with grid_atom_indices"
-                )
+                raise ValueError("movable_n_atoms is required with grid_atom_indices")
             if bool(
                 torch.any(grid_atom_indices < 0)
                 or torch.any(grid_atom_indices >= movable_n_atoms)
-                or torch.unique(grid_atom_indices).numel()
-                != grid_atom_indices.numel()
+                or torch.unique(grid_atom_indices).numel() != grid_atom_indices.numel()
             ):
                 raise ValueError("grid_atom_indices must be unique and in range")
         elif movable_n_atoms not in (None, len(ligand_atom_types)):
@@ -691,9 +651,7 @@ class GridBackend(ScoringBackend):
             )
         expected_movable_atoms = movable_n_atoms or len(ligand_atom_types)
         if sidechain_blocks and grid_atom_indices is None:
-            raise ValueError(
-                "sidechain_blocks require grid_atom_indices"
-            )
+            raise ValueError("sidechain_blocks require grid_atom_indices")
         if context_blocks and not sidechain_blocks:
             raise ValueError("context_blocks require sidechain_blocks")
         if (
@@ -822,9 +780,7 @@ class GridBackend(ScoringBackend):
             raise TypeError("include_ligand_intra must be bool")
         if ligand_block < 0 or ligand_block >= reference_pose_stack.max_n_blocks:
             raise ValueError("ligand_block is out of range")
-        block_type_index = int(
-            reference_pose_stack.block_type_ind64[0, ligand_block]
-        )
+        block_type_index = int(reference_pose_stack.block_type_ind64[0, ligand_block])
         if block_type_index < 0:
             raise ValueError("ligand_block is absent from the reference pose")
         pbt = reference_pose_stack.packed_block_types
@@ -898,9 +854,7 @@ class GridBackend(ScoringBackend):
             bbox_padding=bbox_padding,
             build_lk_ball=lk_ball_grid,
             fa_rep_smoothing=fa_rep_smoothing,
-            excluded_receptor_blocks=(
-                normalized_sidechain_blocks + context_blocks
-            ),
+            excluded_receptor_blocks=(normalized_sidechain_blocks + context_blocks),
         )
         live_hbond = build_live_hbond_data(
             reference_pose_stack,
@@ -943,9 +897,7 @@ class GridBackend(ScoringBackend):
                     atom.atom_type for atom in source_type.atoms[: source_type.n_atoms]
                 )
                 all_charges.append(
-                    pbt.elec_partial_charge[
-                        source_type_index, : source_type.n_atoms
-                    ]
+                    pbt.elec_partial_charge[source_type_index, : source_type.n_atoms]
                 )
             ligand_atom_types = tuple(
                 all_atom_types[index] for index in grid_atom_indices.tolist()
@@ -989,19 +941,13 @@ class GridBackend(ScoringBackend):
             self._grid_cache[key] = self.grids.to(device, dtype=dtype)
         return self._grid_cache[key]
 
-    def _charges_for(
-        self, device: torch.device, dtype: torch.dtype
-    ) -> torch.Tensor:
+    def _charges_for(self, device: torch.device, dtype: torch.dtype) -> torch.Tensor:
         key = (torch.device(device), dtype)
         if key not in self._charge_cache:
-            self._charge_cache[key] = self.ligand_charges.to(
-                device=device, dtype=dtype
-            )
+            self._charge_cache[key] = self.ligand_charges.to(device=device, dtype=dtype)
         return self._charge_cache[key]
 
-    def _grid_atom_indices_for(
-        self, device: torch.device
-    ) -> Optional[torch.Tensor]:
+    def _grid_atom_indices_for(self, device: torch.device) -> Optional[torch.Tensor]:
         if self.grid_atom_indices is None:
             return None
         device = torch.device(device)
@@ -1068,9 +1014,8 @@ class GridBackend(ScoringBackend):
         if not bool(torch.all(block_types == first_type)):
             raise ValueError("GridBackend requires one homogeneous ligand type")
         block_type = pose_stack.packed_block_types.active_block_types[int(first_type)]
-        if (
-            not self.sidechain_blocks
-            and block_type.n_atoms != len(self.ligand_atom_types)
+        if not self.sidechain_blocks and block_type.n_atoms != len(
+            self.ligand_atom_types
         ):
             raise ValueError("pose ligand atom count does not match the grid backend")
         offsets = pose_stack.block_coord_offset64[:, ligand_block, None]
@@ -1088,9 +1033,7 @@ class GridBackend(ScoringBackend):
 
         if not self.sidechain_blocks:
             return self._ligand_atom_indices(pose_stack, ligand_block)
-        expected_blocks = (
-            1 + len(self.sidechain_blocks) + len(self.context_blocks)
-        )
+        expected_blocks = 1 + len(self.sidechain_blocks) + len(self.context_blocks)
         if ligand_block != 0 or pose_stack.max_n_blocks != expected_blocks:
             raise ValueError(
                 "flexible GridBackend requires a compact ligand-plus-sidechains pose"
@@ -1112,9 +1055,7 @@ class GridBackend(ScoringBackend):
             self._grid_for(ligand_coordinates.device, ligand_coordinates.dtype),
             ligand_coordinates,
             self.ligand_atom_types,
-            self._charges_for(
-                ligand_coordinates.device, ligand_coordinates.dtype
-            ),
+            self._charges_for(ligand_coordinates.device, ligand_coordinates.dtype),
             score_function=self._score_function(ligand_coordinates.device),
             live_hbond=self._hbond_for(
                 ligand_coordinates.device, ligand_coordinates.dtype
@@ -1126,9 +1067,7 @@ class GridBackend(ScoringBackend):
                 ligand_coordinates.device, ligand_coordinates.dtype
             ),
             lk_ball_grid=self.lk_ball_grid,
-            grid_atom_indices=self._grid_atom_indices_for(
-                ligand_coordinates.device
-            ),
+            grid_atom_indices=self._grid_atom_indices_for(ligand_coordinates.device),
         )
 
     def _score_ligand_coordinates_with_gradients(
@@ -1138,9 +1077,7 @@ class GridBackend(ScoringBackend):
             self._grid_for(ligand_coordinates.device, ligand_coordinates.dtype),
             ligand_coordinates,
             self.ligand_atom_types,
-            self._charges_for(
-                ligand_coordinates.device, ligand_coordinates.dtype
-            ),
+            self._charges_for(ligand_coordinates.device, ligand_coordinates.dtype),
             score_function=self._score_function(ligand_coordinates.device),
             live_hbond=self._hbond_for(
                 ligand_coordinates.device, ligand_coordinates.dtype
@@ -1152,9 +1089,7 @@ class GridBackend(ScoringBackend):
                 ligand_coordinates.device, ligand_coordinates.dtype
             ),
             lk_ball_grid=self.lk_ball_grid,
-            grid_atom_indices=self._grid_atom_indices_for(
-                ligand_coordinates.device
-            ),
+            grid_atom_indices=self._grid_atom_indices_for(ligand_coordinates.device),
         )
 
     def score(self, pose_stack: PoseStack) -> torch.Tensor:
@@ -1166,15 +1101,11 @@ class GridBackend(ScoringBackend):
         the backend with ``include_ligand_intra=False``.
         """
 
-        atom_indices = self._movable_atom_indices(
-            pose_stack, self.ligand_block
-        )
+        atom_indices = self._movable_atom_indices(pose_stack, self.ligand_block)
         pose_indices = torch.arange(
             pose_stack.n_poses, dtype=torch.int64, device=pose_stack.device
         )
-        ligand_coordinates = pose_stack.coords[
-            pose_indices[:, None], atom_indices
-        ]
+        ligand_coordinates = pose_stack.coords[pose_indices[:, None], atom_indices]
         with torch.no_grad():
             energies = self._score_ligand_coordinates(ligand_coordinates)
         expected_shape = (pose_stack.n_poses,)
@@ -1207,9 +1138,7 @@ class GridBackend(ScoringBackend):
         if docking_dofs.ligand_block != self.ligand_block:
             raise ValueError("docking DOFs target a different ligand block")
         if maxiter is not None and (
-            not isinstance(maxiter, int)
-            or isinstance(maxiter, bool)
-            or maxiter < 1
+            not isinstance(maxiter, int) or isinstance(maxiter, bool) or maxiter < 1
         ):
             raise ValueError("maxiter must be a positive integer")
         kin_dtype = self.kin_dtype or pose_stack.coords.dtype

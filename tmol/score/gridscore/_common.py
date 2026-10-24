@@ -69,9 +69,7 @@ def validate_ligand_coords(
     if ligand_coords.shape[0] == 0 or ligand_coords.shape[1] == 0:
         raise ValueError(f"live {label} scoring requires poses and ligand atoms")
     if ligand_coords.shape[1] != n_atoms:
-        raise ValueError(
-            f"ligand atom count does not match live {label} topology"
-        )
+        raise ValueError(f"ligand atom count does not match live {label} topology")
     if ligand_coords.dtype not in (torch.float32, torch.float64):
         raise TypeError("ligand_coords must be float32 or float64")
     if ligand_coords.device != reference.device:
@@ -96,7 +94,11 @@ class LiveData:
             if isinstance(value, torch.Tensor):
                 if value.dtype.is_floating_point:
                     value = value.to(
-                        dtype=torch.float64 if field.name in self._float64_fields else dtype
+                        dtype=(
+                            torch.float64
+                            if field.name in self._float64_fields
+                            else dtype
+                        )
                     )
                 value = value.to(device=device).contiguous()
             values[field.name] = value

@@ -51,7 +51,6 @@ class LiveHBondData(LiveData):
     global_params: torch.Tensor
 
 
-
 def _empty_coords(n_sites: int, n_points: int) -> torch.Tensor:
     return torch.empty((n_sites, n_points, 3), dtype=torch.float64)
 
@@ -241,9 +240,7 @@ def build_live_hbond_data(
             def compact_atom(global_atom: int) -> int:
                 local_atom = global_atom - source_offset
                 if not 0 <= local_atom < block_n_atoms:
-                    raise ValueError(
-                        "movable hbond geometry crosses a block boundary"
-                    )
+                    raise ValueError("movable hbond geometry crosses a block boundary")
                 return compact_offset + local_atom
 
             for (donor, hydrogen, _), donor_type in zip(donors, donor_types):

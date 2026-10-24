@@ -134,9 +134,7 @@ def test_compiled_spatial_derivative_matches_finite_difference_and_autograd(devi
         indices,
     )
     value_error = torch.max(torch.abs(analytic - finite_value))
-    total_error = torch.max(
-        torch.abs(analytic + analytic_penalty - finite_total)
-    )
+    total_error = torch.max(torch.abs(analytic + analytic_penalty - finite_total))
     autograd_error = torch.max(torch.abs(value_grad - analytic))
     autograd_total_error = torch.max(
         torch.abs(total_grad - analytic - analytic_penalty)
@@ -189,13 +187,10 @@ def test_grid_interface_coordinate_gradient_gate_per_channel_and_total(device):
         device=device,
     )
     coordinates = (
-        grid.geometry.origin
-        + grid.geometry.voxel_spacing * fractional_indices
+        grid.geometry.origin + grid.geometry.voxel_spacing * fractional_indices
     ).detach()
     atom_types = ("A", "B", "C", "B")
-    charges = torch.tensor(
-        [0.25, -0.4, 0.7, -0.15], dtype=torch.float64, device=device
-    )
+    charges = torch.tensor([0.25, -0.4, 0.7, -0.15], dtype=torch.float64, device=device)
 
     differentiable = coordinates.clone().requires_grad_(True)
     channels = score_ligand_grid(grid, differentiable, atom_types, charges)
@@ -265,9 +260,7 @@ def test_grid_edge_transition_is_c1_cpu_fp64():
         values, penalties = _interpolate_grid_and_penalty(
             coefficients, query, grid_indices
         )
-        slopes.append(
-            torch.autograd.grad((values + penalties).sum(), query)[0][0, 0]
-        )
+        slopes.append(torch.autograd.grad((values + penalties).sum(), query)[0][0, 0])
     # The mirror spline has zero endpoint slope; the OOB quadratic also has
     # zero slope at zero overshoot. Both one-sided derivatives converge to it.
     assert abs(float(slopes[1])) < 1.0e-12

@@ -30,7 +30,6 @@ from tmol.tests.dock.test_ligand_dof_roundtrip import (
 )
 from tmol.tests.ligand.test_protein_ligand_ddg import _load_complex_cif
 
-
 CUDA_AVAILABLE = torch.cuda.is_available()
 
 
@@ -50,9 +49,7 @@ def _load_cdk2_pose_on_device(device: torch.device):
         _load_complex_cif("cdk2"),
         device,
         prepare_ligands=True,
-        ligand_params_files=[
-            str(PLI_DATA_DIR / "cdk2.xtal-lig.mmff94.tmol")
-        ],
+        ligand_params_files=[str(PLI_DATA_DIR / "cdk2.xtal-lig.mmff94.tmol")],
         no_optH=True,
         param_db=ParameterDatabase.get_default(),
         return_context=True,
@@ -100,9 +97,7 @@ def completed_generation(request):
 def _ligand_atom_range(pose_stack, ligand_block):
     offset = int(pose_stack.block_coord_offset64[0, ligand_block])
     block_type_index = int(pose_stack.block_type_ind64[0, ligand_block])
-    block_type = pose_stack.packed_block_types.active_block_types[
-        block_type_index
-    ]
+    block_type = pose_stack.packed_block_types.active_block_types[block_type_index]
     return offset, block_type
 
 
@@ -110,27 +105,19 @@ def test_continuous_backend_score_is_weighted_beta16_total(
     cdk2_cpu_pose_and_db,
 ):
     reference, param_db = cdk2_cpu_pose_and_db
-    pose_stack = PoseStackBuilder.from_poses(
-        [reference, reference], reference.device
-    )
+    pose_stack = PoseStackBuilder.from_poses([reference, reference], reference.device)
     pose_stack.coords = reference.coords.repeat(2, 1, 1)
     assert pose_stack.device.type == "cpu"
     assert pose_stack.coords.dtype == torch.float64
 
-    oracle_sfxn = beta2016_score_function(
-        pose_stack.device, param_db=param_db
-    )
+    oracle_sfxn = beta2016_score_function(pose_stack.device, param_db=param_db)
     oracle_scorer = oracle_sfxn.render_whole_pose_scoring_module(pose_stack)
     with torch.no_grad():
         unweighted_term_rows = oracle_scorer(
             pose_stack.coords, sum_terms=False, apply_weights=False
         )
-        weights = oracle_sfxn.weights_tensor().to(
-            dtype=unweighted_term_rows.dtype
-        )
-        expected = torch.sum(
-            weights[:, None] * unweighted_term_rows, dim=0
-        )
+        weights = oracle_sfxn.weights_tensor().to(dtype=unweighted_term_rows.dtype)
+        expected = torch.sum(weights[:, None] * unweighted_term_rows, dim=0)
 
     actual = ContinuousBackend(param_db).score(pose_stack)
     torch.testing.assert_close(actual, expected, rtol=1.0e-12, atol=1.0e-10)
@@ -176,13 +163,9 @@ def test_minimization_does_not_increase_per_pose(completed_generation):
 def test_native_pose_stays_near_crystal(completed_generation):
     case = completed_generation
     minimized = case.result.minimized_pose_stack
-    offset, block_type = _ligand_atom_range(
-        case.reference, case.ligand_block
-    )
+    offset, block_type = _ligand_atom_range(case.reference, case.ligand_block)
     ligand_slice = slice(offset, offset + block_type.n_atoms)
-    block_type_index = int(
-        case.reference.block_type_ind64[0, case.ligand_block]
-    )
+    block_type_index = int(case.reference.block_type_ind64[0, case.ligand_block])
     heavy = ~case.reference.packed_block_types.atom_is_hydrogen[
         block_type_index, : block_type.n_atoms
     ].to(torch.bool)
@@ -209,9 +192,7 @@ def test_native_pose_stays_near_crystal(completed_generation):
 def test_minimization_moves_only_ligand(completed_generation):
     case = completed_generation
     minimized = case.result.minimized_pose_stack
-    offset, block_type = _ligand_atom_range(
-        case.reference, case.ligand_block
-    )
+    offset, block_type = _ligand_atom_range(case.reference, case.ligand_block)
     receptor = torch.ones(
         case.reference.max_n_pose_atoms,
         dtype=torch.bool,
@@ -264,9 +245,7 @@ def test_initial_dof_jitter_is_seeded_bounded_and_ligand_dof_only(
     # kinematics of the resulting coordinates is not a valid oracle here:
     # jump rotations and reversed ligand torsions have redundant/coupled raw
     # representations that inverse kinematics is free to redistribute.
-    monkeypatch.setattr(
-        dock_loop, "PoseStackKinematicsModule", _CaptureForwardDOFs
-    )
+    monkeypatch.setattr(dock_loop, "PoseStackKinematicsModule", _CaptureForwardDOFs)
 
     first_backend = _CaptureIdentityBackend()
     second_backend = _CaptureIdentityBackend()
@@ -292,9 +271,7 @@ def test_initial_dof_jitter_is_seeded_bounded_and_ligand_dof_only(
     different_seed = different_seed_backend.scored_coords[0]
 
     torch.testing.assert_close(first, second, rtol=0.0, atol=0.0)
-    torch.testing.assert_close(
-        first[0], reference.coords[0], rtol=0.0, atol=0.0
-    )
+    torch.testing.assert_close(first[0], reference.coords[0], rtol=0.0, atol=0.0)
     torch.testing.assert_close(
         different_seed[0], reference.coords[0], rtol=0.0, atol=0.0
     )
@@ -322,9 +299,7 @@ def test_initial_dof_jitter_is_seeded_bounded_and_ligand_dof_only(
     )
     assert not torch.equal(first_forward_dofs, different_seed_forward_dofs)
 
-    population = PoseStackBuilder.from_poses(
-        [reference] * 4, reference.device
-    )
+    population = PoseStackBuilder.from_poses([reference] * 4, reference.device)
     population.coords = reference.coords.repeat(4, 1, 1)
     docking_dofs = build_ligand_docking_dofs(population, ligand_block)
     kin_module = captured_kin_modules[0]
@@ -337,18 +312,14 @@ def test_initial_dof_jitter_is_seeded_bounded_and_ligand_dof_only(
     kmd = kin_module.kmd
     node_types = kmd.forest.doftype
 
-    free = MinimizerMap(
-        population, kmd, docking_dofs.move_map
-    ).dof_mask
+    free = MinimizerMap(population, kmd, docking_dofs.move_map).dof_mask
     pose_for_node = torch.div(
         kmd.forest.id,
         population.max_n_pose_atoms,
         rounding_mode="floor",
     )
     expected_changed = free & (pose_for_node[:, None] > 0)
-    assert int(torch.sum(expected_changed)) == 3 * (
-        6 + len(docking_dofs.torsions)
-    )
+    assert int(torch.sum(expected_changed)) == 3 * (6 + len(docking_dofs.torsions))
     torch.testing.assert_close(
         first_forward_dofs[~expected_changed],
         base_dofs[~expected_changed],
@@ -357,9 +328,7 @@ def test_initial_dof_jitter_is_seeded_bounded_and_ligand_dof_only(
     )
     assert bool(torch.all(torch.abs(applied_delta[expected_changed]) > 0.0))
 
-    changed_nodes, changed_columns = torch.nonzero(
-        expected_changed, as_tuple=True
-    )
+    changed_nodes, changed_columns = torch.nonzero(expected_changed, as_tuple=True)
     changed_node_types = node_types[changed_nodes]
     translation = (changed_node_types == int(NodeType.jump)) & (
         changed_columns <= int(JumpDOFTypes.RBz)
@@ -388,15 +357,9 @@ def test_initial_dof_jitter_is_seeded_bounded_and_ligand_dof_only(
     )
     assert bool(
         torch.all(
-            changed_delta[rotation]
-            <= perturb.rotation_radians + numerical_margin
+            changed_delta[rotation] <= perturb.rotation_radians + numerical_margin
         )
     )
     assert bool(
-        torch.all(
-            changed_delta[torsion]
-            <= perturb.torsion_radians + numerical_margin
-        )
+        torch.all(changed_delta[torsion] <= perturb.torsion_radians + numerical_margin)
     )
-
-

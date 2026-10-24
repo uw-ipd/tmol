@@ -301,9 +301,7 @@ def test_flexible_grid_atom_partition_and_score_decomposition_fp64(
 
     expected_receptor_heavy = []
     pbt = reference.packed_block_types
-    context_blocks = sidechain_context_blocks(
-        reference, ligand_block, sidechain_blocks
-    )
+    context_blocks = sidechain_context_blocks(reference, ligand_block, sidechain_blocks)
     assert backend.context_blocks == context_blocks
     excluded_blocks = {
         ligand_block,

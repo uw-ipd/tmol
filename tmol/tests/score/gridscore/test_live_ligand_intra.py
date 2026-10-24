@@ -28,7 +28,6 @@ from tmol.tests.score.gridscore.test_live_terms import (
 )
 from tmol.pose import repeat_pose_stack
 
-
 _BASE_INTRA_TERMS = (
     "fa_ljatr",
     "fa_ljrep",
@@ -71,9 +70,7 @@ def _full_complex_ligand_intra_oracle(
     coords = population.coords.clone()
     coords[pose_indices[:, None], atom_indices] = ligand_coords
     population = attrs.evolve(population, coords=coords)
-    score_function = beta2016_score_function(
-        torch.device("cpu"), param_db=param_db
-    )
+    score_function = beta2016_score_function(torch.device("cpu"), param_db=param_db)
     scorer = score_function.render_block_pair_scoring_module(population)
     per_term = scorer(population.coords, sum_terms=False)
     term_order = tuple(
@@ -98,9 +95,7 @@ def test_full_live_ligand_intra_matches_exact_oracle_native_and_perturbed(target
     terms = _BASE_INTRA_TERMS + _CART_INTRA_TERMS
 
     actual = score_ligand_intra(data, ligand_coords)
-    padded = torch.empty(
-        (*ligand_coords.shape[:2], 6), dtype=ligand_coords.dtype
-    )
+    padded = torch.empty((*ligand_coords.shape[:2], 6), dtype=ligand_coords.dtype)
     noncontiguous = padded[..., ::2]
     noncontiguous.copy_(ligand_coords)
     assert not noncontiguous.is_contiguous()
@@ -122,9 +117,7 @@ def test_full_live_ligand_intra_matches_exact_oracle_native_and_perturbed(target
         f"{target} ligand-intra: max live/exact error={float(oracle_error):.3e} "
         f"native golden error={golden_error:.3e}"
     )
-    torch.testing.assert_close(
-        noncontiguous_actual, actual, rtol=0.0, atol=0.0
-    )
+    torch.testing.assert_close(noncontiguous_actual, actual, rtol=0.0, atol=0.0)
     torch.testing.assert_close(actual, expected, rtol=0.0, atol=1.0e-4)
     torch.testing.assert_close(
         actual[0],
@@ -295,12 +288,12 @@ def test_full_live_ligand_intra_cuda_fp64_gradient_matches_cpu():
     cpu_e, cpu_g = score_ligand_intra_with_gradients(cpu_data, cpu_coords)
 
     cuda_data = cpu_data.to(torch.device("cuda"), torch.float64)
-    cuda_e, cuda_g = score_ligand_intra_with_gradients(
-        cuda_data, cpu_coords.to("cuda")
-    )
+    cuda_e, cuda_g = score_ligand_intra_with_gradients(cuda_data, cpu_coords.to("cuda"))
     e_err = float(torch.max(torch.abs(cuda_e.cpu() - cpu_e)))
     g_err = float(torch.max(torch.abs(cuda_g.cpu() - cpu_g)))
-    print(f"CUDA vs CPU ligand-intra gradient: max dE={e_err:.3e} max dGrad={g_err:.3e}")
+    print(
+        f"CUDA vs CPU ligand-intra gradient: max dE={e_err:.3e} max dGrad={g_err:.3e}"
+    )
     assert cuda_g.grad_fn is None
     torch.testing.assert_close(cuda_e.cpu(), cpu_e, rtol=0.0, atol=1.0e-4)
     torch.testing.assert_close(cuda_g.cpu(), cpu_g, rtol=0.0, atol=1.0e-6)

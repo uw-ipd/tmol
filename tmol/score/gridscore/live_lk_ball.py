@@ -49,7 +49,6 @@ class LiveLKBallData(LiveData):
     global_params: torch.Tensor
 
 
-
 def _pack_type_params(term: LKBallEnergyTerm) -> torch.Tensor:
     params = term.ljlk_param_resolver.type_params
     # Match LKBallTypeParams: these columns hold precomputed factors, not the
@@ -314,9 +313,7 @@ def build_live_lk_ball_data(
             type_index = int(pose_stack.block_type_ind64[0, source_block])
             block_type = pbt.active_block_types[type_index]
             n_atoms = block_type.n_atoms
-            compact_offset = int(
-                movable_pose.block_coord_offset64[0, compact_block]
-            )
+            compact_offset = int(movable_pose.block_coord_offset64[0, compact_block])
             compact_atom_types.append(
                 pbt.atom_types[type_index, :n_atoms].to(torch.int64)
             )
@@ -362,9 +359,7 @@ def build_live_lk_ball_data(
             if polar_parts
             else torch.empty(0, dtype=torch.int64)
         )
-        ligand_atom_to_polar = torch.full(
-            (ligand_n_atoms,), -1, dtype=torch.int64
-        )
+        ligand_atom_to_polar = torch.full((ligand_n_atoms,), -1, dtype=torch.int64)
         if ligand_polar_atoms.numel():
             ligand_atom_to_polar[ligand_polar_atoms] = torch.arange(
                 ligand_polar_atoms.shape[0], dtype=torch.int64
@@ -394,16 +389,13 @@ def build_live_lk_ball_data(
         if context_blocks:
             raise ValueError("context_blocks require sidechain_blocks")
         context_blocks = ()
-        ligand_atom_types = pbt.atom_types[
-            ligand_type_index, :ligand_n_atoms
-        ].to(torch.int64)
+        ligand_atom_types = pbt.atom_types[ligand_type_index, :ligand_n_atoms].to(
+            torch.int64
+        )
         ligand_atom_params = type_params[ligand_atom_types].contiguous()
         ligand_heavy_atoms = (
             torch.nonzero(
-                pbt.hbpbt_params.is_hydrogen[
-                    ligand_type_index, :ligand_n_atoms
-                ]
-                == 0
+                pbt.hbpbt_params.is_hydrogen[ligand_type_index, :ligand_n_atoms] == 0
             )
             .reshape(-1)
             .to(torch.int64)
@@ -416,9 +408,7 @@ def build_live_lk_ball_data(
             ligand_water_atoms,
             ligand_water_params,
             ligand_water_is_ring,
-        ) = _ligand_water_topology(
-            pose_stack, ligand_block, term, derived_atom_inds
-        )
+        ) = _ligand_water_topology(pose_stack, ligand_block, term, derived_atom_inds)
 
     receptor_coords = []
     receptor_params = []

@@ -82,9 +82,7 @@ def _connected_chi_blocks(pose_stack, ligand_block, selected):
             ):
                 candidates.append(
                     (
-                        _minimum_heavy_distance(
-                            pose_stack, block, ligand_block
-                        ),
+                        _minimum_heavy_distance(pose_stack, block, ligand_block),
                         tuple(sorted((block, partner))),
                     )
                 )
@@ -120,9 +118,7 @@ def _one_sidechain_movable_pose(full_pose, same_chain):
 
 
 def _one_sidechain_layout(full_pose, same_chain=False):
-    pose_stack, compact_sidechain = _one_sidechain_movable_pose(
-        full_pose, same_chain
-    )
+    pose_stack, compact_sidechain = _one_sidechain_movable_pose(full_pose, same_chain)
     docking_dofs = build_ligand_docking_dofs(
         pose_stack, ligand_block=0, sidechain_blocks=(compact_sidechain,)
     )
@@ -137,9 +133,7 @@ def _block_atom_indices(pose_stack, block):
     n_atoms = pose_stack.block_type(0, block).n_atoms
     return (
         pose_stack.block_coord_offset64[:, block, None]
-        + torch.arange(n_atoms, dtype=torch.int64, device=pose_stack.device)[
-            None, :
-        ]
+        + torch.arange(n_atoms, dtype=torch.int64, device=pose_stack.device)[None, :]
     )
 
 
@@ -164,9 +158,7 @@ def _assert_gene_roundtrip(layout, genes, atol):
     torch.testing.assert_close(
         recovered_decoded.coords, decoded.coords, rtol=0.0, atol=atol
     )
-    torch.testing.assert_close(
-        recovered[:, :3], genes[:, :3], rtol=0.0, atol=atol
-    )
+    torch.testing.assert_close(recovered[:, :3], genes[:, :3], rtol=0.0, atol=atol)
     # The three raw jump-rotation values are not unique for a physical
     # rotation. Coordinate equivalence above is their round-trip invariant;
     # only named ligand and sidechain torsions are unique modulo 2*pi.
@@ -197,9 +189,7 @@ def test_cdk2_pocket_selection_is_heavy_atom_based_and_deterministic(
         block_type_index = int(pose_stack.block_type_ind64[0, block])
         if block_type_index < 0 or block == ligand_block:
             continue
-        block_type = pose_stack.packed_block_types.active_block_types[
-            block_type_index
-        ]
+        block_type = pose_stack.packed_block_types.active_block_types[block_type_index]
         if not block_type.properties.polymer.is_polymer:
             assert block not in selected
             continue
@@ -208,9 +198,7 @@ def test_cdk2_pocket_selection_is_heavy_atom_based_and_deterministic(
         # polymer block is included only if it has a movable sidechain chi and no
         # non-polymer covalent bond (e.g. a disulfide).
         flexible_able = int(block_type.n_sc_torsions) > 0 and not (
-            has_nonpolymer_connection(
-                pose_stack, block, block_type_index
-            )
+            has_nonpolymer_connection(pose_stack, block, block_type_index)
         )
         assert (block in selected) == (distance <= 6.0 and flexible_able)
         if block in selected:
@@ -230,13 +218,10 @@ def test_movable_pose_preserves_retained_polymer_connections_and_k0_bytes(
     _, compact_sidechains, compact_context = movable_block_mapping(
         pose_stack, ligand_block, connected_pair
     )
-    context_blocks = sidechain_context_blocks(
-        pose_stack, ligand_block, connected_pair
-    )
+    context_blocks = sidechain_context_blocks(pose_stack, ligand_block, connected_pair)
     assert movable.max_n_blocks == 3 + len(context_blocks)
     assert (
-        movable.block_type_ind64[0, 0]
-        == pose_stack.block_type_ind64[0, ligand_block]
+        movable.block_type_ind64[0, 0] == pose_stack.block_type_ind64[0, ligand_block]
     )
     first_sidechain, second_sidechain = compact_sidechains
     assert torch.any(
@@ -416,9 +401,7 @@ def test_flexible_sidechain_gene_roundtrip_and_isolation(cdk2_pose_and_db):
     assert set(changed_sidechain.cpu().tolist()) <= allowed_sidechain
     assert not bool(torch.any(sidechain_delta[ligand_indices[0]] > 0))
     other_block = next(
-        block
-        for block in docking_dofs.sidechain_blocks
-        if block != mapping.block
+        block for block in docking_dofs.sidechain_blocks if block != mapping.block
     )
     other_start = int(pose_stack.block_coord_offset64[0, other_block])
     other_end = other_start + pose_stack.block_type(0, other_block).n_atoms
@@ -429,9 +412,7 @@ def test_flexible_sidechain_gene_roundtrip_and_isolation(cdk2_pose_and_db):
         ],
         dtype=torch.int64,
     )
-    torsion_atoms = (
-        pose_stack.block_coord_offset64[0, mapping.block] + torsion_local
-    )
+    torsion_atoms = pose_stack.block_coord_offset64[0, mapping.block] + torsion_local
     before = _dihedral(rebuilt.coords[0, torsion_atoms])
     after = _dihedral(sidechain_pose.coords[0, torsion_atoms])
     logical_delta = torch.atan2(torch.sin(after - before), torch.cos(after - before))
@@ -461,14 +442,10 @@ def test_same_chain_ligand_jump_does_not_move_receptor(cdk2_pose_and_db):
     """Regression: before M13a-1b, the exact sidechain check failed here."""
 
     full_pose, _ = cdk2_pose_and_db
-    pose_stack, docking_dofs, layout = _one_sidechain_layout(
-        full_pose, same_chain=True
-    )
+    pose_stack, docking_dofs, layout = _one_sidechain_layout(full_pose, same_chain=True)
     assert torch.all(pose_stack.chain_id64[:, 0] != pose_stack.chain_id64[:, 1])
     edges = docking_dofs.fold_forest.edges[0, : docking_dofs.fold_forest.n_edges[0]]
-    root_blocks = set(
-        edges[edges[:, 0] == int(EdgeType.root_jump), 2].tolist()
-    )
+    root_blocks = set(edges[edges[:, 0] == int(EdgeType.root_jump), 2].tolist())
     assert {0, 1} <= root_blocks
     genes = layout.genes_from_pose_stack(pose_stack)
     moved_genes = genes.clone()
@@ -611,17 +588,13 @@ def test_ga_operators_handle_appended_sidechain_chis(cdk2_pose_and_db):
         recovered_decoded = layout.pose_stack_from_genes(recovered)
         sidechain_error = torch.amax(
             torch.abs(
-                recovered_decoded.coords[
-                    pose_indices, layout.sidechain_atom_indices
-                ]
+                recovered_decoded.coords[pose_indices, layout.sidechain_atom_indices]
                 - decoded.coords[pose_indices, layout.sidechain_atom_indices]
             ),
             dim=(1, 2),
         )
         torch.testing.assert_close(
-            recovered_decoded.coords[
-                pose_indices, layout.sidechain_atom_indices
-            ],
+            recovered_decoded.coords[pose_indices, layout.sidechain_atom_indices],
             decoded.coords[pose_indices, layout.sidechain_atom_indices],
             rtol=0.0,
             atol=1.0e-8,
@@ -684,9 +657,7 @@ def test_flexible_sidechain_roundtrip_dtype_and_batch(
         row_offsets = torch.arange(n_poses, dtype=dtype)[:, None]
         distinct_genes[:, 0:1] += 0.1 * row_offsets
         sidechain_gene = 6 + len(docking_dofs.torsions)
-        distinct_genes[:, sidechain_gene : sidechain_gene + 1] += (
-            0.05 * row_offsets
-        )
+        distinct_genes[:, sidechain_gene : sidechain_gene + 1] += 0.05 * row_offsets
         distinct_errors = _assert_gene_roundtrip(layout, distinct_genes, atol=atol)
         assert distinct_errors.shape == (n_poses,)
     else:
@@ -732,15 +703,9 @@ def test_zero_pocket_dof_and_gene_path_is_byte_identical(cdk2_pose_and_db):
 def test_grid_final_result_writes_sidechain_coordinates(cpu_grid_case):
     case = cpu_grid_case
     full_pose = case.reference
-    selected = select_pocket_residue_blocks(
-        full_pose, case.ligand_block, cutoff=6.0
-    )
-    selected_blocks = _connected_chi_blocks(
-        full_pose, case.ligand_block, selected
-    )
-    pose_stack = movable_pose_stack(
-        full_pose, case.ligand_block, selected_blocks
-    )
+    selected = select_pocket_residue_blocks(full_pose, case.ligand_block, cutoff=6.0)
+    selected_blocks = _connected_chi_blocks(full_pose, case.ligand_block, selected)
+    pose_stack = movable_pose_stack(full_pose, case.ligand_block, selected_blocks)
     _, compact_sidechains, _ = movable_block_mapping(
         full_pose, case.ligand_block, selected_blocks
     )
@@ -774,9 +739,7 @@ def test_grid_final_result_writes_sidechain_coordinates(cpu_grid_case):
     # Jump translations are unique. Jump rotations are checked through the
     # coordinates above because their raw parameterization is ambiguous; named
     # torsions remain unique modulo 2*pi.
-    torch.testing.assert_close(
-        actual.genes[:, :3], genes[:, :3], rtol=0.0, atol=1.0e-9
-    )
+    torch.testing.assert_close(actual.genes[:, :3], genes[:, :3], rtol=0.0, atol=1.0e-9)
     tors_diff = actual.genes[:, 6:] - genes[:, 6:]
     wrapped = torch.atan2(torch.sin(tors_diff), torch.cos(tors_diff))
     torch.testing.assert_close(

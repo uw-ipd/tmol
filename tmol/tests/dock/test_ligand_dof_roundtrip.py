@@ -28,7 +28,6 @@ from tmol.tests.ligand.test_protein_ligand_ddg import (
     _load_complex_cif,
 )
 
-
 PLI_DATA_DIR = data_path("protein_ligand_test")
 
 
@@ -40,9 +39,7 @@ def _load_cdk2_pose():
         _load_complex_cif("cdk2"),
         torch.device("cpu"),
         prepare_ligands=True,
-        ligand_params_files=[
-            str(PLI_DATA_DIR / "cdk2.xtal-lig.mmff94.tmol")
-        ],
+        ligand_params_files=[str(PLI_DATA_DIR / "cdk2.xtal-lig.mmff94.tmol")],
         no_optH=True,
         param_db=param_db,
         return_context=True,
@@ -62,9 +59,7 @@ def _ligand_block(pose_stack) -> int:
         block_type_index = int(pose_stack.block_type_ind64[0, block])
         if block_type_index < 0:
             continue
-        block_type = pose_stack.packed_block_types.active_block_types[
-            block_type_index
-        ]
+        block_type = pose_stack.packed_block_types.active_block_types[block_type_index]
         if block_type.name3 == LIGAND_RES_NAME:
             found.append(block)
     assert len(found) == 1
@@ -95,30 +90,27 @@ def _raw_dof_column(network, pose_stack, ligand_block, mapping, pose=0) -> int:
     nodes = torch.nonzero(network.id == target_atom, as_tuple=False).flatten()
     assert nodes.numel() == 1
     flat_dof = int(nodes[0]) * network.full_dofs.shape[1] + int(mapping.dof_type)
-    columns = torch.nonzero(
-        network._dof_flat_idx == flat_dof, as_tuple=False
-    ).flatten()
+    columns = torch.nonzero(network._dof_flat_idx == flat_dof, as_tuple=False).flatten()
     assert columns.numel() == 1
     return int(columns[0])
 
 
 def _ligand_kfo_nodes(network, pose_stack, ligand_block, pose=0):
-    start = (
-        pose * pose_stack.max_n_pose_atoms
-        + int(pose_stack.block_coord_offset64[pose, ligand_block])
+    start = pose * pose_stack.max_n_pose_atoms + int(
+        pose_stack.block_coord_offset64[pose, ligand_block]
     )
     block_type_index = int(pose_stack.block_type_ind64[pose, ligand_block])
-    n_atoms = pose_stack.packed_block_types.active_block_types[
-        block_type_index
-    ].n_atoms
+    n_atoms = pose_stack.packed_block_types.active_block_types[block_type_index].n_atoms
     return torch.nonzero(
         (network.id >= start) & (network.id < start + n_atoms), as_tuple=False
     ).flatten()
 
 
 def _coords_from_masked_dofs(network, masked_dofs):
-    full_flat = network.full_dofs.detach().reshape(-1).scatter(
-        0, network._dof_flat_idx, masked_dofs
+    full_flat = (
+        network.full_dofs.detach()
+        .reshape(-1)
+        .scatter(0, network._dof_flat_idx, masked_dofs)
     )
     return network.kin_module(full_flat.view_as(network.full_dofs))
 
@@ -144,9 +136,7 @@ def _torsion_values(kin_coords, nodes_by_local_atom, block_type):
     return torch.stack(values)
 
 
-def _batched_torsion_values(
-    network, pose_stack, ligand_block, full_dofs=None
-):
+def _batched_torsion_values(network, pose_stack, ligand_block, full_dofs=None):
     block_type_index = int(pose_stack.block_type_ind64[0, ligand_block])
     block_type = pose_stack.packed_block_types.active_block_types[block_type_index]
     if full_dofs is None:
@@ -154,20 +144,14 @@ def _batched_torsion_values(
     kin_coords = network.kin_module(full_dofs)
     per_pose = []
     for pose in range(pose_stack.n_poses):
-        ligand_nodes = _ligand_kfo_nodes(
-            network, pose_stack, ligand_block, pose
-        )
-        block_offset = int(
-            pose_stack.block_coord_offset64[pose, ligand_block]
-        )
+        ligand_nodes = _ligand_kfo_nodes(network, pose_stack, ligand_block, pose)
+        block_offset = int(pose_stack.block_coord_offset64[pose, ligand_block])
         pose_base = pose * pose_stack.max_n_pose_atoms
         target_to_kfo = {
             int(network.id[node]) - pose_base - block_offset: int(node)
             for node in ligand_nodes
         }
-        per_pose.append(
-            _torsion_values(kin_coords, target_to_kfo, block_type)
-        )
+        per_pose.append(_torsion_values(kin_coords, target_to_kfo, block_type))
     return torch.stack(per_pose)
 
 
@@ -194,9 +178,7 @@ def test_empirical_torsion_signs_measures_in_float64(monkeypatch):
         del atom_nodes
         return coords[:2, 0].reshape(1, 2)
 
-    monkeypatch.setattr(
-        ligand_dofs_module, "_batched_coord_dihedrals", unit_dihedrals
-    )
+    monkeypatch.setattr(ligand_dofs_module, "_batched_coord_dihedrals", unit_dihedrals)
     raw_dofs = torch.zeros((2, 1), dtype=torch.float32)
     signs = ligand_dofs_module._empirical_torsion_signs(
         spy_kinematics,
@@ -244,7 +226,8 @@ def _assert_scan_cache_values_equal(owner, expected):
 
 def _reverse_named_torsion_declaration(block_type, torsion_name):
     torsion_index = next(
-        i for i, torsion in enumerate(block_type.torsions)
+        i
+        for i, torsion in enumerate(block_type.torsions)
         if torsion.name == torsion_name
     )
     torsion = block_type.torsions[torsion_index]
@@ -256,9 +239,7 @@ def _reverse_named_torsion_declaration(block_type, torsion_name):
     block_type.torsions = tuple(torsions)
 
     torsion_to_uaids = dict(block_type.torsion_to_uaids)
-    torsion_to_uaids[torsion_name] = tuple(
-        reversed(torsion_to_uaids[torsion_name])
-    )
+    torsion_to_uaids[torsion_name] = tuple(reversed(torsion_to_uaids[torsion_name]))
     block_type.torsion_to_uaids = frozendict(torsion_to_uaids)
     block_type.ordered_torsions = block_type.ordered_torsions.copy()
     block_type.ordered_torsions[torsion_index] = block_type.ordered_torsions[
@@ -305,9 +286,7 @@ def test_cdk2_dof_count_and_bidirectional_mapping(cdk2_pose_and_db):
             target_to_kfo[mapping.raw_atom], mapping.dof_type
         ].double()
         predicted = mapping.logical_from_raw(raw)[0]
-        error = torch.abs(
-            _angle_delta(predicted, logical[mapping.torsion_index])
-        )
+        error = torch.abs(_angle_delta(predicted, logical[mapping.torsion_index]))
         assert float(error) < 1.0e-10
 
 
@@ -359,13 +338,13 @@ def test_reversed_torsion_declaration_uses_empirical_sign():
     )
     block_type = pose_stack.packed_block_types.active_block_types[block_type_index]
     torsion_index = _reverse_named_torsion_declaration(block_type, "chi1")
-    pose_stack.packed_block_types.torsion_uaids[
-        block_type_index, torsion_index
-    ] = torch.flip(
-        pose_stack.packed_block_types.torsion_uaids[
-            block_type_index, torsion_index
-        ],
-        dims=(0,),
+    pose_stack.packed_block_types.torsion_uaids[block_type_index, torsion_index] = (
+        torch.flip(
+            pose_stack.packed_block_types.torsion_uaids[
+                block_type_index, torsion_index
+            ],
+            dims=(0,),
+        )
     )
 
     # Regenerate this fresh PBT's scan cache from the reversed declaration.
@@ -390,19 +369,18 @@ def test_reversed_torsion_declaration_uses_empirical_sign():
         for node in ligand_nodes
     }
     base_dofs = network.masked_dofs.detach().double()
-    column = _raw_dof_column(
-        network, pose_stack, ligand_block, mapping
-    )
+    column = _raw_dof_column(network, pose_stack, ligand_block, mapping)
     delta = 0.2
     perturbed = base_dofs.clone()
     perturbed[column] += delta
     changed_coords = _coords_from_masked_dofs(network, perturbed)
-    true_dihedral = _torsion_values(
-        changed_coords, target_to_kfo, block_type
-    )[torsion_index]
-    raw = network.full_dofs[
-        target_to_kfo[mapping.raw_atom], mapping.dof_type
-    ].double() + delta
+    true_dihedral = _torsion_values(changed_coords, target_to_kfo, block_type)[
+        torsion_index
+    ]
+    raw = (
+        network.full_dofs[target_to_kfo[mapping.raw_atom], mapping.dof_type].double()
+        + delta
+    )
     predicted = mapping.logical_from_raw(raw)[0]
     assert float(torch.abs(_angle_delta(predicted, true_dihedral))) < 1.0e-10
 
@@ -457,15 +435,11 @@ def test_cdk2_ligand_dofs_are_independent_and_isolated(cdk2_pose_and_db):
     # Each logical-chi controller changes its own chi with the recorded sign,
     # and leaves every other logical chi stationary to first order.
     for intended, mapping in enumerate(docking_dofs.torsions):
-        column = _raw_dof_column(
-            network, pose_stack, ligand_block, mapping
-        )
+        column = _raw_dof_column(network, pose_stack, ligand_block, mapping)
         perturbed = base_dofs.clone()
         perturbed[column] += epsilon
         changed_coords = _coords_from_masked_dofs(network, perturbed)
-        changed_torsions = _torsion_values(
-            changed_coords, target_to_kfo, block_type
-        )
+        changed_torsions = _torsion_values(changed_coords, target_to_kfo, block_type)
         derivative = _angle_delta(changed_torsions, base_torsions) / epsilon
         expected = torch.zeros_like(derivative)
         expected[intended] = mapping.sign
@@ -473,14 +447,15 @@ def test_cdk2_ligand_dofs_are_independent_and_isolated(cdk2_pose_and_db):
 
     # All eight free DOFs move ligand coordinates only.
     ids = network.id[1:].to(torch.int64)
-    ligand_target_start = int(
-        pose_stack.block_coord_offset64[0, ligand_block]
-    )
+    ligand_target_start = int(pose_stack.block_coord_offset64[0, ligand_block])
     ligand_target_end = ligand_target_start + block_type.n_atoms
-    receptor_nodes = torch.nonzero(
-        (ids < ligand_target_start) | (ids >= ligand_target_end),
-        as_tuple=False,
-    ).flatten() + 1
+    receptor_nodes = (
+        torch.nonzero(
+            (ids < ligand_target_start) | (ids >= ligand_target_end),
+            as_tuple=False,
+        ).flatten()
+        + 1
+    )
     for column in range(base_dofs.numel()):
         perturbed = base_dofs.clone()
         perturbed[column] += epsilon
@@ -489,11 +464,16 @@ def test_cdk2_ligand_dofs_are_independent_and_isolated(cdk2_pose_and_db):
             torch.abs(changed_coords[receptor_nodes] - base_kin_coords[receptor_nodes])
         )
         assert float(receptor_error) < 1.0e-12
-        assert float(
-            torch.max(
-                torch.abs(changed_coords[ligand_nodes] - base_kin_coords[ligand_nodes])
+        assert (
+            float(
+                torch.max(
+                    torch.abs(
+                        changed_coords[ligand_nodes] - base_kin_coords[ligand_nodes]
+                    )
+                )
             )
-        ) > 0.0
+            > 0.0
+        )
 
     # The coordinate Jacobian for all ligand atoms has independent columns for
     # the six rigid-body and two chi variables.
@@ -534,21 +514,15 @@ def test_batched_distinct_torsions_are_pose_local(cdk2_pose_and_db):
         [single.clone(), single.clone(), single.clone()], single.device
     )
     ligand_block = _ligand_block(identical_stack)
-    initial_docking_dofs = build_ligand_docking_dofs(
-        identical_stack, ligand_block
-    )
-    initial_network = _network(
-        identical_stack, param_db, initial_docking_dofs
-    )
+    initial_docking_dofs = build_ligand_docking_dofs(identical_stack, ligand_block)
+    initial_network = _network(identical_stack, param_db, initial_docking_dofs)
 
     # Give both logical torsions distinct values in every pose before testing
     # the pose-local response of the rebuilt batched mapping.
     per_pose_deltas = ((0.0, 0.0), (0.31, -0.26), (-0.47, 0.42))
     with torch.no_grad():
         for pose, pose_deltas in enumerate(per_pose_deltas):
-            for mapping, delta in zip(
-                initial_docking_dofs.torsions, pose_deltas
-            ):
+            for mapping, delta in zip(initial_docking_dofs.torsions, pose_deltas):
                 column = _raw_dof_column(
                     initial_network,
                     identical_stack,
@@ -562,9 +536,7 @@ def test_batched_distinct_torsions_are_pose_local(cdk2_pose_and_db):
     docking_dofs = build_ligand_docking_dofs(distinct_stack, ligand_block)
     network = _network(distinct_stack, param_db, docking_dofs)
     base_dofs = network.masked_dofs.detach().double()
-    base_torsions = _batched_torsion_values(
-        network, distinct_stack, ligand_block
-    )
+    base_torsions = _batched_torsion_values(network, distinct_stack, ligand_block)
     for torsion_index in range(base_torsions.shape[1]):
         pairwise = _angle_delta(
             base_torsions[:, torsion_index, None],
@@ -585,17 +557,18 @@ def test_batched_distinct_torsions_are_pose_local(cdk2_pose_and_db):
     epsilon = 1.0e-5
     perturbed = base_dofs.clone()
     perturbed[column] += epsilon
-    changed_full_dofs = network.full_dofs.detach().reshape(-1).scatter(
-        0, network._dof_flat_idx, perturbed
-    ).view_as(network.full_dofs)
+    changed_full_dofs = (
+        network.full_dofs.detach()
+        .reshape(-1)
+        .scatter(0, network._dof_flat_idx, perturbed)
+        .view_as(network.full_dofs)
+    )
     changed_torsions = _batched_torsion_values(
         network, distinct_stack, ligand_block, changed_full_dofs
     )
     derivative = _angle_delta(changed_torsions, base_torsions) / epsilon
     expected = torch.zeros_like(derivative)
-    expected[intended_pose, intended_mapping.torsion_index] = (
-        intended_mapping.sign
-    )
+    expected[intended_pose, intended_mapping.torsion_index] = intended_mapping.sign
     torch.testing.assert_close(derivative, expected, rtol=1.0e-4, atol=1.0e-5)
 
 
@@ -612,9 +585,7 @@ def test_builder_does_not_mutate_shared_kinematics_or_ligand_root():
     plain_mm = MoveMap.from_pose_stack(pose_stack)
     plain_mm.set_move_all_jump_dofs_for_root_jump(0, ligand_block, True)
     for torsion_index in range(block_type.n_torsions):
-        plain_mm.set_move_named_torsion_for_blocks(
-            0, ligand_block, torsion_index, True
-        )
+        plain_mm.set_move_named_torsion_for_blocks(0, ligand_block, torsion_index, True)
 
     # Snapshot what is already stored on the fresh objects. The builder is
     # allowed to populate missing ordinary kinematics caches lazily.
@@ -662,27 +633,26 @@ def test_builder_does_not_mutate_shared_kinematics_or_ligand_root():
     assert not hasattr(block_type, "ligand_docking_dofs")
 
     plain_kin_after = PoseStackKinematicsModule(pose_stack, plain_ff)
-    plain_mask_after = MinimizerMap(
-        pose_stack, plain_kin_after.kmd, plain_mm
-    ).dof_mask
+    plain_mask_after = MinimizerMap(pose_stack, plain_kin_after.kmd, plain_mm).dof_mask
     torch.testing.assert_close(plain_mask_after, plain_mask_before)
     assert int(torch.sum(plain_mask_after)) == plain_baseline
-    assert int(
-        torch.sum(
-            MinimizerMap(
-                pose_stack,
-                PoseStackKinematicsModule(
-                    pose_stack, docking_dofs_again.fold_forest
-                ).kmd,
-                docking_dofs_again.move_map,
-            ).dof_mask
+    assert (
+        int(
+            torch.sum(
+                MinimizerMap(
+                    pose_stack,
+                    PoseStackKinematicsModule(
+                        pose_stack, docking_dofs_again.fold_forest
+                    ).kmd,
+                    docking_dofs_again.move_map,
+                ).dof_mask
+            )
         )
-    ) == 8
+        == 8
+    )
 
 
-def test_builder_batches_atom_lookup_and_empirical_signs(
-    cdk2_pose_and_db, monkeypatch
-):
+def test_builder_batches_atom_lookup_and_empirical_signs(cdk2_pose_and_db, monkeypatch):
     single, _ = cdk2_pose_and_db
     pose_stack = PoseStackBuilder.from_poses(
         [single.clone(), single.clone(), single.clone()], single.device
@@ -721,12 +691,8 @@ def test_builder_batches_atom_lookup_and_empirical_signs(
             dof_types,
         )
 
-    monkeypatch.setattr(
-        ligand_dofs_module, "_ligand_kinforest_nodes", capture_node_map
-    )
-    monkeypatch.setattr(
-        ligand_dofs_module, "_empirical_torsion_signs", capture_signs
-    )
+    monkeypatch.setattr(ligand_dofs_module, "_ligand_kinforest_nodes", capture_node_map)
+    monkeypatch.setattr(ligand_dofs_module, "_empirical_torsion_signs", capture_signs)
     docking_dofs = build_ligand_docking_dofs(pose_stack, ligand_block)
 
     # Each helper receives the complete pose/atom or pose/torsion tensor once.
@@ -734,9 +700,7 @@ def test_builder_batches_atom_lookup_and_empirical_signs(
     # torsion perturbations while retaining batched processing across poses.
     assert calls == {"node_map": 1, "signs": 1}
     assert len(docking_dofs.torsions) == 2
-    node_map_source = inspect.getsource(
-        ligand_dofs_module._ligand_kinforest_nodes
-    )
+    node_map_source = inspect.getsource(ligand_dofs_module._ligand_kinforest_nodes)
     assert "nonzero" not in node_map_source
     assert ".item(" not in node_map_source
     assert "int(" not in node_map_source

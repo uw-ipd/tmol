@@ -100,13 +100,9 @@ def _flexible_ga_result(reference, ligand_block, sidechain_blocks, npool=3):
         per_pose_increment[:, None] * per_chi_scale[None, :]
     )
     population = layout.pose_stack_from_genes(genes)
-    energies = torch.arange(
-        npool, 0, -1, dtype=genes.dtype, device=genes.device
-    )
+    energies = torch.arange(npool, 0, -1, dtype=genes.dtype, device=genes.device)
     if npool == 3:
-        energies = torch.tensor(
-            [3.0, 1.0, 2.0], dtype=genes.dtype, device=genes.device
-        )
+        energies = torch.tensor([3.0, 1.0, 2.0], dtype=genes.dtype, device=genes.device)
     order = torch.argsort(energies)
     return GAResult(
         pool=GAPool(genes, population, energies, n_diverse=npool),
@@ -214,9 +210,7 @@ def test_flexible_top_candidates_restore_distinct_sidechains():
     reference, param_db = _load_cdk2_pose()
     ligand_block = _ligand_block(reference)
     sidechain_blocks = _flexible_sidechains(reference, ligand_block, count=2)
-    ga_result = _flexible_ga_result(
-        reference, ligand_block, sidechain_blocks, npool=3
-    )
+    ga_result = _flexible_ga_result(reference, ligand_block, sidechain_blocks, npool=3)
     backend = SimpleNamespace(
         param_db=param_db,
         ligand_block=ligand_block,
@@ -253,8 +247,7 @@ def test_flexible_top_candidates_restore_distinct_sidechains():
     )
     torch.testing.assert_close(promoted_genes[0], ga_result.pool.genes[[1, 2]])
     assert torch.any(
-        promoted.coords[0, full_atoms[0]]
-        != reference.coords[0, full_atoms[0]]
+        promoted.coords[0, full_atoms[0]] != reference.coords[0, full_atoms[0]]
     )
     assert torch.any(
         promoted.coords[0, full_atoms[0]] != promoted.coords[1, full_atoms[1]]
@@ -283,9 +276,7 @@ def test_cdk2_cpu_flexible_finalization_refines_sidechain_and_apo(monkeypatch):
     reference, param_db = _load_cdk2_pose()
     ligand_block = _ligand_block(reference)
     sidechain_blocks = _flexible_sidechains(reference, ligand_block)
-    ga_result = _flexible_ga_result(
-        reference, ligand_block, sidechain_blocks, npool=1
-    )
+    ga_result = _flexible_ga_result(reference, ligand_block, sidechain_blocks, npool=1)
     backend = SimpleNamespace(
         param_db=param_db,
         ligand_block=ligand_block,
@@ -325,9 +316,7 @@ def test_cdk2_cpu_flexible_finalization_refines_sidechain_and_apo(monkeypatch):
         return result
 
     monkeypatch.setattr(finalization_module, "run_cart_min", capture_apo)
-    final = finalize_ga_docking(
-        reference, ligand_block, backend, ga_result, top_k=1
-    )
+    final = finalize_ga_docking(reference, ligand_block, backend, ga_result, top_k=1)
     final_sidechain_atoms = _mapped_atom_indices(final.pose_stack, block_local_atoms)
     sidechain_refine_delta = torch.amax(
         torch.linalg.vector_norm(
@@ -349,11 +338,14 @@ def test_cdk2_cpu_flexible_finalization_refines_sidechain_and_apo(monkeypatch):
         rtol=0.0,
         atol=1.0e-6,
     )
-    assert _bad_bond_count(
-        reference,
-        final.pose_stack,
-        (ligand_block,) + sidechain_blocks,
-    ) == 0
+    assert (
+        _bad_bond_count(
+            reference,
+            final.pose_stack,
+            (ligand_block,) + sidechain_blocks,
+        )
+        == 0
+    )
     assert torch.isfinite(final.complex_energies).all()
     assert torch.all(final.complex_energies <= final.pre_refine_energies + 1.0e-8)
 
@@ -386,11 +378,14 @@ def test_cdk2_cpu_flexible_finalization_refines_sidechain_and_apo(monkeypatch):
         source_block: receptor_block
         for receptor_block, source_block in enumerate(keep_blocks)
     }
-    assert _bad_bond_count(
-        apo_before,
-        apo_after,
-        tuple(source_to_receptor[block] for block in sidechain_blocks),
-    ) == 0
+    assert (
+        _bad_bond_count(
+            apo_before,
+            apo_after,
+            tuple(source_to_receptor[block] for block in sidechain_blocks),
+        )
+        == 0
+    )
     torch.testing.assert_close(
         final.dH,
         final.complex_energies
@@ -566,13 +561,10 @@ def test_cdk2_flexible_grid_docking_exact_finalization_e2e():
         )
     )
     print(
-        "flexible cdk2 finalized RMSD, wall_s, moved_sidechain_atoms, "
-        "bad_bonds:",
+        "flexible cdk2 finalized RMSD, wall_s, moved_sidechain_atoms, " "bad_bonds:",
         float(rmsd_to_native),
         wall_seconds,
         int(torch.sum(displacement > 1.0e-5)),
         bad_bonds,
     )
     assert bad_bonds == 0
-
-

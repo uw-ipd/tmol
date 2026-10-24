@@ -14,7 +14,6 @@ from rdkit.ML.Cluster import Butina
 
 from tmol.ligand import nonstandard_residue_info_from_mol2
 
-
 DEFAULT_CONFORMER_RANDOM_SEED = 20260826
 MAX_LIBRARY_SIZE = 50
 
@@ -73,11 +72,7 @@ def _mapping_is_valid(
         is not None
         for a, b, *_ in block_type.bonds
     )
-    return (
-        elements_match
-        and bonds_match
-        and mol.GetNumBonds() == len(block_type.bonds)
-    )
+    return elements_match and bonds_match and mol.GetNumBonds() == len(block_type.bonds)
 
 
 def _graph_atom_mapping(
@@ -194,8 +189,7 @@ def _cluster_representatives(
         reordering=True,
     )
     representatives = [
-        min(cluster, key=lambda index: (energies[index], index))
-        for cluster in clusters
+        min(cluster, key=lambda index: (energies[index], index)) for cluster in clusters
     ]
     representatives.sort(key=lambda index: (energies[index], index))
     return np.asarray(representatives[:MAX_LIBRARY_SIZE], dtype=np.int64)
@@ -232,9 +226,7 @@ def generate_conformer_library(
         raise ValueError(
             "sanitized and established mol2 readers disagree on atom count"
         )
-    mapping = _block_atom_mapping(
-        mol, source_names, block_type, packed_block_types
-    )
+    mapping = _block_atom_mapping(mol, source_names, block_type, packed_block_types)
     if not AllChem.MMFFHasAllMoleculeParams(mol):
         raise ValueError("ligand is not fully parameterized by MMFF94")
 

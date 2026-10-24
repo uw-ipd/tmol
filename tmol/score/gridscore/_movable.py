@@ -87,9 +87,7 @@ def validated_sidechain_blocks(
             raise ValueError(
                 f"sidechain block {block} ({block_type.name}) is not polymeric"
             )
-        if has_nonpolymer_connection(
-            pose_stack, block, int(block_type_indices[0])
-        ):
+        if has_nonpolymer_connection(pose_stack, block, int(block_type_indices[0])):
             raise ValueError(
                 f"sidechain block {block} ({block_type.name}) has a non-polymer "
                 "covalent connection (e.g. a disulfide); flexible-docking kinematics "
@@ -135,9 +133,7 @@ def sidechain_context_blocks(
         for connection in connection_indices:
             if connection < 0:
                 continue
-            partners = pose_stack.inter_residue_connections64[
-                :, block, connection, 0
-            ]
+            partners = pose_stack.inter_residue_connections64[:, block, connection, 0]
             partner_connections = pose_stack.inter_residue_connections64[
                 :, block, connection, 1
             ]
@@ -168,9 +164,7 @@ def sidechain_context_blocks(
                 if connection == int(pbt.down_conn_inds[block_type_index])
                 else partner_type.down_connection_ind
             )
-            if bool(
-                torch.any(partner_connections != expected_partner_connection)
-            ):
+            if bool(torch.any(partner_connections != expected_partner_connection)):
                 raise ValueError(
                     "a declared polymer connection is not reciprocally peptide-linked"
                 )

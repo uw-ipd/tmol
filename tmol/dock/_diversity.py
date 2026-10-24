@@ -5,9 +5,7 @@ import math
 import torch
 
 
-def ligand_heavy_atom_rms(
-    coords1: torch.Tensor, coords2: torch.Tensor
-) -> torch.Tensor:
+def ligand_heavy_atom_rms(coords1: torch.Tensor, coords2: torch.Tensor) -> torch.Tensor:
     """Unsymmetrized heavy-atom coordinate RMS with broadcasting."""
 
     if coords1.shape[-2:] != coords2.shape[-2:]:

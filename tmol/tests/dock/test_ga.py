@@ -32,7 +32,6 @@ from tmol.tests.dock.test_ligand_dof_roundtrip import (
 )
 from tmol.pose import repeat_pose_stack
 
-
 CUDA_AVAILABLE = torch.cuda.is_available()
 
 
@@ -54,15 +53,9 @@ def cpu_ga_case():
 
 
 def _receptor_mask(case):
-    block_type_index = int(
-        case.population.block_type_ind64[0, case.ligand_block]
-    )
-    block_type = case.population.packed_block_types.active_block_types[
-        block_type_index
-    ]
-    offset = int(
-        case.population.block_coord_offset64[0, case.ligand_block]
-    )
+    block_type_index = int(case.population.block_type_ind64[0, case.ligand_block])
+    block_type = case.population.packed_block_types.active_block_types[block_type_index]
+    offset = int(case.population.block_coord_offset64[0, case.ligand_block])
     receptor = torch.ones(
         case.population.max_n_pose_atoms,
         dtype=torch.bool,
@@ -141,18 +134,12 @@ def _oracle_quaternion_rotation(quaternion):
 
 def test_rotation_mutation_matches_rosetta_quaternion_oracle():
     dtype = torch.float64
-    parents = torch.tensor(
-        [[0.0, 0.0, 0.0], [0.23, -0.31, 0.47]], dtype=dtype
-    )
-    axes = torch.tensor(
-        [[0.0, 0.0, 1.0], [1.0, 1.0, 0.0]], dtype=dtype
-    )
+    parents = torch.tensor([[0.0, 0.0, 0.0], [0.23, -0.31, 0.47]], dtype=dtype)
+    axes = torch.tensor([[0.0, 0.0, 1.0], [1.0, 1.0, 0.0]], dtype=dtype)
     axes = axes / torch.linalg.vector_norm(axes, dim=1, keepdim=True)
     angles = torch.tensor([0.19, -0.37], dtype=dtype)
 
-    mutated_euler = ga_module._apply_rosetta_rotation_mutation(
-        parents, axes, angles
-    )
+    mutated_euler = ga_module._apply_rosetta_rotation_mutation(parents, axes, angles)
     actual = ga_module._zyx_rotation_matrix(mutated_euler).transpose(-1, -2)
 
     # LigandConformer.cc:775-779 uses q=(cos(a), sin(a)*axis), then
@@ -183,9 +170,7 @@ def test_crossover_forces_at_least_one_partner_chi():
     partner2_chi = offspring[:, 6:] == parent2_c[:, 6:]
 
     assert torch.all(torch.any(partner2_chi, dim=1))
-    assert not torch.any(
-        torch.all(offspring[:, 6:] == parent1_c[:, 6:], dim=1)
-    )
+    assert not torch.any(torch.all(offspring[:, 6:] == parent1_c[:, 6:], dim=1))
 
 
 def test_initial_freed_dof_gene_roundtrips_by_forward_kinematics(cpu_ga_case):
@@ -229,16 +214,13 @@ def test_mutate_and_crossover_are_finite_and_ligand_only(cpu_ga_case):
     # chi matches the canonicalized parent rather than an out-of-range value.
     genes_c = ga_module._canonicalize_genes(genes)
     parent2_c = ga_module._canonicalize_genes(parent2)
-    rb_from_parent = torch.all(
-        crossed[:, :6] == genes_c[:, :6], dim=1
-    ) | torch.all(
+    rb_from_parent = torch.all(crossed[:, :6] == genes_c[:, :6], dim=1) | torch.all(
         crossed[:, :6] == parent2_c[:, :6], dim=1
     )
     assert torch.all(rb_from_parent)
     if genes.shape[1] > 6:
         assert torch.all(
-            (crossed[:, 6:] == genes_c[:, 6:])
-            | (crossed[:, 6:] == parent2_c[:, 6:])
+            (crossed[:, 6:] == genes_c[:, 6:]) | (crossed[:, 6:] == parent2_c[:, 6:])
         )
 
     receptor = _receptor_mask(case)
@@ -257,9 +239,7 @@ def test_minimize_returns_gene_from_optimizer_masked_dofs(
 ):
     case = cpu_ga_case
     genes = case.layout.genes_from_pose_stack(case.population)
-    genes[:, :6] += torch.tensor(
-        [0.3, -0.2, 0.1, 0.25, -0.15, 0.05], dtype=genes.dtype
-    )
+    genes[:, :6] += torch.tensor([0.3, -0.2, 0.1, 0.25, -0.15, 0.05], dtype=genes.dtype)
     genes[:, 6:] += 0.4
     raw_dofs = case.layout.raw_dofs_from_genes(genes)
     proposed = case.layout.pose_stack_from_genes(genes)
@@ -273,9 +253,7 @@ def test_minimize_returns_gene_from_optimizer_masked_dofs(
         )
         return kf_network.pose_stack_from_dofs()
 
-    monkeypatch.setattr(
-        scoring_backend_module, "run_min", capture_noop_min
-    )
+    monkeypatch.setattr(scoring_backend_module, "run_min", capture_noop_min)
     result = ContinuousBackend(
         case.param_db,
         kin_dtype=torch.float64,
@@ -297,9 +275,7 @@ def test_minimize_returns_gene_from_optimizer_masked_dofs(
         rtol=0.0,
         atol=0.0,
     )
-    torch.testing.assert_close(
-        result.genes, expected_genes, rtol=0.0, atol=1.0e-12
-    )
+    torch.testing.assert_close(result.genes, expected_genes, rtol=0.0, atol=1.0e-12)
     torch.testing.assert_close(result.genes, genes, rtol=0.0, atol=1.0e-12)
     torch.testing.assert_close(
         result.pose_stack.coords, proposed.coords, rtol=0.0, atol=1.0e-9
@@ -313,9 +289,7 @@ def test_minimize_returns_gene_from_optimizer_masked_dofs(
 def test_distance_matches_independent_heavy_atom_rms(cpu_ga_case):
     case = cpu_ga_case
     genes = case.layout.genes_from_pose_stack(case.population)
-    genes[:, 0] += torch.arange(
-        genes.shape[0], dtype=genes.dtype, device=genes.device
-    )
+    genes[:, 0] += torch.arange(genes.shape[0], dtype=genes.dtype, device=genes.device)
     poses = case.layout.pose_stack_from_genes(genes)
     heavy = case.layout.ligand_heavy_coords(poses)
 
@@ -354,9 +328,7 @@ def test_update_pool_enforces_diversity_and_documents_fill(cpu_ga_case):
         energies=torch.tensor([1.0, 3.0, 5.0], dtype=base.dtype),
         n_diverse=3,
     )
-    selected = update_pool(
-        parents, offspring, layout3, npool=3, rmsdthreshold=2.0
-    )
+    selected = update_pool(parents, offspring, layout3, npool=3, rmsdthreshold=2.0)
     heavy = layout3.ligand_heavy_coords(selected.pose_stack)
     distances = ligand_heavy_atom_rms(heavy[:, None], heavy[None, :])
     off_diagonal = distances[~torch.eye(3, dtype=torch.bool)]
@@ -463,12 +435,8 @@ def test_swarm_subsample_is_exactly_reproducible(cpu_ga_case):
     case = cpu_ga_case
     swarm_size, npool = 6, 3
     swarm_population = repeat_pose_stack(case.reference, swarm_size)
-    swarm_dofs = build_ligand_docking_dofs(
-        swarm_population, case.ligand_block
-    )
-    swarm_layout = LigandGeneLayout.from_pose_stack(
-        swarm_population, swarm_dofs
-    )
+    swarm_dofs = build_ligand_docking_dofs(swarm_population, case.ligand_block)
+    swarm_layout = LigandGeneLayout.from_pose_stack(swarm_population, swarm_dofs)
     pool_population = repeat_pose_stack(case.reference, npool)
     pool_dofs = build_ligand_docking_dofs(pool_population, case.ligand_block)
     pool_layout = LigandGeneLayout.from_pose_stack(pool_population, pool_dofs)
@@ -477,9 +445,7 @@ def test_swarm_subsample_is_exactly_reproducible(cpu_ga_case):
     local = torch.arange(swarm_size, dtype=genes.dtype)
     genes[:, 0] += local
     pose_stack = swarm_layout.pose_stack_from_genes(genes)
-    energies = torch.tensor(
-        [5.0, 0.0, 4.0, 1.0, 3.0, 2.0], dtype=genes.dtype
-    )
+    energies = torch.tensor([5.0, 0.0, 4.0, 1.0, 3.0, 2.0], dtype=genes.dtype)
     swarm = GAPool(
         genes=genes,
         pose_stack=pose_stack,
@@ -500,9 +466,7 @@ def test_swarm_subsample_is_exactly_reproducible(cpu_ga_case):
     selected = subsample()
     repeated = subsample()
     assert selected.genes.shape == (npool, genes.shape[1])
-    torch.testing.assert_close(
-        selected.genes, repeated.genes, rtol=0.0, atol=0.0
-    )
+    torch.testing.assert_close(selected.genes, repeated.genes, rtol=0.0, atol=0.0)
     torch.testing.assert_close(
         selected.selected_indices,
         repeated.selected_indices,
@@ -522,14 +486,10 @@ def test_swarm_subsample_is_exactly_reproducible(cpu_ga_case):
 class _TranslationImprovingBackend(ScoringBackend):
     def __init__(self, reference, ligand_block):
         block_type_index = int(reference.block_type_ind64[0, ligand_block])
-        block_type = reference.packed_block_types.active_block_types[
-            block_type_index
-        ]
+        block_type = reference.packed_block_types.active_block_types[block_type_index]
         self.offset = int(reference.block_coord_offset64[0, ligand_block])
         self.n_atoms = block_type.n_atoms
-        ligand = reference.coords[
-            0, self.offset : self.offset + self.n_atoms
-        ]
+        ligand = reference.coords[0, self.offset : self.offset + self.n_atoms]
         self.target_com = torch.mean(ligand, dim=0) + torch.tensor(
             [10.0, 0.0, 0.0], dtype=ligand.dtype, device=ligand.device
         )
@@ -539,9 +499,7 @@ class _TranslationImprovingBackend(ScoringBackend):
         self.minimized_genes = []
 
     def score(self, pose_stack):
-        ligand = pose_stack.coords[
-            :, self.offset : self.offset + self.n_atoms
-        ]
+        ligand = pose_stack.coords[:, self.offset : self.offset + self.n_atoms]
         delta = torch.mean(ligand, dim=1) - self.target_com
         return torch.sum(delta * delta, dim=1)
 
@@ -558,9 +516,7 @@ class _TranslationImprovingBackend(ScoringBackend):
         coords = pose_stack.coords.clone()
         ligand = coords[:, self.offset : self.offset + self.n_atoms]
         shift = 0.5 * (self.target_com - torch.mean(ligand, dim=1))
-        coords[:, self.offset : self.offset + self.n_atoms] = (
-            ligand + shift[:, None, :]
-        )
+        coords[:, self.offset : self.offset + self.n_atoms] = ligand + shift[:, None, :]
         layout = LigandGeneLayout.from_pose_stack(pose_stack, docking_dofs)
         genes = layout.genes_from_raw_dofs(initial_raw_dofs).clone()
         self.proposed_genes.append(genes.detach().clone())
@@ -763,15 +719,11 @@ def test_swarm_mc_is_deterministic_monotone_and_torsion_only(
         trial_pool = optimized[round_index]
         improve = trial_pool.energies < best_energies
         best_genes = torch.where(improve[:, None], trial_pool.genes, best_genes)
-        best_energies = torch.where(
-            improve, trial_pool.energies, best_energies
-        )
+        best_energies = torch.where(improve, trial_pool.energies, best_energies)
         assert torch.all(best_energies <= energy_history[-1])
         energy_history.append(best_energies)
 
-    torch.testing.assert_close(
-        refined[0].genes, best_genes, rtol=0.0, atol=1.0e-12
-    )
+    torch.testing.assert_close(refined[0].genes, best_genes, rtol=0.0, atol=1.0e-12)
     torch.testing.assert_close(
         refined[0].energies, best_energies, rtol=0.0, atol=1.0e-12
     )
@@ -822,9 +774,7 @@ def test_zero_round_swarm_is_identical_to_default():
         return result, backend
 
     baseline, baseline_backend = run_once()
-    explicit, explicit_backend = run_once(
-        swarm_mc_rounds=0, swarm_chi_step=0.125
-    )
+    explicit, explicit_backend = run_once(swarm_mc_rounds=0, swarm_chi_step=0.125)
     for actual, expected in (
         (explicit.pool.genes, baseline.pool.genes),
         (explicit.pool.energies, baseline.pool.energies),
@@ -890,9 +840,7 @@ def test_cpu_fp64_continuous_ga_smoke():
     assert result.pool.genes.dtype == torch.float64
     assert torch.isfinite(result.pool.genes).all()
     assert torch.isfinite(result.pool.energies).all()
-    assert torch.all(
-        result.best_energy_history[1:] <= result.best_energy_history[:-1]
-    )
+    assert torch.all(result.best_energy_history[1:] <= result.best_energy_history[:-1])
 
 
 @pytest.mark.skipif(not CUDA_AVAILABLE, reason="requires a CUDA device")
@@ -934,5 +882,3 @@ def test_gpu_fp32_cdk2_default_vsx_schedule():
         # returning fewer than npool when the diversity cutoff cannot be met.
         assert result.pool.n_diverse < schedule.npool
     assert result.pool.genes.shape[0] == schedule.npool
-
-

@@ -59,9 +59,7 @@ def test_batched_grid_score_matches_individual_cdk2_poses(
     pose_coords = coordinate_storage[..., ::2]
     assert not pose_coords.is_contiguous()
 
-    actual = score_ligand_grid_batched(
-        grids, pose_coords, atom_types, charges
-    )
+    actual = score_ligand_grid_batched(grids, pose_coords, atom_types, charges)
     expected = torch.stack(
         [
             score_ligand_grid(grids, coords, atom_types, charges).sum()

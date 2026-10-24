@@ -78,11 +78,7 @@ class GASchedule:
     def __post_init__(self) -> None:
         for name in ("generations", "npool", "maxiter"):
             value = getattr(self, name)
-            if (
-                not isinstance(value, int)
-                or isinstance(value, bool)
-                or value < 1
-            ):
+            if not isinstance(value, int) or isinstance(value, bool) or value < 1:
                 raise ValueError(f"{name} must be a positive integer")
         if not math.isfinite(self.rmsdthreshold) or self.rmsdthreshold < 0:
             raise ValueError("rmsdthreshold must be finite and nonnegative")
@@ -108,9 +104,7 @@ class RandomPlacement:
             not math.isfinite(self.pocket_padding_angstrom)
             or self.pocket_padding_angstrom < 0
         ):
-            raise ValueError(
-                "pocket_padding_angstrom must be finite and nonnegative"
-            )
+            raise ValueError("pocket_padding_angstrom must be finite and nonnegative")
 
 
 @dataclass(frozen=True)
@@ -137,19 +131,14 @@ class LigandGeneLayout:
     def from_pose_stack(
         cls, pose_stack: PoseStack, docking_dofs: LigandDockingDOFs
     ) -> "LigandGeneLayout":
-        kin_module = PoseStackKinematicsModule(
-            pose_stack, docking_dofs.fold_forest
-        )
+        kin_module = PoseStackKinematicsModule(pose_stack, docking_dofs.fold_forest)
         kmd = kin_module.kmd
         raw_dofs = _inverse_dofs(pose_stack, kin_module)
         minmap = MinimizerMap(pose_stack, kmd, docking_dofs.move_map)
 
-        jump_mask = (
-            (kmd.forest.doftype == int(NodeType.jump))
-            & torch.all(
-                minmap.dof_mask[:, : int(JumpDOFTypes.RBdel_gamma) + 1],
-                dim=1,
-            )
+        jump_mask = (kmd.forest.doftype == int(NodeType.jump)) & torch.all(
+            minmap.dof_mask[:, : int(JumpDOFTypes.RBdel_gamma) + 1],
+            dim=1,
         )
         jump_node_list = torch.nonzero(jump_mask, as_tuple=False).flatten()
         if jump_node_list.numel() != pose_stack.n_poses:
@@ -167,9 +156,7 @@ class LigandGeneLayout:
         block_type_index = int(
             pose_stack.block_type_ind64[0, docking_dofs.ligand_block]
         )
-        block_type = pose_stack.packed_block_types.active_block_types[
-            block_type_index
-        ]
+        block_type = pose_stack.packed_block_types.active_block_types[block_type_index]
         ligand_nodes = _ligand_kinforest_nodes(
             pose_stack,
             docking_dofs.ligand_block,
@@ -273,12 +260,9 @@ class LigandGeneLayout:
             self.jump_nodes[:, None],
             torch.arange(6, dtype=torch.int64, device=raw_dofs.device)[None, :],
         ]
-        raw_torsions = raw_dofs[
-            self.torsion_nodes, self.torsion_dof_types[None, :]
-        ]
+        raw_torsions = raw_dofs[self.torsion_nodes, self.torsion_dof_types[None, :]]
         logical_torsions = _wrap_angle(
-            self.torsion_signs[None, :] * raw_torsions
-            + self.torsion_offsets
+            self.torsion_signs[None, :] * raw_torsions + self.torsion_offsets
         )
         return torch.cat((jump_dofs, logical_torsions), dim=1)
 
@@ -338,12 +322,9 @@ class LigandGeneLayout:
             torch.arange(6, dtype=torch.int64, device=genes.device)[None, :],
         ] = genes[:, :6]
         raw_torsions = _wrap_angle(
-            self.torsion_signs[None, :]
-            * (genes[:, 6:] - self.torsion_offsets)
+            self.torsion_signs[None, :] * (genes[:, 6:] - self.torsion_offsets)
         )
-        raw_dofs[
-            self.torsion_nodes, self.torsion_dof_types[None, :]
-        ] = raw_torsions
+        raw_dofs[self.torsion_nodes, self.torsion_dof_types[None, :]] = raw_torsions
         return raw_dofs
 
     def pose_stack_from_genes(self, genes: torch.Tensor) -> PoseStack:
@@ -358,9 +339,7 @@ class LigandGeneLayout:
             device=self.template.device,
         )
         atom_indices = (
-            self.template.block_coord_offset64[
-                :, self.docking_dofs.ligand_block, None
-            ]
+            self.template.block_coord_offset64[:, self.docking_dofs.ligand_block, None]
             + self.ligand_local_atoms[None, :]
         )
         coords[pose_indices[:, None], atom_indices] = kin_coords[self.ligand_nodes].to(
@@ -368,9 +347,9 @@ class LigandGeneLayout:
         )
         if self.sidechain_nodes.shape[1]:
             rebuilt_sidechains = kin_coords[self.sidechain_nodes].to(coords.dtype)
-            coords[
-                pose_indices[:, None], self.sidechain_atom_indices
-            ] = rebuilt_sidechains
+            coords[pose_indices[:, None], self.sidechain_atom_indices] = (
+                rebuilt_sidechains
+            )
         return attr.evolve(self.template, coords=coords)
 
     def ligand_heavy_coords(self, pose_stack: PoseStack) -> torch.Tensor:
@@ -408,8 +387,7 @@ def _block_heavy_coords(
         pose_stack.n_poses, dtype=torch.int64, device=pose_stack.device
     )
     atom_indices = (
-        pose_stack.block_coord_offset64[:, block, None]
-        + heavy_local_atoms[None, :]
+        pose_stack.block_coord_offset64[:, block, None] + heavy_local_atoms[None, :]
     )
     return pose_stack.coords[pose_indices[:, None], atom_indices]
 
@@ -456,18 +434,14 @@ def select_pocket_residue_blocks(
         ]
         if not block_type.properties.polymer.is_polymer:
             continue
-        if has_nonpolymer_connection(
-            pose_stack, block, int(block_type_indices[0])
-        ):
+        if has_nonpolymer_connection(pose_stack, block, int(block_type_indices[0])):
             continue
         if int(block_type.n_sc_torsions) == 0:
             continue
         receptor_heavy = _block_heavy_coords(pose_stack, block)
         if bool(torch.any(torch.cdist(receptor_heavy, ligand_heavy) <= cutoff)):
             selected.append(block)
-    return torch.tensor(
-        selected, dtype=torch.int64, device=pose_stack.device
-    )
+    return torch.tensor(selected, dtype=torch.int64, device=pose_stack.device)
 
 
 @dataclass(frozen=True)
@@ -560,9 +534,7 @@ def _place_ligand_in_reference(
         ]
     )
     coords = reference_pose_stack.coords.clone()
-    coords[pose_indices[:, None], atom_indices] = ligand_pose_stack.coords[
-        :, :n_atoms
-    ]
+    coords[pose_indices[:, None], atom_indices] = ligand_pose_stack.coords[:, :n_atoms]
     if sidechain_blocks:
         if sidechain_atom_indices is None or sidechain_atom_indices.ndim != 1:
             raise ValueError(
@@ -589,9 +561,7 @@ def _place_ligand_in_reference(
             if selected.numel() == 0:
                 continue
             local_atoms = selected - compact_start
-            source_type_indices = reference_pose_stack.block_type_ind64[
-                :, source_block
-            ]
+            source_type_indices = reference_pose_stack.block_type_ind64[:, source_block]
             if not bool(
                 torch.all(
                     source_type_indices
@@ -600,9 +570,7 @@ def _place_ligand_in_reference(
             ):
                 raise ValueError("sidechain and reference block types must match")
             target_atoms = (
-                reference_pose_stack.block_coord_offset64[
-                    :, source_block, None
-                ]
+                reference_pose_stack.block_coord_offset64[:, source_block, None]
                 + local_atoms[None, :]
             )
             coords[pose_indices[:, None], target_atoms] = ligand_pose_stack.coords[
@@ -618,12 +586,10 @@ def _unit_vectors(
     device: torch.device,
     generator: torch.Generator,
 ) -> torch.Tensor:
-    vectors = torch.randn(
-        (count, 3), dtype=dtype, device=device, generator=generator
+    vectors = torch.randn((count, 3), dtype=dtype, device=device, generator=generator)
+    return vectors / torch.linalg.vector_norm(vectors, dim=1, keepdim=True).clamp_min(
+        torch.finfo(dtype).tiny
     )
-    return vectors / torch.linalg.vector_norm(
-        vectors, dim=1, keepdim=True
-    ).clamp_min(torch.finfo(dtype).tiny)
 
 
 def _canonical_torsions(torsions: torch.Tensor) -> torch.Tensor:
@@ -727,9 +693,7 @@ def _apply_rosetta_rotation_mutation(
         dim=-1,
     )
     parent_rotation = _zyx_rotation_matrix(parent_euler).transpose(-1, -2)
-    perturbation_rotation = _quaternion_rotation_matrix(
-        perturbation_quaternion
-    )
+    perturbation_rotation = _quaternion_rotation_matrix(perturbation_quaternion)
     composed_rotation = perturbation_rotation @ parent_rotation
     return _rotation_matrix_to_zyx(composed_rotation.transpose(-1, -2))
 
@@ -760,8 +724,7 @@ def mutate(
     n_genes, n_dof = genes.shape
     device, dtype = genes.device, genes.dtype
     randomize_rt = (
-        torch.rand((n_genes,), device=device, generator=generator)
-        < rtmutation_rate
+        torch.rand((n_genes,), device=device, generator=generator) < rtmutation_rate
     )
     result = genes.clone()
 
@@ -769,14 +732,10 @@ def mutate(
         n_genes, dtype=dtype, device=device, generator=generator
     )
     translation_length = (
-        torch.rand(
-            (n_genes, 1), dtype=dtype, device=device, generator=generator
-        )
+        torch.rand((n_genes, 1), dtype=dtype, device=device, generator=generator)
         * translation_width
     )
-    result[:, :3] += (
-        randomize_rt[:, None] * translation_axis * translation_length
-    )
+    result[:, :3] += randomize_rt[:, None] * translation_axis * translation_length
 
     if rotation_width > math.pi:
         random_values = torch.rand(
@@ -795,9 +754,7 @@ def mutate(
             dim=1,
         )
         random_rotation = _quaternion_rotation_matrix(random_quaternion)
-        mutated_rotation = _rotation_matrix_to_zyx(
-            random_rotation.transpose(-1, -2)
-        )
+        mutated_rotation = _rotation_matrix_to_zyx(random_rotation.transpose(-1, -2))
     else:
         rotation_axis = _unit_vectors(
             n_genes, dtype=dtype, device=device, generator=generator
@@ -808,16 +765,12 @@ def mutate(
         mutated_rotation = _apply_rosetta_rotation_mutation(
             genes[:, 3:6], rotation_axis, angle
         )
-    result[:, 3:6] = torch.where(
-        randomize_rt[:, None], mutated_rotation, genes[:, 3:6]
-    )
+    result[:, 3:6] = torch.where(randomize_rt[:, None], mutated_rotation, genes[:, 3:6])
 
     n_torsions = n_dof - 6
     if n_torsions:
         mutate_torsion = (
-            torch.rand(
-                (n_genes, n_torsions), device=device, generator=generator
-            )
+            torch.rand((n_genes, n_torsions), device=device, generator=generator)
             < torsmutation_rate
         ) & ~randomize_rt[:, None]
         force = ~randomize_rt & ~torch.any(mutate_torsion, dim=1)
@@ -829,11 +782,15 @@ def mutate(
         mutate_torsion |= forced
 
         if torsion_width > math.pi:
-            mutated_torsions = 2 * math.pi * torch.rand(
-                (n_genes, n_torsions),
-                dtype=dtype,
-                device=device,
-                generator=generator,
+            mutated_torsions = (
+                2
+                * math.pi
+                * torch.rand(
+                    (n_genes, n_torsions),
+                    dtype=dtype,
+                    device=device,
+                    generator=generator,
+                )
             )
         else:
             delta = torsion_width * (
@@ -847,9 +804,7 @@ def mutate(
                 )
             )
             mutated_torsions = genes[:, 6:] + delta
-        result[:, 6:] = torch.where(
-            mutate_torsion, mutated_torsions, genes[:, 6:]
-        )
+        result[:, 6:] = torch.where(mutate_torsion, mutated_torsions, genes[:, 6:])
     return _canonicalize_genes(result)
 
 
@@ -871,19 +826,22 @@ def crossover(
     if parent1.shape[1] < 6:
         raise ValueError("crossover genes need a six-value rigid body")
     n_genes, n_dof = parent1.shape
-    take_rb_1 = torch.rand(
-        (n_genes, 1), device=parent1.device, generator=generator
-    ) < 0.5
+    take_rb_1 = (
+        torch.rand((n_genes, 1), device=parent1.device, generator=generator) < 0.5
+    )
     result = torch.empty_like(parent1)
     result[:, :6] = torch.where(take_rb_1, parent1[:, :6], parent2[:, :6])
 
     n_torsions = n_dof - 6
     if n_torsions:
-        take_chi_1 = torch.rand(
-            (n_genes, n_torsions),
-            device=parent1.device,
-            generator=generator,
-        ) < 0.5
+        take_chi_1 = (
+            torch.rand(
+                (n_genes, n_torsions),
+                device=parent1.device,
+                generator=generator,
+            )
+            < 0.5
+        )
         force_partner2 = torch.all(take_chi_1, dim=1)
         forced_index = torch.randint(
             n_torsions,
@@ -894,9 +852,7 @@ def crossover(
         forced_partner2 = torch.zeros_like(take_chi_1)
         forced_partner2.scatter_(1, forced_index, force_partner2[:, None])
         take_chi_1 &= ~forced_partner2
-        result[:, 6:] = torch.where(
-            take_chi_1, parent1[:, 6:], parent2[:, 6:]
-        )
+        result[:, 6:] = torch.where(take_chi_1, parent1[:, 6:], parent2[:, 6:])
     return _canonicalize_genes(result)
 
 
@@ -921,13 +877,13 @@ def next_generation(
     if not math.isfinite(pmut) or not 0.0 <= pmut <= 1.0:
         raise ValueError("pmut must be between zero and one")
     npoolin = genes.shape[0]
-    parent_indices = torch.arange(
-        npoolout, dtype=torch.int64, device=genes.device
-    ) % npoolin
+    parent_indices = (
+        torch.arange(npoolout, dtype=torch.int64, device=genes.device) % npoolin
+    )
     parents = genes[parent_indices]
-    mutate_choice = torch.rand(
-        (npoolout,), device=genes.device, generator=generator
-    ) <= pmut
+    mutate_choice = (
+        torch.rand((npoolout,), device=genes.device, generator=generator) <= pmut
+    )
     if npoolin == 1:
         mutate_choice = torch.ones_like(mutate_choice)
         partners = parents
@@ -1143,28 +1099,26 @@ def _initial_genes(
     generator: torch.Generator,
 ) -> torch.Tensor:
     genes = layout.genes_from_pose_stack(layout.template)
-    unit_jitter = 2 * torch.rand(
-        genes.shape,
-        dtype=genes.dtype,
-        device=genes.device,
-        generator=generator,
-    ) - 1
+    unit_jitter = (
+        2
+        * torch.rand(
+            genes.shape,
+            dtype=genes.dtype,
+            device=genes.device,
+            generator=generator,
+        )
+        - 1
+    )
     jitter_rows = torch.arange(genes.shape[0], device=genes.device) > 0
     result = genes.clone()
     result[:, :3] += (
-        jitter_rows[:, None]
-        * unit_jitter[:, :3]
-        * perturbation.translation_angstrom
+        jitter_rows[:, None] * unit_jitter[:, :3] * perturbation.translation_angstrom
     )
     result[:, 3:6] += (
-        jitter_rows[:, None]
-        * unit_jitter[:, 3:6]
-        * perturbation.rotation_radians
+        jitter_rows[:, None] * unit_jitter[:, 3:6] * perturbation.rotation_radians
     )
     result[:, 6:] += (
-        jitter_rows[:, None]
-        * unit_jitter[:, 6:]
-        * perturbation.torsion_radians
+        jitter_rows[:, None] * unit_jitter[:, 6:] * perturbation.torsion_radians
     )
     return _canonicalize_genes(result)
 
@@ -1192,9 +1146,7 @@ def _normalize_pocket_bounds(
     )
     if bounds.shape != (2, 3):
         raise ValueError("pocket_bounds must have shape [2, 3]")
-    if not torch.all(torch.isfinite(bounds)) or not torch.all(
-        bounds[1] >= bounds[0]
-    ):
+    if not torch.all(torch.isfinite(bounds)) or not torch.all(bounds[1] >= bounds[0]):
         raise ValueError("pocket bounds must be finite with max >= min")
     return bounds
 
@@ -1245,12 +1197,17 @@ def _random_initial_genes(
         _quaternion_rotation_matrix(quaternion).transpose(-1, -2)
     )
     if result.shape[1] > 6:
-        result[:, 6:] = 2 * math.pi * torch.rand(
-            (npool, result.shape[1] - 6),
-            dtype=dtype,
-            device=device,
-            generator=generator,
-        ) - math.pi
+        result[:, 6:] = (
+            2
+            * math.pi
+            * torch.rand(
+                (npool, result.shape[1] - 6),
+                dtype=dtype,
+                device=device,
+                generator=generator,
+            )
+            - math.pi
+        )
     result = _canonicalize_genes(result)
     oriented = layout.pose_stack_from_genes(result)
     current_centroid = layout.ligand_heavy_coords(oriented).mean(dim=1)
@@ -1310,9 +1267,9 @@ def _conformer_initial_genes(
 
     result = random_genes.clone()
     n_ligand_torsions = len(layout.docking_dofs.torsions)
-    result[
+    result[seeded_rows, 6 : 6 + n_ligand_torsions] = conformer_genes[
         seeded_rows, 6 : 6 + n_ligand_torsions
-    ] = conformer_genes[seeded_rows, 6 : 6 + n_ligand_torsions]
+    ]
 
     random_pose = layout.pose_stack_from_genes(random_genes)
     target_centroids = layout.ligand_heavy_coords(random_pose).mean(dim=1)
@@ -1430,9 +1387,7 @@ def run_ga_docking(
     requested_sidechain_blocks = (
         ()
         if sidechain_blocks is None
-        else validated_sidechain_blocks(
-            pose_stack, ligand_block, sidechain_blocks
-        )
+        else validated_sidechain_blocks(pose_stack, ligand_block, sidechain_blocks)
     )
     compact_sidechain_blocks: tuple[int, ...] = ()
     if initialization == "swarm" and requested_sidechain_blocks:
@@ -1492,9 +1447,7 @@ def run_ga_docking(
     if initialization == "swarm":
         swarm_population = repeat_pose_stack(pose_stack, swarm_size)
         swarm_dofs = build_ligand_docking_dofs(swarm_population, ligand_block)
-        swarm_layout = LigandGeneLayout.from_pose_stack(
-            swarm_population, swarm_dofs
-        )
+        swarm_layout = LigandGeneLayout.from_pose_stack(swarm_population, swarm_dofs)
         swarm_genes = _random_initial_genes(
             swarm_layout,
             pocket_bounds=pocket_bounds,
@@ -1531,9 +1484,7 @@ def run_ga_docking(
         del swarm_dofs
         del swarm_population
     elif initialization == "jitter":
-        genes = _initial_genes(
-            layout, schedule.initial_perturbation, generator
-        )
+        genes = _initial_genes(layout, schedule.initial_perturbation, generator)
     elif initialization == "random":
         genes = _random_initial_genes(
             layout,
@@ -1664,9 +1615,7 @@ def run_ga_docking(
             sidechain_blocks=requested_sidechain_blocks,
             compact_sidechain_blocks=compact_sidechain_blocks,
             sidechain_atom_indices=(
-                layout.sidechain_atom_indices[0]
-                if requested_sidechain_blocks
-                else None
+                layout.sidechain_atom_indices[0] if requested_sidechain_blocks else None
             ),
         )
     return GAResult(
@@ -1724,9 +1673,7 @@ def run_docking(
     ):
         raise ValueError("top_k must be between 1 and schedule.npool")
 
-    ga_result = run_ga_docking(
-        pose_stack, ligand_block, backend, **ga_kwargs
-    )
+    ga_result = run_ga_docking(pose_stack, ligand_block, backend, **ga_kwargs)
     if not finalize:
         return DockingResult(
             best_pose_stack=ga_result.best_pose_stack,

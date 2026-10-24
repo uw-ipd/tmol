@@ -68,9 +68,7 @@ def _inverse_dofs(
     kin_coords = torch.zeros(
         (kmd.forest.id.shape[0], 3), dtype=dtype, device=pose_stack.device
     )
-    kin_coords[1:] = pose_stack.coords.reshape(-1, 3)[
-        kmd.forest.id[1:].to(torch.int64)
-    ]
+    kin_coords[1:] = pose_stack.coords.reshape(-1, 3)[kmd.forest.id[1:].to(torch.int64)]
     return inverse_kin(
         kin_coords,
         kmd.forest.parent,
@@ -89,14 +87,10 @@ def _perturb_ligand_dofs(
 ) -> PoseStack:
     """Jitter free ligand raw DOFs in poses 1..N-1 and rebuild coordinates."""
 
-    kin_module = PoseStackKinematicsModule(
-        pose_stack, docking_dofs.fold_forest
-    )
+    kin_module = PoseStackKinematicsModule(pose_stack, docking_dofs.fold_forest)
     kmd = kin_module.kmd
     raw_dofs = _inverse_dofs(pose_stack, kin_module)
-    dof_mask = MinimizerMap(
-        pose_stack, kmd, docking_dofs.move_map
-    ).dof_mask
+    dof_mask = MinimizerMap(pose_stack, kmd, docking_dofs.move_map).dof_mask
     nodes, dof_columns = torch.nonzero(dof_mask, as_tuple=True)
 
     target_atoms = kmd.forest.id[nodes].to(torch.int64)
@@ -121,21 +115,23 @@ def _perturb_ligand_dofs(
     if not bool(torch.all(translation | rotation | torsion)):
         raise ValueError("ligand docking MoveMap contains an unsupported free DOF")
 
-    scales = torch.empty(
-        nodes.shape, dtype=raw_dofs.dtype, device=pose_stack.device
-    )
+    scales = torch.empty(nodes.shape, dtype=raw_dofs.dtype, device=pose_stack.device)
     scales[translation] = perturb.translation_angstrom
     scales[rotation] = perturb.rotation_radians
     scales[torsion] = perturb.torsion_radians
 
     generator = torch.Generator(device=pose_stack.device)
     generator.manual_seed(seed)
-    unit_jitter = 2.0 * torch.rand(
-        nodes.shape,
-        dtype=raw_dofs.dtype,
-        device=pose_stack.device,
-        generator=generator,
-    ) - 1.0
+    unit_jitter = (
+        2.0
+        * torch.rand(
+            nodes.shape,
+            dtype=raw_dofs.dtype,
+            device=pose_stack.device,
+            generator=generator,
+        )
+        - 1.0
+    )
     perturbed_dofs = raw_dofs.clone()
     perturbed_dofs[nodes, dof_columns] += unit_jitter * scales
     kin_coords = kin_module(perturbed_dofs)
@@ -150,15 +146,11 @@ def _perturb_ligand_dofs(
         pose_stack.max_n_pose_atoms,
         rounding_mode="floor",
     )
-    atom_in_pose = torch.remainder(
-        all_target_atoms, pose_stack.max_n_pose_atoms
-    )
+    atom_in_pose = torch.remainder(all_target_atoms, pose_stack.max_n_pose_atoms)
     ligand_offsets = pose_stack.block_coord_offset64[
         pose_for_atom, docking_dofs.ligand_block
     ]
-    block_type_index = int(
-        pose_stack.block_type_ind64[0, docking_dofs.ligand_block]
-    )
+    block_type_index = int(pose_stack.block_type_ind64[0, docking_dofs.ligand_block])
     ligand_n_atoms = pose_stack.packed_block_types.active_block_types[
         block_type_index
     ].n_atoms
@@ -203,9 +195,7 @@ def run_one_generation(
     population = repeat_pose_stack(pose_stack, n_pop)
 
     docking_dofs = build_ligand_docking_dofs(population, ligand_block)
-    population = _perturb_ligand_dofs(
-        population, docking_dofs, perturb, seed
-    )
+    population = _perturb_ligand_dofs(population, docking_dofs, perturb, seed)
     initial_energies = backend.score(population)
     expected_shape = (n_pop,)
     if initial_energies.shape != expected_shape:

@@ -24,7 +24,6 @@ from tmol.tests.dock.test_ligand_dof_roundtrip import (
 )
 from tmol.pose import repeat_pose_stack
 
-
 PLI_DATA_DIR = data_path("protein_ligand_test")
 CDK2_MOL2 = PLI_DATA_DIR / "cdk2.lig.mol2"
 
@@ -99,9 +98,7 @@ def test_conformer_seeded_genes_preserve_random_placement_and_valid_bonds(
         generator=torch.Generator().manual_seed(73),
     )
     torch.testing.assert_close(seeded[0], random[0], rtol=0.0, atol=0.0)
-    torch.testing.assert_close(
-        seeded[6:, 6:], random[6:, 6:], rtol=0.0, atol=0.0
-    )
+    torch.testing.assert_close(seeded[6:, 6:], random[6:, 6:], rtol=0.0, atol=0.0)
     assert torch.any(seeded[1:6, 6:] != random[1:6, 6:])
 
     expected_coords = layout.template.coords.clone()
@@ -111,8 +108,7 @@ def test_conformer_seeded_genes_preserve_random_placement_and_valid_bonds(
         + layout.ligand_local_atoms[None, :]
     )
     expected_library_rows = cdk2_conformer_library.coords[
-        np.arange(expected_rows.shape[0])
-        % cdk2_conformer_library.coords.shape[0]
+        np.arange(expected_rows.shape[0]) % cdk2_conformer_library.coords.shape[0]
     ]
     expected_coords[expected_rows[:, None], expected_atoms] = torch.as_tensor(
         expected_library_rows,
@@ -216,9 +212,7 @@ def test_conformer_ga_is_deterministic_and_builds_library_once(
     )
 
 
-def test_failed_conformer_generation_falls_back_byte_identically(
-    monkeypatch, caplog
-):
+def test_failed_conformer_generation_falls_back_byte_identically(monkeypatch, caplog):
     reference, _ = _load_cdk2_pose()
     ligand_block = _ligand_block(reference)
     schedule = GASchedule(
@@ -253,5 +247,3 @@ def test_failed_conformer_generation_falls_back_byte_identically(
     assert torch.equal(fallback.pool.genes, random.pool.genes)
     assert torch.equal(fallback.pool.energies, random.pool.energies)
     assert "falling back to blind random initialization" in caplog.text
-
-

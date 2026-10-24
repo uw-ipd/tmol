@@ -21,7 +21,6 @@ from tmol.tests.ligand.test_protein_ligand_ddg import (
     _load_complex_cif,
 )
 
-
 ROSETTA_GRID_DUMP = Path(
     os.environ.get(
         "TMOL_ROSETTA_GRID_DUMP",
@@ -46,9 +45,7 @@ def _load_cdk2_pose():
         _load_complex_cif("cdk2"),
         torch.device("cpu"),
         prepare_ligands=True,
-        ligand_params_files=[
-            str(PLI_DATA_DIR / "cdk2.xtal-lig.mmff94.tmol")
-        ],
+        ligand_params_files=[str(PLI_DATA_DIR / "cdk2.xtal-lig.mmff94.tmol")],
         no_optH=True,
         param_db=param_db,
         return_context=True,

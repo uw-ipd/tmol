@@ -162,9 +162,7 @@ def _ligand_kinforest_nodes(
 ) -> torch.Tensor:
     """Return the ``[pose, ligand_atom]`` kinematic-node lookup in one gather."""
 
-    return _block_kinforest_nodes(
-        pose_stack, ligand_block, ligand_n_atoms, forest_ids
-    )
+    return _block_kinforest_nodes(pose_stack, ligand_block, ligand_n_atoms, forest_ids)
 
 
 def _raw_dof_affected_nodes(
@@ -272,9 +270,7 @@ def _sidechain_coordinate_metadata(
     mapping_local_masks = []
     for block in docking_dofs.sidechain_blocks:
         block_type_index = int(pose_stack.block_type_ind64[0, block])
-        block_type = pose_stack.packed_block_types.active_block_types[
-            block_type_index
-        ]
+        block_type = pose_stack.packed_block_types.active_block_types[block_type_index]
         block_nodes_by_block[block] = _block_kinforest_nodes(
             pose_stack, block, block_type.n_atoms, forest.id
         )
@@ -282,9 +278,7 @@ def _sidechain_coordinate_metadata(
     for mapping in docking_dofs.sidechain_torsions:
         block_nodes = block_nodes_by_block[mapping.block]
         block_type = pose_stack.block_type(0, mapping.block)
-        torsion_atoms = _local_torsion_atoms(
-            block_type, mapping.torsion_index
-        )
+        torsion_atoms = _local_torsion_atoms(block_type, mapping.torsion_index)
         sidechain_local_atoms = _sidechain_end_local_atoms(
             block_type, torsion_atoms, pose_stack.device
         )
@@ -319,8 +313,7 @@ def _sidechain_coordinate_metadata(
         )
         node_parts.append(block_nodes_by_block[block][:, local_atoms])
         atom_index_parts.append(
-            pose_stack.block_coord_offset64[:, block, None]
-            + local_atoms[None, :]
+            pose_stack.block_coord_offset64[:, block, None] + local_atoms[None, :]
         )
         ordered_atoms.extend((block, atom) for atom in local_atoms_host)
 
@@ -342,9 +335,7 @@ def _sidechain_coordinate_metadata(
         dtype=torch.bool,
         device=pose_stack.device,
     )
-    for mapping_index, (mapping_block, local_mask) in enumerate(
-        mapping_local_masks
-    ):
+    for mapping_index, (mapping_block, local_mask) in enumerate(mapping_local_masks):
         influence[mapping_index] = torch.tensor(
             [
                 block == mapping_block and bool(local_mask[local_atom])
@@ -397,9 +388,7 @@ def _inverse_dofs(pose_stack: PoseStack, kin_module: PoseStackKinematicsModule):
     kincoords = torch.zeros(
         (kmd.forest.id.shape[0], 3), dtype=dtype, device=pose_stack.device
     )
-    kincoords[1:] = pose_stack.coords.reshape(-1, 3)[
-        kmd.forest.id[1:].to(torch.int64)
-    ]
+    kincoords[1:] = pose_stack.coords.reshape(-1, 3)[kmd.forest.id[1:].to(torch.int64)]
     return inverse_kin(
         kincoords,
         kmd.forest.parent,
@@ -453,15 +442,13 @@ def _sidechain_logical_torsions_from_coords(
         device=pose_stack.device,
     )
     atom_indices = (
-        pose_stack.block_coord_offset64[:, blocks, None]
-        + torsion_atoms[None, :, :]
+        pose_stack.block_coord_offset64[:, blocks, None] + torsion_atoms[None, :, :]
     )
     pose_indices = torch.arange(
         pose_stack.n_poses, dtype=torch.int64, device=pose_stack.device
     )
     flat_atom_indices = (
-        pose_indices[:, None, None] * pose_stack.max_n_pose_atoms
-        + atom_indices
+        pose_indices[:, None, None] * pose_stack.max_n_pose_atoms + atom_indices
     )
     return _batched_coord_dihedrals(
         pose_stack.coords.reshape(-1, 3), flat_atom_indices
@@ -499,9 +486,7 @@ def _empirical_torsion_signs(
     response_rows = []
     for torsion_index in range(torsion_atoms.shape[0]):
         perturbed_dofs = measure_dofs.clone()
-        perturbed_dofs[
-            raw_nodes[:, torsion_index], dof_types[torsion_index]
-        ] += delta
+        perturbed_dofs[raw_nodes[:, torsion_index], dof_types[torsion_index]] += delta
         perturbed_coords = kin_module(perturbed_dofs)
         changed = _batched_coord_dihedrals(perturbed_coords, atom_nodes)
         response_rows.append(_wrap_angle(changed - base) / delta)
@@ -523,9 +508,7 @@ def _empirical_torsion_signs(
     # a genuinely non-unit isolated response would silently miscalibrate the
     # logical chi and must be rejected.
     unit_tolerance = 5.0e-3
-    if not bool(
-        torch.all(torch.abs(torch.abs(self_slopes) - 1.0) <= unit_tolerance)
-    ):
+    if not bool(torch.all(torch.abs(torch.abs(self_slopes) - 1.0) <= unit_tolerance)):
         raise ValueError(
             "ligand torsion raw-DOF perturbation must change its declared "
             f"dihedral with unit magnitude (tol {unit_tolerance}); measured "
@@ -586,9 +569,7 @@ def _resolve_sidechain_torsions(
 
     for block in sidechain_blocks:
         block_type_index = int(pose_stack.block_type_ind64[0, block])
-        block_type = pose_stack.packed_block_types.active_block_types[
-            block_type_index
-        ]
+        block_type = pose_stack.packed_block_types.active_block_types[block_type_index]
         torsion_indices = [int(index) for index in block_type.sc_torsions]
         if not torsion_indices:
             continue
@@ -632,9 +613,7 @@ def _resolve_sidechain_torsions(
                 "not a bond node"
             )
 
-        normal_fixed = kmd.keep_atom_fixed[
-            child_nodes, int(BondDOFTypes.phi_c)
-        ]
+        normal_fixed = kmd.keep_atom_fixed[child_nodes, int(BondDOFTypes.phi_c)]
         if bool(torch.any(normal_fixed != normal_fixed[0:1])):
             raise ValueError(
                 f"a sidechain torsion in block {block} has inconsistent fixed-"
@@ -670,15 +649,11 @@ def _resolve_sidechain_torsions(
             reversed_is_valid = (
                 bool(
                     torch.all(
-                        kmd.forest.parent[reversed_nodes]
-                        == parent_nodes[:, chi_index]
+                        kmd.forest.parent[reversed_nodes] == parent_nodes[:, chi_index]
                     )
                 )
                 and bool(
-                    torch.all(
-                        kmd.forest.doftype[reversed_nodes]
-                        == int(NodeType.bond)
-                    )
+                    torch.all(kmd.forest.doftype[reversed_nodes] == int(NodeType.bond))
                 )
                 and not bool(reversed_fixed[0])
             )
@@ -701,9 +676,7 @@ def _resolve_sidechain_torsions(
                     selected = (raw_atom, dof_type)
                     break
             if selected is None:
-                torsion_name = block_type.torsions[
-                    torsion_indices[chi_index]
-                ].name
+                torsion_name = block_type.torsions[torsion_indices[chi_index]].name
                 raise ValueError(
                     f"sidechain chi {torsion_name!r} in block {block} has no "
                     "raw controller whose downstream set is confined to that "
@@ -733,9 +706,7 @@ def _resolve_sidechain_torsions(
             pose_stack.block_coord_offset64[:, block, None, None]
             + torsion_atoms[None, :, :]
         )
-        coord_pose_indices = pose_indices[:, None, None].expand_as(
-            coord_atom_indices
-        )
+        coord_pose_indices = pose_indices[:, None, None].expand_as(coord_atom_indices)
         logical = _batched_coord_dihedrals(
             pose_stack.coords.reshape(-1, 3),
             coord_pose_indices * pose_stack.max_n_pose_atoms + coord_atom_indices,
@@ -743,9 +714,9 @@ def _resolve_sidechain_torsions(
         raw = raw_dofs[raw_nodes, dof_types[None, :]].double()
         offsets = _wrap_angle(logical - signs[None, :] * raw).detach().clone()
 
-        mapping_metadata = torch.stack(
-            (raw_atoms, dof_types, signs), dim=1
-        ).cpu().tolist()
+        mapping_metadata = (
+            torch.stack((raw_atoms, dof_types, signs), dim=1).cpu().tolist()
+        )
         for sc_torsion_index, (
             torsion_index,
             (raw_atom, dof_type, sign),
@@ -862,9 +833,7 @@ def build_ligand_docking_dofs(
     if bool(torch.any(kmd.forest.doftype[child_nodes] != int(NodeType.bond))):
         raise ValueError("a normal ligand torsion controller is not a bond node")
 
-    normal_fixed = kmd.keep_atom_fixed[
-        child_nodes, int(BondDOFTypes.phi_c)
-    ]
+    normal_fixed = kmd.keep_atom_fixed[child_nodes, int(BondDOFTypes.phi_c)]
     if bool(torch.any(normal_fixed != normal_fixed[0:1])):
         raise ValueError(
             "a ligand torsion has inconsistent fixed-DOF status across poses"
@@ -880,23 +849,13 @@ def build_ligand_docking_dofs(
 
     reversed_nodes = raw_nodes[:, use_reversed]
     reversed_parents = parent_nodes[:, use_reversed]
-    if bool(
-        torch.any(kmd.forest.parent[reversed_nodes] != reversed_parents)
-    ):
+    if bool(torch.any(kmd.forest.parent[reversed_nodes] != reversed_parents)):
         raise ValueError(
             "a reversed ligand torsion endpoint is not a child of its central atom"
         )
-    if bool(
-        torch.any(kmd.forest.doftype[reversed_nodes] != int(NodeType.bond))
-    ):
+    if bool(torch.any(kmd.forest.doftype[reversed_nodes] != int(NodeType.bond))):
         raise ValueError("a reversed ligand torsion controller is not a bond node")
-    if bool(
-        torch.any(
-            kmd.keep_atom_fixed[
-                reversed_nodes, int(BondDOFTypes.phi_p)
-            ]
-        )
-    ):
+    if bool(torch.any(kmd.keep_atom_fixed[reversed_nodes, int(BondDOFTypes.phi_p)])):
         raise ValueError("both ends of a ligand torsion are fixed by the fold forest")
 
     raw_keys = raw_atoms * raw_dofs.shape[1] + dof_types
@@ -958,28 +917,20 @@ def build_ligand_docking_dofs(
     for mapping in mappings:
         if mapping.dof_type == BondDOFTypes.phi_c:
             torsions = torch.full_like(poses, mapping.torsion_index)
-            move_map.set_move_named_torsion_for_blocks(
-                poses, blocks, torsions, True
-            )
+            move_map.set_move_named_torsion_for_blocks(poses, blocks, torsions, True)
         else:
             atoms = torch.full_like(poses, mapping.raw_atom)
             dof_types = torch.full_like(poses, int(mapping.dof_type))
-            move_map.set_move_atom_dof_for_blocks(
-                poses, blocks, atoms, dof_types, True
-            )
+            move_map.set_move_atom_dof_for_blocks(poses, blocks, atoms, dof_types, True)
     for mapping in sidechain_mappings:
         blocks = torch.full_like(poses, mapping.block)
         if mapping.dof_type == BondDOFTypes.phi_c:
             torsions = torch.full_like(poses, mapping.sc_torsion_index)
-            move_map.set_move_sc_tor_for_blocks(
-                poses, blocks, torsions, True
-            )
+            move_map.set_move_sc_tor_for_blocks(poses, blocks, torsions, True)
         else:
             atoms = torch.full_like(poses, mapping.raw_atom)
             dof_types = torch.full_like(poses, int(mapping.dof_type))
-            move_map.set_move_atom_dof_for_blocks(
-                poses, blocks, atoms, dof_types, True
-            )
+            move_map.set_move_atom_dof_for_blocks(poses, blocks, atoms, dof_types, True)
 
     minimizer_map = MinimizerMap(pose_stack, kmd, move_map)
     for mapping in sidechain_mappings:

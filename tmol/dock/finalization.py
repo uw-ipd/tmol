@@ -28,7 +28,6 @@ from tmol.score.gridscore._movable import (
     sidechain_context_blocks,
 )
 
-
 # Rosetta dockflex "bbsc1" final refinement: one hard-rep Cartesian minimization
 # (fa_rep multiplier 1.0, MinMover tolerance 1e-5, up to 200 iterations). Used for
 # the flexible branch; the rigid branch uses the torsion-space soft->hard schedule.
@@ -109,9 +108,7 @@ def _soft_hard_refine(
             current = minimize(current, step_sfxn, tol, max_iter)
         energy = _score_pose_stack(current, exact_sfxn)
         improved = torch.isfinite(energy) & (energy < best_energy)
-        best_coords = torch.where(
-            improved[:, None, None], current.coords, best_coords
-        )
+        best_coords = torch.where(improved[:, None, None], current.coords, best_coords)
         best_energy = torch.where(improved, energy, best_energy)
         current = attr.evolve(current, coords=best_coords.clone())
     return attr.evolve(promoted, coords=best_coords), best_energy
@@ -242,13 +239,11 @@ def _flexible_sidechain_mapping(
         raise ValueError("finalization requires identical sidechain atom mappings")
 
     block_local_atoms = []
-    for compact_block, source_block in zip(
-        compact_sidechain_blocks, sidechain_blocks
-    ):
+    for compact_block, source_block in zip(compact_sidechain_blocks, sidechain_blocks):
         compact_start = compact_pose_stack.block_coord_offset64[0, compact_block]
-        compact_end = compact_start + compact_pose_stack.block_type(
-            0, compact_block
-        ).n_atoms
+        compact_end = (
+            compact_start + compact_pose_stack.block_type(0, compact_block).n_atoms
+        )
         selected = compact_atoms[
             (compact_atoms >= compact_start) & (compact_atoms < compact_end)
         ]
@@ -407,9 +402,7 @@ def finalize_ga_docking(
     )
     coord_mask.scatter_(1, _ligand_atom_indices(promoted, ligand_block), True)
     if sidechain_blocks:
-        coord_mask.scatter_(
-            1, _mapped_atom_indices(promoted, block_local_atoms), True
-        )
+        coord_mask.scatter_(1, _mapped_atom_indices(promoted, block_local_atoms), True)
     if sidechain_blocks:
         # FLEX: Rosetta dockflex uses a Cartesian "bbsc1" refinement = a single
         # hard-rep minimization (repeat 1, fa_rep 1.0, tol 1e-5, <=200 iter), NOT
@@ -542,7 +535,9 @@ def finalize_ga_docking(
         matrix = values.reshape(1, top_k)
         return matrix.gather(1, sort_order)
 
-    ranked_genes = genes.gather(1, sort_order[:, :, None].expand(-1, -1, genes.shape[2]))
+    ranked_genes = genes.gather(
+        1, sort_order[:, :, None].expand(-1, -1, genes.shape[2])
+    )
     ranked_flat = sort_order.reshape(-1)
     ranked_pose_stack = attr.evolve(
         refined, coords=refined.coords[ranked_flat].detach().clone()

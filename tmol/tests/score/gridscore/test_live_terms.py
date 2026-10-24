@@ -45,8 +45,7 @@ def _ligand_block(pose_stack) -> int:
         b
         for b, t in enumerate(pose_stack.block_type_ind64[0].tolist())
         if t >= 0
-        and pose_stack.packed_block_types.active_block_types[t].name3
-        == LIGAND_RES_NAME
+        and pose_stack.packed_block_types.active_block_types[t].name3 == LIGAND_RES_NAME
     ]
     return block
 

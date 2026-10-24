@@ -151,19 +151,15 @@ class LigandAligner:
                 backend, refinement_coordinates, ligand_atom_indices
             )
             refined_energies = self._score_candidates(backend, refined)
-            refined_ligand = _gather_ligand_coordinates(
-                refined, ligand_atom_indices
-            )
+            refined_ligand = _gather_ligand_coordinates(refined, ligand_atom_indices)
             template_ligand = template_coordinates[ligand_atom_indices]
             refined_rotations = _fit_rigid_transforms(
                 template_ligand[None], refined_ligand
             )
-            refined_centroids = refined_ligand.index_select(
-                1, heavy_atom_indices
-            ).mean(dim=1)
-            preselected_ligand = torch.cat(
-                (refined_ligand, preselected_ligand), dim=0
+            refined_centroids = refined_ligand.index_select(1, heavy_atom_indices).mean(
+                dim=1
             )
+            preselected_ligand = torch.cat((refined_ligand, preselected_ligand), dim=0)
             preselected_rotations = torch.cat(
                 (refined_rotations, preselected_rotations), dim=0
             )
@@ -238,12 +234,12 @@ class LigandAligner:
             alignment.rotations.transpose(-1, -2)
         )
         oriented = layout.pose_stack_from_genes(result)
-        current_centroids = layout.ligand_heavy_coords(oriented).index_select(
-            0, seeded_rows
-        ).mean(dim=1)
-        result[seeded_rows, :3] += (
-            alignment.centroids - current_centroids
+        current_centroids = (
+            layout.ligand_heavy_coords(oriented)
+            .index_select(0, seeded_rows)
+            .mean(dim=1)
         )
+        result[seeded_rows, :3] += alignment.centroids - current_centroids
         return result
 
     def _pocket_bounds(
@@ -261,9 +257,11 @@ class LigandAligner:
                 raise ValueError("pocket_bounds must have shape [2, 3]")
         else:
             geometry = backend._grid_for(device, dtype).geometry
-            grid_max = geometry.origin + geometry.origin.new_tensor(
-                geometry.dims
-            ).sub(1) * geometry.voxel_spacing
+            grid_max = (
+                geometry.origin
+                + geometry.origin.new_tensor(geometry.dims).sub(1)
+                * geometry.voxel_spacing
+            )
             ligand = template_coordinates[ligand_atom_indices]
             heavy = ligand.index_select(0, heavy_atom_indices)
             centroid = heavy.mean(dim=0)
@@ -328,9 +326,9 @@ class LigandAligner:
         heavy = ligand.index_select(0, heavy_atom_indices)
         centroid = heavy.mean(dim=0)
         centered = ligand - centroid
-        return torch.einsum(
-            "ae,mde->mad", centered, rotation
-        ) + target_centroids[:, None]
+        return (
+            torch.einsum("ae,mde->mad", centered, rotation) + target_centroids[:, None]
+        )
 
     def _candidate_coordinates(
         self,
@@ -338,9 +336,9 @@ class LigandAligner:
         ligand_atom_indices: torch.Tensor,
         placed_ligand: torch.Tensor,
     ) -> torch.Tensor:
-        candidates = template_coordinates[None].expand(
-            placed_ligand.shape[0], -1, -1
-        ).clone()
+        candidates = (
+            template_coordinates[None].expand(placed_ligand.shape[0], -1, -1).clone()
+        )
         candidates[:, ligand_atom_indices] = placed_ligand
         return candidates
 
@@ -485,9 +483,9 @@ def _axis_angle_rotation_matrix(rotation_vector: torch.Tensor) -> torch.Tensor:
     )
     x, y, z = torch.unbind(rotation_vector, dim=-1)
     zero = torch.zeros_like(x)
-    skew = torch.stack(
-        (zero, -z, y, z, zero, -x, -y, x, zero), dim=-1
-    ).reshape(rotation_vector.shape[:-1] + (3, 3))
+    skew = torch.stack((zero, -z, y, z, zero, -x, -y, x, zero), dim=-1).reshape(
+        rotation_vector.shape[:-1] + (3, 3)
+    )
     identity = torch.eye(
         3, dtype=rotation_vector.dtype, device=rotation_vector.device
     ).expand_as(skew)
@@ -519,11 +517,7 @@ def _fit_rigid_transforms(
         determinant.shape + (3,), dtype=source.dtype, device=source.device
     )
     correction[..., -1] = torch.sign(determinant)
-    return (
-        vh.transpose(-1, -2)
-        @ torch.diag_embed(correction)
-        @ u.transpose(-1, -2)
-    )
+    return vh.transpose(-1, -2) @ torch.diag_embed(correction) @ u.transpose(-1, -2)
 
 
 def _select_diverse_indices(
