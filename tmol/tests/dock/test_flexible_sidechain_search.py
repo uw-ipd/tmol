@@ -16,8 +16,6 @@ from tmol.dock import (
     run_ga_docking,
     select_pocket_residue_blocks,
 )
-from tmol.dock.ga import (
-)
 from tmol.dock.ligand_dofs import (
     _block_kinforest_nodes,
 )
