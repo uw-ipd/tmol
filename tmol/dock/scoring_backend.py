@@ -31,11 +31,8 @@ from tmol.kinematics import PoseStackKinematicsModule
 from tmol.optimization import LBFGS_Armijo, build_kinforest_network, run_min
 from tmol.pose import PoseStack
 from tmol.score import beta2016_score_function
-from tmol.score.gridscore import GridSet, build_grid, score_ligand_grid_batched
-from tmol.score.gridscore.grid import (
-    probe_atom_types_from_name3,
-    score_ligand_grid_batched_with_gradients,
-)
+from tmol.score.gridscore import GridScorer, GridSet, build_grid
+from tmol.score.gridscore.grid import probe_atom_types_from_name3
 from tmol.score.gridscore.live_hbond import LiveHBondData, build_live_hbond_data
 from tmol.score.gridscore.live_ligand_intra import (
     LiveLigandIntraData,
@@ -630,15 +627,7 @@ class GridBackend(ScoringBackend):
             raise ValueError("lk_ball_grid=True requires all LK-ball grid families")
         if lk_ball_grid and live_lk_ball is None:
             raise ValueError("lk_ball_grid=True requires ligand water topology")
-        self._grid_cache: dict[tuple[torch.device, torch.dtype], GridSet] = {}
-        self._hbond_cache: dict[tuple[torch.device, torch.dtype], LiveHBondData] = {}
-        self._intra_cache: dict[
-            tuple[torch.device, torch.dtype], LiveLigandIntraData
-        ] = {}
-        self._lk_ball_cache: dict[tuple[torch.device, torch.dtype], LiveLKBallData] = {}
-        self._charge_cache: dict[tuple[torch.device, torch.dtype], torch.Tensor] = {}
-        self._grid_atom_index_cache: dict[torch.device, torch.Tensor] = {}
-        self._score_functions: dict[torch.device, ScoreFunction] = {}
+        self._scorers: dict[tuple[torch.device, torch.dtype], GridScorer] = {}
         self._atom_index_cache: dict[
             tuple[torch.device, int, int, int, int, int], torch.Tensor
         ] = {}
@@ -847,65 +836,26 @@ class GridBackend(ScoringBackend):
             value_only_line_search=value_only_line_search,
         )
 
-    def _score_function(self, device: torch.device) -> ScoreFunction:
-        device = torch.device(device)
-        if device not in self._score_functions:
-            self._score_functions[device] = beta2016_score_function(
-                device, param_db=self.param_db
+    def _scorer(self, device: torch.device, dtype: torch.dtype) -> GridScorer:
+        """The grid scorer for one device and precision, built on first use."""
+        key = (torch.device(device), dtype)
+        if key not in self._scorers:
+            self._scorers[key] = GridScorer(
+                self.grids,
+                self.ligand_atom_types,
+                self.ligand_charges,
+                device=device,
+                dtype=dtype,
+                score_function=beta2016_score_function(
+                    torch.device(device), param_db=self.param_db
+                ),
+                live_hbond=self.live_hbond,
+                live_lk_ball=self.live_lk_ball,
+                live_ligand_intra=self.live_ligand_intra,
+                lk_ball_grid=self.lk_ball_grid,
+                grid_atoms=self.grid_atom_indices,
             )
-        return self._score_functions[device]
-
-    def _grid_for(self, device: torch.device, dtype: torch.dtype) -> GridSet:
-        key = (torch.device(device), dtype)
-        if key not in self._grid_cache:
-            self._grid_cache[key] = self.grids.to(device, dtype=dtype)
-        return self._grid_cache[key]
-
-    def _charges_for(self, device: torch.device, dtype: torch.dtype) -> torch.Tensor:
-        key = (torch.device(device), dtype)
-        if key not in self._charge_cache:
-            self._charge_cache[key] = self.ligand_charges.to(device=device, dtype=dtype)
-        return self._charge_cache[key]
-
-    def _grid_atom_indices_for(self, device: torch.device) -> Optional[torch.Tensor]:
-        if self.grid_atom_indices is None:
-            return None
-        device = torch.device(device)
-        if device not in self._grid_atom_index_cache:
-            self._grid_atom_index_cache[device] = self.grid_atom_indices.to(
-                device=device
-            )
-        return self._grid_atom_index_cache[device]
-
-    def _hbond_for(
-        self, device: torch.device, dtype: torch.dtype
-    ) -> Optional[LiveHBondData]:
-        if self.live_hbond is None:
-            return None
-        key = (torch.device(device), dtype)
-        if key not in self._hbond_cache:
-            self._hbond_cache[key] = self.live_hbond.to(device, dtype)
-        return self._hbond_cache[key]
-
-    def _lk_ball_for(
-        self, device: torch.device, dtype: torch.dtype
-    ) -> Optional[LiveLKBallData]:
-        if self.live_lk_ball is None:
-            return None
-        key = (torch.device(device), dtype)
-        if key not in self._lk_ball_cache:
-            self._lk_ball_cache[key] = self.live_lk_ball.to(device, dtype)
-        return self._lk_ball_cache[key]
-
-    def _intra_for(
-        self, device: torch.device, dtype: torch.dtype
-    ) -> Optional[LiveLigandIntraData]:
-        if self.live_ligand_intra is None:
-            return None
-        key = (torch.device(device), dtype)
-        if key not in self._intra_cache:
-            self._intra_cache[key] = self.live_ligand_intra.to(device, dtype)
-        return self._intra_cache[key]
+        return self._scorers[key]
 
     def _ligand_atom_indices(
         self, pose_stack: PoseStack, ligand_block: int
@@ -971,46 +921,14 @@ class GridBackend(ScoringBackend):
     def _score_ligand_coordinates(
         self, ligand_coordinates: torch.Tensor
     ) -> torch.Tensor:
-        return score_ligand_grid_batched(
-            self._grid_for(ligand_coordinates.device, ligand_coordinates.dtype),
-            ligand_coordinates,
-            self.ligand_atom_types,
-            self._charges_for(ligand_coordinates.device, ligand_coordinates.dtype),
-            score_function=self._score_function(ligand_coordinates.device),
-            live_hbond=self._hbond_for(
-                ligand_coordinates.device, ligand_coordinates.dtype
-            ),
-            live_ligand_intra=self._intra_for(
-                ligand_coordinates.device, ligand_coordinates.dtype
-            ),
-            live_lk_ball=self._lk_ball_for(
-                ligand_coordinates.device, ligand_coordinates.dtype
-            ),
-            lk_ball_grid=self.lk_ball_grid,
-            grid_atom_indices=self._grid_atom_indices_for(ligand_coordinates.device),
-        )
+        scorer = self._scorer(ligand_coordinates.device, ligand_coordinates.dtype)
+        return scorer(ligand_coordinates)
 
     def _score_ligand_coordinates_with_gradients(
         self, ligand_coordinates: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor]:
-        return score_ligand_grid_batched_with_gradients(
-            self._grid_for(ligand_coordinates.device, ligand_coordinates.dtype),
-            ligand_coordinates,
-            self.ligand_atom_types,
-            self._charges_for(ligand_coordinates.device, ligand_coordinates.dtype),
-            score_function=self._score_function(ligand_coordinates.device),
-            live_hbond=self._hbond_for(
-                ligand_coordinates.device, ligand_coordinates.dtype
-            ),
-            live_ligand_intra=self._intra_for(
-                ligand_coordinates.device, ligand_coordinates.dtype
-            ),
-            live_lk_ball=self._lk_ball_for(
-                ligand_coordinates.device, ligand_coordinates.dtype
-            ),
-            lk_ball_grid=self.lk_ball_grid,
-            grid_atom_indices=self._grid_atom_indices_for(ligand_coordinates.device),
-        )
+        scorer = self._scorer(ligand_coordinates.device, ligand_coordinates.dtype)
+        return scorer.value_and_grad(ligand_coordinates)
 
     def score(self, pose_stack: PoseStack) -> torch.Tensor:
         """Return one grid GA objective energy per pose.

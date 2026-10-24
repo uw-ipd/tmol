@@ -8,17 +8,16 @@ import torch
 from tmol.database import ParameterDatabase
 from tmol.io import pose_stack_from_biotite
 from tmol.score.elec import ElecParamResolver
-from tmol.score.gridscore import GridSet, build_grid
+from tmol.score.gridscore import GridScorer, GridSet, build_grid
 from tmol.score.gridscore.grid import (
     GridGeometry,
     compute_cubic_bspline_coefficients,
     compute_grid_geometry,
-    interpolate_grid,
     ixform_rep,
     probe_atom_types_from_name3,
-    score_ligand_grid,
     xform_rep,
 )
+from tmol.score.gridscore.scorer import interpolate_grid
 from tmol.score.gridscore.grid import _smooth_fa_rep_grid
 from tmol.score.ljlk import LJLKParamResolver
 from tmol.tests.data import data_path
@@ -322,7 +321,7 @@ def test_weighted_ligand_grid_scorer_uses_rep_transform_and_charge():
         fa_sol=fa_sol,
         fa_elec=torch.full(geometry.dims, 2.0, dtype=torch.float64),
     )
-    actual = score_ligand_grid(
+    actual = _grid_channels(
         grids,
         torch.tensor([[0.0, 0.0, 0.0], [0.5, 0.5, 0.5]], dtype=torch.float64),
         ("A", "B"),
@@ -330,6 +329,14 @@ def test_weighted_ligand_grid_scorer_uses_rep_transform_and_charge():
     )
     expected = torch.tensor([-6.0, 0.55 * 8.0, 2.0, -0.5], dtype=torch.float64)
     torch.testing.assert_close(actual, expected, rtol=1.0e-7, atol=1.0e-7)
+
+
+def _grid_channels(grids, coords, atom_types, charges):
+    """Weighted atr/rep/sol/elec grid energies of one pose ``[n_atoms, 3]``."""
+    scorer = GridScorer(
+        grids, atom_types, charges, device=coords.device, dtype=coords.dtype
+    )
+    return scorer.grid_channels(coords[None])[0]
 
 
 def _load_target_pose(target):
@@ -565,9 +572,7 @@ def test_grid_interface_characterization_against_t1(target):
     ligand_coords, ligand_atom_types, ligand_charges = _ligand_scoring_inputs(
         pose_stack
     )
-    grid_score = score_ligand_grid(
-        grids, ligand_coords, ligand_atom_types, ligand_charges
-    )
+    grid_score = _grid_channels(grids, ligand_coords, ligand_atom_types, ligand_charges)
     exact = torch.tensor(_GOLDEN_PER_TERM[target]["interface"][:4], dtype=torch.float64)
     absolute_error = torch.abs(grid_score - exact)
     relative_error = absolute_error / torch.clamp(torch.abs(exact), min=1.0e-12)

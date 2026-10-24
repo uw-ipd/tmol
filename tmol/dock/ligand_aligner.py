@@ -256,7 +256,7 @@ class LigandAligner:
             if bounds.shape != (2, 3):
                 raise ValueError("pocket_bounds must have shape [2, 3]")
         else:
-            geometry = backend._grid_for(device, dtype).geometry
+            geometry = backend._scorer(device, dtype).grids.geometry
             grid_max = (
                 geometry.origin
                 + geometry.origin.new_tensor(geometry.dims).sub(1)

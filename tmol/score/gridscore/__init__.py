@@ -1,5 +1,6 @@
 """Rigid-receptor grid scoring of ligand poses."""
 
-from .grid import GridSet, build_grid, score_ligand_grid_batched
+from .grid import GridSet, build_grid
+from .scorer import GridScorer
 
-__all__ = ["GridSet", "build_grid", "score_ligand_grid_batched"]
+__all__ = ["GridScorer", "GridSet", "build_grid"]

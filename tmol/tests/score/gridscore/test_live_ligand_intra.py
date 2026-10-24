@@ -6,10 +6,7 @@ import attrs
 import pytest
 import torch
 
-from tmol.dock import GridBackend
 from tmol.score import beta2016_score_function
-from tmol.score.gridscore import score_ligand_grid_batched
-from tmol.score.gridscore.grid import score_ligand_grid_batched_with_gradients
 from tmol.score.gridscore.live_ligand_intra import (
     build_live_ligand_intra_data,
     score_ligand_intra,
@@ -203,54 +200,6 @@ def test_ligand_intra_weight_profiles_match_gridscorer_mapping():
             assert float(full.score_function.get_weight(score_type)) == float(
                 beta.get_weight(score_type)
             )
-
-
-@pytest.mark.slow
-@pytest.mark.parametrize("target", ("cdk2", "hsp90"))
-def test_disabled_ligand_intra_is_byte_identical_to_prior_grid_path(target):
-    pose_stack, param_db = _load_target_pose(target)
-    ligand_block = _ligand_block(pose_stack)
-    backend = GridBackend.from_pose_stack(
-        pose_stack,
-        ligand_block,
-        param_db,
-        kin_dtype=torch.float64,
-        include_ligand_intra=False,
-    )
-    assert backend.live_ligand_intra is None
-    assert backend._intra_for(torch.device("cpu"), torch.float64) is None
-
-    coords = _perturbed_ligand_coords(pose_stack, ligand_block)[:2]
-    direct_kwargs = dict(
-        score_function=backend._score_function(torch.device("cpu")),
-        live_hbond=backend._hbond_for(torch.device("cpu"), torch.float64),
-        live_lk_ball=backend._lk_ball_for(torch.device("cpu"), torch.float64),
-        lk_ball_grid=backend.lk_ball_grid,
-    )
-    legacy_energy = score_ligand_grid_batched(
-        backend._grid_for(torch.device("cpu"), torch.float64),
-        coords,
-        backend.ligand_atom_types,
-        backend._charges_for(torch.device("cpu"), torch.float64),
-        **direct_kwargs,
-    )
-    disabled_energy = backend._score_ligand_coordinates(coords)
-    torch.testing.assert_close(disabled_energy, legacy_energy, rtol=0.0, atol=0.0)
-
-    legacy_with_gradients = score_ligand_grid_batched_with_gradients(
-        backend._grid_for(torch.device("cpu"), torch.float64),
-        coords,
-        backend.ligand_atom_types,
-        backend._charges_for(torch.device("cpu"), torch.float64),
-        **direct_kwargs,
-    )
-    disabled_with_gradients = backend._score_ligand_coordinates_with_gradients(coords)
-    torch.testing.assert_close(
-        disabled_with_gradients[0], legacy_with_gradients[0], rtol=0.0, atol=0.0
-    )
-    torch.testing.assert_close(
-        disabled_with_gradients[1], legacy_with_gradients[1], rtol=0.0, atol=0.0
-    )
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires CUDA")

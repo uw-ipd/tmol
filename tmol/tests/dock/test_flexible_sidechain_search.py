@@ -15,7 +15,7 @@ from tmol.dock.ligand_dofs import (
 )
 from tmol.dock.scoring_backend import _LightweightGridObjective
 from tmol.score import beta2016_score_function
-from tmol.score.gridscore import score_ligand_grid_batched
+from tmol.score.gridscore import GridScorer
 from tmol.score.gridscore.live_hbond import score_ligand_hbond
 from tmol.score.gridscore.live_ligand_intra import (
     build_live_ligand_intra_data,
@@ -320,52 +320,41 @@ def test_flexible_grid_atom_partition_and_score_decomposition_fp64(
         1 + len(sidechain_blocks) + len(context_blocks)
     )
     full = backend.for_ligand_block(0)._score_ligand_coordinates(movable.coords)
-    common = dict(
-        grids=backend._grid_for(torch.device("cpu"), torch.float64),
-        ligand_coords=movable.coords,
-        ligand_atom_types=backend.ligand_atom_types,
-        ligand_charges=backend._charges_for(torch.device("cpu"), torch.float64),
-        score_function=backend._score_function(torch.device("cpu")),
-        grid_atom_indices=backend._grid_atom_indices_for(torch.device("cpu")),
-    )
-    grid_only = score_ligand_grid_batched(**common)
-    with_hbond = score_ligand_grid_batched(
-        **common,
-        live_hbond=backend._hbond_for(torch.device("cpu"), torch.float64),
-    )
-    with_lk_ball = score_ligand_grid_batched(
-        **common,
-        live_lk_ball=backend._lk_ball_for(torch.device("cpu"), torch.float64),
-        lk_ball_grid=backend.lk_ball_grid,
-    )
-    hbond = with_hbond - grid_only
-    lk_ball = with_lk_ball - grid_only
-    direct_hbond = score_ligand_hbond(
-        backend._hbond_for(torch.device("cpu"), torch.float64), movable.coords
-    )
-    hbond_weight = backend._score_function(torch.device("cpu")).get_weight(
-        ScoreType.hbond
+    sfxn = beta2016_score_function(torch.device("cpu"), param_db=backend.param_db)
+
+    def scorer(**terms):
+        return GridScorer(
+            backend.grids,
+            backend.ligand_atom_types,
+            backend.ligand_charges,
+            device="cpu",
+            dtype=torch.float64,
+            score_function=sfxn,
+            grid_atoms=backend.grid_atom_indices,
+            **terms,
+        )
+
+    grid_only = scorer()(movable.coords)
+    hbond = scorer(live_hbond=backend.live_hbond)(movable.coords) - grid_only
+    lk_ball = (
+        scorer(live_lk_ball=backend.live_lk_ball, lk_ball_grid=backend.lk_ball_grid)(
+            movable.coords
+        )
+        - grid_only
     )
     torch.testing.assert_close(
         hbond,
-        hbond_weight * direct_hbond,
+        sfxn.get_weight(ScoreType.hbond)
+        * score_ligand_hbond(backend.live_hbond, movable.coords),
         rtol=0.0,
         atol=1.0e-10,
     )
-    interface = score_ligand_grid_batched(
-        backend._grid_for(torch.device("cpu"), torch.float64),
-        movable.coords,
-        backend.ligand_atom_types,
-        backend._charges_for(torch.device("cpu"), torch.float64),
-        score_function=backend._score_function(torch.device("cpu")),
-        live_hbond=backend._hbond_for(torch.device("cpu"), torch.float64),
-        live_lk_ball=backend._lk_ball_for(torch.device("cpu"), torch.float64),
+    interface = scorer(
+        live_hbond=backend.live_hbond,
+        live_lk_ball=backend.live_lk_ball,
         lk_ball_grid=backend.lk_ball_grid,
-        grid_atom_indices=backend._grid_atom_indices_for(torch.device("cpu")),
-    )
-    intra = score_ligand_intra(
-        backend._intra_for(torch.device("cpu"), torch.float64), movable.coords
-    )
+    )(movable.coords)
+    intra = score_ligand_intra(backend.live_ligand_intra, movable.coords)
     torch.testing.assert_close(
         interface, grid_only + hbond + lk_ball, rtol=0.0, atol=1.0e-10
     )
