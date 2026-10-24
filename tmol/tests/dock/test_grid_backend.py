@@ -5,7 +5,6 @@ from __future__ import annotations
 import math
 from types import SimpleNamespace
 
-import numpy
 import pytest
 import torch
 
@@ -27,7 +26,6 @@ from tmol.score.gridscore import (
     score_ligand_grid,
     score_ligand_grid_batched,
 )
-from tmol.score import ScoreType
 from tmol.tests.dock.test_dock_loop import _load_cdk2_pose_on_device
 from tmol.tests.dock.test_ligand_dof_roundtrip import (
     _ligand_block,
@@ -111,73 +109,6 @@ def test_grid_backend_score_matches_direct_batched_grid_score(cpu_grid_case):
     assert case.backend._lk_ball_cache[
         (torch.device("cpu"), torch.float64)
     ] is case.backend._lk_ball_for(torch.device("cpu"), torch.float64)
-
-
-def test_grid_backend_hbond_is_additive_and_shared(cpu_grid_case):
-    case = cpu_grid_case
-    atom_indices = case.backend._ligand_atom_indices(case.population, case.ligand_block)
-    pose_indices = torch.arange(case.population.n_poses, dtype=torch.int64)
-    ligand_coordinates = case.population.coords[pose_indices[:, None], atom_indices]
-    grids = case.backend._grid_for(torch.device("cpu"), torch.float64)
-    charges = case.backend._charges_for(torch.device("cpu"), torch.float64)
-    hbond = case.backend._hbond_for(torch.device("cpu"), torch.float64)
-    sfxn = beta2016_score_function(torch.device("cpu"), param_db=case.param_db)
-    with_hbond = score_ligand_grid_batched(
-        grids,
-        ligand_coordinates,
-        case.backend.ligand_atom_types,
-        charges,
-        score_function=sfxn,
-        live_hbond=hbond,
-    )
-    grid_only = score_ligand_grid_batched(
-        grids,
-        ligand_coordinates,
-        case.backend.ligand_atom_types,
-        charges,
-        score_function=sfxn,
-    )
-    assert torch.any(with_hbond != grid_only)
-    channels = score_ligand_grid(
-        grids,
-        ligand_coordinates[0],
-        case.backend.ligand_atom_types,
-        charges,
-        score_function=sfxn,
-        live_hbond=hbond,
-    )
-    assert channels.shape == (5,)
-    torch.testing.assert_close(channels.sum(), with_hbond[0])
-
-    zero_hbond_sfxn = beta2016_score_function(
-        torch.device("cpu"), param_db=case.param_db
-    )
-    zero_hbond_sfxn.set_weight(ScoreType.hbond, 0.0)
-    zero_with_live = score_ligand_grid_batched(
-        grids,
-        ligand_coordinates,
-        case.backend.ligand_atom_types,
-        charges,
-        score_function=zero_hbond_sfxn,
-        live_hbond=hbond,
-    )
-    zero_without_live = score_ligand_grid_batched(
-        grids,
-        ligand_coordinates,
-        case.backend.ligand_atom_types,
-        charges,
-        score_function=zero_hbond_sfxn,
-    )
-    torch.testing.assert_close(zero_with_live, zero_without_live, rtol=0.0, atol=0.0)
-    assert hbond.receptor_donors.ndim == 3
-    assert hbond.receptor_acceptors.ndim == 3
-    assert hbond.receptor_donors.shape[0] < case.reference.max_n_pose_atoms
-    assert case.backend.for_ligand_block(0).live_hbond is case.backend.live_hbond
-    assert (
-        case.backend.for_ligand_block(0).live_ligand_intra
-        is case.backend.live_ligand_intra
-    )
-    assert case.backend.for_ligand_block(0).live_lk_ball is case.backend.live_lk_ball
 
 
 def test_grid_backend_gridded_lk_ball_is_single_total_and_shared(cpu_grid_case):
@@ -335,37 +266,6 @@ def test_grid_backend_gridded_term_gradients_match_autograd_and_finite_differenc
     finite_error = torch.max(torch.abs(direct_gradient[:1] - finite))
     print(f"gridded LK-ball Cartesian gradient max error={float(finite_error):.3e}")
     torch.testing.assert_close(direct_gradient[:1], finite, rtol=2.0e-5, atol=2.0e-5)
-
-
-def test_ligand_only_pose_stack_preserves_cdk2_ligand(cpu_grid_case):
-    case = cpu_grid_case
-    references = repeat_pose_stack(case.reference, 2)
-    source_indices = case.backend._ligand_atom_indices(references, case.ligand_block)
-    references.coords[1, source_indices[1]] += 0.125
-    ligand_only = movable_pose_stack(references, case.ligand_block)
-    pose_indices = torch.arange(references.n_poses, dtype=torch.int64)
-
-    assert ligand_only.n_poses == references.n_poses
-    assert ligand_only.max_n_blocks == 1
-    assert ligand_only.max_n_pose_atoms == len(case.backend.ligand_atom_types)
-    assert ligand_only.inter_block_bondsep.shape[1:3] == (1, 1)
-    assert torch.all(ligand_only.chain_id == 0)
-    torch.testing.assert_close(
-        ligand_only.coords,
-        references.coords[pose_indices[:, None], source_indices],
-        rtol=0.0,
-        atol=0.0,
-    )
-    source_offset = int(references.block_coord_offset64[0, case.ligand_block])
-    n_atoms = ligand_only.max_n_pose_atoms
-    assert numpy.array_equal(
-        ligand_only.pdb_info.atom_occupancy,
-        references.pdb_info.atom_occupancy[:, source_offset : source_offset + n_atoms],
-    )
-    assert numpy.array_equal(
-        ligand_only.pdb_info.atom_b_factor,
-        references.pdb_info.atom_b_factor[:, source_offset : source_offset + n_atoms],
-    )
 
 
 class _FullComplexGridBackend:

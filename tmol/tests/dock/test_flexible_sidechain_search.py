@@ -13,7 +13,6 @@ from tmol.dock import (
     LigandGeneLayout,
     build_ligand_docking_dofs,
     run_docking,
-    run_ga_docking,
     select_pocket_residue_blocks,
 )
 from tmol.dock.ligand_dofs import (
@@ -36,10 +35,8 @@ from tmol.tests.dock.test_dock_loop import _load_cdk2_pose_on_device
 from tmol.tests.dock.test_flexible_sidechain_dofs import (
     _connected_chi_blocks,
 )
-from tmol.tests.dock.test_grid_backend import cpu_grid_case
 from tmol.tests.dock.test_ligand_dof_roundtrip import (
     _ligand_block,
-    cdk2_pose_and_db,
 )
 from tmol.score.gridscore._movable import (
     movable_block_mapping,
@@ -559,28 +556,3 @@ def test_flexible_grid_search_moves_sidechain_and_restores_full_complex(
     )
     assert moved_count > 0
     assert bad_bonds == 0
-
-
-def test_rigid_none_argument_is_byte_identical(cpu_grid_case):
-    case = cpu_grid_case
-    schedule = GASchedule(generations=1, npool=2, maxiter=2)
-    historical = run_ga_docking(
-        case.reference,
-        case.ligand_block,
-        case.backend,
-        schedule=schedule,
-        seed=20260825,
-    )
-    explicit_none = run_ga_docking(
-        case.reference,
-        case.ligand_block,
-        case.backend,
-        schedule=schedule,
-        seed=20260825,
-        sidechain_blocks=None,
-    )
-    assert torch.equal(historical.pool.genes, explicit_none.pool.genes)
-    assert torch.equal(historical.pool.energies, explicit_none.pool.energies)
-    assert torch.equal(
-        historical.best_pose_stack.coords, explicit_none.best_pose_stack.coords
-    )

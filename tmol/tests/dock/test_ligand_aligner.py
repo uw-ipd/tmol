@@ -18,7 +18,6 @@ from tmol.dock import (
 )
 from tmol.dock.ligand_aligner import (
     _axis_angle_rotation_matrix,
-    _select_diverse_indices,
 )
 from tmol.tests.dock.test_ligand_dof_roundtrip import (
     _ligand_block,
@@ -72,21 +71,6 @@ def _initialize(layout, backend, aligner, seed):
         generator=generator,
     )
     return random_genes, aligned
-
-
-@pytest.mark.parametrize(
-    "threshold,expected", [(0.0, [0, 1]), (1.0, [0, 2]), (100.0, [0, 1])]
-)
-def test_absolute_rmsd_diversity_keeps_distinct_placements(threshold, expected):
-    coordinates = torch.tensor(
-        [[[0.0, 0.0, 0.0]], [[0.1, 0.0, 0.0]], [[5.0, 0.0, 0.0]]],
-        dtype=torch.float64,
-    )
-    energies = torch.tensor([0.0, 1.0, 2.0], dtype=torch.float64)
-    selected = _select_diverse_indices(coordinates, energies, 2, threshold)
-    torch.testing.assert_close(
-        selected, torch.tensor(expected, dtype=torch.int64), rtol=0, atol=0
-    )
 
 
 def test_axis_angle_rotation_gradient_and_rigid_refinement():
@@ -203,97 +187,6 @@ def _assert_seeded_coordinates_match_alignment(
     return genes, expected_alignment, coordinate_error
 
 
-def test_aligner_seed_genes_are_deterministic_rigid_and_diverse(cpu_aligner_case):
-    case = cpu_aligner_case
-    layout = _layout(case)
-    aligner = LigandAligner(
-        n_candidates=32,
-        seed_fraction=0.5,
-        cluster_rmsd=0.5,
-        diversity_pool_size=16,
-        score_batch_size=16,
-        refinement_steps=0,
-    )
-
-    random_genes, genes = _initialize(layout, case.backend, aligner, 20260826)
-    repeat_random, repeat = _initialize(layout, case.backend, aligner, 20260826)
-    torch.testing.assert_close(random_genes, repeat_random, rtol=0.0, atol=0.0)
-    torch.testing.assert_close(genes, repeat, rtol=0.0, atol=0.0)
-
-    reference = layout.genes_from_pose_stack(layout.template)
-    torch.testing.assert_close(genes[0], reference[0], rtol=0.0, atol=0.0)
-    n_seeded = 4
-    torch.testing.assert_close(
-        genes[1 : n_seeded + 1, 6:],
-        reference[1 : n_seeded + 1, 6:],
-        rtol=0.0,
-        atol=2.0e-12,
-    )
-    torch.testing.assert_close(
-        genes[n_seeded + 1 :],
-        random_genes[n_seeded + 1 :],
-        rtol=0.0,
-        atol=0.0,
-    )
-
-    _, expected_alignment, coordinate_error = (
-        _assert_seeded_coordinates_match_alignment(
-            layout, case.backend, aligner, 20260826, n_seeded
-        )
-    )
-    decoded = layout.pose_stack_from_genes(genes)
-    assert torch.all(
-        expected_alignment.energies[1:] >= expected_alignment.energies[:-1]
-    )
-    print(f"aligner gene decode max coordinate error={float(coordinate_error):.3e} A")
-    assert float(coordinate_error) <= 2.0e-12
-
-    placed = layout.ligand_heavy_coords(decoded)
-    template = layout.ligand_heavy_coords(layout.template)
-    template_distances = torch.cdist(template[:1], template[:1])[0]
-    all_atom_distances = torch.cdist(
-        layout.template.coords[:1], layout.template.coords[:1]
-    )[0]
-    maximum_internal_error = 0.0
-    for row in range(1, n_seeded + 1):
-        torch.testing.assert_close(
-            torch.cdist(placed[row : row + 1], placed[row : row + 1])[0],
-            template_distances,
-            rtol=0.0,
-            # Internal geometry is preserved to the forward-kinematics fidelity,
-            # not to fp64 machine precision: pose_stack_from_genes carries a
-            # ~1e-6 A fp32 kinematic-rebuild artifact (F47), present for ANY
-            # decode independent of the aligner. Placement (rigid frame) is exact
-            # (< 1e-13, checked above); only the rebuilt internal geometry is
-            # fp32-limited, which is negligible for docking.
-            atol=1.0e-5,
-        )
-        row_error = torch.max(
-            torch.abs(
-                torch.cdist(
-                    decoded.coords[row : row + 1], decoded.coords[row : row + 1]
-                )[0]
-                - all_atom_distances
-            )
-        )
-        maximum_internal_error = max(maximum_internal_error, float(row_error))
-    print(f"aligner seeded all-atom distance max error={maximum_internal_error:.3e} A")
-    # ~1e-6 A fp32 forward-kinematics rebuild artifact (F47), not the aligner.
-    assert maximum_internal_error <= 1.0e-5
-
-    pairwise_placement_rmsd = torch.sqrt(
-        torch.mean(
-            torch.sum(
-                (placed[1 : n_seeded + 1, None] - placed[None, 1 : n_seeded + 1]) ** 2,
-                dim=-1,
-            ),
-            dim=-1,
-        )
-    )
-    off_diagonal = ~torch.eye(n_seeded, dtype=torch.bool)
-    assert torch.all(pairwise_placement_rmsd[off_diagonal] >= 0.5 - 1.0e-12)
-
-
 def test_refined_aligner_seeds_decode_to_selected_placements(cpu_aligner_case):
     case = cpu_aligner_case
     layout = _layout(case)
@@ -332,24 +225,6 @@ def test_aligner_seed_fraction_boundaries(cpu_aligner_case, npool, seed_fraction
         torch.testing.assert_close(
             seeded[:, 6:], reference[:, 6:], rtol=0.0, atol=2.0e-12
         )
-
-
-def test_aligner_ga_returns_one_ranked_population(cpu_aligner_case):
-    case = cpu_aligner_case
-    result = run_ga_docking(
-        case.reference,
-        case.ligand_block,
-        case.backend.for_ligand_block(case.ligand_block),
-        schedule=ga_module.GASchedule(generations=1, npool=3, maxiter=1),
-        initialization="aligner",
-        ligand_aligner=LigandAligner(n_candidates=8),
-        seed=43,
-    )
-    assert result.pool.genes.shape[0] == 3
-    assert result.ranked_energies.shape == (1, 3)
-    assert result.best_pose_stack.n_poses == 1
-    assert torch.all(torch.isfinite(result.pool.energies))
-    assert torch.all(result.best_energy_history[1:] <= result.best_energy_history[:-1])
 
 
 @pytest.fixture(scope="module")

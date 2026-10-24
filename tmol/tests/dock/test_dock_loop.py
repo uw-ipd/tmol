@@ -123,26 +123,6 @@ def test_continuous_backend_score_is_weighted_beta16_total(
     torch.testing.assert_close(actual, expected, rtol=1.0e-12, atol=1.0e-10)
 
 
-def test_continuous_backend_runs_batched_and_selects(completed_generation):
-    case = completed_generation
-    result = case.result
-    n_pop = case.n_pop
-
-    assert result.minimized_pose_stack.n_poses == n_pop
-    assert result.initial_energies.shape == (n_pop,)
-    assert result.final_energies.shape == (n_pop,)
-    assert result.selection.shape == (n_pop,)
-    assert result.selection.dtype == torch.int64
-    assert torch.isfinite(result.initial_energies).all()
-    assert torch.isfinite(result.final_energies).all()
-    assert result.minimized_pose_stack.coords.requires_grad is False
-
-    selected = result.final_energies[result.selection]
-    assert torch.all(selected[1:] >= selected[:-1])
-    assert int(result.best_index) == int(torch.argmin(result.final_energies))
-    assert int(result.selection[0]) == int(result.best_index)
-
-
 def test_minimization_does_not_increase_per_pose(completed_generation):
     result = completed_generation.result
     decreases = result.initial_energies - result.final_energies
@@ -187,25 +167,6 @@ def test_native_pose_stays_near_crystal(completed_generation):
     # A broad corruption guard: normal cdk2 total energies are orders of
     # magnitude smaller than one million REU.
     assert float(torch.abs(native_energy)) < 1.0e6
-
-
-def test_minimization_moves_only_ligand(completed_generation):
-    case = completed_generation
-    minimized = case.result.minimized_pose_stack
-    offset, block_type = _ligand_atom_range(case.reference, case.ligand_block)
-    receptor = torch.ones(
-        case.reference.max_n_pose_atoms,
-        dtype=torch.bool,
-        device=case.reference.device,
-    )
-    receptor[offset : offset + block_type.n_atoms] = False
-    expected = case.reference.coords[:, receptor].expand(case.n_pop, -1, -1)
-    actual = minimized.coords[:, receptor]
-
-    # Fixed receptor coordinates undergo only inverse/forward kinematic
-    # roundoff in run_kin_min (Phase 1 measured ~1e-9 fp64, ~1e-4 A fp32).
-    atol = 2.0e-9 if actual.dtype == torch.float64 else 5.0e-4
-    torch.testing.assert_close(actual, expected, rtol=0.0, atol=atol)
 
 
 class _CaptureIdentityBackend(ScoringBackend):

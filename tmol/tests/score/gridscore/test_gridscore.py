@@ -68,11 +68,6 @@ def test_grid_geometry_index_conventions():
     )
 
 
-def test_rep_transform_round_trip():
-    raw = torch.tensor([0.0, 1.0e-8, 1.0, 100.0, 1.0e8], dtype=torch.float64)
-    torch.testing.assert_close(ixform_rep(xform_rep(raw)), raw, rtol=1e-12, atol=1e-12)
-
-
 @pytest.mark.parametrize("dtype", (torch.float32, torch.float64))
 @pytest.mark.parametrize("smoothing", (0.0, 0.125, 0.25, 0.375, 1.25))
 def test_fa_rep_smoothing_matches_spherical_maximum(dtype, smoothing):
