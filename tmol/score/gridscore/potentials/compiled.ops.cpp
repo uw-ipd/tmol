@@ -704,128 +704,6 @@ std::vector<Tensor> build_grid_lk_ball(
       true);
 }
 
-Tensor evaluate_pairs(
-    Tensor distances,
-    int64_t probe_atom_type,
-    Tensor receptor_atom_types,
-    Tensor receptor_charges,
-    Tensor ljlk_type_params,
-    Tensor ljlk_global_params,
-    Tensor elec_global_params) {
-  check_double_cpu_contiguous(distances, "distances");
-  Tensor probe_types =
-      TPack<int64_t, 1, tmol::Device::CPU>::full({1}, probe_atom_type).tensor;
-  validate_common_inputs(
-      receptor_atom_types,
-      receptor_charges,
-      probe_types,
-      ljlk_type_params,
-      ljlk_global_params,
-      elec_global_params);
-  TORCH_CHECK(distances.dim() == 1, "distances must be 1D");
-  TORCH_CHECK(
-      distances.size(0) == receptor_atom_types.size(0),
-      "distances and receptor arrays must have matching lengths");
-
-  int64_t const n_pairs = distances.size(0);
-  TView<double, 1, tmol::Device::CPU> distances_a = TCAST(distances);
-  for (int64_t pair = 0; pair < n_pairs; ++pair) {
-    TORCH_CHECK(
-        std::isfinite(distances_a[pair]) && distances_a[pair] >= 0,
-        "distances must be finite and nonnegative");
-  }
-  Tensor result = tmol::native::empty({n_pairs, 4}, distances.options());
-  TView<int64_t, 1, tmol::Device::CPU> receptor_types_a = TCAST(receptor_atom_types);
-  TView<double, 1, tmol::Device::CPU> charges_a = TCAST(receptor_charges);
-  TView<double, 2, tmol::Device::CPU> result_a = TCAST(result);
-  double const* type_param_ptr = ljlk_type_params.data_ptr<double>();
-  auto probe_params = load_type_params(type_param_ptr, probe_atom_type);
-  LJGlobalParams<double> const lj_global =
-      load_global_params(ljlk_global_params.data_ptr<double>());
-  ElecGlobalParams<double> const elec_global =
-      load_elec_global_params(elec_global_params.data_ptr<double>());
-
-  tmol::native::parallel_for(0, n_pairs, 256, [&](int64_t begin, int64_t end) {
-    for (int64_t pair = begin; pair < end; ++pair) {
-      double const dist = distances_a[pair];
-      auto receptor_params =
-          load_type_params(type_param_ptr, receptor_types_a[pair]);
-      auto lj = lj_score<double>::V(
-          dist,
-          5.0,
-          probe_params.lj_params(),
-          receptor_params.lj_params(),
-          lj_global);
-      result_a[pair][0] = lj[0];
-      result_a[pair][1] = lj[1];
-      result_a[pair][2] = lk_isotropic_score<double>::V(
-          dist,
-          5.0,
-          probe_params.lk_params(),
-          receptor_params.lk_params(),
-          lj_global);
-      result_a[pair][3] = elec<double>(
-          dist,
-          1.0,
-          charges_a[pair],
-          5.0,
-          elec_global);
-    }
-  });
-  return result;
-}
-
-Tensor interpolate(Tensor coefficients, Tensor indices, Tensor grid_indices) {
-  TORCH_CHECK(
-      coefficients.dim() == 4,
-      "coefficients must have shape [n_grids, nx, ny, nz]");
-  TORCH_CHECK(
-      indices.dim() == 2 && indices.size(1) == 3,
-      "indices must have shape [n_points, 3]");
-  TORCH_CHECK(
-      grid_indices.dim() == 1 && grid_indices.size(0) == indices.size(0),
-      "grid_indices must have shape [n_points]");
-  TORCH_CHECK(
-      coefficients.is_contiguous() && indices.is_contiguous()
-          && grid_indices.is_contiguous(),
-      "interpolation inputs must be contiguous");
-  TORCH_CHECK(
-      coefficients.scalar_type() == indices.scalar_type(),
-      "coefficients and indices must have the same dtype");
-  TORCH_CHECK(
-      grid_indices.scalar_type() == tmol::native::ScalarType::Long,
-      "grid_indices must be int64");
-  TORCH_CHECK(
-      coefficients.device() == indices.device()
-          && coefficients.device() == grid_indices.device(),
-      "interpolation inputs must be on the same device");
-  TORCH_CHECK(
-      coefficients.size(0) > 0 && coefficients.size(1) > 0
-          && coefficients.size(2) > 0 && coefficients.size(3) > 0,
-      "coefficient dimensions must be positive");
-  TORCH_CHECK(
-      indices.size(0) <= std::numeric_limits<int>::max(),
-      "too many interpolation points");
-
-  Tensor output;
-  TMOL_DISPATCH_FLOATING_DEVICE(
-      coefficients.options(), "grid_interp", ([&] {
-        using Real = scalar_t;
-        constexpr tmol::Device Dev = device_t;
-        output = GridInterpDispatch<
-                     common::DeviceOperations,
-                     Dev,
-                     Real,
-                     int64_t>::forward(
-                     interpolation_context,
-                     TCAST(coefficients),
-                     TCAST(indices),
-                     TCAST(grid_indices))
-                     .tensor;
-      }));
-  return output;
-}
-
 std::tuple<Tensor, Tensor, Tensor, Tensor> interpolate_with_derivatives(
     Tensor coefficients,
     Tensor indices,
@@ -1345,8 +1223,6 @@ Tensor propagate_lk_ball_water_gradients(
 TMOL_LIBRARY(tmol_gridscore, m) {
   m.def("build_grid", TMOL_FN(&build_grid));
   m.def("build_grid_lk_ball", TMOL_FN(&build_grid_lk_ball));
-  m.def("evaluate_pairs", TMOL_FN(&evaluate_pairs));
-  m.def("interpolate", TMOL_FN(&interpolate));
   m.def("interpolate_with_derivatives", TMOL_FN(&interpolate_with_derivatives));
   m.def("live_hbond", TMOL_FN(&live_hbond));
   m.def("live_lk_ball", TMOL_FN(&live_lk_ball));

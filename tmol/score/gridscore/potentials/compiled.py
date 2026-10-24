@@ -19,8 +19,6 @@ _ops = load_ops(
 
 build_grid = _ops.build_grid
 build_grid_lk_ball = _ops.build_grid_lk_ball
-evaluate_pairs = _ops.evaluate_pairs
-interpolate = _ops.interpolate
 interpolate_with_derivatives = _ops.interpolate_with_derivatives
 live_hbond = _ops.live_hbond
 live_lk_ball = _ops.live_lk_ball

@@ -31,6 +31,7 @@ from tmol.kinematics import PoseStackKinematicsModule
 from tmol.optimization import LBFGS_Armijo, build_kinforest_network, run_min
 from tmol.pose import PoseStack
 from tmol.score import beta2016_score_function
+from tmol.score.common._cuda_graph import CapturedFunction
 from tmol.score.gridscore import GridScorer, GridSet, build_grid
 from tmol.score.gridscore.grid import probe_atom_types_from_name3
 from tmol.score.gridscore.live_hbond import LiveHBondData, build_live_hbond_data
@@ -267,6 +268,7 @@ class _LightweightGridObjective:
         docking_dofs: LigandDockingDOFs,
         kin_dtype: torch.dtype,
         initial_raw_dofs: Optional[torch.Tensor],
+        cuda_graph: bool = False,
     ) -> None:
         self.backend = backend
         self.pose_stack = pose_stack
@@ -369,6 +371,11 @@ class _LightweightGridObjective:
         self.segment_ids = pose_for_dof[self.dof_flat_idx].to(torch.int64)
         if bool(torch.any(self.segment_ids < 0)):
             raise ValueError("root node DOFs cannot be minimized")
+        self._captured = (
+            CapturedFunction(self._energy_and_gradient, self.initial_masked_dofs)
+            if cuda_graph and pose_stack.device.type == "cuda"
+            else None
+        )
 
     def _set_masked_dofs(self, masked_dofs: torch.Tensor) -> None:
         if masked_dofs.shape != self.initial_masked_dofs.shape:
@@ -402,8 +409,17 @@ class _LightweightGridObjective:
     def energy_and_gradient(
         self, masked_dofs: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor]:
-        """Evaluate energy and analytic dE/d(freed raw DOFs), graph-free."""
+        """Evaluate energy and analytic dE/d(freed raw DOFs), graph-free.
 
+        On CUDA the evaluation is a replay of one captured graph."""
+
+        if self._captured is not None:
+            return self._captured(masked_dofs)
+        return self._energy_and_gradient(masked_dofs)
+
+    def _energy_and_gradient(
+        self, masked_dofs: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         with torch.no_grad():
             self._set_masked_dofs(masked_dofs)
             kin_coords, hts = forward_with_ht_op(
@@ -502,6 +518,7 @@ class GridBackend(ScoringBackend):
         grid_atom_indices: Optional[torch.Tensor] = None,
         movable_n_atoms: Optional[int] = None,
         value_only_line_search: bool = False,
+        cuda_graph: bool = True,
     ) -> None:
         if not isinstance(grids, GridSet):
             raise TypeError("grids must be a GridSet")
@@ -522,6 +539,7 @@ class GridBackend(ScoringBackend):
         if not isinstance(value_only_line_search, bool):
             raise TypeError("value_only_line_search must be bool")
         self.value_only_line_search = value_only_line_search
+        self.cuda_graph = cuda_graph
         if not isinstance(include_ligand_intra, bool):
             raise TypeError("include_ligand_intra must be bool")
         unknown_types = sorted(set(ligand_atom_types) - set(grids.atom_type_names))
@@ -666,6 +684,7 @@ class GridBackend(ScoringBackend):
         include_ligand_intra: bool = True,
         sidechain_blocks: tuple[int, ...] | None = None,
         value_only_line_search: bool = False,
+        cuda_graph: bool = True,
         fa_rep_smoothing: float = 0.0,
         ligand_intra_weight_profile: str = "search",
     ) -> "GridBackend":
@@ -675,6 +694,8 @@ class GridBackend(ScoringBackend):
         ``False`` retains the exact live LK-ball path. Ligand-intra scoring is
         enabled by default with Rosetta's softened search profile.
         ``value_only_line_search`` opts into energy-only Armijo trials.
+        ``cuda_graph`` replays each minimization's energy/gradient evaluation
+        from a captured CUDA graph (ignored on CPU).
         ``fa_rep_smoothing`` opts into repulsive-grid smoothing with a radius
         in Angstroms: 0.0 disables it; Rosetta's reference radius is 0.375 A.
         """
@@ -834,6 +855,7 @@ class GridBackend(ScoringBackend):
             grid_atom_indices=grid_atom_indices,
             movable_n_atoms=movable_n_atoms,
             value_only_line_search=value_only_line_search,
+            cuda_graph=cuda_graph,
         )
 
     def _scorer(self, device: torch.device, dtype: torch.dtype) -> GridScorer:
@@ -986,6 +1008,7 @@ class GridBackend(ScoringBackend):
             docking_dofs,
             kin_dtype,
             initial_raw_dofs,
+            cuda_graph=self.cuda_graph,
         )
         masked_dofs = torch.nn.Parameter(
             objective.initial_masked_dofs, requires_grad=True
