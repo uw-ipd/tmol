@@ -1188,6 +1188,29 @@ def _ranked_result(
     )
 
 
+def _conformer_library_or_none(ligand_mol2, pose_stack, ligand_block, **library_kwargs):
+    """Conformer library for the ligand, or ``None`` (with a warning) if absent."""
+    if ligand_mol2 is None:
+        logger.warning(
+            "conformer initialization requested without ligand_mol2; "
+            "falling back to blind random initialization"
+        )
+        return None
+    block_type = pose_stack.block_type(0, ligand_block)
+    try:
+        return generate_conformer_library(
+            ligand_mol2, block_type, pose_stack.packed_block_types, **library_kwargs
+        )
+    except Exception as exc:
+        logger.warning(
+            "ligand conformer generation failed (%s: %s); falling "
+            "back to blind random initialization",
+            type(exc).__name__,
+            exc,
+        )
+        return None
+
+
 def run_ga_docking(
     pose_stack: PoseStack,
     ligand_block: int,
@@ -1301,23 +1324,23 @@ def run_ga_docking(
     layout = LigandGeneLayout.from_pose_stack(population, docking_dofs)
     generator = torch.Generator(device=pose_stack.device)
     generator.manual_seed(seed)
-    pool = None
 
-    if initialization == "swarm":
-        swarm_population = repeat_pose_stack(pose_stack, swarm_size)
-        swarm_dofs = build_ligand_docking_dofs(swarm_population, ligand_block)
-        swarm_layout = LigandGeneLayout.from_pose_stack(swarm_population, swarm_dofs)
-        swarm_genes = _random_initial_genes(
-            swarm_layout,
+    def random_genes(target_layout):
+        return _random_initial_genes(
+            target_layout,
             pocket_bounds=pocket_bounds,
             placement=random_placement,
             generator=generator,
         )
+
+    pool = None
+    if initialization == "swarm":
+        swarm_population = repeat_pose_stack(pose_stack, swarm_size)
+        swarm_layout = LigandGeneLayout.from_pose_stack(
+            swarm_population, build_ligand_docking_dofs(swarm_population, ligand_block)
+        )
         swarm_pool = optimize_generation(
-            swarm_genes,
-            swarm_layout,
-            backend,
-            maxiter=schedule.maxiter,
+            random_genes(swarm_layout), swarm_layout, backend, maxiter=schedule.maxiter
         )
         if swarm_mc_rounds > 0:
             swarm_pool = _refine_swarm_pool(
@@ -1337,75 +1360,35 @@ def run_ga_docking(
             npool=schedule.npool,
             rmsdthreshold=schedule.rmsdthreshold,
         )
-        del swarm_genes
-        del swarm_pool
-        del swarm_layout
-        del swarm_dofs
-        del swarm_population
     elif initialization == "jitter":
         genes = _initial_genes(layout, schedule.initial_perturbation, generator)
     elif initialization == "random":
-        genes = _random_initial_genes(
-            layout,
-            pocket_bounds=pocket_bounds,
-            placement=random_placement,
-            generator=generator,
-        )
+        genes = random_genes(layout)
     elif initialization == "conformer":
-        conformer_library = None
-        if ligand_mol2 is None:
-            logger.warning(
-                "conformer initialization requested without ligand_mol2; "
-                "falling back to blind random initialization"
-            )
-        else:
-            block_type_index = int(pose_stack.block_type_ind64[0, ligand_block])
-            block_type = pose_stack.packed_block_types.active_block_types[
-                block_type_index
-            ]
-            try:
-                conformer_library = generate_conformer_library(
-                    ligand_mol2,
-                    block_type,
-                    pose_stack.packed_block_types,
-                    n_conformers=n_conformers,
-                    energy_window=energy_window,
-                    cluster_rmsd=cluster_rmsd,
-                )
-            except Exception as exc:
-                logger.warning(
-                    "ligand conformer generation failed (%s: %s); falling "
-                    "back to blind random initialization",
-                    type(exc).__name__,
-                    exc,
-                )
-        if conformer_library is None:
-            genes = _random_initial_genes(
-                layout,
-                pocket_bounds=pocket_bounds,
-                placement=random_placement,
-                generator=generator,
-            )
+        library = _conformer_library_or_none(
+            ligand_mol2,
+            pose_stack,
+            ligand_block,
+            n_conformers=n_conformers,
+            energy_window=energy_window,
+            cluster_rmsd=cluster_rmsd,
+        )
+        if library is None:
+            genes = random_genes(layout)
         else:
             genes = _conformer_initial_genes(
                 layout,
-                conformer_library.coords,
+                library.coords,
                 seed_fraction=seed_fraction,
                 pocket_bounds=pocket_bounds,
                 placement=random_placement,
                 generator=generator,
             )
     else:
-        random_genes = _random_initial_genes(
-            layout,
-            pocket_bounds=pocket_bounds,
-            placement=random_placement,
-            generator=generator,
-        )
         genes = ligand_aligner.seed_genes(
             layout,
             backend,
-            random_genes,
+            random_genes(layout),
             pocket_bounds=pocket_bounds,
             generator=generator,
         )

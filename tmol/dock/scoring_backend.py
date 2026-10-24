@@ -497,7 +497,6 @@ class GridBackend(ScoringBackend):
         live_ligand_intra: Optional[LiveLigandIntraData] = None,
         live_lk_ball: Optional[LiveLKBallData] = None,
         lk_ball_grid: bool = False,
-        include_ligand_intra: bool = True,
         sidechain_blocks: tuple[int, ...] = (),
         context_blocks: tuple[int, ...] = (),
         grid_atom_indices: Optional[torch.Tensor] = None,
@@ -505,109 +504,24 @@ class GridBackend(ScoringBackend):
         value_only_line_search: bool = False,
         cuda_graph: bool = True,
     ) -> None:
-        if not ligand_atom_types:
-            raise ValueError("at least one ligand atom type is required")
-        if ligand_charges.ndim != 1 or ligand_charges.shape[0] != len(
-            ligand_atom_types
-        ):
-            raise ValueError(
-                "ligand_charges must have one entry per ligand atom type entry"
-            )
-        if kin_dtype not in (None, torch.float32, torch.float64):
-            raise ValueError("kin_dtype must be torch.float32 or torch.float64")
-        self.value_only_line_search = value_only_line_search
-        self.cuda_graph = cuda_graph
-        unknown_types = sorted(set(ligand_atom_types) - set(grids.atom_type_names))
-        if unknown_types:
-            raise ValueError(
-                f"ligand atom types are absent from the grid: {unknown_types}"
-            )
         self.grids = grids
         self.ligand_block = ligand_block
         self.ligand_atom_types = tuple(ligand_atom_types)
-        self.ligand_charges = (
-            ligand_charges.detach().to(device="cpu", dtype=torch.float64).contiguous()
-        )
+        self.ligand_charges = ligand_charges.detach().to("cpu", torch.float64)
         self.param_db = param_db
         self.kin_dtype = kin_dtype
-        if live_hbond is not None and not isinstance(live_hbond, LiveHBondData):
-            raise TypeError("live_hbond must be LiveHBondData or None")
-        if live_ligand_intra is not None and not isinstance(
-            live_ligand_intra, LiveLigandIntraData
-        ):
-            raise TypeError("live_ligand_intra must be LiveLigandIntraData or None")
-        if grid_atom_indices is not None:
-            if movable_n_atoms is None or movable_n_atoms < 1:
-                raise ValueError("movable_n_atoms is required with grid_atom_indices")
-        elif movable_n_atoms not in (None, len(ligand_atom_types)):
-            raise ValueError(
-                "movable_n_atoms without grid_atom_indices must match ligand atoms"
-            )
-        expected_movable_atoms = movable_n_atoms or len(ligand_atom_types)
-        if sidechain_blocks and grid_atom_indices is None:
-            raise ValueError("sidechain_blocks require grid_atom_indices")
-        if context_blocks and not sidechain_blocks:
-            raise ValueError("context_blocks require sidechain_blocks")
-        if (
-            live_hbond is not None
-            and live_hbond.n_ligand_atoms != expected_movable_atoms
-        ):
-            raise ValueError("live_hbond atom count does not match movable topology")
-        if (
-            live_ligand_intra is not None
-            and live_ligand_intra.n_ligand_atoms != expected_movable_atoms
-        ):
-            raise ValueError(
-                "live_ligand_intra atom count does not match movable topology"
-            )
-        if include_ligand_intra and live_ligand_intra is None:
-            raise ValueError(
-                "include_ligand_intra=True requires a live_ligand_intra; pass one "
-                "(GridBackend.from_pose_stack builds it) or set "
-                "include_ligand_intra=False to disable ligand-intra scoring"
-            )
-        if sidechain_blocks and not include_ligand_intra:
-            raise ValueError(
-                "flexible docking (sidechain_blocks set) requires "
-                "include_ligand_intra=True: the live movable module is the sole "
-                "scorer for the entire moving set (ligand-intra, sidechain-intra, "
-                "sidechain<->ligand, sidechain<->sidechain, sidechain<->own-backbone, "
-                "sidechain<->peptide-context, and Dunbrack), and those blocks are "
-                "excluded from the receptor grid; disabling it would silently drop "
-                "all of those interactions and the count-pair correction. "
-                "include_ligand_intra=False is only valid for the rigid K=0 path"
-            )
-        if live_lk_ball is not None and not isinstance(live_lk_ball, LiveLKBallData):
-            raise TypeError("live_lk_ball must be LiveLKBallData or None")
-        if (
-            live_lk_ball is not None
-            and live_lk_ball.n_ligand_atoms != expected_movable_atoms
-        ):
-            raise ValueError("live_lk_ball atom count does not match movable topology")
         self.live_hbond = live_hbond
-        self.live_ligand_intra = live_ligand_intra if include_ligand_intra else None
+        self.live_ligand_intra = live_ligand_intra
         self.live_lk_ball = live_lk_ball
         self.lk_ball_grid = lk_ball_grid
-        self.include_ligand_intra = include_ligand_intra
         self.sidechain_blocks = tuple(sidechain_blocks)
         self.context_blocks = tuple(context_blocks)
-        self.grid_atom_indices = (
-            None
-            if grid_atom_indices is None
-            else grid_atom_indices.detach().clone().contiguous()
-        )
-        self.movable_n_atoms = expected_movable_atoms
-        if lk_ball_grid and any(
-            value is None
-            for value in (grids.lk_ball, grids.lk_ball_water, grids.lk_bridge)
-        ):
-            raise ValueError("lk_ball_grid=True requires all LK-ball grid families")
-        if lk_ball_grid and live_lk_ball is None:
-            raise ValueError("lk_ball_grid=True requires ligand water topology")
+        self.grid_atom_indices = grid_atom_indices
+        self.movable_n_atoms = movable_n_atoms or len(ligand_atom_types)
+        self.value_only_line_search = value_only_line_search
+        self.cuda_graph = cuda_graph
         self._scorers: dict[tuple[torch.device, torch.dtype], GridScorer] = {}
-        self._atom_index_cache: dict[
-            tuple[torch.device, int, int, int, int, int], torch.Tensor
-        ] = {}
+        self._atom_index_cache: dict[tuple, torch.Tensor] = {}
 
     def for_ligand_block(self, ligand_block: int) -> "GridBackend":
         """Return a lightweight view targeting another ligand block index.
@@ -799,7 +713,6 @@ class GridBackend(ScoringBackend):
             live_ligand_intra=live_ligand_intra,
             live_lk_ball=live_lk_ball,
             lk_ball_grid=lk_ball_grid,
-            include_ligand_intra=include_ligand_intra,
             sidechain_blocks=normalized_sidechain_blocks,
             context_blocks=context_blocks,
             grid_atom_indices=grid_atom_indices,
