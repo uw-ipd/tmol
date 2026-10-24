@@ -11,10 +11,9 @@ import torch
 
 from tmol.pose import PoseStackBuilder
 from tmol.score import ScoreFunction, ScoreType
-from tmol.score.gridscore import (
-    build_live_hbond_data,
+from tmol.score.gridscore.live_hbond import build_live_hbond_data, score_ligand_hbond
+from tmol.score.gridscore.live_lk_ball import (
     build_live_lk_ball_data,
-    score_ligand_hbond,
     score_ligand_lk_ball,
 )
 from tmol.tests.ligand.test_ligand_receptor_perterm_baseline import (

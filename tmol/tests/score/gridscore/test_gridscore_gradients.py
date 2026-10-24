@@ -5,12 +5,11 @@ from __future__ import annotations
 import pytest
 import torch
 
-from tmol.score.gridscore import (
+from tmol.score.gridscore import GridSet, score_ligand_grid_batched
+from tmol.score.gridscore.grid import (
     GridGeometry,
-    GridSet,
     interpolate_grid,
     score_ligand_grid,
-    score_ligand_grid_batched,
     score_ligand_grid_batched_with_gradients,
     xform_rep,
 )

@@ -8,20 +8,17 @@ import attr
 import pytest
 import torch
 
+from tmol.pose import PoseStackBuilder
+from tmol.score import beta2016_score_function
+
 import tmol.dock.ga as ga_module
 import tmol.dock.scoring_backend as scoring_backend_module
-from tmol.dock import (
-    ContinuousBackend,
-    GASchedule,
-    LigandGeneLayout,
-    MinimizationResult,
-    ScoringBackend,
-    build_ligand_docking_dofs,
-    crossover,
-    ligand_heavy_atom_rms,
-    run_ga_docking,
-)
-from tmol.tests.dock.test_dock_loop import _load_cdk2_pose_on_device
+from tmol.dock import ContinuousBackend, GASchedule
+from tmol.dock._diversity import ligand_heavy_atom_rms
+from tmol.dock.ga import LigandGeneLayout, crossover, run_ga_docking
+from tmol.dock.ligand_dofs import build_ligand_docking_dofs
+from tmol.dock.scoring_backend import MinimizationResult, ScoringBackend
+from tmol.tests.dock.test_ligand_dof_roundtrip import _load_cdk2_pose_on_device
 from tmol.tests.dock.test_ligand_dof_roundtrip import (
     _ligand_block,
     _load_cdk2_pose,
@@ -562,3 +559,23 @@ def test_gpu_fp32_cdk2_default_vsx_schedule():
         # returning fewer than npool when the diversity cutoff cannot be met.
         assert result.pool.n_diverse < schedule.npool
     assert result.pool.genes.shape[0] == schedule.npool
+
+
+def test_continuous_backend_score_is_weighted_beta16_total():
+    reference, param_db = _load_cdk2_pose()
+    pose_stack = PoseStackBuilder.from_poses([reference, reference], reference.device)
+    pose_stack.coords = reference.coords.repeat(2, 1, 1)
+    assert pose_stack.device.type == "cpu"
+    assert pose_stack.coords.dtype == torch.float64
+
+    oracle_sfxn = beta2016_score_function(pose_stack.device, param_db=param_db)
+    oracle_scorer = oracle_sfxn.render_whole_pose_scoring_module(pose_stack)
+    with torch.no_grad():
+        unweighted_term_rows = oracle_scorer(
+            pose_stack.coords, sum_terms=False, apply_weights=False
+        )
+        weights = oracle_sfxn.weights_tensor().to(dtype=unweighted_term_rows.dtype)
+        expected = torch.sum(weights[:, None] * unweighted_term_rows, dim=0)
+
+    actual = ContinuousBackend(param_db).score(pose_stack)
+    torch.testing.assert_close(actual, expected, rtol=1.0e-12, atol=1.0e-10)

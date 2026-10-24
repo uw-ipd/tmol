@@ -31,19 +31,17 @@ from tmol.kinematics import PoseStackKinematicsModule
 from tmol.optimization import LBFGS_Armijo, build_kinforest_network, run_min
 from tmol.pose import PoseStack
 from tmol.score import beta2016_score_function
-from tmol.score.gridscore import (
-    GridSet,
-    LiveHBondData,
-    LiveLigandIntraData,
-    LiveLKBallData,
-    build_grid,
-    build_live_hbond_data,
-    build_live_ligand_intra_data,
-    build_live_lk_ball_data,
+from tmol.score.gridscore import GridSet, build_grid, score_ligand_grid_batched
+from tmol.score.gridscore.grid import (
     probe_atom_types_from_name3,
-    score_ligand_grid_batched,
     score_ligand_grid_batched_with_gradients,
 )
+from tmol.score.gridscore.live_hbond import LiveHBondData, build_live_hbond_data
+from tmol.score.gridscore.live_ligand_intra import (
+    LiveLigandIntraData,
+    build_live_ligand_intra_data,
+)
+from tmol.score.gridscore.live_lk_ball import LiveLKBallData, build_live_lk_ball_data
 from tmol.score import ScoreFunction
 from tmol.score.gridscore._movable import (
     movable_block_mapping,

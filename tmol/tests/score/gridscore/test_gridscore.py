@@ -8,10 +8,9 @@ import torch
 from tmol.database import ParameterDatabase
 from tmol.io import pose_stack_from_biotite
 from tmol.score.elec import ElecParamResolver
-from tmol.score.gridscore import (
+from tmol.score.gridscore import GridSet, build_grid
+from tmol.score.gridscore.grid import (
     GridGeometry,
-    GridSet,
-    build_grid,
     compute_cubic_bspline_coefficients,
     compute_grid_geometry,
     interpolate_grid,

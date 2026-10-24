@@ -7,11 +7,9 @@ import attr
 import numpy
 import torch
 
-from tmol.dock import (
-    LigandGeneLayout,
-    build_ligand_docking_dofs,
-    select_pocket_residue_blocks,
-)
+from tmol.dock import select_pocket_residue_blocks
+from tmol.dock.ga import LigandGeneLayout
+from tmol.dock.ligand_dofs import build_ligand_docking_dofs
 from tmol.dock.ga import (
     RandomPlacement,
     _block_heavy_coords,

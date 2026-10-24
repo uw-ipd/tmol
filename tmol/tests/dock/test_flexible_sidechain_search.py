@@ -7,23 +7,18 @@ import time
 import pytest
 import torch
 
-from tmol.dock import (
-    GASchedule,
-    GridBackend,
-    LigandGeneLayout,
-    build_ligand_docking_dofs,
-    run_docking,
-    select_pocket_residue_blocks,
-)
+from tmol.dock import GASchedule, GridBackend, run_docking, select_pocket_residue_blocks
+from tmol.dock.ga import LigandGeneLayout
+from tmol.dock.ligand_dofs import build_ligand_docking_dofs
 from tmol.dock.ligand_dofs import (
     _block_kinforest_nodes,
 )
 from tmol.dock.scoring_backend import _LightweightGridObjective
 from tmol.score import beta2016_score_function
-from tmol.score.gridscore import (
+from tmol.score.gridscore import score_ligand_grid_batched
+from tmol.score.gridscore.live_hbond import score_ligand_hbond
+from tmol.score.gridscore.live_ligand_intra import (
     build_live_ligand_intra_data,
-    score_ligand_grid_batched,
-    score_ligand_hbond,
     score_ligand_intra,
     score_ligand_intra_with_gradients,
 )
@@ -31,7 +26,7 @@ from tmol.score.gridscore.live_ligand_intra import (
     _weighted_movable_block_pairs,
 )
 from tmol.score import ScoreType
-from tmol.tests.dock.test_dock_loop import _load_cdk2_pose_on_device
+from tmol.tests.dock.test_ligand_dof_roundtrip import _load_cdk2_pose_on_device
 from tmol.tests.dock.test_flexible_sidechain_dofs import (
     _connected_chi_blocks,
 )

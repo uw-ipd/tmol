@@ -7,7 +7,7 @@ import pytest
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.dock import build_ligand_docking_dofs
+from tmol.dock.ligand_dofs import build_ligand_docking_dofs
 from tmol.io import pose_stack_from_biotite
 from tmol.kinematics import MinimizerMap
 from tmol.kinematics import PoseStackKinematicsModule
@@ -206,3 +206,22 @@ def test_cdk2_coords_dofs_coords_roundtrip(
 
     print(f"cdk2 {coord_dtype} coords->DOFs->coords max_abs_error={error:.9e}")
     assert error < bound
+
+
+def _load_cdk2_pose_on_device(device: torch.device):
+    if device.type == "cpu":
+        return _load_cdk2_pose()
+
+    # The Phase-1 helper is CPU/fp64-only. Repeat its exact construction on the
+    # requested device for the GPU/fp32 batched lane.
+    pose_stack, context = pose_stack_from_biotite(
+        _load_complex_cif("cdk2"),
+        device,
+        prepare_ligands=True,
+        ligand_params_files=[str(PLI_DATA_DIR / "cdk2.xtal-lig.mmff94.tmol")],
+        no_optH=True,
+        param_db=ParameterDatabase.get_default(),
+        return_context=True,
+    )
+    pose_stack.coords = pose_stack.coords.to(dtype=torch.float32)
+    return pose_stack, context.parameter_database

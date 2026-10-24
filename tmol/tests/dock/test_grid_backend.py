@@ -10,23 +10,15 @@ import torch
 
 import tmol.dock.ga as ga_module
 import tmol.dock.scoring_backend as scoring_backend_module
-from tmol.dock import (
-    ContinuousBackend,
-    GASchedule,
-    GridBackend,
-    LigandGeneLayout,
-    build_ligand_docking_dofs,
-    run_docking,
-    run_ga_docking,
-)
+from tmol.dock import ContinuousBackend, GASchedule, GridBackend, run_docking
+from tmol.dock.ga import LigandGeneLayout, run_ga_docking
+from tmol.dock.ligand_dofs import build_ligand_docking_dofs
 from tmol.optimization import build_kinforest_network, run_min
 from tmol.score import beta2016_score_function
-from tmol.score.gridscore import (
-    score_ligand_intra,
-    score_ligand_grid,
-    score_ligand_grid_batched,
-)
-from tmol.tests.dock.test_dock_loop import _load_cdk2_pose_on_device
+from tmol.score.gridscore import score_ligand_grid_batched
+from tmol.score.gridscore.grid import score_ligand_grid
+from tmol.score.gridscore.live_ligand_intra import score_ligand_intra
+from tmol.tests.dock.test_ligand_dof_roundtrip import _load_cdk2_pose_on_device
 from tmol.tests.dock.test_ligand_dof_roundtrip import (
     _ligand_block,
     _load_cdk2_pose,

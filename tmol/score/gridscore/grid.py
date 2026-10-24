@@ -22,7 +22,11 @@ from tmol.score.ljlk import LJLKEnergyTerm
 from tmol.score.lk_ball import LKBallEnergyTerm
 from tmol.score import ScoreFunction, ScoreType, beta2016_score_function
 
-from .live_hbond import LiveHBondData, score_ligand_hbond, score_ligand_hbond_with_gradients
+from .live_hbond import (
+    LiveHBondData,
+    score_ligand_hbond,
+    score_ligand_hbond_with_gradients,
+)
 from .live_ligand_intra import (
     LiveLigandIntraData,
     score_ligand_intra,
@@ -1364,9 +1368,7 @@ def score_ligand_grid_batched_with_gradients(
 
         unweighted = torch.stack((atr, rep, sol, elec), dim=1)
         energies = torch.sum(
-            torch.sum(unweighted * weights, dim=1).reshape(
-                n_poses, n_grid_atoms
-            ),
+            torch.sum(unweighted * weights, dim=1).reshape(n_poses, n_grid_atoms),
             dim=1,
         ) + torch.sum(penalties.reshape(n_poses, n_grid_atoms), dim=1)
 
@@ -1387,7 +1389,9 @@ def score_ligand_grid_batched_with_gradients(
             hbond_energies, hbond_gradients = score_ligand_hbond_with_gradients(
                 live_hbond, ligand_coords
             )
-            hbond_weight = _weights(score_function, (ScoreType.hbond,), ligand_coords)[0]
+            hbond_weight = _weights(score_function, (ScoreType.hbond,), ligand_coords)[
+                0
+            ]
             energies = energies + hbond_weight * hbond_energies
             coordinate_gradients = coordinate_gradients + hbond_weight * hbond_gradients
 
@@ -1407,7 +1411,9 @@ def score_ligand_grid_batched_with_gradients(
             lk_ball_energies, lk_ball_gradients = score_ligand_lk_ball_with_gradients(
                 live_lk_ball, ligand_coords
             )
-            lk_ball_weights = _weights(score_function, LK_BALL_SCORE_TYPES, ligand_coords)
+            lk_ball_weights = _weights(
+                score_function, LK_BALL_SCORE_TYPES, ligand_coords
+            )
             energies = energies + torch.sum(
                 _apply_live_weights(lk_ball_energies, lk_ball_weights), dim=1
             )

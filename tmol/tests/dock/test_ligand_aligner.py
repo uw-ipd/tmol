@@ -8,14 +8,9 @@ import pytest
 import torch
 
 import tmol.dock.ga as ga_module
-from tmol.dock import (
-    GridBackend,
-    LigandAligner,
-    LigandGeneLayout,
-    RandomPlacement,
-    build_ligand_docking_dofs,
-    run_ga_docking,
-)
+from tmol.dock import GridBackend, LigandAligner, RandomPlacement
+from tmol.dock.ga import LigandGeneLayout, run_ga_docking
+from tmol.dock.ligand_dofs import build_ligand_docking_dofs
 from tmol.dock.ligand_aligner import (
     _axis_angle_rotation_matrix,
 )

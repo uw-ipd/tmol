@@ -27,7 +27,6 @@ import torch
 
 from tmol.dock.conformer_seed import generate_conformer_library
 from tmol.dock._diversity import ligand_heavy_atom_rms, select_diverse_low_energy
-from tmol.dock.dock_loop import DockingPerturbation
 from tmol.dock.ligand_aligner import LigandAligner
 from tmol.dock.ligand_dofs import (
     GeneIndex,
@@ -60,6 +59,30 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class DockingPerturbation:
+    """Uniform half-widths for the initial ligand DOF jitter.
+
+    The defaults sample each translation DOF uniformly within +/-0.25 A,
+    each jump-rotation DOF within +/-5 degrees, and each ligand torsion raw
+    DOF within +/-10 degrees. Rotation and torsion values are stored in
+    radians because that is the kinematics representation.
+    """
+
+    translation_angstrom: float = 0.25
+    rotation_radians: float = math.radians(5.0)
+    torsion_radians: float = math.radians(10.0)
+
+    def __post_init__(self) -> None:
+        for name, value in (
+            ("translation_angstrom", self.translation_angstrom),
+            ("rotation_radians", self.rotation_radians),
+            ("torsion_radians", self.torsion_radians),
+        ):
+            if not math.isfinite(value) or value < 0:
+                raise ValueError(f"{name} must be finite and nonnegative")
 
 
 @dataclass(frozen=True)

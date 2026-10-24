@@ -7,12 +7,9 @@ import pytest
 import torch
 
 import tmol.dock.ga as ga_module
-from tmol.dock import (
-    ContinuousBackend,
-    GASchedule,
-    generate_conformer_library,
-    run_ga_docking,
-)
+from tmol.dock import ContinuousBackend, GASchedule
+from tmol.dock.conformer_seed import generate_conformer_library
+from tmol.dock.ga import run_ga_docking
 from tmol.tests.data import data_path
 from tmol.tests.dock.test_ga import _TranslationImprovingBackend
 from tmol.tests.dock.test_ligand_dof_roundtrip import (

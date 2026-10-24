@@ -3,12 +3,8 @@ from __future__ import annotations
 import pytest
 import torch
 
-from tmol.score.gridscore import (
-    build_grid,
-    probe_atom_types_from_name3,
-    score_ligand_grid,
-    score_ligand_grid_batched,
-)
+from tmol.score.gridscore import build_grid, score_ligand_grid_batched
+from tmol.score.gridscore.grid import probe_atom_types_from_name3, score_ligand_grid
 from tmol.tests.ligand.test_protein_ligand_ddg import LIGAND_RES_NAME
 from tmol.tests.score.gridscore.test_gridscore import (
     _ligand_scoring_inputs,

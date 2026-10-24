@@ -10,17 +10,10 @@ import torch
 
 import tmol.dock.finalization as finalization_module
 from tmol.database import ParameterDatabase
-from tmol.dock import (
-    GAPool,
-    GAResult,
-    GASchedule,
-    GridBackend,
-    LigandGeneLayout,
-    build_ligand_docking_dofs,
-    count_non_proton_ligand_chis,
-    run_docking,
-    select_pocket_residue_blocks,
-)
+from tmol.dock import GASchedule, GridBackend, run_docking, select_pocket_residue_blocks
+from tmol.dock.finalization import count_non_proton_ligand_chis
+from tmol.dock.ga import GAPool, GAResult, LigandGeneLayout
+from tmol.dock.ligand_dofs import build_ligand_docking_dofs
 from tmol.dock.finalization import (
     _flexible_sidechain_mapping,
     _ligand_atom_indices,
@@ -32,7 +25,7 @@ from tmol.dock.finalization import (
 )
 from tmol.io import pose_stack_from_biotite
 from tmol.score import beta2016_score_function
-from tmol.tests.dock.test_dock_loop import _load_cdk2_pose_on_device
+from tmol.tests.dock.test_ligand_dof_roundtrip import _load_cdk2_pose_on_device
 from tmol.tests.dock.test_ligand_dof_roundtrip import (
     PLI_DATA_DIR,
     _ligand_block,

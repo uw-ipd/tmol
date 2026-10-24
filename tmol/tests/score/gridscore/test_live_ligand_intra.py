@@ -8,10 +8,10 @@ import torch
 
 from tmol.dock import GridBackend
 from tmol.score import beta2016_score_function
-from tmol.score.gridscore import (
+from tmol.score.gridscore import score_ligand_grid_batched
+from tmol.score.gridscore.grid import score_ligand_grid_batched_with_gradients
+from tmol.score.gridscore.live_ligand_intra import (
     build_live_ligand_intra_data,
-    score_ligand_grid_batched,
-    score_ligand_grid_batched_with_gradients,
     score_ligand_intra,
     score_ligand_intra_with_gradients,
 )
