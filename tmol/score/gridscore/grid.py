@@ -22,15 +22,17 @@ from tmol.score.ljlk import LJLKEnergyTerm
 from tmol.score.lk_ball import LKBallEnergyTerm
 from tmol.score import ScoreFunction, ScoreType, beta2016_score_function
 
-from .live_hbond import LiveHBondData, score_ligand_hbond
+from .live_hbond import LiveHBondData, score_ligand_hbond, score_ligand_hbond_with_gradients
 from .live_ligand_intra import (
     LiveLigandIntraData,
     score_ligand_intra,
+    score_ligand_intra_with_gradients,
 )
 from .live_lk_ball import (
     LiveLKBallData,
     _generate_reference_waters,
     score_ligand_lk_ball,
+    score_ligand_lk_ball_with_gradients,
 )
 
 DEFAULT_VOXEL_SPACING = 0.25
@@ -677,6 +679,169 @@ def _score_gridded_lk_ball(
     )
 
 
+def _score_gridded_lk_ball_with_gradients(
+    grids: GridSet,
+    data: "LiveLKBallData",
+    ligand_coords: torch.Tensor,
+    atom_grid_indices: torch.Tensor,
+    coordinate_atom_indices: torch.Tensor | None = None,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Return the gridded LK-ball total and graph-free Cartesian gradient."""
+
+    _validate_gridded_lk_ball(grids, data, ligand_coords)
+    from .potentials.compiled import (
+        build_lk_ball_waters,
+        interpolate_with_derivatives,
+        propagate_lk_ball_water_gradients,
+    )
+
+    n_poses, n_atoms, _ = ligand_coords.shape
+    if not grids.lk_ball_enabled:
+        return (
+            torch.zeros(
+                n_poses, dtype=ligand_coords.dtype, device=ligand_coords.device
+            ),
+            torch.zeros_like(ligand_coords),
+        )
+    if coordinate_atom_indices is None:
+        grid_coords = ligand_coords
+        n_grid_atoms = n_atoms
+    else:
+        grid_coords = ligand_coords.index_select(1, coordinate_atom_indices)
+        n_grid_atoms = coordinate_atom_indices.shape[0]
+    flat_coords = grid_coords.detach().reshape(n_poses * n_grid_atoms, 3)
+    atom_indices = atom_grid_indices.repeat(n_poses).contiguous()
+    fractional = grids.geometry.zero_based_index_from_cartesian(
+        flat_coords
+    ).contiguous()
+    heavy, dheavy, _, _ = interpolate_with_derivatives(
+        grids.lk_ball_coeffs.contiguous(), fractional, atom_indices, 0.0
+    )
+    energies = torch.sum(heavy.reshape(n_poses, n_grid_atoms), dim=1)
+    grid_gradients = (dheavy / grids.geometry.voxel_spacing).reshape(
+        n_poses, n_grid_atoms, 3
+    )
+    if coordinate_atom_indices is None:
+        gradients = grid_gradients
+    else:
+        gradients = torch.zeros_like(ligand_coords)
+        gradients[:, coordinate_atom_indices] = grid_gradients
+
+    n_polar = data.ligand_polar_atoms.shape[0]
+    if n_polar == 0:
+        return energies, gradients
+    waters = build_lk_ball_waters(
+        ligand_coords.detach().contiguous(),
+        data.ligand_polar_atoms,
+        data.ligand_water_kinds,
+        data.ligand_water_atoms,
+        data.ligand_water_params,
+        data.ligand_water_is_ring,
+        GRID_LK_BALL_WATER_DISTANCE,
+    )
+    active = data.ligand_water_kinds != 0
+    has_water = torch.any(active, dim=1)
+    safe_waters = torch.where(
+        active[None, :, :, None],
+        waters,
+        grids.geometry.origin.reshape(1, 1, 1, 3),
+    )
+    water_fractional = grids.geometry.zero_based_index_from_cartesian(
+        safe_waters.reshape(n_poses * n_polar * 4, 3)
+    ).contiguous()
+    if coordinate_atom_indices is None:
+        polar_grid_indices = atom_grid_indices[data.ligand_polar_atoms]
+    else:
+        coordinate_to_grid = torch.full(
+            (n_atoms,), -1, dtype=torch.int64, device=ligand_coords.device
+        )
+        coordinate_to_grid[coordinate_atom_indices] = torch.arange(
+            n_grid_atoms, dtype=torch.int64, device=ligand_coords.device
+        )
+        polar_grid_positions = coordinate_to_grid[data.ligand_polar_atoms]
+        if bool(torch.any(polar_grid_positions < 0)):
+            raise ValueError("LK-ball polar atom is absent from the grid atom set")
+        polar_grid_indices = atom_grid_indices[polar_grid_positions]
+    water_grid_indices = (
+        polar_grid_indices[:, None]
+        .expand(n_polar, 4)
+        .reshape(-1)
+        .repeat(n_poses)
+        .contiguous()
+    )
+    water_values, dwater, _, _ = interpolate_with_derivatives(
+        grids.lk_ball_water_coeffs.contiguous(),
+        water_fractional,
+        water_grid_indices,
+        0.0,
+    )
+    if grids.lk_bridge_enabled:
+        bridge_values, dbridge, _, _ = interpolate_with_derivatives(
+            grids.lk_bridge_coeffs.contiguous(),
+            water_fractional,
+            water_grid_indices,
+            0.0,
+        )
+    else:
+        bridge_values = torch.zeros_like(water_values)
+        dbridge = torch.zeros_like(dwater)
+    water_values = water_values.reshape(n_poses, n_polar, 4)
+    bridge_values = bridge_values.reshape(n_poses, n_polar, 4)
+    dwater = dwater.reshape(n_poses, n_polar, 4, 3)
+    dbridge = dbridge.reshape(n_poses, n_polar, 4, 3)
+    water_masked = torch.where(
+        active[None], water_values, torch.full_like(water_values, -torch.inf)
+    )
+    bridge_masked = torch.where(
+        active[None], bridge_values, torch.full_like(bridge_values, torch.inf)
+    )
+    water_masked = torch.where(
+        has_water[None, :, None], water_masked, torch.zeros_like(water_masked)
+    )
+    bridge_masked = torch.where(
+        has_water[None, :, None], bridge_masked, torch.zeros_like(bridge_masked)
+    )
+    water_energy = GRID_LK_BALL_FADE * torch.logsumexp(
+        water_masked / GRID_LK_BALL_FADE, dim=2
+    )
+    if grids.lk_bridge_enabled:
+        bridge_energy = -GRID_LK_BALL_FADE * torch.logsumexp(
+            -bridge_masked / GRID_LK_BALL_FADE, dim=2
+        )
+    else:
+        bridge_energy = torch.zeros_like(water_energy)
+    energies = energies + torch.sum(
+        torch.where(
+            has_water[None],
+            water_energy + bridge_energy,
+            torch.zeros_like(water_energy),
+        ),
+        dim=1,
+    )
+    active_real = active.to(dtype=water_values.dtype)[None]
+    water_weights = torch.softmax(water_masked / GRID_LK_BALL_FADE, dim=2) * active_real
+    if grids.lk_bridge_enabled:
+        bridge_weights = (
+            torch.softmax(-bridge_masked / GRID_LK_BALL_FADE, dim=2) * active_real
+        )
+    else:
+        bridge_weights = torch.zeros_like(bridge_values)
+    water_coordinate_gradients = (
+        water_weights[..., None] * dwater + bridge_weights[..., None] * dbridge
+    ) / grids.geometry.voxel_spacing
+    gradients = gradients + propagate_lk_ball_water_gradients(
+        ligand_coords.detach().contiguous(),
+        data.ligand_polar_atoms,
+        data.ligand_water_kinds,
+        data.ligand_water_atoms,
+        data.ligand_water_params,
+        data.ligand_water_is_ring,
+        water_coordinate_gradients.contiguous(),
+        GRID_LK_BALL_WATER_DISTANCE,
+    )
+    return energies, gradients
+
+
 def interpolate_grid(
     coefficients: torch.Tensor,
     indices: torch.Tensor,
@@ -1063,20 +1228,209 @@ def score_ligand_grid_batched(
 def score_ligand_grid_batched_with_gradients(
     grids: GridSet,
     ligand_coords: torch.Tensor,
-    *args,
-    **kwargs,
+    ligand_atom_types: Sequence[str],
+    ligand_charges: torch.Tensor,
+    *,
+    score_function: ScoreFunction | None = None,
+    live_hbond: LiveHBondData | None = None,
+    live_ligand_intra: LiveLigandIntraData | None = None,
+    live_lk_ball: LiveLKBallData | None = None,
+    lk_ball_grid: bool = False,
+    grid_atom_indices: torch.Tensor | None = None,
 ) -> tuple[torch.Tensor, torch.Tensor]:
-    """Return :func:`score_ligand_grid_batched` energies and Cartesian gradients.
+    """Return per-pose grid energies and analytic Cartesian gradients.
 
-    Takes the arguments of :func:`score_ligand_grid_batched`. Every channel is a
-    compiled autograd operator, so the gradient is one backward pass over a
-    local graph; no input or returned tensor stays attached to it.
+    This is the graph-free counterpart of :func:`score_ligand_grid_batched`.
+    It calls the compiled M2e value-and-spatial-derivative kernel directly and
+    applies the four all-atom grid-term weights, the inverse fa_rep transform
+    derivative, the electrostatic charge multiplier, the out-of-bounds
+    derivative, the grid-index-to-Cartesian scale, and the optional live hbond
+    and selected LK-ball derivatives explicitly. Ligand-intra derivatives use
+    a temporary local autograd graph over compiled term backward kernels. No
+    input or returned tensor remains attached to an autograd graph.
     """
-    with torch.enable_grad():
-        coords = ligand_coords.detach().requires_grad_(True)
-        energies = score_ligand_grid_batched(grids, coords, *args, **kwargs)
-        (gradients,) = torch.autograd.grad(energies.sum(), coords)
-    return energies.detach(), gradients.detach()
+    if ligand_coords.ndim != 3 or ligand_coords.shape[2] != 3:
+        raise ValueError("ligand_coords must have shape [n_poses, n_atoms, 3]")
+    n_poses, n_atoms, _ = ligand_coords.shape
+    if n_poses == 0:
+        raise ValueError("at least one ligand pose is required")
+    if n_atoms == 0:
+        raise ValueError("at least one ligand atom is required")
+    if grid_atom_indices is None:
+        grid_coords = ligand_coords
+        n_grid_atoms = n_atoms
+    else:
+        if (
+            grid_atom_indices.ndim != 1
+            or grid_atom_indices.dtype != torch.int64
+            or grid_atom_indices.device != ligand_coords.device
+        ):
+            raise ValueError(
+                "grid_atom_indices must be a device-local one-dimensional int64 tensor"
+            )
+        if grid_atom_indices.numel() == 0:
+            raise ValueError("at least one grid-scored atom is required")
+        if bool(
+            torch.any(grid_atom_indices < 0)
+            or torch.any(grid_atom_indices >= n_atoms)
+            or torch.unique(grid_atom_indices).numel() != grid_atom_indices.numel()
+        ):
+            raise ValueError("grid_atom_indices must contain unique in-range indices")
+        grid_coords = ligand_coords.index_select(1, grid_atom_indices)
+        n_grid_atoms = grid_atom_indices.shape[0]
+    if ligand_charges.ndim != 1 or ligand_charges.shape[0] != n_grid_atoms:
+        raise ValueError("ligand_charges must have shape [n_grid_atoms]")
+    if len(ligand_atom_types) != n_grid_atoms:
+        raise ValueError("ligand_atom_types must have one entry per grid-scored atom")
+    if ligand_coords.dtype not in (torch.float32, torch.float64):
+        raise TypeError("ligand_coords must be float32 or float64")
+    if ligand_charges.dtype != ligand_coords.dtype:
+        raise TypeError("ligand charges and coordinates must have the same dtype")
+    if ligand_charges.device != ligand_coords.device:
+        raise ValueError("ligand charges and coordinates must be on the same device")
+    if (
+        grids.geometry.origin.device != ligand_coords.device
+        or grids.geometry.origin.dtype != ligand_coords.dtype
+    ):
+        raise ValueError("grid geometry must match ligand coordinate dtype and device")
+
+    type_to_grid = grids.atom_type_to_grid
+    unknown_types = sorted(set(ligand_atom_types) - set(type_to_grid))
+    if unknown_types:
+        raise ValueError(f"ligand atom types are absent from the grid: {unknown_types}")
+    atom_grid_indices = torch.tensor(
+        [type_to_grid[name] for name in ligand_atom_types],
+        dtype=torch.int64,
+        device=ligand_coords.device,
+    )
+    grid_indices = atom_grid_indices.repeat(n_poses).contiguous()
+    zero_grid_indices = torch.zeros_like(grid_indices)
+
+    coefficients = (
+        grids.fa_atr_coeffs,
+        grids.fa_rep_coeffs,
+        grids.fa_sol_coeffs,
+        grids.fa_elec_coeffs,
+    )
+    if any(value is None for value in coefficients):
+        raise ValueError("GridSet does not contain spline coefficients")
+    for value in coefficients:
+        if value.device != ligand_coords.device or value.dtype != ligand_coords.dtype:
+            raise ValueError(
+                "grid coefficients must match ligand coordinate dtype and device"
+            )
+
+    if score_function is None:
+        score_function = beta2016_score_function(ligand_coords.device)
+    weights = _weights(score_function, GRID_SCORE_TYPES, ligand_coords)
+
+    from .potentials.compiled import interpolate_with_derivatives
+
+    with torch.no_grad():
+        flat_coords = grid_coords.detach().reshape(n_poses * n_grid_atoms, 3)
+        fractional_indices = grids.geometry.zero_based_index_from_cartesian(
+            flat_coords
+        ).contiguous()
+        atr, datr, penalties, dpenalty = interpolate_with_derivatives(
+            coefficients[0].contiguous(),
+            fractional_indices,
+            grid_indices,
+            OUT_OF_BOUNDS_PENALTY,
+        )
+        rep_xformed, drep_xformed, _, _ = interpolate_with_derivatives(
+            coefficients[1].contiguous(),
+            fractional_indices,
+            grid_indices,
+            0.0,
+        )
+        sol, dsol, _, _ = interpolate_with_derivatives(
+            coefficients[2].contiguous(),
+            fractional_indices,
+            grid_indices,
+            0.0,
+        )
+        elec_grid, delec_grid, _, _ = interpolate_with_derivatives(
+            coefficients[3].unsqueeze(0).contiguous(),
+            fractional_indices,
+            zero_grid_indices,
+            0.0,
+        )
+
+        repeated_charges = ligand_charges.repeat(n_poses)
+        rep = ixform_rep(rep_xformed)
+        drep = drep_xformed * (-4.0 * torch.pow(rep_xformed, -5))[:, None]
+        elec = repeated_charges * elec_grid
+        delec = repeated_charges[:, None] * delec_grid
+
+        unweighted = torch.stack((atr, rep, sol, elec), dim=1)
+        energies = torch.sum(
+            torch.sum(unweighted * weights, dim=1).reshape(
+                n_poses, n_grid_atoms
+            ),
+            dim=1,
+        ) + torch.sum(penalties.reshape(n_poses, n_grid_atoms), dim=1)
+
+        derivative_by_channel = torch.stack((datr, drep, dsol, delec), dim=1)
+        index_gradients = (
+            torch.sum(derivative_by_channel * weights[None, :, None], dim=1) + dpenalty
+        )
+        grid_gradients = (index_gradients / grids.geometry.voxel_spacing).reshape(
+            n_poses, n_grid_atoms, 3
+        )
+        if grid_atom_indices is None:
+            coordinate_gradients = grid_gradients
+        else:
+            coordinate_gradients = torch.zeros_like(ligand_coords)
+            coordinate_gradients[:, grid_atom_indices] = grid_gradients
+
+        if live_hbond is not None:
+            hbond_energies, hbond_gradients = score_ligand_hbond_with_gradients(
+                live_hbond, ligand_coords
+            )
+            hbond_weight = _weights(score_function, (ScoreType.hbond,), ligand_coords)[0]
+            energies = energies + hbond_weight * hbond_energies
+            coordinate_gradients = coordinate_gradients + hbond_weight * hbond_gradients
+
+        if lk_ball_grid:
+            if live_lk_ball is None:
+                raise ValueError("gridded LK-ball requires ligand water topology")
+            lk_ball_energies, lk_ball_gradients = _score_gridded_lk_ball_with_gradients(
+                grids,
+                live_lk_ball,
+                ligand_coords,
+                atom_grid_indices,
+                grid_atom_indices,
+            )
+            energies = energies + lk_ball_energies
+            coordinate_gradients = coordinate_gradients + lk_ball_gradients
+        elif live_lk_ball is not None:
+            lk_ball_energies, lk_ball_gradients = score_ligand_lk_ball_with_gradients(
+                live_lk_ball, ligand_coords
+            )
+            lk_ball_weights = _weights(score_function, LK_BALL_SCORE_TYPES, ligand_coords)
+            energies = energies + torch.sum(
+                _apply_live_weights(lk_ball_energies, lk_ball_weights), dim=1
+            )
+            coordinate_gradients = coordinate_gradients + torch.sum(
+                _apply_live_weights(
+                    lk_ball_gradients,
+                    lk_ball_weights[None, :, None, None],
+                ),
+                dim=1,
+            )
+
+        if live_ligand_intra is not None:
+            intra_energies, intra_gradients = score_ligand_intra_with_gradients(
+                live_ligand_intra, ligand_coords
+            )
+            energies = energies + intra_energies.to(
+                device=ligand_coords.device, dtype=ligand_coords.dtype
+            )
+            coordinate_gradients = coordinate_gradients + intra_gradients.to(
+                device=ligand_coords.device, dtype=ligand_coords.dtype
+            )
+
+    return energies, coordinate_gradients
 
 
 def compute_grid_geometry(

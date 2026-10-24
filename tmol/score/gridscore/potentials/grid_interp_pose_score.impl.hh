@@ -86,16 +86,24 @@ auto GridInterpDispatch<DeviceOps, D, Real, Int>::forward(
       cubic_bspline_weights(index[axis] - first_real - Real(1), weights[axis]);
     }
 
+    // The mirrored stencil indices depend on one axis each: fold them once
+    // (12 modulos) instead of inside the 64-tap loop.
+    Int stencil[3][4];
+    Int const dims[3] = {nx, ny, nz};
+    for (int axis = 0; axis < 3; ++axis) {
+      for (int tap = 0; tap < 4; ++tap) {
+        stencil[axis][tap] = mirror_grid_index(first[axis] + tap, dims[axis]);
+      }
+    }
+
     Real value = 0;
     for (int x_offset = 0; x_offset < 4; ++x_offset) {
-      Int const x = mirror_grid_index(first[0] + x_offset, nx);
       for (int y_offset = 0; y_offset < 4; ++y_offset) {
-        Int const y = mirror_grid_index(first[1] + y_offset, ny);
         Real const xy_weight = weights[0][x_offset] * weights[1][y_offset];
         for (int z_offset = 0; z_offset < 4; ++z_offset) {
-          Int const z = mirror_grid_index(first[2] + z_offset, nz);
           value += xy_weight * weights[2][z_offset]
-                   * coefficients[grid][x][y][z];
+                   * coefficients[grid][stencil[0][x_offset]]
+                                 [stencil[1][y_offset]][stencil[2][z_offset]];
         }
       }
     }
@@ -186,15 +194,21 @@ auto GridInterpDispatch<DeviceOps, D, Real, Int>::forward_with_derivatives(
           weight_derivatives[axis]);
     }
 
+    Int stencil[3][4];
+    for (int axis = 0; axis < 3; ++axis) {
+      for (int tap = 0; tap < 4; ++tap) {
+        stencil[axis][tap] = mirror_grid_index(first[axis] + tap, dims[axis]);
+      }
+    }
+
     Real value = 0;
     Real gradient[3] = {Real(0), Real(0), Real(0)};
     for (int x_offset = 0; x_offset < 4; ++x_offset) {
-      Int const x = mirror_grid_index(first[0] + x_offset, dims[0]);
       for (int y_offset = 0; y_offset < 4; ++y_offset) {
-        Int const y = mirror_grid_index(first[1] + y_offset, dims[1]);
         for (int z_offset = 0; z_offset < 4; ++z_offset) {
-          Int const z = mirror_grid_index(first[2] + z_offset, dims[2]);
-          Real const coefficient = coefficients[grid][x][y][z];
+          Real const coefficient =
+              coefficients[grid][stencil[0][x_offset]][stencil[1][y_offset]]
+                          [stencil[2][z_offset]];
           value += weights[0][x_offset] * weights[1][y_offset]
                    * weights[2][z_offset] * coefficient;
           gradient[0] += weight_derivatives[0][x_offset]

@@ -30,10 +30,9 @@ from tmol.dock._diversity import ligand_heavy_atom_rms, select_diverse_low_energ
 from tmol.dock.dock_loop import DockingPerturbation
 from tmol.dock.ligand_aligner import LigandAligner
 from tmol.dock.ligand_dofs import (
+    GeneIndex,
     LigandDockingDOFs,
-    _block_kinforest_nodes,
     _inverse_dofs,
-    _ligand_kinforest_nodes,
     _sidechain_coordinate_metadata,
     _sidechain_logical_torsions_from_coords,
     _wrap_angle,
@@ -44,7 +43,6 @@ from tmol.dock.scoring_backend import (
     MinimizationResult,
     ScoringBackend,
 )
-from tmol.kinematics import JumpDOFTypes, NodeType
 from tmol.kinematics import MinimizerMap
 from tmol.kinematics import PoseStackKinematicsModule
 from tmol.pose import PoseStack
@@ -107,6 +105,16 @@ class RandomPlacement:
             raise ValueError("pocket_padding_angstrom must be finite and nonnegative")
 
 
+_GENE_INDEX_FIELDS = (
+    "jump_nodes",
+    "torsion_nodes",
+    "torsion_dof_types",
+    "torsion_signs",
+    "torsion_offsets",
+    "ligand_nodes",
+)
+
+
 @dataclass(frozen=True)
 class LigandGeneLayout:
     """Map ``[pose, jump | ligand chis | receptor chis]`` to coordinates."""
@@ -115,12 +123,7 @@ class LigandGeneLayout:
     docking_dofs: LigandDockingDOFs
     kin_module: PoseStackKinematicsModule
     base_raw_dofs: torch.Tensor
-    jump_nodes: torch.Tensor
-    torsion_nodes: torch.Tensor
-    torsion_dof_types: torch.Tensor
-    torsion_signs: torch.Tensor
-    torsion_offsets: torch.Tensor
-    ligand_nodes: torch.Tensor
+    index: GeneIndex
     ligand_local_atoms: torch.Tensor
     heavy_local_atoms: torch.Tensor
     sidechain_nodes: torch.Tensor
@@ -136,80 +139,13 @@ class LigandGeneLayout:
         raw_dofs = _inverse_dofs(pose_stack, kin_module)
         minmap = MinimizerMap(pose_stack, kmd, docking_dofs.move_map)
 
-        jump_mask = (kmd.forest.doftype == int(NodeType.jump)) & torch.all(
-            minmap.dof_mask[:, : int(JumpDOFTypes.RBdel_gamma) + 1],
-            dim=1,
-        )
-        jump_node_list = torch.nonzero(jump_mask, as_tuple=False).flatten()
-        if jump_node_list.numel() != pose_stack.n_poses:
-            raise ValueError("expected exactly one movable ligand jump per pose")
-        jump_pose = torch.div(
-            kmd.forest.id[jump_node_list],
-            pose_stack.max_n_pose_atoms,
-            rounding_mode="floor",
-        ).to(torch.int64)
-        jump_nodes = torch.empty(
-            pose_stack.n_poses, dtype=torch.int64, device=pose_stack.device
-        )
-        jump_nodes.scatter_(0, jump_pose, jump_node_list)
-
         block_type_index = int(
             pose_stack.block_type_ind64[0, docking_dofs.ligand_block]
         )
         block_type = pose_stack.packed_block_types.active_block_types[block_type_index]
-        ligand_nodes = _ligand_kinforest_nodes(
-            pose_stack,
-            docking_dofs.ligand_block,
-            block_type.n_atoms,
-            kmd.forest.id,
+        index = GeneIndex.build(
+            pose_stack, docking_dofs, kmd.forest, minmap.dof_mask, raw_dofs.dtype
         )
-        all_torsions = docking_dofs.torsions + docking_dofs.sidechain_torsions
-        raw_atoms = torch.tensor(
-            [mapping.raw_atom for mapping in docking_dofs.torsions],
-            dtype=torch.int64,
-            device=pose_stack.device,
-        )
-        ligand_torsion_nodes = ligand_nodes[:, raw_atoms]
-        if docking_dofs.sidechain_torsions:
-            sidechain_torsion_nodes = torch.stack(
-                [
-                    _block_kinforest_nodes(
-                        pose_stack,
-                        mapping.block,
-                        pose_stack.packed_block_types.active_block_types[
-                            int(pose_stack.block_type_ind64[0, mapping.block])
-                        ].n_atoms,
-                        kmd.forest.id,
-                    )[:, mapping.raw_atom]
-                    for mapping in docking_dofs.sidechain_torsions
-                ],
-                dim=1,
-            )
-            torsion_nodes = torch.cat(
-                (ligand_torsion_nodes, sidechain_torsion_nodes), dim=1
-            )
-        else:
-            torsion_nodes = ligand_torsion_nodes
-        torsion_dof_types = torch.tensor(
-            [int(mapping.dof_type) for mapping in all_torsions],
-            dtype=torch.int64,
-            device=pose_stack.device,
-        )
-        torsion_signs = torch.tensor(
-            [mapping.sign for mapping in all_torsions],
-            dtype=raw_dofs.dtype,
-            device=pose_stack.device,
-        )
-        if all_torsions:
-            torsion_offsets = torch.stack(
-                [mapping.offset for mapping in all_torsions], dim=1
-            ).to(dtype=raw_dofs.dtype)
-        else:
-            torsion_offsets = torch.empty(
-                (pose_stack.n_poses, 0),
-                dtype=raw_dofs.dtype,
-                device=pose_stack.device,
-            )
         heavy_local_atoms = torch.nonzero(
             ~pose_stack.packed_block_types.atom_is_hydrogen[
                 block_type_index, : block_type.n_atoms
@@ -227,12 +163,7 @@ class LigandGeneLayout:
             docking_dofs=docking_dofs,
             kin_module=kin_module,
             base_raw_dofs=raw_dofs,
-            jump_nodes=jump_nodes,
-            torsion_nodes=torsion_nodes,
-            torsion_dof_types=torsion_dof_types,
-            torsion_signs=torsion_signs,
-            torsion_offsets=torsion_offsets,
-            ligand_nodes=ligand_nodes,
+            index=index,
             ligand_local_atoms=torch.arange(
                 block_type.n_atoms,
                 dtype=torch.int64,
@@ -244,9 +175,14 @@ class LigandGeneLayout:
             sidechain_atom_influence=sidechain_atom_influence,
         )
 
+    def __getattr__(self, name: str):
+        if name in _GENE_INDEX_FIELDS:
+            return getattr(self.index, name)
+        raise AttributeError(name)
+
     @property
     def n_dof(self) -> int:
-        return 6 + self.torsion_nodes.shape[1]
+        return 6 + self.index.torsion_nodes.shape[1]
 
     def genes_from_raw_dofs(self, raw_dofs: torch.Tensor) -> torch.Tensor:
         """Gather the fixed-order gene from a raw kinematic DOF tensor."""
@@ -256,15 +192,7 @@ class LigandGeneLayout:
                 "raw DOF shape does not match the gene layout: "
                 f"{tuple(raw_dofs.shape)} != {tuple(self.base_raw_dofs.shape)}"
             )
-        jump_dofs = raw_dofs[
-            self.jump_nodes[:, None],
-            torch.arange(6, dtype=torch.int64, device=raw_dofs.device)[None, :],
-        ]
-        raw_torsions = raw_dofs[self.torsion_nodes, self.torsion_dof_types[None, :]]
-        logical_torsions = _wrap_angle(
-            self.torsion_signs[None, :] * raw_torsions + self.torsion_offsets
-        )
-        return torch.cat((jump_dofs, logical_torsions), dim=1)
+        return self.index.genes_from_raw_dofs(raw_dofs)
 
     def genes_from_pose_stack(self, pose_stack: PoseStack) -> torch.Tensor:
         """Extract the starting template gene from its freed raw DOFs.
@@ -317,14 +245,7 @@ class LigandGeneLayout:
             raise ValueError("genes and kinematic DOFs must have the same dtype")
 
         raw_dofs = self.base_raw_dofs.clone()
-        raw_dofs[
-            self.jump_nodes[:, None],
-            torch.arange(6, dtype=torch.int64, device=genes.device)[None, :],
-        ] = genes[:, :6]
-        raw_torsions = _wrap_angle(
-            self.torsion_signs[None, :] * (genes[:, 6:] - self.torsion_offsets)
-        )
-        raw_dofs[self.torsion_nodes, self.torsion_dof_types[None, :]] = raw_torsions
+        self.index.write_raw_dofs(raw_dofs, genes)
         return raw_dofs
 
     def pose_stack_from_genes(self, genes: torch.Tensor) -> PoseStack:

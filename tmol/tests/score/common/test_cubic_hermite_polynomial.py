@@ -34,6 +34,7 @@ def cubic_hermite_polynomial():
     return cubic_hermite_polynomial
 
 
+@hypothesis.settings(suppress_health_check=[hypothesis.HealthCheck.too_slow])
 @hypothesis.given(real, real, real, real)
 def test_unit_interpolate(cubic_hermite_polynomial, p0, dp0, p1, dp1):
     from tmol.score.common import interpolate_t, interpolate_dt
