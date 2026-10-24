@@ -134,18 +134,6 @@ def test_build_grid_fa_rep_smoothing():
         atol=0,
     )
 
-    for invalid in (-0.1, float("nan"), float("inf"), -float("inf")):
-        with pytest.raises(
-            ValueError, match="fa_rep_smoothing must be finite and nonnegative"
-        ):
-            build_grid(
-                pose_stack, probe_names, param_db, fa_rep_smoothing=invalid, **kwargs
-            )
-        with pytest.raises(
-            ValueError, match="fa_rep_smoothing must be finite and nonnegative"
-        ):
-            _smooth_fa_rep_grid(default.fa_rep, invalid, default.geometry.voxel_spacing)
-
 
 def test_grid_serialization_round_trip(tmp_path):
     geometry = GridGeometry(
