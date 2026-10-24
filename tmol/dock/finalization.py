@@ -363,8 +363,6 @@ def finalize_ga_docking(
 
     if reference_pose_stack.n_poses != 1:
         raise ValueError("finalization requires one reference pose")
-    if not isinstance(top_k, int) or isinstance(top_k, bool) or top_k < 1:
-        raise ValueError("top_k must be a positive integer")
     if top_pose_metric not in ("dG", "score"):
         raise ValueError('top_pose_metric must be "dG" or "score"')
     npool = ga_result.ranked_energies.shape[1]

@@ -154,8 +154,6 @@ class ContinuousBackend(ScoringBackend):
             raise ValueError("kin_dtype must be torch.float32 or torch.float64")
         self.param_db = param_db
         self.kin_dtype = kin_dtype
-        if not isinstance(value_only_line_search, bool):
-            raise TypeError("value_only_line_search must be bool")
         self.value_only_line_search = value_only_line_search
         self._score_functions: dict[torch.device, ScoreFunction] = {}
 
@@ -191,11 +189,6 @@ class ContinuousBackend(ScoringBackend):
         initial_raw_dofs: Optional[torch.Tensor] = None,
     ) -> MinimizationResult:
         """Run docking-DOF minimization and return optimizer-authored genes."""
-
-        if maxiter is not None and (
-            not isinstance(maxiter, int) or isinstance(maxiter, bool) or maxiter < 1
-        ):
-            raise ValueError("maxiter must be a positive integer")
         kin_dtype = self.kin_dtype or pose_stack.coords.dtype
         kf_network = build_kinforest_network(
             pose_stack,
@@ -210,10 +203,6 @@ class ContinuousBackend(ScoringBackend):
                     "initial raw DOF shape does not match the minimizer: "
                     f"{tuple(initial_raw_dofs.shape)} != "
                     f"{tuple(kf_network.full_dofs.shape)}"
-                )
-            if initial_raw_dofs.device != pose_stack.device:
-                raise ValueError(
-                    "initial raw DOFs and pose stack must be on the same device"
                 )
             kf_network.full_dofs = initial_raw_dofs.to(dtype=kin_dtype).detach().clone()
             with torch.no_grad():
@@ -286,10 +275,6 @@ class _LightweightGridObjective:
                 raise ValueError(
                     "initial raw DOF shape does not match the minimizer: "
                     f"{tuple(initial_raw_dofs.shape)} != {expected_shape}"
-                )
-            if initial_raw_dofs.device != pose_stack.device:
-                raise ValueError(
-                    "initial raw DOFs and pose stack must be on the same device"
                 )
             full_dofs = None
         else:
@@ -520,10 +505,6 @@ class GridBackend(ScoringBackend):
         value_only_line_search: bool = False,
         cuda_graph: bool = True,
     ) -> None:
-        if not isinstance(grids, GridSet):
-            raise TypeError("grids must be a GridSet")
-        if not isinstance(ligand_block, int) or isinstance(ligand_block, bool):
-            raise TypeError("ligand_block must be an integer")
         if not ligand_atom_types:
             raise ValueError("at least one ligand atom type is required")
         if ligand_charges.ndim != 1 or ligand_charges.shape[0] != len(
@@ -534,14 +515,8 @@ class GridBackend(ScoringBackend):
             )
         if kin_dtype not in (None, torch.float32, torch.float64):
             raise ValueError("kin_dtype must be torch.float32 or torch.float64")
-        if not isinstance(lk_ball_grid, bool):
-            raise TypeError("lk_ball_grid must be bool")
-        if not isinstance(value_only_line_search, bool):
-            raise TypeError("value_only_line_search must be bool")
         self.value_only_line_search = value_only_line_search
         self.cuda_graph = cuda_graph
-        if not isinstance(include_ligand_intra, bool):
-            raise TypeError("include_ligand_intra must be bool")
         unknown_types = sorted(set(ligand_atom_types) - set(grids.atom_type_names))
         if unknown_types:
             raise ValueError(
@@ -562,24 +537,8 @@ class GridBackend(ScoringBackend):
         ):
             raise TypeError("live_ligand_intra must be LiveLigandIntraData or None")
         if grid_atom_indices is not None:
-            if (
-                grid_atom_indices.ndim != 1
-                or grid_atom_indices.dtype != torch.int64
-                or grid_atom_indices.device.type != "cpu"
-                or grid_atom_indices.shape[0] != len(ligand_atom_types)
-            ):
-                raise ValueError(
-                    "grid_atom_indices must be a CPU int64 vector matching "
-                    "ligand_atom_types"
-                )
             if movable_n_atoms is None or movable_n_atoms < 1:
                 raise ValueError("movable_n_atoms is required with grid_atom_indices")
-            if bool(
-                torch.any(grid_atom_indices < 0)
-                or torch.any(grid_atom_indices >= movable_n_atoms)
-                or torch.unique(grid_atom_indices).numel() != grid_atom_indices.numel()
-            ):
-                raise ValueError("grid_atom_indices must be unique and in range")
         elif movable_n_atoms not in (None, len(ligand_atom_types)):
             raise ValueError(
                 "movable_n_atoms without grid_atom_indices must match ligand atoms"
@@ -660,11 +619,6 @@ class GridBackend(ScoringBackend):
         the ordinary backend contract, whose ``score`` method has no block
         argument.
         """
-
-        if not isinstance(ligand_block, int) or isinstance(ligand_block, bool):
-            raise TypeError("ligand_block must be an integer")
-        if ligand_block < 0:
-            raise ValueError("ligand_block must be nonnegative")
         result = copy.copy(self)
         result.ligand_block = ligand_block
         return result
@@ -702,12 +656,8 @@ class GridBackend(ScoringBackend):
 
         if reference_pose_stack.n_poses != 1:
             raise ValueError("grid construction requires one reference pose")
-        if not isinstance(value_only_line_search, bool):
-            raise TypeError("value_only_line_search must be bool")
         if reference_pose_stack.device.type != "cpu":
             raise ValueError("grid construction requires a CPU reference pose")
-        if not isinstance(include_ligand_intra, bool):
-            raise TypeError("include_ligand_intra must be bool")
         if ligand_block < 0 or ligand_block >= reference_pose_stack.max_n_blocks:
             raise ValueError("ligand_block is out of range")
         block_type_index = int(reference_pose_stack.block_type_ind64[0, ligand_block])
@@ -997,10 +947,6 @@ class GridBackend(ScoringBackend):
 
         if docking_dofs.ligand_block != self.ligand_block:
             raise ValueError("docking DOFs target a different ligand block")
-        if maxiter is not None and (
-            not isinstance(maxiter, int) or isinstance(maxiter, bool) or maxiter < 1
-        ):
-            raise ValueError("maxiter must be a positive integer")
         kin_dtype = self.kin_dtype or pose_stack.coords.dtype
         objective = _LightweightGridObjective(
             self,

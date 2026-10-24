@@ -75,15 +75,6 @@ class DockingPerturbation:
     rotation_radians: float = math.radians(5.0)
     torsion_radians: float = math.radians(10.0)
 
-    def __post_init__(self) -> None:
-        for name, value in (
-            ("translation_angstrom", self.translation_angstrom),
-            ("rotation_radians", self.rotation_radians),
-            ("torsion_radians", self.torsion_radians),
-        ):
-            if not math.isfinite(value) or value < 0:
-                raise ValueError(f"{name} must be finite and nonnegative")
-
 
 @dataclass(frozen=True)
 class GASchedule:
@@ -95,16 +86,6 @@ class GASchedule:
     pmut: float = 0.2
     maxiter: int = 50
     initial_perturbation: DockingPerturbation = DockingPerturbation()
-
-    def __post_init__(self) -> None:
-        for name in ("generations", "npool", "maxiter"):
-            value = getattr(self, name)
-            if not isinstance(value, int) or isinstance(value, bool) or value < 1:
-                raise ValueError(f"{name} must be a positive integer")
-        if not math.isfinite(self.rmsdthreshold) or self.rmsdthreshold < 0:
-            raise ValueError("rmsdthreshold must be finite and nonnegative")
-        if not math.isfinite(self.pmut) or not 0.0 <= self.pmut <= 1.0:
-            raise ValueError("pmut must be between zero and one")
 
 
 @dataclass(frozen=True)
@@ -121,11 +102,7 @@ class RandomPlacement:
     pocket_padding_angstrom: float = 2.0
 
     def __post_init__(self) -> None:
-        if (
-            not math.isfinite(self.pocket_padding_angstrom)
-            or self.pocket_padding_angstrom < 0
-        ):
-            raise ValueError("pocket_padding_angstrom must be finite and nonnegative")
+        pass
 
 
 _GENE_INDEX_FIELDS = (
@@ -262,10 +239,6 @@ class LigandGeneLayout:
             raise ValueError(
                 f"genes have shape {tuple(genes.shape)}; expected {expected}"
             )
-        if genes.device != self.template.device:
-            raise ValueError("genes and gene layout must be on the same device")
-        if genes.dtype != self.base_raw_dofs.dtype:
-            raise ValueError("genes and kinematic DOFs must have the same dtype")
 
         raw_dofs = self.base_raw_dofs.clone()
         self.index.write_raw_dofs(raw_dofs, genes)
@@ -352,16 +325,9 @@ def select_pocket_residue_blocks(
     Chi-less residues (e.g. ALA, GLY) are excluded as well: they have nothing to
     move, so the returned set is directly usable as flexible ``sidechain_blocks``.
     """
-
-    if not isinstance(ligand_block, int) or isinstance(ligand_block, bool):
-        raise TypeError("ligand_block must be an integer")
     if ligand_block < 0 or ligand_block >= pose_stack.max_n_blocks:
         raise ValueError("ligand_block is out of range")
-    if not isinstance(cutoff, (int, float)) or isinstance(cutoff, bool):
-        raise TypeError("cutoff must be a real number")
     cutoff = float(cutoff)
-    if not math.isfinite(cutoff) or cutoff < 0:
-        raise ValueError("cutoff must be finite and nonnegative")
 
     ligand_heavy = _block_heavy_coords(pose_stack, ligand_block)
     selected = []
@@ -549,9 +515,6 @@ def _canonical_torsions(torsions: torch.Tensor) -> torch.Tensor:
 
 def _canonicalize_genes(genes: torch.Tensor) -> torch.Tensor:
     """Wrap only logical torsions; preserve all six freed jump DOFs."""
-
-    if genes.ndim != 2 or genes.shape[1] < 6:
-        raise ValueError("genes must have shape [population, 6+n_torsions]")
     return torch.cat(
         (genes[:, :6], _canonical_torsions(genes[:, 6:])),
         dim=1,
@@ -662,9 +625,6 @@ def mutate(
     parent rotation. The composed orientation is written back as raw ZYX
     delta-Euler DOFs for forward kinematics.
     """
-
-    if genes.ndim != 2 or genes.shape[1] < 6:
-        raise ValueError("genes must have shape [population, 6+n_torsions]")
     n_genes, n_dof = genes.shape
     device, dtype = genes.device, genes.dtype
     randomize_rt = (
@@ -764,9 +724,6 @@ def crossover(
     independently, forcing one partner-2 chi when all independent choices took
     parent 1 (``LigandConformer.cc:862-897``).
     """
-
-    if parent1.shape != parent2.shape or parent1.ndim != 2:
-        raise ValueError("crossover parents must have matching 2D shapes")
     if parent1.shape[1] < 6:
         raise ValueError("crossover genes need a six-value rigid body")
     n_genes, n_dof = parent1.shape
@@ -813,13 +770,6 @@ def next_generation(
     cycles modulo the input pool; mutation is chosen with ``pmut`` and a
     crossover partner is sampled uniformly from every other parent.
     """
-
-    if genes.ndim != 2 or genes.shape[0] < 1:
-        raise ValueError("genes must be a nonempty 2D population")
-    if not isinstance(npoolout, int) or isinstance(npoolout, bool) or npoolout < 1:
-        raise ValueError("npoolout must be a positive integer")
-    if not math.isfinite(pmut) or not 0.0 <= pmut <= 1.0:
-        raise ValueError("pmut must be between zero and one")
     npoolin = genes.shape[0]
     parent_indices = (
         torch.arange(npoolout, dtype=torch.int64, device=genes.device) % npoolin
@@ -1088,10 +1038,6 @@ def _normalize_pocket_bounds(
     bounds = torch.as_tensor(
         pocket_bounds, dtype=layout.base_raw_dofs.dtype, device=layout.template.device
     )
-    if bounds.shape != (2, 3):
-        raise ValueError("pocket_bounds must have shape [2, 3]")
-    if not torch.all(torch.isfinite(bounds)) or not torch.all(bounds[1] >= bounds[0]):
-        raise ValueError("pocket bounds must be finite with max >= min")
     return bounds
 
 
@@ -1176,8 +1122,6 @@ def _conformer_initial_genes(
         placement=placement,
         generator=generator,
     )
-    if not math.isfinite(seed_fraction) or not 0.0 <= seed_fraction <= 1.0:
-        raise ValueError("seed_fraction must be between zero and one")
     npool = random_genes.shape[0]
     n_seeded = min(int(math.floor(seed_fraction * npool)), npool - 1)
     if n_seeded == 0:
@@ -1188,13 +1132,6 @@ def _conformer_initial_genes(
         dtype=layout.template.coords.dtype,
         device=layout.template.device,
     )
-    n_atoms = layout.ligand_local_atoms.shape[0]
-    if library.ndim != 3 or library.shape[1:] != (n_atoms, 3):
-        raise ValueError(
-            "conformer coordinates must have shape [conformer, ligand_atom, 3]"
-        )
-    if library.shape[0] < 1 or not torch.all(torch.isfinite(library)):
-        raise ValueError("conformer coordinates must be nonempty and finite")
 
     seeded_rows = torch.arange(1, n_seeded + 1, device=layout.template.device)
     conformer_indices = (seeded_rows - 1) % library.shape[0]
@@ -1291,8 +1228,6 @@ def run_ga_docking(
 
     if pose_stack.n_poses != 1:
         raise ValueError("pose_stack must contain one reference pose")
-    if not isinstance(seed, int) or isinstance(seed, bool):
-        raise TypeError("seed must be an integer")
     if initialization not in (
         "jitter",
         "random",
@@ -1304,28 +1239,8 @@ def run_ga_docking(
             "initialization must be 'jitter', 'random', 'conformer', 'aligner', "
             "or 'swarm'"
         )
-    if not isinstance(random_placement, RandomPlacement):
-        raise TypeError("random_placement must be a RandomPlacement")
-    if not isinstance(ligand_aligner, LigandAligner):
-        raise TypeError("ligand_aligner must be a LigandAligner")
     if initialization == "aligner" and not isinstance(backend, GridBackend):
         raise ValueError("aligner initialization requires a GridBackend")
-    if initialization == "swarm" and (
-        not isinstance(swarm_size, int)
-        or isinstance(swarm_size, bool)
-        or swarm_size < schedule.npool
-    ):
-        raise ValueError("swarm_size must be an integer at least schedule.npool")
-    if initialization == "swarm" and (
-        not isinstance(swarm_mc_rounds, int)
-        or isinstance(swarm_mc_rounds, bool)
-        or swarm_mc_rounds < 0
-    ):
-        raise ValueError("swarm_mc_rounds must be a nonnegative integer")
-    if initialization == "swarm" and (
-        not math.isfinite(swarm_chi_step) or swarm_chi_step < 0
-    ):
-        raise ValueError("swarm_chi_step must be finite and nonnegative")
     complex_reference = None
     complex_ligand_block = ligand_block
     requested_sidechain_blocks = (
@@ -1437,18 +1352,6 @@ def run_ga_docking(
             generator=generator,
         )
     elif initialization == "conformer":
-        if not math.isfinite(seed_fraction) or not 0.0 <= seed_fraction <= 1.0:
-            raise ValueError("seed_fraction must be between zero and one")
-        if (
-            not isinstance(n_conformers, int)
-            or isinstance(n_conformers, bool)
-            or n_conformers < 1
-        ):
-            raise ValueError("n_conformers must be a positive integer")
-        if not math.isfinite(energy_window) or energy_window < 0:
-            raise ValueError("energy_window must be finite and nonnegative")
-        if not math.isfinite(cluster_rmsd) or cluster_rmsd < 0:
-            raise ValueError("cluster_rmsd must be finite and nonnegative")
         conformer_library = None
         if ligand_mol2 is None:
             logger.warning(
@@ -1604,18 +1507,7 @@ def run_docking(
     (``schedule``, ``seed``, ``initialization`` -- here ``"random"`` unless
     given -- and the pocket, swarm and conformer-seeding options).
     """
-
-    if not isinstance(finalize, bool):
-        raise TypeError("finalize must be bool")
     ga_kwargs.setdefault("initialization", "random")
-    npool = ga_kwargs.get("schedule", GASchedule()).npool
-    if finalize and (
-        not isinstance(top_k, int)
-        or isinstance(top_k, bool)
-        or top_k < 1
-        or top_k > npool
-    ):
-        raise ValueError("top_k must be between 1 and schedule.npool")
 
     ga_result = run_ga_docking(pose_stack, ligand_block, backend, **ga_kwargs)
     if not finalize:

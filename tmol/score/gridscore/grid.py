@@ -47,8 +47,6 @@ def _smooth_fa_rep_grid(
     fa_rep: torch.Tensor, smoothing: float, voxel_spacing: float
 ) -> torch.Tensor:
     """Apply the truncated spherical maximum filter used for transformed fa_rep."""
-    if not math.isfinite(smoothing) or smoothing < 0:
-        raise ValueError("fa_rep_smoothing must be finite and nonnegative")
     if smoothing == 0:
         return fa_rep
 
@@ -142,12 +140,8 @@ def compute_cubic_bspline_coefficients(values: torch.Tensor) -> torch.Tensor:
         raise ValueError("spline coefficients must be computed on CPU")
     if values.ndim < 3:
         raise ValueError("grid values must have at least three dimensions")
-    if values.dtype not in (torch.float32, torch.float64):
-        raise TypeError("grid values must be float32 or float64")
     if any(size <= 0 for size in values.shape[-3:]):
         raise ValueError("spatial grid dimensions must be positive")
-    if not bool(torch.isfinite(values).all()):
-        raise ValueError("grid values must be finite")
 
     # Run the Thevenaz recursion in float64 regardless of input dtype: Rosetta's
     # prefilter always uses DBL_EPSILON for the causal-init horizon, so a float32
@@ -172,8 +166,6 @@ class GridGeometry:
     max_radius: float
 
     def __post_init__(self):
-        if self.origin.shape != (3,) or self.ligand_com.shape != (3,):
-            raise ValueError("origin and ligand_com must have shape [3]")
         if len(self.dims) != 3 or any(dim <= 0 for dim in self.dims):
             raise ValueError("dims must contain three positive integers")
         if self.voxel_spacing <= 0:
@@ -186,8 +178,6 @@ class GridGeometry:
         index_tensor = torch.as_tensor(
             index, dtype=self.origin.dtype, device=self.origin.device
         )
-        if index_tensor.shape != (3,):
-            raise ValueError("index must have shape [3]")
         return self.origin + self.voxel_spacing * index_tensor
 
     def cartesian_from_one_based_index(
@@ -254,19 +244,8 @@ class GridSet:
     lk_bridge_coeffs: torch.Tensor | None = None
 
     def __post_init__(self):
-        typed_shape = (len(self.atom_type_names), *self.geometry.dims)
-        shared_shape = self.geometry.dims
-        if not isinstance(self.lk_ball_enabled, bool) or not isinstance(
-            self.lk_bridge_enabled, bool
-        ):
-            raise TypeError("LK-ball enabled flags must be bool")
         if self.atom_type_indices.shape != (len(self.atom_type_names),):
             raise ValueError("atom_type_indices must have one entry per grid type")
-        for name in ("fa_atr", "fa_rep", "fa_sol"):
-            if tuple(getattr(self, name).shape) != typed_shape:
-                raise ValueError(f"{name} must have shape {typed_shape}")
-        if tuple(self.fa_elec.shape) != shared_shape:
-            raise ValueError(f"fa_elec must have shape {shared_shape}")
 
         def check_coefficients(grid_name: str, coefficient_name: str) -> None:
             grid = getattr(self, grid_name)
@@ -278,10 +257,6 @@ class GridSet:
                     )
                 coefficients = compute_cubic_bspline_coefficients(grid)
                 object.__setattr__(self, coefficient_name, coefficients)
-            if coefficients.shape != grid.shape:
-                raise ValueError(
-                    f"{coefficient_name} must have shape {tuple(grid.shape)}"
-                )
             if coefficients.dtype != grid.dtype or coefficients.device != grid.device:
                 raise ValueError(
                     f"{coefficient_name} must match {grid_name} dtype and device"
@@ -303,8 +278,6 @@ class GridSet:
                 if getattr(self, coefficient_name) is not None:
                     raise ValueError(f"{coefficient_name} requires {grid_name}")
                 continue
-            if tuple(grid.shape) != typed_shape:
-                raise ValueError(f"{grid_name} must have shape {typed_shape}")
             check_coefficients(grid_name, coefficient_name)
 
     @property
@@ -409,8 +382,6 @@ class GridSet:
     ) -> "GridSet":
         """Return a copy of this grid set on ``device`` for interpolation."""
         device = torch.device(device)
-        if dtype is not None and dtype not in (torch.float32, torch.float64):
-            raise TypeError("grid dtype must be float32 or float64")
 
         def move(value: torch.Tensor | None) -> torch.Tensor | None:
             if value is None:
@@ -473,23 +444,12 @@ def compute_grid_geometry(
     """Compute the exact M2 ligand-centered cubic grid geometry."""
     if ligand_coords.device.type != "cpu":
         raise ValueError("grid geometry must be computed on CPU")
-    if ligand_coords.ndim != 2 or ligand_coords.shape[1] != 3:
-        raise ValueError("ligand_coords must have shape [n_atoms, 3]")
     if ligand_coords.shape[0] == 0:
         raise ValueError("at least one ligand atom is required")
     if not ligand_coords.dtype.is_floating_point:
         raise TypeError("ligand_coords must have a floating-point dtype")
-    if (
-        not math.isfinite(voxel_spacing)
-        or not math.isfinite(bbox_padding)
-        or voxel_spacing <= 0
-        or bbox_padding <= 0
-    ):
-        raise ValueError("voxel_spacing and bbox_padding must be finite and positive")
 
     ligand_coords = ligand_coords.detach().to(dtype=torch.float64)
-    if not bool(torch.isfinite(ligand_coords).all()):
-        raise ValueError("ligand coordinates must be finite")
     ligand_com = torch.mean(ligand_coords, dim=0)
     measured_radius = torch.linalg.vector_norm(ligand_coords - ligand_com, dim=1).max()
     max_radius = max(float(measured_radius), 1.5 * bbox_padding)
@@ -660,17 +620,6 @@ def build_grid(
         raise ValueError("M2b grid construction supports exactly one pose")
     if pose_stack.device.type != "cpu" or pose_stack.coords.device.type != "cpu":
         raise ValueError("M2b grid construction is CPU-only")
-    if pose_stack.coords.dtype not in (torch.float32, torch.float64):
-        raise TypeError("pose coordinates must be float32 or float64")
-    if not isinstance(build_lk_ball, bool):
-        raise TypeError("build_lk_ball must be bool")
-    if not math.isfinite(fa_rep_smoothing) or fa_rep_smoothing < 0:
-        raise ValueError("fa_rep_smoothing must be finite and nonnegative")
-    if any(
-        not isinstance(block, int) or isinstance(block, bool)
-        for block in excluded_receptor_blocks
-    ):
-        raise TypeError("excluded receptor block indices must be integers")
     if len(set(excluded_receptor_blocks)) != len(excluded_receptor_blocks):
         raise ValueError("excluded_receptor_blocks must not contain duplicates")
     if any(
@@ -678,9 +627,6 @@ def build_grid(
         for block in excluded_receptor_blocks
     ):
         raise ValueError("excluded receptor block is out of range")
-
-    if isinstance(probe_atom_types, str):
-        raise TypeError("probe_atom_types must be a sequence of atom-type names")
     atom_type_names = tuple(sorted(set(probe_atom_types)))
     if not atom_type_names:
         raise ValueError("at least one probe atom type is required")
@@ -721,12 +667,6 @@ def build_grid(
         reference_waters,
         tuple(excluded_receptor_blocks),
     )
-    if not bool(torch.isfinite(ligand_coords).all()):
-        raise ValueError("ligand coordinates must be finite")
-    if not bool(torch.isfinite(receptor_coords).all()):
-        raise ValueError("receptor coordinates must be finite")
-    if not bool(torch.isfinite(receptor_charges).all()):
-        raise ValueError("receptor partial charges must be finite")
     geometry = compute_grid_geometry(ligand_coords, voxel_spacing, bbox_padding)
     ljlk_type_params, ljlk_global_params, elec_global_params = _pack_parameter_tensors(
         ljlk_term, elec_term

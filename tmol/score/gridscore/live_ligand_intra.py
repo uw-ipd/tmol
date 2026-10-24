@@ -177,8 +177,6 @@ class LiveLigandIntraData:
             raise ValueError("live ligand-intra data requires one movable pose")
         if pose_stack.max_n_pose_atoms < 1:
             raise ValueError("live ligand-intra data requires ligand atoms")
-        if pose_stack.coords.dtype not in (torch.float32, torch.float64):
-            raise TypeError("live ligand-intra coordinates must be float32 or float64")
         if pose_stack.device != pose_stack.coords.device:
             raise ValueError("live ligand-intra PoseStack device is inconsistent")
         if pose_stack.packed_block_types.device != pose_stack.device:
@@ -187,15 +185,11 @@ class LiveLigandIntraData:
             )
         if self.weight_profile not in ("search", "full"):
             raise ValueError("weight_profile must be 'search' or 'full'")
-        if not isinstance(self.include_cart_bonded, bool):
-            raise TypeError("include_cart_bonded must be bool")
         if any(
             block < 0 or block >= pose_stack.max_n_blocks
             for block in self.context_block_indices
         ):
             raise ValueError("context block index is out of range")
-        if len(set(self.context_block_indices)) != len(self.context_block_indices):
-            raise ValueError("context block indices must be unique")
 
     @property
     def n_ligand_atoms(self) -> int:
@@ -205,9 +199,6 @@ class LiveLigandIntraData:
         self, device: torch.device | str, dtype: torch.dtype
     ) -> "LiveLigandIntraData":
         """Return ligand topology and scoring machinery on a device/dtype."""
-
-        if dtype not in (torch.float32, torch.float64):
-            raise TypeError("live ligand-intra dtype must be float32 or float64")
         device = torch.device(device)
         ligand_pose_stack = _ligand_pose_to(self.ligand_pose_stack, device, dtype)
         score_function = _intra_score_function(

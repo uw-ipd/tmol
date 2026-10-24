@@ -48,8 +48,6 @@ def validated_sidechain_blocks(
     """Normalize and validate a deterministic set of polymer blocks."""
 
     if isinstance(sidechain_blocks, torch.Tensor):
-        if sidechain_blocks.ndim != 1:
-            raise ValueError("sidechain_blocks tensor must be one-dimensional")
         values = sidechain_blocks.detach().cpu().tolist()
     else:
         try:
@@ -59,8 +57,6 @@ def validated_sidechain_blocks(
 
     blocks = []
     for block in values:
-        if not isinstance(block, int) or isinstance(block, bool):
-            raise TypeError("sidechain block indices must be integers")
         if block < 0 or block >= pose_stack.max_n_blocks:
             raise ValueError(f"sidechain block {block} is out of range")
         if block == ligand_block:

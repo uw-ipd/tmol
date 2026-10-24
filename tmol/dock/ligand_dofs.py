@@ -876,9 +876,6 @@ def build_ligand_docking_dofs(
     does not modify their existing contents or store docking annotations on
     the block type or ``PackedBlockTypes``.
     """
-
-    if not isinstance(ligand_block, int):
-        raise TypeError("ligand_block must be an integer block index")
     if ligand_block < 0 or ligand_block >= pose_stack.max_n_blocks:
         raise ValueError(f"ligand block {ligand_block} is out of range")
 

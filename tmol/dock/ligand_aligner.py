@@ -47,35 +47,6 @@ class LigandAligner:
     refinement_top_k: int = 64
     refinement_learning_rate: float = 0.05
 
-    def __post_init__(self) -> None:
-        for name in (
-            "n_candidates",
-            "diversity_pool_size",
-            "score_batch_size",
-            "refinement_top_k",
-        ):
-            value = getattr(self, name)
-            if not isinstance(value, int) or isinstance(value, bool) or value < 1:
-                raise ValueError(f"{name} must be a positive integer")
-        if (
-            not isinstance(self.refinement_steps, int)
-            or isinstance(self.refinement_steps, bool)
-            or self.refinement_steps < 0
-        ):
-            raise ValueError("refinement_steps must be a nonnegative integer")
-        if (
-            not math.isfinite(self.seed_fraction)
-            or not 0.0 <= self.seed_fraction <= 1.0
-        ):
-            raise ValueError("seed_fraction must be between zero and one")
-        if not math.isfinite(self.cluster_rmsd) or self.cluster_rmsd < 0.0:
-            raise ValueError("cluster_rmsd must be finite and nonnegative")
-        if (
-            not math.isfinite(self.refinement_learning_rate)
-            or self.refinement_learning_rate <= 0.0
-        ):
-            raise ValueError("refinement_learning_rate must be finite and positive")
-
     def align(
         self,
         layout: "LigandGeneLayout",
@@ -86,13 +57,6 @@ class LigandAligner:
         generator: torch.Generator,
     ) -> LigandAlignment:
         """Return ``n_placements`` rigid placements of the reference ligand."""
-
-        if (
-            not isinstance(n_placements, int)
-            or isinstance(n_placements, bool)
-            or n_placements < 1
-        ):
-            raise ValueError("n_placements must be a positive integer")
         if n_placements > self.n_candidates:
             raise ValueError("n_placements cannot exceed n_candidates")
         template_coordinates = layout.template.coords[0]
@@ -253,8 +217,6 @@ class LigandAligner:
         dtype, device = template_coordinates.dtype, template_coordinates.device
         if pocket_bounds is not None:
             bounds = torch.as_tensor(pocket_bounds, dtype=dtype, device=device)
-            if bounds.shape != (2, 3):
-                raise ValueError("pocket_bounds must have shape [2, 3]")
         else:
             geometry = backend._scorer(device, dtype).grids.geometry
             grid_max = (
@@ -273,10 +235,6 @@ class LigandAligner:
             lower = torch.where(invalid, grid_center, lower)
             upper = torch.where(invalid, grid_center, upper)
             bounds = torch.stack((lower, upper))
-        if not bool(torch.all(torch.isfinite(bounds))) or not bool(
-            torch.all(bounds[1] >= bounds[0])
-        ):
-            raise ValueError("pocket bounds must be finite with max >= min")
         return bounds
 
     def _sample_transforms(

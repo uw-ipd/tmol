@@ -63,19 +63,10 @@ def validate_ligand_coords(
     ``reference`` is any tensor of the topology whose device and floating dtype
     the coordinates must match.
     """
-
-    if ligand_coords.ndim != 3 or ligand_coords.shape[2] != 3:
-        raise ValueError("ligand_coords must have shape [n_poses, n_atoms, 3]")
     if ligand_coords.shape[0] == 0 or ligand_coords.shape[1] == 0:
         raise ValueError(f"live {label} scoring requires poses and ligand atoms")
     if ligand_coords.shape[1] != n_atoms:
         raise ValueError(f"ligand atom count does not match live {label} topology")
-    if ligand_coords.dtype not in (torch.float32, torch.float64):
-        raise TypeError("ligand_coords must be float32 or float64")
-    if ligand_coords.device != reference.device:
-        raise ValueError(f"live {label} data must match coordinate device")
-    if ligand_coords.dtype != reference.dtype:
-        raise TypeError(f"live {label} data must match coordinate dtype")
 
 
 class LiveData:
@@ -86,8 +77,6 @@ class LiveData:
 
     def to(self, device: torch.device | str, dtype: torch.dtype):
         """Copy on ``device`` with coordinates and parameters in ``dtype``."""
-        if dtype not in (torch.float32, torch.float64):
-            raise TypeError("live scoring dtype must be float32 or float64")
         values = {}
         for field in fields(self):
             value = getattr(self, field.name)
