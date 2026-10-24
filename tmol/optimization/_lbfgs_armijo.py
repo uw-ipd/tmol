@@ -275,6 +275,9 @@ class LBFGS_Armijo(Optimizer):
         history_size (int): update history size (default: 128).
         segment_ids (Tensor): the segment (e.g. pose) each parameter element
             belongs to; each segment is minimized independently (default: one)
+        value_only_line_search (bool): evaluate Armijo trial points with a
+            separate value-only closure and refresh the gradient only at the
+            accepted point (default: False)
         fixed_iterations (bool): run exactly ``max_iter`` iterations instead of
             evaluating convergence criteria (default: False).
     """
@@ -354,6 +357,7 @@ class LBFGS_Armijo(Optimizer):
         fixed_iterations=False,
         *,
         patience=5,
+        value_only_line_search: bool = False,
     ):
         defaults = dict(
             lr=lr,
@@ -390,6 +394,9 @@ class LBFGS_Armijo(Optimizer):
         self._params = self.param_groups[0]["params"]
         self._minstep = minstep
         self.verbose = verbose
+        if not isinstance(value_only_line_search, bool):
+            raise TypeError("value_only_line_search must be bool")
+        self.value_only_line_search = value_only_line_search
 
         self._last_loss_vec = None
         self._sum_scratch = None
@@ -870,28 +877,41 @@ class LBFGS_Armijo(Optimizer):
         # match Rosetta: start at 2x prev accepted step, capped at 1.0
         start_t = (ctx.t / 0.5).clamp(max=1.0)
 
-        accepted, _, ls_evals, status, trial_is_accepted = armijo_linesearch_segmented(
-            linefn_vec,
-            ctx.gtd_seg,
-            ctx.prev_loss_vec,  # energies at x_backup
-            start_t,
-            searching,
-            factor=0.5,
-            sigma_decrease=0.1,
-            sigma_increase=0.8,
-            minstep=self._minstep,
+        accepted, phi_accepted, ls_evals, status, trial_is_accepted = (
+            armijo_linesearch_segmented(
+                linefn_vec,
+                ctx.gtd_seg,
+                ctx.prev_loss_vec,  # energies at x_backup
+                start_t,
+                searching,
+                factor=0.5,
+                sigma_decrease=0.1,
+                sigma_increase=0.8,
+                minstep=self._minstep,
+            )
         )
         ctx.ls_evals = ls_evals
 
-        if not trial_is_accepted:
+        if self.value_only_line_search:
             torch.addcmul(
                 ctx.x_backup,
                 ctx.d,
                 self._per_element(accepted),
                 out=ctx.x,
             )
+            # Refresh only the gradient; keep Armijo energies on one evaluator.
             ctx.closure()
-        ctx.loss_vec = self._last_loss_vec
+            ctx.loss_vec = phi_accepted
+        else:
+            if not trial_is_accepted:
+                torch.addcmul(
+                    ctx.x_backup,
+                    ctx.d,
+                    self._per_element(accepted),
+                    out=ctx.x,
+                )
+                ctx.closure()
+            ctx.loss_vec = self._last_loss_vec
         # Keep the normal optimization path asynchronous. The scalar total is
         # only needed for human-readable progress output.
         ctx.loss = float(ctx.loss_vec.sum()) if self.verbose else None
@@ -970,18 +990,29 @@ class LBFGS_Armijo(Optimizer):
             return True
         return False
 
-    def step(self, closure):
+    def step(self, closure, value_only_closure=None):
         """
         The LBFGS minimization algorithm. Despite the name, this performs the full
         LBFGS minimization trajectory.
 
         Arguments:
-            func (callable): a function that evaluates energy
+            closure (callable): a function that evaluates energy and gradient
+            value_only_closure (callable): a function that evaluates only
+                energy. Required when ``value_only_line_search`` is enabled.
 
         Returns:
             The initial loss, matching the ``Optimizer.step`` convention.
         """
         closure = self._wrap_closure(closure)
+        if self.value_only_line_search:
+            if value_only_closure is None:
+                raise ValueError(
+                    "value_only_closure is required when value_only_line_search "
+                    "is enabled"
+                )
+            line_search_closure = self._wrap_closure(value_only_closure)
+        else:
+            line_search_closure = closure
         ctx = self._step_setup(closure)
 
         x = ctx.x
@@ -998,7 +1029,7 @@ class LBFGS_Armijo(Optimizer):
                 self._per_element(alpha_vec),
                 out=x,
             )
-            closure()
+            line_search_closure()
             return self._last_loss_vec
 
         current_evals = 1
@@ -1044,6 +1075,9 @@ class LBFGS_Armijo(Optimizer):
             # update func eval
             current_evals += self.ls_func_evals
             ctx.state["func_evals"] += self.ls_func_evals
+            if self.value_only_line_search:
+                current_evals += 1
+                ctx.state["func_evals"] += 1
 
             if self._check_segment_convergence(ctx, n_iter):
                 break

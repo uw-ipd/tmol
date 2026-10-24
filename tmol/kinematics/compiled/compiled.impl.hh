@@ -534,45 +534,21 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_children(
   DeviceDispatch<D>::template forall<launch_t>(
       mgr, n_kfo_atoms, fill_child_list);
 
-  // TO DO: replace with segmented sort!
-
   // Finally, we need to sort the child lists by atom index because
   // the fill_child_list operation is not deterministic on the GPU
   // and we want to ensure that the child-lists are deterministic
   // because they will determine the connectivity of the KinForest.
-  // By having each atom sort its own children, we avoid any race
-  // conditions.
-  auto sort_child_list = ([=] TMOL_DEVICE_FUNC(int i) {
-    int const start = child_list_span[i];
-    int const end = child_list_span[i + 1];
-    if (end - start > 1) {
-      // The jump atoms must come first, then the non-jump atoms
-      int const n_my_jump_children = n_jump_children[i];
-      // bubble sort
-      for (int j = 0; j < n_my_jump_children; ++j) {
-        for (int k = 0; k < n_my_jump_children - j - 1; ++k) {
-          int const a = child_list[start + k];
-          int const b = child_list[start + k + 1];
-          if (a > b) {
-            child_list[start + k] = b;
-            child_list[start + k + 1] = a;
-          }
-        }
-      }
-      for (int j = 0; j < end - start; ++j) {
-        for (int k = 0; k < end - start - j - 1; ++k) {
-          int const a = child_list[start + k];
-          int const b = child_list[start + k + 1];
-          if (a > b) {
-            child_list[start + k] = b;
-            child_list[start + k + 1] = a;
-          }
-        }
-      }
-    }
-  });
-  DeviceDispatch<D>::template forall<launch_t>(
-      mgr, n_kfo_atoms, sort_child_list);
+  // The legacy implementation ultimately sorted each complete child span in
+  // ascending atom-index order, regardless of whether a child is a jump.
+  // Include the terminal span offset so unused child-list storage is isolated
+  // from the final atom's span.
+  DeviceDispatch<D>::segmented_sort(
+      mgr,
+      child_list.data(),
+      n_kfo_atoms,
+      child_list_span.data(),
+      n_kfo_atoms + 1,
+      mgpu::less_t<Int>());
   return {n_children_t, child_list_span_t, child_list_t, is_atom_jump_t};
 }
 
