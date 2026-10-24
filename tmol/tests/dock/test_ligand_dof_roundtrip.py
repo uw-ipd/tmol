@@ -7,7 +7,7 @@ import pytest
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.dock.ligand_dofs import build_ligand_docking_dofs
+from tmol.dock.ligand_dofs import GeneIndex, build_ligand_docking_dofs
 from tmol.io import pose_stack_from_biotite
 from tmol.kinematics import MinimizerMap
 from tmol.kinematics import PoseStackKinematicsModule
@@ -142,44 +142,38 @@ def test_cdk2_dof_count_and_bidirectional_mapping(cdk2_pose_and_db):
     logical = _torsion_values(
         network.kin_module(network.full_dofs), target_to_kfo, block_type
     )
+    index = GeneIndex.build(
+        pose_stack,
+        docking_dofs,
+        network.kin_module.kmd.forest,
+        network.dof_mask,
+        network.full_dofs.dtype,
+    )
+    genes = index.genes_from_raw_dofs(network.full_dofs)
     for mapping in docking_dofs.torsions:
-        raw = network.full_dofs[
-            target_to_kfo[mapping.raw_atom], mapping.dof_type
-        ].double()
-        predicted = mapping.logical_from_raw(raw)[0]
+        predicted = genes[0, 6 + mapping.torsion_index]
         error = torch.abs(_angle_delta(predicted, logical[mapping.torsion_index]))
         assert float(error) < 1.0e-10
 
 
-def test_logical_raw_conversion_is_inverse_across_wrap_boundary(
-    cdk2_pose_and_db,
-):
+def test_gene_index_round_trips_across_the_wrap_boundary(cdk2_pose_and_db):
     pose_stack, _ = cdk2_pose_and_db
-    ligand_block = _ligand_block(pose_stack)
-    docking_dofs = build_ligand_docking_dofs(pose_stack, ligand_block)
-    epsilon = 1.0e-8
-    boundary_values = torch.tensor(
-        [torch.pi - epsilon, -torch.pi + epsilon], dtype=torch.float64
+    docking_dofs = build_ligand_docking_dofs(pose_stack, _ligand_block(pose_stack))
+    network = _network(pose_stack, cdk2_pose_and_db[1], docking_dofs)
+    index = GeneIndex.build(
+        pose_stack,
+        docking_dofs,
+        network.kin_module.kmd.forest,
+        network.dof_mask,
+        network.full_dofs.dtype,
     )
-
-    for mapping in docking_dofs.torsions:
-        raw = mapping.raw_from_logical(boundary_values)
-        logical_roundtrip = mapping.logical_from_raw(raw)
-        torch.testing.assert_close(
-            _angle_delta(logical_roundtrip, boundary_values),
-            torch.zeros_like(boundary_values),
-            rtol=0.0,
-            atol=1.0e-12,
-        )
-
-        logical = mapping.logical_from_raw(boundary_values)
-        raw_roundtrip = mapping.raw_from_logical(logical)
-        torch.testing.assert_close(
-            _angle_delta(raw_roundtrip, boundary_values),
-            torch.zeros_like(boundary_values),
-            rtol=0.0,
-            atol=1.0e-12,
-        )
+    epsilon = 1.0e-8
+    genes = index.genes_from_raw_dofs(network.full_dofs).clone()
+    genes[:, 6:] = torch.tensor([torch.pi - epsilon, -torch.pi + epsilon])
+    raw = network.full_dofs.clone()
+    index.write_raw_dofs(raw, genes)
+    delta = _angle_delta(index.genes_from_raw_dofs(raw)[:, 6:], genes[:, 6:])
+    torch.testing.assert_close(delta, torch.zeros_like(delta), rtol=0.0, atol=1.0e-12)
 
 
 @pytest.mark.parametrize(

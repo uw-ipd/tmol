@@ -853,50 +853,6 @@ def optimize_generation(
     )
 
 
-def _refine_swarm_pool(
-    swarm: GAPool,
-    layout: LigandGeneLayout,
-    backend: ScoringBackend,
-    *,
-    maxiter: int,
-    rounds: int,
-    chi_step: float,
-    generator: torch.Generator,
-) -> GAPool:
-    """Basin-hop ligand torsions while retaining each candidate's best energy."""
-
-    swarm_size = swarm.genes.shape[0]
-    n_ligand_torsions = len(layout.docking_dofs.torsions)
-    best_genes = swarm.genes
-    best_energies = swarm.energies
-    for _ in range(rounds):
-        unit_kick = torch.rand(
-            (swarm_size, n_ligand_torsions),
-            dtype=best_genes.dtype,
-            device=best_genes.device,
-            generator=generator,
-        )
-        kick = torch.zeros_like(best_genes)
-        kick[:, 6 : 6 + n_ligand_torsions] = (2 * unit_kick - 1) * chi_step
-        trial_genes = _canonicalize_genes(best_genes + kick)
-        trial_pool = optimize_generation(
-            trial_genes,
-            layout,
-            backend,
-            maxiter=maxiter,
-        )
-        improve = trial_pool.energies < best_energies
-        best_genes = torch.where(improve[:, None], trial_pool.genes, best_genes)
-        best_energies = torch.where(improve, trial_pool.energies, best_energies)
-
-    return GAPool(
-        genes=best_genes,
-        pose_stack=layout.pose_stack_from_genes(best_genes),
-        energies=best_energies,
-        n_diverse=swarm.n_diverse,
-    )
-
-
 def update_pool(
     parents: GAPool,
     offspring: GAPool,
@@ -1222,8 +1178,6 @@ def run_ga_docking(
         "jitter", "random", "conformer", "aligner", "swarm"
     ] = "jitter",
     swarm_size: int = 4000,
-    swarm_mc_rounds: int = 0,
-    swarm_chi_step: float = 0.52359878,
     pocket_bounds: torch.Tensor | None = None,
     random_placement: RandomPlacement = RandomPlacement(),
     sidechain_blocks: tuple[int, ...] | None = None,
@@ -1240,9 +1194,7 @@ def run_ga_docking(
     view. Flexible grid docking uses a compact ligand-plus-sidechains view;
     both restore the winning movable coordinates to the single input complex.
     Swarm initialization minimizes a wide random population before selecting
-    the GA pool. Optional MC rounds kick ligand torsions uniformly within
-    ``[-swarm_chi_step, swarm_chi_step)`` radians, minimize, and retain each
-    candidate's best energy before selection.
+    the GA pool.
     Conformer initialization seeds ligand torsions from a library.
     Aligner sampling and seed-fraction controls are carried by
     ``ligand_aligner``; the scalar ``seed_fraction`` applies only to conformer
@@ -1342,16 +1294,6 @@ def run_ga_docking(
         swarm_pool = optimize_generation(
             random_genes(swarm_layout), swarm_layout, backend, maxiter=schedule.maxiter
         )
-        if swarm_mc_rounds > 0:
-            swarm_pool = _refine_swarm_pool(
-                swarm_pool,
-                swarm_layout,
-                backend,
-                maxiter=schedule.maxiter,
-                rounds=swarm_mc_rounds,
-                chi_step=swarm_chi_step,
-                generator=generator,
-            )
         pool = _subsample_swarm_pool(
             swarm_pool,
             swarm_layout,

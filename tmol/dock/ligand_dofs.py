@@ -46,22 +46,8 @@ def _coord_dihedrals(a, b, c, d):
     return torch.atan2(y, x)
 
 
-class _ChiConversion:
-    """Raw-DOF <-> logical-chi conversion shared by torsion mappings."""
-
-    def logical_from_raw(self, raw_dof: torch.Tensor) -> torch.Tensor:
-        """Convert raw values to logical chi values, modulo 2*pi."""
-
-        return _wrap_angle(self.sign * raw_dof + self.offset)
-
-    def raw_from_logical(self, logical_chi: torch.Tensor) -> torch.Tensor:
-        """Convert logical chi values to the equivalent raw values."""
-
-        return _wrap_angle(self.sign * (logical_chi - self.offset))
-
-
 @dataclass(frozen=True)
-class LigandTorsionDOF(_ChiConversion):
+class LigandTorsionDOF:
     """A docking-local logical-chi to raw-kinematic-DOF mapping.
 
     ``raw_atom`` is an atom index local to the ligand block.  Angles obey
@@ -84,7 +70,7 @@ class LigandTorsionDOF(_ChiConversion):
 
 
 @dataclass(frozen=True)
-class SidechainTorsionDOF(_ChiConversion):
+class SidechainTorsionDOF:
     """A receptor sidechain chi to raw-kinematic-DOF mapping."""
 
     block: int

@@ -11,9 +11,6 @@ import tmol.dock.ga as ga_module
 from tmol.dock import GridBackend, LigandAligner, RandomPlacement
 from tmol.dock.ga import LigandGeneLayout, run_ga_docking
 from tmol.dock.ligand_dofs import build_ligand_docking_dofs
-from tmol.dock.ligand_aligner import (
-    _axis_angle_rotation_matrix,
-)
 from tmol.tests.dock.test_ligand_dof_roundtrip import (
     _ligand_block,
     _load_cdk2_pose,
@@ -68,47 +65,6 @@ def _initialize(layout, backend, aligner, seed):
     return random_genes, aligned
 
 
-def test_axis_angle_rotation_gradient_and_rigid_refinement():
-    rotation_vector = torch.tensor(
-        [[0.1, -0.2, 0.3]], dtype=torch.float64, requires_grad=True
-    )
-    assert torch.autograd.gradcheck(
-        _axis_angle_rotation_matrix,
-        (rotation_vector,),
-        eps=1.0e-6,
-        atol=1.0e-6,
-        rtol=1.0e-5,
-    )
-
-    class QuadraticBackend:
-        @staticmethod
-        def _score_ligand_coordinates(coordinates):
-            return torch.sum(coordinates * coordinates, dim=(1, 2))
-
-    coordinates = torch.tensor(
-        [[[5.0, 0.0, 0.0], [6.0, 0.0, 0.0], [5.0, 1.0, 0.0]]],
-        dtype=torch.float64,
-    )
-    atom_indices = torch.tensor([0, 1, 2], dtype=torch.int64)
-    aligner = LigandAligner(
-        n_candidates=1,
-        seed_fraction=1.0,
-        refinement_steps=10,
-        refinement_top_k=1,
-        refinement_learning_rate=0.1,
-    )
-    refined = aligner._refine_candidates(QuadraticBackend(), coordinates, atom_indices)
-    original_energy = QuadraticBackend._score_ligand_coordinates(coordinates)[0]
-    refined_energy = QuadraticBackend._score_ligand_coordinates(refined)[0]
-    assert refined_energy < original_energy
-    torch.testing.assert_close(
-        torch.cdist(refined, refined),
-        torch.cdist(coordinates, coordinates),
-        rtol=0.0,
-        atol=1.0e-12,
-    )
-
-
 def test_candidate_generation_and_scoring_are_streamed():
     class TrackingBackend:
         max_batch = 0
@@ -122,7 +78,6 @@ def test_candidate_generation_and_scoring_are_streamed():
         n_candidates=5,
         score_batch_size=3,
         diversity_pool_size=2,
-        refinement_top_k=1,
     )
     template = torch.tensor(
         [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]],
@@ -180,30 +135,6 @@ def _assert_seeded_coordinates_match_alignment(
         torch.abs(decoded.coords[1 : n_seeded + 1] - expected_alignment.coordinates)
     )
     return genes, expected_alignment, coordinate_error
-
-
-def test_refined_aligner_seeds_decode_to_selected_placements(cpu_aligner_case):
-    case = cpu_aligner_case
-    layout = _layout(case)
-    aligner = LigandAligner(
-        n_candidates=8,
-        seed_fraction=0.25,
-        cluster_rmsd=0.0,
-        diversity_pool_size=4,
-        score_batch_size=8,
-        refinement_steps=2,
-        refinement_top_k=2,
-    )
-    _, alignment, coordinate_error = _assert_seeded_coordinates_match_alignment(
-        layout, case.backend, aligner, 1123, n_seeded=2
-    )
-    heavy_centroids = alignment.coordinates.index_select(
-        1, layout.heavy_local_atoms
-    ).mean(dim=1)
-    torch.testing.assert_close(
-        alignment.centroids, heavy_centroids, rtol=0.0, atol=2.0e-12
-    )
-    assert float(coordinate_error) <= 2.0e-12
 
 
 @pytest.mark.parametrize("npool,seed_fraction", [(1, 1.0), (4, 0.0), (4, 1.0)])
