@@ -28,12 +28,12 @@ from tmol.dock import (
     run_ga_docking,
     update_pool,
 )
-from tmol.dock.dock_loop import _repeat_pose_stack
 from tmol.tests.dock.test_dock_loop import _load_cdk2_pose_on_device
 from tmol.tests.dock.test_ligand_dof_roundtrip import (
     _ligand_block,
     _load_cdk2_pose,
 )
+from tmol.pose import repeat_pose_stack
 
 
 CUDA_AVAILABLE = torch.cuda.is_available()
@@ -43,7 +43,7 @@ CUDA_AVAILABLE = torch.cuda.is_available()
 def cpu_ga_case():
     reference, param_db = _load_cdk2_pose()
     ligand_block = _ligand_block(reference)
-    population = _repeat_pose_stack(reference, 6)
+    population = repeat_pose_stack(reference, 6)
     docking_dofs = build_ligand_docking_dofs(population, ligand_block)
     layout = LigandGeneLayout.from_pose_stack(population, docking_dofs)
     return SimpleNamespace(
@@ -342,7 +342,7 @@ def test_update_pool_enforces_diversity_and_documents_fill(cpu_ga_case):
     )
 
     # update_pool requires matching npool topology; use three-pose layouts.
-    population = _repeat_pose_stack(case.reference, 3)
+    population = repeat_pose_stack(case.reference, 3)
     docking_dofs = build_ligand_docking_dofs(population, case.ligand_block)
     layout3 = LigandGeneLayout.from_pose_stack(population, docking_dofs)
     parents = GAPool(
@@ -465,14 +465,14 @@ def test_diverse_low_energy_selection_matches_independent_greedy_reference(
 def test_swarm_subsample_is_exactly_reproducible(cpu_ga_case):
     case = cpu_ga_case
     swarm_size, npool = 6, 3
-    swarm_population = _repeat_pose_stack(case.reference, swarm_size)
+    swarm_population = repeat_pose_stack(case.reference, swarm_size)
     swarm_dofs = build_ligand_docking_dofs(
         swarm_population, case.ligand_block
     )
     swarm_layout = LigandGeneLayout.from_pose_stack(
         swarm_population, swarm_dofs
     )
-    pool_population = _repeat_pose_stack(case.reference, npool)
+    pool_population = repeat_pose_stack(case.reference, npool)
     pool_dofs = build_ligand_docking_dofs(pool_population, case.ligand_block)
     pool_layout = LigandGeneLayout.from_pose_stack(pool_population, pool_dofs)
 
@@ -1047,7 +1047,7 @@ def test_initialization_requires_one_reference_pose(cpu_ga_case, initialization)
     case = cpu_ga_case
     with pytest.raises(ValueError, match="must contain one reference pose"):
         run_ga_docking(
-            _repeat_pose_stack(case.reference, 2),
+            repeat_pose_stack(case.reference, 2),
             case.ligand_block,
             _TranslationImprovingBackend(case.reference, case.ligand_block),
             initialization=initialization,

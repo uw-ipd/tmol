@@ -16,13 +16,13 @@ from tmol.dock import (
     generate_conformer_library,
     run_ga_docking,
 )
-from tmol.dock.dock_loop import _repeat_pose_stack
 from tmol.tests.data import data_path
 from tmol.tests.dock.test_ga import _TranslationImprovingBackend
 from tmol.tests.dock.test_ligand_dof_roundtrip import (
     _ligand_block,
     _load_cdk2_pose,
 )
+from tmol.pose import repeat_pose_stack
 
 
 PLI_DATA_DIR = data_path("protein_ligand_test")
@@ -78,7 +78,7 @@ def test_conformer_seeded_genes_preserve_random_placement_and_valid_bonds(
     reference, _ = _load_cdk2_pose()
     ligand_block = _ligand_block(reference)
     npool = 10
-    population = _repeat_pose_stack(reference, npool)
+    population = repeat_pose_stack(reference, npool)
     layout = LigandGeneLayout.from_pose_stack(
         population,
         build_ligand_docking_dofs(population, ligand_block),

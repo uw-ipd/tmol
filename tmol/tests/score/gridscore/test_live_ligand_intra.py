@@ -7,7 +7,6 @@ import pytest
 import torch
 
 from tmol.dock import GridBackend
-from tmol.dock.dock_loop import _repeat_pose_stack
 from tmol.score import beta2016_score_function
 from tmol.score.gridscore import (
     build_live_ligand_intra_data,
@@ -27,6 +26,7 @@ from tmol.tests.score.gridscore.test_live_hbond import (
     _ligand_block,
     _ligand_coords,
 )
+from tmol.pose import repeat_pose_stack
 
 
 _BASE_INTRA_TERMS = (
@@ -60,7 +60,7 @@ def _full_complex_ligand_intra_oracle(
     ligand_coords: torch.Tensor,
     terms: tuple[str, ...],
 ) -> torch.Tensor:
-    population = _repeat_pose_stack(pose_stack, ligand_coords.shape[0])
+    population = repeat_pose_stack(pose_stack, ligand_coords.shape[0])
     pose_indices = torch.arange(population.n_poses, dtype=torch.int64)
     type_index = int(population.block_type_ind64[0, ligand_block])
     n_atoms = population.packed_block_types.active_block_types[type_index].n_atoms

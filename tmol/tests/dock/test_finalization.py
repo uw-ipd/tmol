@@ -22,7 +22,6 @@ from tmol.dock import (
     run_docking,
     select_pocket_residue_blocks,
 )
-from tmol.dock.dock_loop import _repeat_pose_stack
 from tmol.dock.finalization import (
     _flexible_sidechain_mapping,
     _ligand_atom_indices,
@@ -31,12 +30,6 @@ from tmol.dock.finalization import (
     _receptor_only_pose_stack,
     _score_pose_stack,
     finalize_ga_docking,
-)
-from tmol.dock.ga import (
-    _ligand_only_pose_stack,
-    _movable_block_mapping,
-    _movable_pose_stack,
-    _sidechain_context_blocks,
 )
 from tmol.io import pose_stack_from_biotite
 from tmol.score import beta2016_score_function
@@ -47,6 +40,12 @@ from tmol.tests.dock.test_ligand_dof_roundtrip import (
     _load_cdk2_pose,
 )
 from tmol.tests.ligand.test_protein_ligand_ddg import _load_complex_cif
+from tmol.pose import repeat_pose_stack
+from tmol.score.gridscore._movable import (
+    movable_block_mapping,
+    movable_pose_stack,
+    sidechain_context_blocks,
+)
 
 
 def _load_target(target: str, device: torch.device):
@@ -74,11 +73,11 @@ def _flexible_sidechains(reference, ligand_block, count=1):
 
 
 def _flexible_ga_result(reference, ligand_block, sidechain_blocks, npool=3):
-    movable = _movable_pose_stack(reference, ligand_block, sidechain_blocks)
-    _, compact_sidechains, _ = _movable_block_mapping(
+    movable = movable_pose_stack(reference, ligand_block, sidechain_blocks)
+    _, compact_sidechains, _ = movable_block_mapping(
         reference, ligand_block, sidechain_blocks
     )
-    population = _repeat_pose_stack(movable, npool)
+    population = repeat_pose_stack(movable, npool)
     docking_dofs = build_ligand_docking_dofs(
         population, 0, sidechain_blocks=compact_sidechains
     )
@@ -152,7 +151,7 @@ def test_receptor_only_builder_removes_ligand_and_preserves_receptor():
     reference, _ = _load_cdk2_pose()
     ligand_block = _ligand_block(reference)
     receptor = _receptor_only_pose_stack(reference, ligand_block)
-    ligand = _ligand_only_pose_stack(reference, ligand_block)
+    ligand = movable_pose_stack(reference, ligand_block)
 
     assert receptor.max_n_blocks == reference.max_n_blocks - 1
     assert receptor.max_n_pose_atoms + ligand.max_n_pose_atoms == (
@@ -169,8 +168,8 @@ def test_receptor_only_builder_removes_ligand_and_preserves_receptor():
 def test_top_candidates_are_promoted_without_moving_receptor():
     reference, _ = _load_cdk2_pose()
     ligand_block = _ligand_block(reference)
-    population = _repeat_pose_stack(reference, 3)
-    ligand_population = _ligand_only_pose_stack(population, ligand_block)
+    population = repeat_pose_stack(reference, 3)
+    ligand_population = movable_pose_stack(population, ligand_block)
     ligand_population.coords[:, :, 0] += torch.tensor([1.0, 2.0, 3.0])[:, None]
     energies = torch.tensor([3.0, 1.0, 2.0], dtype=reference.coords.dtype)
     genes = torch.arange(24, dtype=reference.coords.dtype).reshape(3, 8)
@@ -223,7 +222,7 @@ def test_flexible_top_candidates_restore_distinct_sidechains():
         param_db=param_db,
         ligand_block=ligand_block,
         sidechain_blocks=sidechain_blocks,
-        context_blocks=_sidechain_context_blocks(
+        context_blocks=sidechain_context_blocks(
             reference, ligand_block, sidechain_blocks
         ),
     )
@@ -292,7 +291,7 @@ def test_cdk2_cpu_flexible_finalization_refines_sidechain_and_apo(monkeypatch):
         param_db=param_db,
         ligand_block=ligand_block,
         sidechain_blocks=sidechain_blocks,
-        context_blocks=_sidechain_context_blocks(
+        context_blocks=sidechain_context_blocks(
             reference, ligand_block, sidechain_blocks
         ),
     )

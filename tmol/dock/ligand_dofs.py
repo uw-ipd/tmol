@@ -23,6 +23,9 @@ from tmol.kinematics import EdgeType, FoldForest
 from tmol.kinematics import MinimizerMap, MoveMap
 from tmol.kinematics import PoseStackKinematicsModule
 from tmol.pose import PoseStack
+from tmol.score.gridscore._movable import (
+    validated_sidechain_blocks,
+)
 
 
 def _wrap_angle(angle: torch.Tensor) -> torch.Tensor:
@@ -43,8 +46,22 @@ def _coord_dihedrals(a, b, c, d):
     return torch.atan2(y, x)
 
 
+class _ChiConversion:
+    """Raw-DOF <-> logical-chi conversion shared by torsion mappings."""
+
+    def logical_from_raw(self, raw_dof: torch.Tensor) -> torch.Tensor:
+        """Convert raw values to logical chi values, modulo 2*pi."""
+
+        return _wrap_angle(self.sign * raw_dof + self.offset)
+
+    def raw_from_logical(self, logical_chi: torch.Tensor) -> torch.Tensor:
+        """Convert logical chi values to the equivalent raw values."""
+
+        return _wrap_angle(self.sign * (logical_chi - self.offset))
+
+
 @dataclass(frozen=True)
-class LigandTorsionDOF:
+class LigandTorsionDOF(_ChiConversion):
     """A docking-local logical-chi to raw-kinematic-DOF mapping.
 
     ``raw_atom`` is an atom index local to the ligand block.  Angles obey
@@ -65,23 +82,9 @@ class LigandTorsionDOF:
     def dof_name(self) -> str:
         return self.dof_type.name
 
-    @property
-    def uses_reversed_end(self) -> bool:
-        return self.dof_type == BondDOFTypes.phi_p
-
-    def logical_from_raw(self, raw_dof: torch.Tensor) -> torch.Tensor:
-        """Convert raw values to logical chi values, modulo 2*pi."""
-
-        return _wrap_angle(self.sign * raw_dof + self.offset)
-
-    def raw_from_logical(self, logical_chi: torch.Tensor) -> torch.Tensor:
-        """Convert logical chi values to the equivalent raw values."""
-
-        return _wrap_angle(self.sign * (logical_chi - self.offset))
-
 
 @dataclass(frozen=True)
-class SidechainTorsionDOF:
+class SidechainTorsionDOF(_ChiConversion):
     """A receptor sidechain chi to raw-kinematic-DOF mapping."""
 
     block: int
@@ -97,20 +100,6 @@ class SidechainTorsionDOF:
     @property
     def dof_name(self) -> str:
         return self.dof_type.name
-
-    @property
-    def uses_reversed_end(self) -> bool:
-        return self.dof_type == BondDOFTypes.phi_p
-
-    def logical_from_raw(self, raw_dof: torch.Tensor) -> torch.Tensor:
-        """Convert raw values to logical chi values, modulo 2*pi."""
-
-        return _wrap_angle(self.sign * raw_dof + self.offset)
-
-    def raw_from_logical(self, logical_chi: torch.Tensor) -> torch.Tensor:
-        """Convert logical chi values to the equivalent raw values."""
-
-        return _wrap_angle(self.sign * (logical_chi - self.offset))
 
 
 @dataclass(frozen=True)
@@ -129,17 +118,6 @@ class LigandDockingDOFs:
         """Return the docking-owned mapping keyed by logical torsion name."""
 
         return {mapping.name: mapping for mapping in self.torsions}
-
-    @property
-    def logical_sidechain_chi_to_raw_dof(
-        self,
-    ) -> dict[tuple[int, str], SidechainTorsionDOF]:
-        """Return receptor chi mappings keyed by block and torsion name."""
-
-        return {
-            (mapping.block, mapping.name): mapping
-            for mapping in self.sidechain_torsions
-        }
 
 
 def _block_kinforest_nodes(
@@ -592,102 +570,6 @@ def _validate_ligand_root_jumps(
         )
 
 
-def _block_has_nonpolymer_connection(
-    pose_stack: PoseStack,
-    block: int,
-    block_type_index: int,
-) -> bool:
-    """Return True if the block has a realized inter-residue connection that is
-    not one of its polymer (down/up) connections -- e.g. a disulfide.
-
-    Flexible-sidechain docking moves chi through the fold forest, which ignores
-    non-polymer covalent bonds (``tmol/kinematics/fold_forest.py``), and the chi
-    controller is built only from the block's intra-block bonds. A disulfide sulfur
-    would therefore rotate independently of its partner, stretching the S-S bond,
-    and the compact-pose partition would either drop the beta2016 disulfide term or
-    still fail to constrain the bond. Such residues must not be freed.
-    """
-
-    pbt = pose_stack.packed_block_types
-    n_conn = int(pbt.n_conn[block_type_index])
-    if n_conn == 0:
-        return False
-    down_conn = int(pbt.down_conn_inds[block_type_index])
-    up_conn = int(pbt.up_conn_inds[block_type_index])
-    partners = pose_stack.inter_residue_connections64[:, block, :n_conn, 0]
-    for conn in range(n_conn):
-        if conn == down_conn or conn == up_conn:
-            continue
-        if bool(torch.any(partners[:, conn] >= 0)):
-            return True
-    return False
-
-
-def _validated_sidechain_blocks(
-    pose_stack: PoseStack,
-    ligand_block: int,
-    sidechain_blocks,
-) -> tuple[int, ...]:
-    """Normalize and validate a deterministic set of polymer blocks."""
-
-    if isinstance(sidechain_blocks, torch.Tensor):
-        if sidechain_blocks.ndim != 1:
-            raise ValueError("sidechain_blocks tensor must be one-dimensional")
-        values = sidechain_blocks.detach().cpu().tolist()
-    else:
-        try:
-            values = list(sidechain_blocks)
-        except TypeError as exc:
-            raise TypeError("sidechain_blocks must be an iterable of integers") from exc
-
-    blocks = []
-    for block in values:
-        if not isinstance(block, int) or isinstance(block, bool):
-            raise TypeError("sidechain block indices must be integers")
-        if block < 0 or block >= pose_stack.max_n_blocks:
-            raise ValueError(f"sidechain block {block} is out of range")
-        if block == ligand_block:
-            raise ValueError("the ligand block cannot be a sidechain block")
-        blocks.append(block)
-    if len(set(blocks)) != len(blocks):
-        raise ValueError("sidechain_blocks must not contain duplicates")
-
-    normalized = tuple(sorted(blocks))
-    for block in normalized:
-        block_type_indices = pose_stack.block_type_ind64[:, block]
-        if bool(torch.any(block_type_indices < 0)):
-            raise ValueError(
-                f"sidechain block {block} is absent from at least one pose"
-            )
-        if bool(torch.any(block_type_indices != block_type_indices[0])):
-            raise ValueError(
-                f"all poses must use the same type at sidechain block {block}"
-            )
-        block_type = pose_stack.packed_block_types.active_block_types[
-            int(block_type_indices[0])
-        ]
-        if not block_type.properties.polymer.is_polymer:
-            raise ValueError(
-                f"sidechain block {block} ({block_type.name}) is not polymeric"
-            )
-        if _block_has_nonpolymer_connection(
-            pose_stack, block, int(block_type_indices[0])
-        ):
-            raise ValueError(
-                f"sidechain block {block} ({block_type.name}) has a non-polymer "
-                "covalent connection (e.g. a disulfide); flexible-docking kinematics "
-                "cannot preserve that bond, so such residues must not be selected as "
-                "flexible"
-            )
-        if int(block_type.n_sc_torsions) == 0:
-            raise ValueError(
-                f"sidechain block {block} ({block_type.name}) has no sidechain chi "
-                "torsions and cannot be made flexible (nothing to move); do not "
-                "select chi-less residues such as ALA or GLY"
-            )
-    return normalized
-
-
 def _resolve_sidechain_torsions(
     pose_stack: PoseStack,
     sidechain_blocks: tuple[int, ...],
@@ -935,7 +817,7 @@ def build_ligand_docking_dofs(
     block_type = pose_stack.packed_block_types.active_block_types[block_type_index]
     if block_type.properties.polymer.is_polymer:
         raise ValueError(f"block {ligand_block} ({block_type.name}) is polymeric")
-    sidechain_blocks = _validated_sidechain_blocks(
+    sidechain_blocks = validated_sidechain_blocks(
         pose_stack, ligand_block, sidechain_blocks
     )
 

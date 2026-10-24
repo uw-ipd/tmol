@@ -19,14 +19,9 @@ from tmol.dock import (
 )
 from tmol.dock.ga import (
     _block_heavy_coords,
-    _movable_block_mapping,
-    _movable_pose_stack,
-    _sidechain_context_blocks,
 )
 from tmol.dock.ligand_dofs import (
-    _block_has_nonpolymer_connection,
     _block_kinforest_nodes,
-    _validated_sidechain_blocks,
 )
 from tmol.dock.scoring_backend import _LightweightGridObjective
 from tmol.score import beta2016_score_function
@@ -51,6 +46,13 @@ from tmol.tests.dock.test_ligand_dof_roundtrip import (
     cdk2_pose_and_db,
 )
 from tmol.tests.score.gridscore.test_gridscore import _load_target_pose
+from tmol.score.gridscore._movable import (
+    has_nonpolymer_connection,
+    movable_block_mapping,
+    movable_pose_stack,
+    sidechain_context_blocks,
+    validated_sidechain_blocks,
+)
 
 
 def _cdk2_sidechain_blocks(reference, ligand_block):
@@ -59,8 +61,8 @@ def _cdk2_sidechain_blocks(reference, ligand_block):
 
 
 def _movable_layout(reference, ligand_block, sidechain_blocks):
-    movable = _movable_pose_stack(reference, ligand_block, sidechain_blocks)
-    _, compact_sidechains, _ = _movable_block_mapping(
+    movable = movable_pose_stack(reference, ligand_block, sidechain_blocks)
+    _, compact_sidechains, _ = movable_block_mapping(
         reference, ligand_block, sidechain_blocks
     )
     docking_dofs = build_ligand_docking_dofs(
@@ -120,7 +122,7 @@ def test_movable_block_pairs_match_full_connected_complex_fp64(
     ligand_block = _ligand_block(reference)
     sidechain_blocks = _cdk2_sidechain_blocks(reference, ligand_block)
     movable, _, _ = _movable_layout(reference, ligand_block, sidechain_blocks)
-    source_blocks, compact_sidechains, compact_context = _movable_block_mapping(
+    source_blocks, compact_sidechains, compact_context = movable_block_mapping(
         reference, ligand_block, sidechain_blocks
     )
 
@@ -306,7 +308,7 @@ def test_flexible_grid_atom_partition_and_score_decomposition_fp64(
 
     expected_receptor_heavy = []
     pbt = reference.packed_block_types
-    context_blocks = _sidechain_context_blocks(
+    context_blocks = sidechain_context_blocks(
         reference, ligand_block, sidechain_blocks
     )
     assert backend.context_blocks == context_blocks
@@ -493,7 +495,7 @@ def test_disulfide_residue_rejected_from_flexible_selection():
         block
         for block in range(reference.max_n_blocks)
         if not bool(torch.any(reference.block_type_ind64[:, block] < 0))
-        and _block_has_nonpolymer_connection(
+        and has_nonpolymer_connection(
             reference, block, int(reference.block_type_ind64[0, block])
         )
     ]
@@ -521,7 +523,7 @@ def test_disulfide_residue_rejected_from_flexible_selection():
     )
 
     with pytest.raises(ValueError, match="non-polymer covalent connection"):
-        _validated_sidechain_blocks(reference, ligand_block, (near_pocket[0],))
+        validated_sidechain_blocks(reference, ligand_block, (near_pocket[0],))
 
 
 def test_chi_less_residue_rejected_from_flexible_selection(cdk2_pose_and_db):
@@ -554,7 +556,7 @@ def test_chi_less_residue_rejected_from_flexible_selection(cdk2_pose_and_db):
     )
 
     with pytest.raises(ValueError, match="no sidechain chi torsions"):
-        _validated_sidechain_blocks(reference, ligand_block, (chi_less[0],))
+        validated_sidechain_blocks(reference, ligand_block, (chi_less[0],))
 
 
 @pytest.mark.slow
@@ -642,7 +644,7 @@ def test_flexible_grid_search_moves_sidechain_and_restores_full_complex(
         )
         bad_bonds += int(torch.sum(torch.abs(after - before) > 2.0e-4))
 
-    _, compact_sidechains, _ = _movable_block_mapping(
+    _, compact_sidechains, _ = movable_block_mapping(
         reference, ligand_block, sidechain_blocks
     )
     for compact_block, source_block in zip(compact_sidechains, sidechain_blocks):

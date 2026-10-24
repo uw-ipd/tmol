@@ -16,7 +16,6 @@ from tmol.dock.ligand_dofs import (
     _block_kinforest_nodes,
     _ligand_kinforest_nodes,
     _sidechain_coordinate_indices,
-    _validated_sidechain_blocks,
     _wrap_angle,
     build_ligand_docking_dofs,
 )
@@ -46,6 +45,12 @@ from tmol.score.gridscore import (
     score_ligand_grid_batched_with_gradients,
 )
 from tmol.score import ScoreFunction
+from tmol.score.gridscore._movable import (
+    movable_block_mapping,
+    movable_pose_stack,
+    sidechain_context_blocks,
+    validated_sidechain_blocks,
+)
 
 
 @dataclass(frozen=True)
@@ -594,8 +599,6 @@ class GridBackend(ScoringBackend):
     and refreshes analytic gradients at accepted points (default: False).
     """
 
-    minimizer_kind = "analytic-grid-live-hbond-lkball-local-intra-autograd-f1f2"
-
     def __init__(
         self,
         grids: GridSet,
@@ -833,7 +836,7 @@ class GridBackend(ScoringBackend):
         normalized_sidechain_blocks = (
             ()
             if sidechain_blocks is None
-            else _validated_sidechain_blocks(
+            else validated_sidechain_blocks(
                 reference_pose_stack, ligand_block, sidechain_blocks
             )
         )
@@ -842,24 +845,18 @@ class GridBackend(ScoringBackend):
         grid_atom_indices = None
         movable_n_atoms = block_type.n_atoms
         if normalized_sidechain_blocks:
-            from tmol.dock.ga import (
-                _movable_block_mapping,
-                _movable_pose_stack,
-                _sidechain_context_blocks,
-            )
-
-            context_blocks = _sidechain_context_blocks(
+            context_blocks = sidechain_context_blocks(
                 reference_pose_stack,
                 ligand_block,
                 normalized_sidechain_blocks,
             )
 
-            movable_pose = _movable_pose_stack(
+            movable_pose = movable_pose_stack(
                 reference_pose_stack,
                 ligand_block,
                 normalized_sidechain_blocks,
             )
-            source_blocks, compact_sidechain_blocks, _ = _movable_block_mapping(
+            source_blocks, compact_sidechain_blocks, _ = movable_block_mapping(
                 reference_pose_stack,
                 ligand_block,
                 normalized_sidechain_blocks,
@@ -911,6 +908,7 @@ class GridBackend(ScoringBackend):
             param_db,
             sidechain_blocks=normalized_sidechain_blocks,
             context_blocks=context_blocks,
+            movable_atoms=grid_atom_indices,
         )
         live_ligand_intra = (
             build_live_ligand_intra_data(
@@ -929,6 +927,7 @@ class GridBackend(ScoringBackend):
             param_db,
             sidechain_blocks=normalized_sidechain_blocks,
             context_blocks=context_blocks,
+            movable_atoms=grid_atom_indices,
         )
         # build_grid initializes packed ljlk/elec parameters, including charges.
         n_atoms = block_type.n_atoms

@@ -8,25 +8,25 @@ import attr
 import numpy
 import torch
 
-from tmol.dock.dock_loop import _repeat_pose_stack
 from tmol.dock.ga import (
     GAResult,
     LigandGeneLayout,
-    _ligand_only_pose_stack,
-    _movable_block_mapping,
     _place_ligand_in_reference,
-    _select_inter_block_bondsep,
-    _sidechain_context_blocks,
 )
 from tmol.dock.ligand_dofs import build_ligand_docking_dofs
 from tmol.optimization import run_cart_min, run_kin_min
 from tmol.pose import ConstraintSet
-from tmol.pose import PDBInfo
-from tmol.pose import PoseStack
+
+from tmol.pose import PoseStack, repeat_pose_stack, select_blocks
 from tmol.database import ParameterDatabase
 from tmol.score import beta2016_score_function
 from tmol.score.constraint import ConstraintEnergyTerm
 from tmol.score import ScoreType
+from tmol.score.gridscore._movable import (
+    movable_block_mapping,
+    movable_pose_stack,
+    sidechain_context_blocks,
+)
 
 
 # Rosetta dockflex "bbsc1" final refinement: one hard-rep Cartesian minimization
@@ -221,9 +221,9 @@ def _promote_top_candidates(
     flat = torch.argsort(ga_result.pool.energies)[:top_k]
 
     if sidechain_blocks:
-        promoted = _repeat_pose_stack(reference_pose_stack, top_k)
+        promoted = repeat_pose_stack(reference_pose_stack, top_k)
         selected_compact = attr.evolve(
-            _repeat_pose_stack(ga_result.pool.pose_stack.split(0), promoted.n_poses),
+            repeat_pose_stack(ga_result.pool.pose_stack.split(0), promoted.n_poses),
             coords=ga_result.pool.pose_stack.coords[flat].detach().clone(),
         )
         promoted = _place_ligand_in_reference(
@@ -246,7 +246,7 @@ def _promote_top_candidates(
     local_atoms = torch.arange(
         source_indices.shape[1], dtype=torch.int64, device=reference_pose_stack.device
     )
-    promoted = _repeat_pose_stack(reference_pose_stack, top_k)
+    promoted = repeat_pose_stack(reference_pose_stack, top_k)
     target_indices = promoted.block_coord_offset64[:, ligand_block, None] + local_atoms
     rows = torch.arange(promoted.n_poses, device=promoted.device)[:, None]
     coords = promoted.coords.clone()
@@ -280,12 +280,12 @@ def _flexible_sidechain_mapping(
     compact_pose_stack = compact_pose_stack.split(0)
     if getattr(backend, "ligand_block", ligand_block) != ligand_block:
         raise ValueError("finalization backend ligand block does not match reference")
-    context_blocks = _sidechain_context_blocks(
+    context_blocks = sidechain_context_blocks(
         reference_pose_stack, ligand_block, sidechain_blocks
     )
     if tuple(getattr(backend, "context_blocks", ())) != context_blocks:
         raise ValueError("finalization peptide context does not match backend")
-    source_blocks, compact_sidechain_blocks, _ = _movable_block_mapping(
+    source_blocks, compact_sidechain_blocks, _ = movable_block_mapping(
         reference_pose_stack, ligand_block, sidechain_blocks
     )
     if compact_pose_stack.max_n_blocks != len(source_blocks):
@@ -345,96 +345,12 @@ def _mapped_atom_indices(
 def _receptor_only_pose_stack(pose_stack: PoseStack, ligand_block: int) -> PoseStack:
     """Delete one disconnected ligand block while preserving receptor topology."""
 
-    if getattr(pose_stack, "fragmented_ligand_mapping", None) is not None:
-        raise ValueError("finalization does not support fragmented ligand metadata")
-    if ligand_block < 0 or ligand_block >= pose_stack.max_n_blocks:
-        raise ValueError("ligand_block is out of range")
-    if bool(torch.any(pose_stack.block_type_ind64[:, ligand_block] < 0)):
-        raise ValueError("ligand block is absent from at least one pose")
-    if not bool(
-        torch.all(pose_stack.block_type_ind64 == pose_stack.block_type_ind64[0:1])
-    ):
-        raise ValueError("rigid-receptor finalization requires homogeneous topology")
     if bool(
         torch.any(pose_stack.inter_residue_connections64[:, ligand_block, :, 0] >= 0)
     ):
         raise ValueError("the finalized ligand must be disconnected from the receptor")
-
-    real_blocks = torch.nonzero(
-        pose_stack.block_type_ind64[0] >= 0, as_tuple=False
-    ).flatten()
-    keep_blocks = real_blocks[real_blocks != ligand_block]
-    if keep_blocks.numel() == 0:
-        raise ValueError("cannot construct an empty receptor")
-    old_to_new = torch.full(
-        (pose_stack.max_n_blocks,),
-        -1,
-        dtype=torch.int64,
-        device=pose_stack.device,
-    )
-    old_to_new[keep_blocks] = torch.arange(
-        keep_blocks.numel(), dtype=torch.int64, device=pose_stack.device
-    )
-
-    connections64 = pose_stack.inter_residue_connections64[:, keep_blocks].clone()
-    partner_blocks = connections64[..., 0]
-    real_partners = partner_blocks >= 0
-    if bool(torch.any(partner_blocks[real_partners] == ligand_block)):
-        raise ValueError("the finalized ligand must be disconnected from the receptor")
-    partner_blocks[real_partners] = old_to_new[partner_blocks[real_partners]]
-    if bool(torch.any(partner_blocks[real_partners] < 0)):
-        raise ValueError("receptor connection points reference an absent block")
-
-    block_type_ind64 = pose_stack.block_type_ind64[:, keep_blocks].clone()
-    pbt = pose_stack.packed_block_types
-    atom_counts = pbt.n_atoms[block_type_ind64[0]].to(torch.int64)
-    offsets64 = torch.zeros_like(block_type_ind64)
-    if keep_blocks.numel() > 1:
-        offsets64[:, 1:] = torch.cumsum(atom_counts[:-1], dim=0)[None, :]
-    n_source_atoms = int(torch.sum(pose_stack.n_ats_per_block[0]))
-    ligand_start = pose_stack.block_coord_offset64[0, ligand_block]
-    ligand_n_atoms = pbt.n_atoms[pose_stack.block_type_ind64[0, ligand_block]].to(
-        torch.int64
-    )
-    all_source_atoms = torch.arange(
-        n_source_atoms, dtype=torch.int64, device=pose_stack.device
-    )
-    source_atoms = all_source_atoms[
-        (all_source_atoms < ligand_start)
-        | (all_source_atoms >= ligand_start + ligand_n_atoms)
-    ]
-    coords = pose_stack.coords[:, source_atoms].clone()
-
-    keep_host = keep_blocks.detach().cpu().numpy()
-    source_host = source_atoms.detach().cpu().numpy()
-    pdb_info = PDBInfo(
-        residue_labels=pose_stack.pdb_info.residue_labels[:, keep_host].copy(),
-        residue_insertion_codes=(
-            pose_stack.pdb_info.residue_insertion_codes[:, keep_host].copy()
-        ),
-        chain_labels=pose_stack.pdb_info.chain_labels[:, keep_host].copy(),
-        atom_occupancy=pose_stack.pdb_info.atom_occupancy[:, source_host].copy(),
-        atom_b_factor=pose_stack.pdb_info.atom_b_factor[:, source_host].copy(),
-    )
-    inter_block_bondsep = _select_inter_block_bondsep(pose_stack, keep_blocks)
-    chain_id64 = pose_stack.chain_id64[:, keep_blocks].clone()
-
-    return PoseStack(
-        packed_block_types=pbt,
-        coords=coords,
-        block_coord_offset=offsets64.to(torch.int32),
-        block_coord_offset64=offsets64,
-        inter_residue_connections=connections64.to(torch.int32),
-        inter_residue_connections64=connections64,
-        inter_block_bondsep=inter_block_bondsep,
-        block_type_ind=block_type_ind64.to(torch.int32),
-        block_type_ind64=block_type_ind64,
-        chain_id=chain_id64.to(torch.int32),
-        chain_id64=chain_id64,
-        pdb_info=pdb_info,
-        constraint_set=None,
-        device=pose_stack.device,
-    )
+    real_blocks = torch.nonzero(pose_stack.block_type_ind64[0] >= 0).flatten().tolist()
+    return select_blocks(pose_stack, [b for b in real_blocks if b != ligand_block])
 
 
 def _with_coordinate_constraints(pose_stack: PoseStack) -> PoseStack:
@@ -598,7 +514,7 @@ def finalize_ga_docking(
         )
         complex_energy = _score_pose_stack(refined, exact_sfxn)
 
-    ligand_only = _ligand_only_pose_stack(refined, ligand_block)
+    ligand_only = movable_pose_stack(refined, ligand_block)
     constrained_ligand = _with_coordinate_constraints(ligand_only)
     constrained_sfxn = beta2016_score_function(
         promoted.device, param_db=backend.param_db

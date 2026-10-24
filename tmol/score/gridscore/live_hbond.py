@@ -3,12 +3,21 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, fields
+from typing import Sequence
 
 import torch
 
 from tmol.database import ParameterDatabase
 from tmol.pose import PoseStack
 from tmol.score.hbond import HBondEnergyTerm
+
+from ._movable import (
+    movable_block_mapping,
+    movable_pose_stack,
+    sidechain_context_blocks,
+    validated_sidechain_blocks,
+)
+from ._common import build_cell_list, cell_grid, validate_ligand_coords
 
 
 @dataclass(frozen=True)
@@ -244,28 +253,6 @@ def _stack_indices(values: list[tuple[int, ...]], width: int) -> torch.Tensor:
     return torch.tensor(values, dtype=torch.int64).contiguous()
 
 
-def _build_cell_list(
-    anchors: torch.Tensor,
-    origin: torch.Tensor,
-    dims: torch.Tensor,
-    cell_width: float,
-) -> tuple[torch.Tensor, torch.Tensor]:
-    n_cells = int(torch.prod(dims))
-    if anchors.shape[0] == 0:
-        return (
-            torch.zeros(n_cells + 1, dtype=torch.int64),
-            torch.empty(0, dtype=torch.int64),
-        )
-    cells = torch.floor((anchors - origin) / cell_width).to(torch.int64)
-    if bool(torch.any(cells < 0) or torch.any(cells >= dims)):
-        raise RuntimeError("receptor hbond site fell outside its cell structure")
-    linear = (cells[:, 0] * dims[1] + cells[:, 1]) * dims[2] + cells[:, 2]
-    order = torch.argsort(linear, stable=True)
-    counts = torch.bincount(linear, minlength=n_cells)
-    offsets = torch.cat((torch.zeros(1, dtype=torch.int64), counts.cumsum(0)))
-    return offsets.contiguous(), order.to(torch.int64).contiguous()
-
-
 def _typed_sites_for_block(
     pose_stack: PoseStack,
     block_index: int,
@@ -333,6 +320,7 @@ def build_live_hbond_data(
     *,
     sidechain_blocks: tuple[int, ...] = (),
     context_blocks: tuple[int, ...] = (),
+    movable_atoms: Sequence[int] | None = None,
 ) -> LiveHBondData:
     """Build movable-atom topology and shared fixed-receptor hbond cells."""
 
@@ -391,52 +379,25 @@ def build_live_hbond_data(
     ligand_end = ligand_offset + ligand_n_atoms
 
     if sidechain_blocks:
-        from tmol.dock.ga import (
-            _movable_block_mapping,
-            _movable_pose_stack,
-            _sidechain_context_blocks,
-        )
-        from tmol.dock.ligand_dofs import (
-            _sidechain_coordinate_indices,
-            _validated_sidechain_blocks,
-            build_ligand_docking_dofs,
-        )
-        from tmol.kinematics import PoseStackKinematicsModule
-
-        sidechain_blocks = _validated_sidechain_blocks(
+        sidechain_blocks = validated_sidechain_blocks(
             pose_stack, ligand_block, sidechain_blocks
         )
-        expected_context = _sidechain_context_blocks(
+        expected_context = sidechain_context_blocks(
             pose_stack, ligand_block, sidechain_blocks
         )
         if context_blocks and tuple(context_blocks) != expected_context:
             raise ValueError("context_blocks do not match sidechain peptide neighbors")
-        context_blocks = expected_context
-        movable_pose = _movable_pose_stack(
+        if movable_atoms is None:
+            raise ValueError("sidechain_blocks require the compact movable_atoms")
+        movable_pose = movable_pose_stack(pose_stack, ligand_block, sidechain_blocks)
+        source_blocks, _, _ = movable_block_mapping(
             pose_stack, ligand_block, sidechain_blocks
         )
-        source_blocks, compact_sidechain_blocks, compact_context_blocks = (
-            _movable_block_mapping(
-                pose_stack, ligand_block, sidechain_blocks
-            )
-        )
-        docking_dofs = build_ligand_docking_dofs(
-            movable_pose, 0, sidechain_blocks=compact_sidechain_blocks
-        )
-        kin_module = PoseStackKinematicsModule(
-            movable_pose, docking_dofs.fold_forest
-        )
-        _, sidechain_atom_indices = _sidechain_coordinate_indices(
-            movable_pose, docking_dofs, kin_module.kmd.forest
-        )
-        query_atoms = set(range(ligand_n_atoms))
-        query_atoms.update(sidechain_atom_indices[0].tolist())
+        query_atoms = {int(atom) for atom in movable_atoms}
         source_to_compact_block = {
             source_block: compact_block
             for compact_block, source_block in enumerate(source_blocks)
         }
-        if set(compact_context_blocks) & set(compact_sidechain_blocks):
-            raise RuntimeError("movable and context block mappings overlap")
         movable_n_atoms = movable_pose.max_n_pose_atoms
     else:
         sidechain_blocks = ()
@@ -520,24 +481,23 @@ def build_live_hbond_data(
         anchors.append(receptor_donors[:, 1])
     if receptor_acceptors.shape[0]:
         anchors.append(receptor_acceptors[:, 0])
-    if anchors:
-        all_anchors = torch.cat(anchors)
-        cell_origin = (
-            torch.floor(all_anchors.min(dim=0).values / max_ha_dis) * max_ha_dis
-        )
-        cell_coords = torch.floor((all_anchors - cell_origin) / max_ha_dis).to(
-            torch.int64
-        )
-        cell_dims = cell_coords.max(dim=0).values + 1
-    else:
-        cell_origin = torch.zeros(3, dtype=torch.float64)
-        cell_dims = torch.ones(3, dtype=torch.int64)
-
-    donor_offsets, donor_cell_indices = _build_cell_list(
-        receptor_donors[:, 1], cell_origin, cell_dims, max_ha_dis
+    cell_origin, cell_dims = cell_grid(
+        torch.cat(anchors) if anchors else receptor_donors[:0, 0], max_ha_dis
     )
-    acceptor_offsets, acceptor_cell_indices = _build_cell_list(
-        receptor_acceptors[:, 0], cell_origin, cell_dims, max_ha_dis
+
+    donor_offsets, donor_cell_indices = build_cell_list(
+        receptor_donors[:, 1],
+        cell_origin,
+        cell_dims,
+        max_ha_dis,
+        label="receptor hbond site",
+    )
+    acceptor_offsets, acceptor_cell_indices = build_cell_list(
+        receptor_acceptors[:, 0],
+        cell_origin,
+        cell_dims,
+        max_ha_dis,
+        label="receptor hbond site",
     )
     return LiveHBondData(
         n_ligand_atoms=movable_n_atoms,
@@ -564,20 +524,9 @@ def build_live_hbond_data(
 
 
 def _validate_ligand_coords(data: LiveHBondData, ligand_coords: torch.Tensor) -> None:
-    if ligand_coords.ndim != 3 or ligand_coords.shape[2] != 3:
-        raise ValueError("ligand_coords must have shape [n_poses, n_atoms, 3]")
-    if ligand_coords.shape[0] == 0 or ligand_coords.shape[1] == 0:
-        raise ValueError("live hbond scoring requires poses and ligand atoms")
-    if ligand_coords.shape[1] != data.n_ligand_atoms:
-        raise ValueError(
-            "ligand coordinate atom count does not match live hbond topology"
-        )
-    if ligand_coords.dtype not in (torch.float32, torch.float64):
-        raise TypeError("ligand_coords must be float32 or float64")
-    if data.receptor_donors.device != ligand_coords.device:
-        raise ValueError("live hbond data and ligand coordinates must share a device")
-    if data.receptor_donors.dtype != ligand_coords.dtype:
-        raise TypeError("live hbond data and ligand coordinates must share a dtype")
+    validate_ligand_coords(
+        ligand_coords, data.n_ligand_atoms, data.receptor_donors, "hbond"
+    )
 
 
 def _live_hbond_op(

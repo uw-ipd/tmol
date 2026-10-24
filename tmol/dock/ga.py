@@ -26,17 +26,17 @@ import numpy
 import torch
 
 from tmol.dock.conformer_seed import generate_conformer_library
-from tmol.dock.dock_loop import DockingPerturbation, _repeat_pose_stack
+from tmol.dock.dock_loop import (
+    DockingPerturbation,
+)
 from tmol.dock.ligand_aligner import LigandAligner
 from tmol.dock.ligand_dofs import (
     LigandDockingDOFs,
-    _block_has_nonpolymer_connection,
     _block_kinforest_nodes,
     _inverse_dofs,
     _ligand_kinforest_nodes,
     _sidechain_coordinate_metadata,
     _sidechain_logical_torsions_from_coords,
-    _validated_sidechain_blocks,
     _wrap_angle,
     build_ligand_docking_dofs,
 )
@@ -48,10 +48,15 @@ from tmol.dock.scoring_backend import (
 from tmol.kinematics import JumpDOFTypes, NodeType
 from tmol.kinematics import MinimizerMap
 from tmol.kinematics import PoseStackKinematicsModule
-from tmol.chemical import MAX_SIG_BOND_SEPARATION
-from tmol.pose import InterBlockBondsep
-from tmol.pose import PDBInfo
 from tmol.pose import PoseStack
+from tmol.pose import repeat_pose_stack
+from tmol.score.gridscore._movable import (
+    has_nonpolymer_connection,
+    movable_block_mapping,
+    movable_pose_stack,
+    sidechain_context_blocks,
+    validated_sidechain_blocks,
+)
 
 if TYPE_CHECKING:
     from tmol.dock.finalization import DockingFinalization
@@ -422,7 +427,7 @@ def select_pocket_residue_blocks(
     solvent, are excluded. Polymer residues carrying a non-polymer covalent
     connection (e.g. a disulfide-bonded cysteine) are also excluded, because
     flexible-sidechain kinematics cannot preserve that bond; passing such a
-    residue explicitly is rejected downstream by ``_validated_sidechain_blocks``.
+    residue explicitly is rejected downstream by ``validated_sidechain_blocks``.
     Chi-less residues (e.g. ALA, GLY) are excluded as well: they have nothing to
     move, so the returned set is directly usable as flexible ``sidechain_blocks``.
     """
@@ -452,7 +457,7 @@ def select_pocket_residue_blocks(
         ]
         if not block_type.properties.polymer.is_polymer:
             continue
-        if _block_has_nonpolymer_connection(
+        if has_nonpolymer_connection(
             pose_stack, block, int(block_type_indices[0])
         ):
             continue
@@ -544,345 +549,6 @@ class DockingResult:
     @property
     def dG(self) -> torch.Tensor | None:
         return None if self.finalization is None else self.finalization.dG
-
-
-def _select_inter_block_bondsep(pose_stack: PoseStack, blocks) -> InterBlockBondsep:
-    """Preserve the dense block-pair slice in master's sparse representation."""
-    blocks = torch.as_tensor(blocks, dtype=torch.int64, device=pose_stack.device)
-    dense = pose_stack.inter_block_bondsep.to_dense()[
-        :, blocks[:, None], blocks[None, :]
-    ]
-    n_poses, n_blocks, _, n_conn, _ = dense.shape
-    if dense.numel() == 0:
-        return InterBlockBondsep.empty(n_poses, n_blocks, n_conn, pose_stack.device, 1)
-    minimum = dense.amin(dim=(-2, -1))
-    nearby = minimum < MAX_SIG_BOND_SEPARATION
-    slots = nearby.cumsum(dim=2) - 1
-    result = InterBlockBondsep.empty(
-        n_poses,
-        n_blocks,
-        n_conn,
-        pose_stack.device,
-        int(nearby.sum(dim=2).max()) + 1,
-    )
-    pose, block1, block2 = torch.nonzero(nearby, as_tuple=True)
-    slot = slots[pose, block1, block2]
-    result.near_blocks[pose, block1, slot, 0] = block2.to(torch.int32)
-    result.near_blocks[pose, block1, slot, 1] = minimum[pose, block1, block2].to(
-        torch.int32
-    )
-    result.bondsep[pose, block1, slot] = dense[pose, block1, block2]
-    return result
-
-
-def _ligand_only_pose_stack(pose_stack: PoseStack, ligand_block: int) -> PoseStack:
-    """Select a disconnected ligand block into a single-block PoseStack.
-
-    Coordinates and ligand metadata are copied exactly from each input pose.
-    Inter-block connections are empty, the retained diagonal bond-separation
-    table is 1x1, and the ligand is assigned to the only chain. Constraints are
-    omitted because the grid backend does not score them; the original
-    constraint set remains on the full-complex result PoseStack.
-    """
-
-    if not isinstance(ligand_block, int) or isinstance(ligand_block, bool):
-        raise TypeError("ligand_block must be an integer")
-    if ligand_block < 0 or ligand_block >= pose_stack.max_n_blocks:
-        raise ValueError("ligand_block is out of range")
-    if getattr(pose_stack, "fragmented_ligand_mapping", None) is not None:
-        raise ValueError(
-            "ligand-only docking does not support fragmented-ligand metadata"
-        )
-
-    block_type_indices = pose_stack.block_type_ind64[:, ligand_block]
-    if bool(torch.any(block_type_indices < 0)):
-        raise ValueError("ligand_block is absent from at least one pose")
-    if not bool(torch.all(block_type_indices == block_type_indices[0])):
-        raise ValueError("ligand-only docking requires one homogeneous ligand type")
-    block_type_index = int(block_type_indices[0])
-    block_type = pose_stack.packed_block_types.active_block_types[block_type_index]
-    n_atoms = block_type.n_atoms
-
-    source_connections = pose_stack.inter_residue_connections64[
-        :, ligand_block : ligand_block + 1
-    ]
-    if bool(torch.any(source_connections[..., 0] >= 0)):
-        raise ValueError(
-            "ligand-only grid docking requires a disconnected ligand block"
-        )
-
-    pose_indices = torch.arange(
-        pose_stack.n_poses, dtype=torch.int64, device=pose_stack.device
-    )
-    atom_indices = (
-        pose_stack.block_coord_offset64[:, ligand_block, None]
-        + torch.arange(n_atoms, dtype=torch.int64, device=pose_stack.device)[None, :]
-    )
-    coords = pose_stack.coords[pose_indices[:, None], atom_indices].clone()
-    block_coord_offset = torch.zeros(
-        (pose_stack.n_poses, 1), dtype=torch.int32, device=pose_stack.device
-    )
-    inter_residue_connections64 = torch.full_like(source_connections, -1)
-    inter_block_bondsep = _select_inter_block_bondsep(pose_stack, [ligand_block])
-    block_type_ind64 = block_type_indices[:, None].clone()
-    chain_id64 = torch.zeros_like(block_type_ind64)
-
-    source_atom_offsets = (
-        pose_stack.block_coord_offset64[:, ligand_block].detach().cpu().numpy()
-    )
-    pdb_atom_indices = source_atom_offsets[:, None] + numpy.arange(n_atoms)[None, :]
-    pdb_pose_indices = numpy.arange(pose_stack.n_poses)[:, None]
-    pdb_info = PDBInfo(
-        residue_labels=pose_stack.pdb_info.residue_labels[
-            :, ligand_block : ligand_block + 1
-        ].copy(),
-        residue_insertion_codes=pose_stack.pdb_info.residue_insertion_codes[
-            :, ligand_block : ligand_block + 1
-        ].copy(),
-        chain_labels=pose_stack.pdb_info.chain_labels[
-            :, ligand_block : ligand_block + 1
-        ].copy(),
-        atom_occupancy=pose_stack.pdb_info.atom_occupancy[
-            pdb_pose_indices, pdb_atom_indices
-        ].copy(),
-        atom_b_factor=pose_stack.pdb_info.atom_b_factor[
-            pdb_pose_indices, pdb_atom_indices
-        ].copy(),
-    )
-
-    return PoseStack(
-        packed_block_types=pose_stack.packed_block_types,
-        coords=coords,
-        block_coord_offset=block_coord_offset,
-        block_coord_offset64=block_coord_offset.to(torch.int64),
-        inter_residue_connections=inter_residue_connections64.to(torch.int32),
-        inter_residue_connections64=inter_residue_connections64,
-        inter_block_bondsep=inter_block_bondsep,
-        block_type_ind=block_type_ind64.to(torch.int32),
-        block_type_ind64=block_type_ind64,
-        chain_id=chain_id64.to(torch.int32),
-        chain_id64=chain_id64,
-        pdb_info=pdb_info,
-        constraint_set=None,
-        device=pose_stack.device,
-    )
-
-
-def _movable_pose_stack(
-    pose_stack: PoseStack,
-    ligand_block: int,
-    sidechain_blocks=(),
-) -> PoseStack:
-    """Select ligand, movable residues, and peptide context into a compact pose.
-
-    The ligand is block 0, remains disconnected, and receives a compact chain
-    id distinct from every receptor chain so it is always an independent
-    kinematic root. Selected receptor blocks and their unique immediate peptide
-    neighbors follow together in ascending source-block order, preserving the
-    contiguous block ranges required by polymer fold-forest edges. Connections
-    between retained polymer residues are remapped, while connections to
-    omitted residues are cleared. Passing no sidechain blocks delegates to the
-    historical ligand-only builder exactly.
-    """
-
-    sidechain_blocks = _validated_sidechain_blocks(
-        pose_stack, ligand_block, sidechain_blocks
-    )
-    if not sidechain_blocks:
-        return _ligand_only_pose_stack(pose_stack, ligand_block)
-    if getattr(pose_stack, "fragmented_ligand_mapping", None) is not None:
-        raise ValueError(
-            "movable grid docking does not support fragmented-ligand metadata"
-        )
-    if not bool(
-        torch.all(pose_stack.block_type_ind64 == pose_stack.block_type_ind64[0:1])
-    ):
-        raise ValueError("movable grid docking requires homogeneous topology")
-    if bool(
-        torch.any(pose_stack.inter_residue_connections64[:, ligand_block, :, 0] >= 0)
-    ):
-        raise ValueError("movable grid docking requires a disconnected ligand block")
-
-    source_blocks, _, _ = _movable_block_mapping(
-        pose_stack, ligand_block, sidechain_blocks
-    )
-    keep_blocks = torch.tensor(
-        source_blocks,
-        dtype=torch.int64,
-        device=pose_stack.device,
-    )
-    old_to_new = torch.full(
-        (pose_stack.max_n_blocks,),
-        -1,
-        dtype=torch.int64,
-        device=pose_stack.device,
-    )
-    old_to_new[keep_blocks] = torch.arange(
-        keep_blocks.numel(), dtype=torch.int64, device=pose_stack.device
-    )
-
-    connections64 = pose_stack.inter_residue_connections64[:, keep_blocks].clone()
-    partner_blocks = connections64[..., 0]
-    real_partners = partner_blocks >= 0
-    mapped_partners = torch.full_like(partner_blocks, -1)
-    mapped_partners[real_partners] = old_to_new[partner_blocks[real_partners]]
-    omitted_partners = real_partners & (mapped_partners < 0)
-    connections64[omitted_partners] = -1
-    retained_partners = mapped_partners >= 0
-    partner_blocks[retained_partners] = mapped_partners[retained_partners]
-
-    block_type_ind64 = pose_stack.block_type_ind64[:, keep_blocks].clone()
-    pbt = pose_stack.packed_block_types
-    atom_counts = pbt.n_atoms[block_type_ind64[0]].to(torch.int64)
-    offsets64 = torch.zeros_like(block_type_ind64)
-    offsets64[:, 1:] = torch.cumsum(atom_counts[:-1], dim=0)[None, :]
-
-    source_atom_parts = []
-    for source_block, n_atoms in zip(keep_blocks, atom_counts):
-        start = pose_stack.block_coord_offset64[0, source_block]
-        source_atom_parts.append(
-            start
-            + torch.arange(
-                int(n_atoms), dtype=torch.int64, device=pose_stack.device
-            )
-        )
-    source_atoms = torch.cat(source_atom_parts)
-    coords = pose_stack.coords[:, source_atoms].clone()
-
-    keep_host = keep_blocks.detach().cpu().numpy()
-    source_host = source_atoms.detach().cpu().numpy()
-    pdb_info = PDBInfo(
-        residue_labels=pose_stack.pdb_info.residue_labels[:, keep_host].copy(),
-        residue_insertion_codes=(
-            pose_stack.pdb_info.residue_insertion_codes[:, keep_host].copy()
-        ),
-        chain_labels=pose_stack.pdb_info.chain_labels[:, keep_host].copy(),
-        atom_occupancy=pose_stack.pdb_info.atom_occupancy[:, source_host].copy(),
-        atom_b_factor=pose_stack.pdb_info.atom_b_factor[:, source_host].copy(),
-    )
-    inter_block_bondsep = _select_inter_block_bondsep(pose_stack, keep_blocks)
-    chain_id64 = pose_stack.chain_id64[:, keep_blocks].clone()
-    # Source chain ids are compact indices. One past the retained receptor
-    # maximum preserves all receptor relationships and cannot collide with any.
-    chain_id64[:, 0] = torch.amax(chain_id64[:, 1:], dim=1) + 1
-
-    return PoseStack(
-        packed_block_types=pbt,
-        coords=coords,
-        block_coord_offset=offsets64.to(torch.int32),
-        block_coord_offset64=offsets64,
-        inter_residue_connections=connections64.to(torch.int32),
-        inter_residue_connections64=connections64,
-        inter_block_bondsep=inter_block_bondsep,
-        block_type_ind=block_type_ind64.to(torch.int32),
-        block_type_ind64=block_type_ind64,
-        chain_id=chain_id64.to(torch.int32),
-        chain_id64=chain_id64,
-        pdb_info=pdb_info,
-        constraint_set=None,
-        device=pose_stack.device,
-    )
-
-
-def _sidechain_context_blocks(
-    pose_stack: PoseStack,
-    ligand_block: int,
-    sidechain_blocks=(),
-) -> tuple[int, ...]:
-    """Return unique immediate polymer neighbors of selected sidechains.
-
-    Only the residue type's declared lower/upper polymer connections are
-    followed; non-polymeric connections such as disulfides are not peptide
-    context. Selected sidechains and the ligand are never returned.
-    """
-
-    sidechain_blocks = _validated_sidechain_blocks(
-        pose_stack, ligand_block, sidechain_blocks
-    )
-    if not sidechain_blocks:
-        return ()
-
-    pbt = pose_stack.packed_block_types
-    excluded = {ligand_block, *sidechain_blocks}
-    context: set[int] = set()
-    for block in sidechain_blocks:
-        block_type_index = int(pose_stack.block_type_ind64[0, block])
-        connection_indices = (
-            int(pbt.down_conn_inds[block_type_index]),
-            int(pbt.up_conn_inds[block_type_index]),
-        )
-        for connection in connection_indices:
-            if connection < 0:
-                continue
-            partners = pose_stack.inter_residue_connections64[
-                :, block, connection, 0
-            ]
-            partner_connections = pose_stack.inter_residue_connections64[
-                :, block, connection, 1
-            ]
-            if bool(torch.any(partners != partners[0])):
-                raise ValueError(
-                    "movable grid docking requires identical peptide context "
-                    "across poses"
-                )
-            partner = int(partners[0])
-            if partner < 0 or partner in excluded:
-                continue
-            partner_type_indices = pose_stack.block_type_ind64[:, partner]
-            if bool(torch.any(partner_type_indices < 0)):
-                raise ValueError(
-                    "a sidechain peptide neighbor is absent from at least one pose"
-                )
-            if bool(torch.any(partner_type_indices != partner_type_indices[0])):
-                raise ValueError(
-                    "all poses must use the same peptide-neighbor block type"
-                )
-            partner_type = pbt.active_block_types[int(partner_type_indices[0])]
-            if not partner_type.properties.polymer.is_polymer:
-                raise ValueError(
-                    "a declared polymer connection points to a non-polymer block"
-                )
-            expected_partner_connection = (
-                partner_type.up_connection_ind
-                if connection == int(pbt.down_conn_inds[block_type_index])
-                else partner_type.down_connection_ind
-            )
-            if bool(
-                torch.any(partner_connections != expected_partner_connection)
-            ):
-                raise ValueError(
-                    "a declared polymer connection is not reciprocally peptide-linked"
-                )
-            context.add(partner)
-    return tuple(sorted(context))
-
-
-def _movable_block_mapping(
-    pose_stack: PoseStack,
-    ligand_block: int,
-    sidechain_blocks=(),
-) -> tuple[tuple[int, ...], tuple[int, ...], tuple[int, ...]]:
-    """Return compact source order and flexible/context compact indices."""
-
-    sidechain_blocks = _validated_sidechain_blocks(
-        pose_stack, ligand_block, sidechain_blocks
-    )
-    context_blocks = _sidechain_context_blocks(
-        pose_stack, ligand_block, sidechain_blocks
-    )
-    receptor_blocks = tuple(sorted(sidechain_blocks + context_blocks))
-    source_blocks = (ligand_block,) + receptor_blocks
-    source_to_compact = {
-        source_block: compact_block
-        for compact_block, source_block in enumerate(source_blocks)
-    }
-    compact_sidechains = tuple(
-        source_to_compact[source_block] for source_block in sidechain_blocks
-    )
-    compact_context = tuple(
-        source_to_compact[source_block] for source_block in context_blocks
-    )
-    return source_blocks, compact_sidechains, compact_context
 
 
 def _place_ligand_in_reference(
@@ -1899,7 +1565,7 @@ def run_ga_docking(
     requested_sidechain_blocks = (
         ()
         if sidechain_blocks is None
-        else _validated_sidechain_blocks(
+        else validated_sidechain_blocks(
             pose_stack, ligand_block, sidechain_blocks
         )
     )
@@ -1921,7 +1587,7 @@ def run_ga_docking(
             )
         complex_reference = pose_stack
         if requested_sidechain_blocks:
-            actual_context = _sidechain_context_blocks(
+            actual_context = sidechain_context_blocks(
                 pose_stack, ligand_block, requested_sidechain_blocks
             )
             if actual_context != backend.context_blocks:
@@ -1929,14 +1595,14 @@ def run_ga_docking(
                     "run_ga_docking peptide context must match the GridBackend "
                     "construction"
                 )
-            _, compact_sidechain_blocks, _ = _movable_block_mapping(
+            _, compact_sidechain_blocks, _ = movable_block_mapping(
                 pose_stack, ligand_block, requested_sidechain_blocks
             )
-            pose_stack = _movable_pose_stack(
+            pose_stack = movable_pose_stack(
                 pose_stack, ligand_block, requested_sidechain_blocks
             )
         else:
-            pose_stack = _ligand_only_pose_stack(pose_stack, ligand_block)
+            pose_stack = movable_pose_stack(pose_stack, ligand_block)
         ligand_block = 0
         backend = backend.for_ligand_block(ligand_block)
     elif requested_sidechain_blocks:
@@ -1944,7 +1610,7 @@ def run_ga_docking(
             "flexible-sidechain docking requires a GridBackend built with "
             "the receptor-minus-flexible-and-neighbor partition"
         )
-    population = _repeat_pose_stack(pose_stack, schedule.npool)
+    population = repeat_pose_stack(pose_stack, schedule.npool)
     if compact_sidechain_blocks:
         docking_dofs = build_ligand_docking_dofs(
             population,
@@ -1959,7 +1625,7 @@ def run_ga_docking(
     pool = None
 
     if initialization == "swarm":
-        swarm_population = _repeat_pose_stack(pose_stack, swarm_size)
+        swarm_population = repeat_pose_stack(pose_stack, swarm_size)
         swarm_dofs = build_ligand_docking_dofs(swarm_population, ligand_block)
         swarm_layout = LigandGeneLayout.from_pose_stack(
             swarm_population, swarm_dofs

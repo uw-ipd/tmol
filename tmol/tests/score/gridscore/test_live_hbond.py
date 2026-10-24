@@ -232,7 +232,7 @@ def _active_ligand_anchor(data, coords):
 
 
 def test_live_hbond_cell_list_matches_brute_force_across_cell_boundary():
-    from tmol.score.gridscore.live_hbond import _build_cell_list
+    from tmol.score.gridscore._common import build_cell_list as _build_cell_list
 
     pose_stack, param_db = _load_target_pose("cdk2")
     ligand_block = _ligand_block(pose_stack)

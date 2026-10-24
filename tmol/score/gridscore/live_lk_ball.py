@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, fields
+from typing import Sequence
 
 import torch
 
@@ -10,6 +11,14 @@ from tmol.database import ParameterDatabase
 from tmol.pose import PoseStack
 from tmol.score.common import convert_float64
 from tmol.score.lk_ball import LKBallEnergyTerm
+
+from ._movable import (
+    movable_block_mapping,
+    movable_pose_stack,
+    sidechain_context_blocks,
+    validated_sidechain_blocks,
+)
+from ._common import build_cell_list, cell_grid, validate_ligand_coords
 
 MAX_N_WATER = 4
 
@@ -231,29 +240,6 @@ class LiveLKBallData:
         return LiveLKBallData(**values)
 
 
-def _build_cell_list(
-    anchors: torch.Tensor,
-    source_indices: torch.Tensor,
-    origin: torch.Tensor,
-    dims: torch.Tensor,
-    cell_width: float,
-) -> tuple[torch.Tensor, torch.Tensor]:
-    n_cells = int(torch.prod(dims))
-    if anchors.shape[0] == 0:
-        return (
-            torch.zeros(n_cells + 1, dtype=torch.int64),
-            torch.empty(0, dtype=torch.int64),
-        )
-    cells = torch.floor((anchors - origin) / cell_width).to(torch.int64)
-    if bool(torch.any(cells < 0) or torch.any(cells >= dims)):
-        raise RuntimeError("receptor LK-ball atom fell outside its cell structure")
-    linear = (cells[:, 0] * dims[1] + cells[:, 1]) * dims[2] + cells[:, 2]
-    order = torch.argsort(linear, stable=True)
-    counts = torch.bincount(linear, minlength=n_cells)
-    offsets = torch.cat((torch.zeros(1, dtype=torch.int64), counts.cumsum(0)))
-    return offsets.contiguous(), source_indices[order].to(torch.int64).contiguous()
-
-
 def _pack_type_params(term: LKBallEnergyTerm) -> torch.Tensor:
     params = term.ljlk_param_resolver.type_params
     # Match LKBallTypeParams: these columns hold precomputed factors, not the
@@ -459,6 +445,7 @@ def build_live_lk_ball_data(
     *,
     sidechain_blocks: tuple[int, ...] = (),
     context_blocks: tuple[int, ...] = (),
+    movable_atoms: Sequence[int] | None = None,
 ) -> LiveLKBallData:
     """Build movable water topology and one fixed-receptor cell structure."""
 
@@ -490,44 +477,22 @@ def build_live_lk_ball_data(
     ligand_type = pbt.active_block_types[ligand_type_index]
     ligand_n_atoms = ligand_type.n_atoms
     if sidechain_blocks:
-        from tmol.dock.ga import (
-            _movable_block_mapping,
-            _movable_pose_stack,
-            _sidechain_context_blocks,
-        )
-        from tmol.dock.ligand_dofs import (
-            _sidechain_coordinate_indices,
-            _validated_sidechain_blocks,
-            build_ligand_docking_dofs,
-        )
-        from tmol.kinematics import PoseStackKinematicsModule
-
-        sidechain_blocks = _validated_sidechain_blocks(
+        sidechain_blocks = validated_sidechain_blocks(
             pose_stack, ligand_block, sidechain_blocks
         )
-        expected_context = _sidechain_context_blocks(
+        expected_context = sidechain_context_blocks(
             pose_stack, ligand_block, sidechain_blocks
         )
         if context_blocks and tuple(context_blocks) != expected_context:
             raise ValueError("context_blocks do not match sidechain peptide neighbors")
+        if movable_atoms is None:
+            raise ValueError("sidechain_blocks require the compact movable_atoms")
         context_blocks = expected_context
-        movable_pose = _movable_pose_stack(
+        movable_pose = movable_pose_stack(pose_stack, ligand_block, sidechain_blocks)
+        source_blocks, _, _ = movable_block_mapping(
             pose_stack, ligand_block, sidechain_blocks
         )
-        source_blocks, compact_sidechain_blocks, _ = _movable_block_mapping(
-            pose_stack, ligand_block, sidechain_blocks
-        )
-        docking_dofs = build_ligand_docking_dofs(
-            movable_pose, 0, sidechain_blocks=compact_sidechain_blocks
-        )
-        kin_module = PoseStackKinematicsModule(
-            movable_pose, docking_dofs.fold_forest
-        )
-        _, sidechain_atom_indices = _sidechain_coordinate_indices(
-            movable_pose, docking_dofs, kin_module.kmd.forest
-        )
-        query_atoms = set(range(ligand_n_atoms))
-        query_atoms.update(sidechain_atom_indices[0].tolist())
+        query_atoms = {int(atom) for atom in movable_atoms}
         compact_atom_types = []
         compact_is_hydrogen = []
         polar_parts = []
@@ -687,21 +652,23 @@ def build_live_lk_ball_data(
 
     global_params = term._lk_ball_global_params.to(torch.float64).contiguous()
     cutoff = float(global_params[0, 4])
-    cell_origin = torch.floor(receptor_coords_t.min(dim=0).values / cutoff) * cutoff
-    cell_coords = torch.floor((receptor_coords_t - cell_origin) / cutoff).to(
-        torch.int64
-    )
-    cell_dims = (cell_coords.max(dim=0).values + 1).contiguous()
+    cell_origin, cell_dims = cell_grid(receptor_coords_t, cutoff)
     receptor_indices = torch.arange(receptor_coords_t.shape[0], dtype=torch.int64)
-    receptor_cell_offsets, receptor_cell_indices = _build_cell_list(
-        receptor_coords_t, receptor_indices, cell_origin, cell_dims, cutoff
-    )
-    receptor_polar_cell_offsets, receptor_polar_cell_indices = _build_cell_list(
-        receptor_coords_t[receptor_polar_atoms_t],
-        receptor_polar_atoms_t,
+    receptor_cell_offsets, receptor_cell_indices = build_cell_list(
+        receptor_coords_t,
         cell_origin,
         cell_dims,
         cutoff,
+        receptor_indices,
+        "receptor LK-ball atom",
+    )
+    receptor_polar_cell_offsets, receptor_polar_cell_indices = build_cell_list(
+        receptor_coords_t[receptor_polar_atoms_t],
+        cell_origin,
+        cell_dims,
+        cutoff,
+        receptor_polar_atoms_t,
+        "receptor LK-ball atom",
     )
     return LiveLKBallData(
         n_ligand_atoms=ligand_n_atoms,
@@ -728,18 +695,9 @@ def build_live_lk_ball_data(
 
 
 def _validate_ligand_coords(data: LiveLKBallData, ligand_coords: torch.Tensor) -> None:
-    if ligand_coords.ndim != 3 or ligand_coords.shape[2] != 3:
-        raise ValueError("ligand_coords must have shape [n_poses, n_atoms, 3]")
-    if ligand_coords.shape[0] == 0:
-        raise ValueError("at least one ligand pose is required")
-    if ligand_coords.shape[1] != data.n_ligand_atoms:
-        raise ValueError("ligand atom count does not match live LK-ball topology")
-    if ligand_coords.dtype not in (torch.float32, torch.float64):
-        raise TypeError("ligand_coords must be float32 or float64")
-    if ligand_coords.device != data.receptor_coords.device:
-        raise ValueError("live LK-ball data must match coordinate device")
-    if ligand_coords.dtype != data.receptor_coords.dtype:
-        raise TypeError("live LK-ball data must match coordinate dtype")
+    validate_ligand_coords(
+        ligand_coords, data.n_ligand_atoms, data.receptor_coords, "LK-ball"
+    )
 
 
 def _live_lk_ball_op(

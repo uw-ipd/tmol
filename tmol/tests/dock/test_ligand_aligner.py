@@ -17,8 +17,6 @@ from tmol.dock import (
     build_ligand_docking_dofs,
     run_ga_docking,
 )
-from tmol.dock.dock_loop import _repeat_pose_stack
-from tmol.dock.ga import _ligand_only_pose_stack
 from tmol.dock.ligand_aligner import (
     _axis_angle_rotation_matrix,
     _select_diverse_indices,
@@ -26,6 +24,10 @@ from tmol.dock.ligand_aligner import (
 from tmol.tests.dock.test_ligand_dof_roundtrip import (
     _ligand_block,
     _load_cdk2_pose,
+)
+from tmol.pose import repeat_pose_stack
+from tmol.score.gridscore._movable import (
+    movable_pose_stack,
 )
 
 
@@ -39,7 +41,7 @@ def cpu_aligner_case():
         param_db,
         kin_dtype=torch.float64,
     ).for_ligand_block(0)
-    ligand = _ligand_only_pose_stack(reference, ligand_block)
+    ligand = movable_pose_stack(reference, ligand_block)
     return SimpleNamespace(
         reference=reference,
         param_db=param_db,
@@ -50,7 +52,7 @@ def cpu_aligner_case():
 
 
 def _layout(case, npool=8):
-    population = _repeat_pose_stack(case.ligand, npool)
+    population = repeat_pose_stack(case.ligand, npool)
     docking_dofs = build_ligand_docking_dofs(population, 0)
     return LigandGeneLayout.from_pose_stack(population, docking_dofs)
 

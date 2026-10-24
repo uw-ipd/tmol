@@ -9,10 +9,13 @@ import torch
 
 from tmol.database import ParameterDatabase
 from tmol.pose import PackedBlockTypes
-from tmol.pose import PoseStack
+from tmol.pose import PoseStack, repeat_pose_stack
 from tmol.score import beta2016_score_function
 from tmol.score import ScoreFunction
 from tmol.score import ScoreType
+
+from ._common import validate_ligand_coords
+from ._movable import movable_block_mapping, movable_pose_stack
 
 
 LigandIntraWeightProfile = Literal["search", "full"]
@@ -248,18 +251,12 @@ def build_live_ligand_intra_data(
     if reference_pose_stack.device.type != "cpu":
         raise ValueError("live ligand-intra construction requires a CPU reference pose")
 
-    # Import locally to avoid a gridscore -> dock.scoring_backend -> gridscore
-    # import cycle. This helper preserves the grid scorer's block-local atom order.
-    from tmol.dock.ga import _movable_pose_stack
-
-    ligand_pose_stack = _movable_pose_stack(
+    ligand_pose_stack = movable_pose_stack(
         reference_pose_stack, ligand_block, sidechain_blocks
     )
     context_block_indices: tuple[int, ...] = ()
     if sidechain_blocks:
-        from tmol.dock.ga import _movable_block_mapping
-
-        _, _, context_block_indices = _movable_block_mapping(
+        _, _, context_block_indices = movable_block_mapping(
             reference_pose_stack, ligand_block, sidechain_blocks
         )
     ligand_pose_stack = _ligand_pose_to(
@@ -291,28 +288,15 @@ def build_live_ligand_intra_data(
 def _validate_ligand_coords(
     data: LiveLigandIntraData, ligand_coords: torch.Tensor
 ) -> None:
-    if ligand_coords.ndim != 3 or ligand_coords.shape[2] != 3:
-        raise ValueError("ligand_coords must have shape [n_poses, n_atoms, 3]")
-    if ligand_coords.shape[0] == 0:
-        raise ValueError("at least one ligand pose is required")
-    if ligand_coords.shape[1] != data.n_ligand_atoms:
-        raise ValueError("ligand atom count does not match live intra topology")
-    if ligand_coords.dtype not in (torch.float32, torch.float64):
-        raise TypeError("ligand_coords must be float32 or float64")
-    if ligand_coords.device != data.ligand_pose_stack.device:
-        raise ValueError("live ligand-intra data must match coordinate device")
-    if ligand_coords.dtype != data.ligand_pose_stack.coords.dtype:
-        raise TypeError("live ligand-intra data must match coordinate dtype")
+    validate_ligand_coords(
+        ligand_coords, data.n_ligand_atoms, data.ligand_pose_stack.coords, "intra"
+    )
 
 
 def _scorer_for(data: LiveLigandIntraData, n_poses: int):
     cached = data._scorer_cache.get(n_poses)
     if cached is None:
-        # Runtime-local import avoids importing dock.ga while scoring_backend is
-        # importing gridscore. Batch topology is built once per population size.
-        from tmol.dock.dock_loop import _repeat_pose_stack
-
-        pose_stack = _repeat_pose_stack(data.ligand_pose_stack, n_poses)
+        pose_stack = repeat_pose_stack(data.ligand_pose_stack, n_poses)
         if data.ligand_pose_stack.max_n_blocks > 1:
             scorer = data.score_function.render_block_pair_scoring_module(
                 pose_stack

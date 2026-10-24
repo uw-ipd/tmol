@@ -20,8 +20,6 @@ from tmol.dock import (
     run_docking,
     run_ga_docking,
 )
-from tmol.dock.dock_loop import _repeat_pose_stack
-from tmol.dock.ga import _ligand_only_pose_stack
 from tmol.optimization import build_kinforest_network, run_min
 from tmol.score import beta2016_score_function
 from tmol.score.gridscore import (
@@ -34,6 +32,10 @@ from tmol.tests.dock.test_dock_loop import _load_cdk2_pose_on_device
 from tmol.tests.dock.test_ligand_dof_roundtrip import (
     _ligand_block,
     _load_cdk2_pose,
+)
+from tmol.pose import repeat_pose_stack
+from tmol.score.gridscore._movable import (
+    movable_pose_stack,
 )
 
 CUDA_AVAILABLE = torch.cuda.is_available()
@@ -49,7 +51,7 @@ def cpu_grid_case():
         param_db,
         kin_dtype=torch.float64,
     )
-    population = _repeat_pose_stack(reference, 2)
+    population = repeat_pose_stack(reference, 2)
     docking_dofs = build_ligand_docking_dofs(population, ligand_block)
     layout = LigandGeneLayout.from_pose_stack(population, docking_dofs)
     return SimpleNamespace(
@@ -68,7 +70,7 @@ def grid_pose_case(cpu_grid_case, request):
     case = cpu_grid_case
     if request.param == "full_complex":
         return case
-    population = _ligand_only_pose_stack(case.population, case.ligand_block)
+    population = movable_pose_stack(case.population, case.ligand_block)
     docking_dofs = build_ligand_docking_dofs(population, 0)
     return SimpleNamespace(
         backend=case.backend.for_ligand_block(0),
@@ -371,10 +373,10 @@ def test_grid_backend_gridded_term_gradients_match_autograd_and_finite_differenc
 
 def test_ligand_only_pose_stack_preserves_cdk2_ligand(cpu_grid_case):
     case = cpu_grid_case
-    references = _repeat_pose_stack(case.reference, 2)
+    references = repeat_pose_stack(case.reference, 2)
     source_indices = case.backend._ligand_atom_indices(references, case.ligand_block)
     references.coords[1, source_indices[1]] += 0.125
-    ligand_only = _ligand_only_pose_stack(references, case.ligand_block)
+    ligand_only = movable_pose_stack(references, case.ligand_block)
     pose_indices = torch.arange(references.n_poses, dtype=torch.int64)
 
     assert ligand_only.n_poses == references.n_poses
@@ -834,7 +836,7 @@ def test_docking_requires_one_reference_pose(cpu_grid_case):
         with pytest.raises(ValueError, match="must contain one reference pose"):
             runner(case.population, case.ligand_block, case.backend)
     with pytest.raises(ValueError, match="only a single reference pose"):
-        _repeat_pose_stack(case.population, 2)
+        repeat_pose_stack(case.population, 2)
 
 
 @pytest.mark.parametrize("explicit_bounds", [False, True])
@@ -842,7 +844,7 @@ def test_random_initial_placement_is_seeded_and_bounded(
     cpu_grid_case, explicit_bounds
 ):
     case = cpu_grid_case
-    population = _repeat_pose_stack(case.reference, 16)
+    population = repeat_pose_stack(case.reference, 16)
     docking_dofs = build_ligand_docking_dofs(population, case.ligand_block)
     layout = LigandGeneLayout.from_pose_stack(population, docking_dofs)
     heavy = layout.ligand_heavy_coords(population)[0]

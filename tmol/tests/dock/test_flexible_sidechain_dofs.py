@@ -18,17 +18,11 @@ from tmol.dock.ga import (
     RandomPlacement,
     _block_heavy_coords,
     _canonicalize_genes,
-    _ligand_only_pose_stack,
-    _movable_block_mapping,
-    _movable_pose_stack,
-    _sidechain_context_blocks,
     _random_initial_genes,
     crossover,
     mutate,
 )
-from tmol.dock.dock_loop import _repeat_pose_stack
 from tmol.dock.ligand_dofs import (
-    _block_has_nonpolymer_connection,
     _block_kinforest_nodes,
     _local_torsion_atoms,
 )
@@ -44,6 +38,13 @@ from tmol.tests.dock.test_ligand_dof_roundtrip import (
     cdk2_pose_and_db,
 )
 from tmol.tests.dock.test_grid_backend import cpu_grid_case
+from tmol.pose import repeat_pose_stack
+from tmol.score.gridscore._movable import (
+    has_nonpolymer_connection,
+    movable_block_mapping,
+    movable_pose_stack,
+    sidechain_context_blocks,
+)
 
 
 def _minimum_heavy_distance(pose_stack, receptor_block, ligand_block):
@@ -113,8 +114,8 @@ def _one_sidechain_movable_pose(full_pose, same_chain):
         chain_id[:, ligand_block] = chain_id[:, selected_block]
         chain_id64[:, ligand_block] = chain_id64[:, selected_block]
         source = attr.evolve(full_pose, chain_id=chain_id, chain_id64=chain_id64)
-    movable = _movable_pose_stack(source, ligand_block, (selected_block,))
-    _, compact_sidechains, _ = _movable_block_mapping(
+    movable = movable_pose_stack(source, ligand_block, (selected_block,))
+    _, compact_sidechains, _ = movable_block_mapping(
         source, ligand_block, (selected_block,)
     )
     return movable, compact_sidechains[0]
@@ -209,7 +210,7 @@ def test_cdk2_pocket_selection_is_heavy_atom_based_and_deterministic(
         # polymer block is included only if it has a movable sidechain chi and no
         # non-polymer covalent bond (e.g. a disulfide).
         flexible_able = int(block_type.n_sc_torsions) > 0 and not (
-            _block_has_nonpolymer_connection(
+            has_nonpolymer_connection(
                 pose_stack, block, block_type_index
             )
         )
@@ -227,11 +228,11 @@ def test_movable_pose_preserves_retained_polymer_connections_and_k0_bytes(
     selected = select_pocket_residue_blocks(pose_stack, ligand_block, cutoff=6.0)
     connected_pair = _connected_chi_blocks(pose_stack, ligand_block, selected)
 
-    movable = _movable_pose_stack(pose_stack, ligand_block, connected_pair)
-    _, compact_sidechains, compact_context = _movable_block_mapping(
+    movable = movable_pose_stack(pose_stack, ligand_block, connected_pair)
+    _, compact_sidechains, compact_context = movable_block_mapping(
         pose_stack, ligand_block, connected_pair
     )
-    context_blocks = _sidechain_context_blocks(
+    context_blocks = sidechain_context_blocks(
         pose_stack, ligand_block, connected_pair
     )
     assert movable.max_n_blocks == 3 + len(context_blocks)
@@ -255,8 +256,8 @@ def test_movable_pose_preserves_retained_polymer_connections_and_k0_bytes(
             == pose_stack.block_type_ind64[0, source_block]
         )
 
-    ligand_only = _ligand_only_pose_stack(pose_stack, ligand_block)
-    zero_pocket = _movable_pose_stack(pose_stack, ligand_block, ())
+    ligand_only = movable_pose_stack(pose_stack, ligand_block)
+    zero_pocket = movable_pose_stack(pose_stack, ligand_block, ())
     for field in (
         "coords",
         "block_coord_offset",
@@ -301,8 +302,8 @@ def test_flexible_sidechain_gene_roundtrip_and_isolation(cdk2_pose_and_db):
     selected = select_pocket_residue_blocks(full_pose, ligand_block, cutoff=6.0)
     selected_blocks = _connected_chi_blocks(full_pose, ligand_block, selected)
 
-    pose_stack = _movable_pose_stack(full_pose, ligand_block, selected_blocks)
-    _, compact_sidechains, _ = _movable_block_mapping(
+    pose_stack = movable_pose_stack(full_pose, ligand_block, selected_blocks)
+    _, compact_sidechains, _ = movable_block_mapping(
         full_pose, ligand_block, selected_blocks
     )
     docking_dofs = build_ligand_docking_dofs(
@@ -548,7 +549,7 @@ def test_ga_operators_handle_appended_sidechain_chis(cdk2_pose_and_db):
     one_pose, compact_sidechain = _one_sidechain_movable_pose(
         full_pose, same_chain=False
     )
-    pose_stack = _repeat_pose_stack(one_pose, 4)
+    pose_stack = repeat_pose_stack(one_pose, 4)
     docking_dofs = build_ligand_docking_dofs(
         pose_stack, ligand_block=0, sidechain_blocks=(compact_sidechain,)
     )
@@ -670,7 +671,7 @@ def test_flexible_sidechain_roundtrip_dtype_and_batch(
         full_pose, same_chain=False
     )
     one_pose = attr.evolve(one_pose, coords=one_pose.coords.to(dtype=dtype))
-    pose_stack = _repeat_pose_stack(one_pose, n_poses)
+    pose_stack = repeat_pose_stack(one_pose, n_poses)
     docking_dofs = build_ligand_docking_dofs(
         pose_stack, ligand_block=0, sidechain_blocks=(compact_sidechain,)
     )
@@ -725,7 +726,7 @@ def test_flexible_sidechain_roundtrip_dtype_and_batch(
 def test_zero_pocket_dof_and_gene_path_is_byte_identical(cdk2_pose_and_db):
     full_pose, _ = cdk2_pose_and_db
     ligand_block = _ligand_block(full_pose)
-    pose_stack = _ligand_only_pose_stack(full_pose, ligand_block)
+    pose_stack = movable_pose_stack(full_pose, ligand_block)
 
     historical = build_ligand_docking_dofs(pose_stack, 0)
     explicit_zero = build_ligand_docking_dofs(pose_stack, 0, sidechain_blocks=())
@@ -758,10 +759,10 @@ def test_grid_final_result_writes_sidechain_coordinates(cpu_grid_case):
     selected_blocks = _connected_chi_blocks(
         full_pose, case.ligand_block, selected
     )
-    pose_stack = _movable_pose_stack(
+    pose_stack = movable_pose_stack(
         full_pose, case.ligand_block, selected_blocks
     )
-    _, compact_sidechains, _ = _movable_block_mapping(
+    _, compact_sidechains, _ = movable_block_mapping(
         full_pose, case.ligand_block, selected_blocks
     )
     docking_dofs = build_ligand_docking_dofs(
