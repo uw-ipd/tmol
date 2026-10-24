@@ -18,7 +18,6 @@ from tmol.score.gridscore.grid import (
     xform_rep,
 )
 from tmol.score.gridscore.scorer import interpolate_grid
-from tmol.score.gridscore.grid import _smooth_fa_rep_grid
 from tmol.score.ljlk import LJLKParamResolver
 from tmol.tests.data import data_path
 from tmol.tests.ligand.test_protein_ligand_ddg import (
@@ -63,75 +62,6 @@ def test_grid_geometry_index_conventions():
     assert floored.dims == (80, 80, 80)
     torch.testing.assert_close(
         floored.origin, torch.full((3,), -10.0, dtype=torch.float64)
-    )
-
-
-@pytest.mark.parametrize("dtype", (torch.float32, torch.float64))
-@pytest.mark.parametrize("smoothing", (0.0, 0.125, 0.25, 0.375, 1.25))
-def test_fa_rep_smoothing_matches_spherical_maximum(dtype, smoothing):
-    generator = torch.Generator().manual_seed(537396662)
-    fa_rep = xform_rep(100 * torch.rand((2, 3, 4, 5), dtype=dtype, generator=generator))
-    original = fa_rep.clone()
-    actual = _smooth_fa_rep_grid(fa_rep, smoothing, 0.25)
-
-    # Independent all-pairs oracle: clip the sphere to the grid at boundaries
-    # and keep atom-type channels separate. No wrapping or repeated dilation.
-    indices = torch.cartesian_prod(torch.arange(3), torch.arange(4), torch.arange(5))
-    positions = indices.to(torch.float64) * 0.25
-    distances_squared = ((positions[:, None] - positions[None, :]) ** 2).sum(-1)
-    expected = torch.stack(
-        [
-            fa_rep.flatten(1)[:, neighbors].max(dim=1).values
-            for neighbors in distances_squared <= smoothing**2
-        ],
-        dim=1,
-    ).reshape_as(fa_rep)
-    torch.testing.assert_close(actual, expected, rtol=0, atol=0)
-    torch.testing.assert_close(fa_rep, original, rtol=0, atol=0)
-    assert torch.all(actual >= fa_rep)
-    if smoothing == 0:
-        assert actual is fa_rep
-
-
-def test_build_grid_fa_rep_smoothing():
-    pose_stack, param_db = _load_cdk2_pose()
-    probe_names = probe_atom_types_from_name3(pose_stack, LIGAND_RES_NAME)
-    kwargs = dict(ligand_name3=LIGAND_RES_NAME, voxel_spacing=0.5)
-    default = build_grid(pose_stack, probe_names, param_db, **kwargs)
-    zero = build_grid(pose_stack, probe_names, param_db, fa_rep_smoothing=0.0, **kwargs)
-    smoothed = build_grid(
-        pose_stack, probe_names, param_db, fa_rep_smoothing=0.75, **kwargs
-    )
-    for name in (
-        "fa_atr",
-        "fa_rep",
-        "fa_sol",
-        "fa_elec",
-        "fa_atr_coeffs",
-        "fa_rep_coeffs",
-        "fa_sol_coeffs",
-        "fa_elec_coeffs",
-    ):
-        torch.testing.assert_close(
-            getattr(zero, name), getattr(default, name), rtol=0, atol=0
-        )
-        if not name.startswith("fa_rep"):
-            torch.testing.assert_close(
-                getattr(smoothed, name), getattr(default, name), rtol=0, atol=0
-            )
-    assert torch.all(smoothed.fa_rep >= default.fa_rep)
-    assert torch.any(smoothed.fa_rep > default.fa_rep)
-    torch.testing.assert_close(
-        smoothed.fa_rep,
-        _smooth_fa_rep_grid(default.fa_rep, 0.75, default.geometry.voxel_spacing),
-        rtol=0,
-        atol=0,
-    )
-    torch.testing.assert_close(
-        smoothed.fa_rep_coeffs,
-        compute_cubic_bspline_coefficients(smoothed.fa_rep),
-        rtol=0,
-        atol=0,
     )
 
 
@@ -185,31 +115,6 @@ def test_grid_serialization_round_trip(tmp_path):
     torch.testing.assert_close(loaded.lk_ball_coeffs, grids.lk_ball_coeffs)
     torch.testing.assert_close(loaded.lk_ball_water_coeffs, grids.lk_ball_water_coeffs)
     torch.testing.assert_close(loaded.lk_bridge_coeffs, grids.lk_bridge_coeffs)
-
-    legacy_state = torch.load(path, weights_only=True)
-    legacy_state["version"] = 1
-    for name in (
-        "fa_atr_coeffs",
-        "fa_rep_coeffs",
-        "fa_sol_coeffs",
-        "fa_elec_coeffs",
-        "lk_ball_coeffs",
-        "lk_ball_water_coeffs",
-        "lk_bridge_coeffs",
-    ):
-        legacy_state.pop(name)
-    legacy_path = tmp_path / "m2b_receptor_grids.pt"
-    torch.save(legacy_state, legacy_path)
-    migrated = GridSet.load(legacy_path)
-    torch.testing.assert_close(migrated.fa_atr_coeffs, grids.fa_atr_coeffs)
-    torch.testing.assert_close(migrated.fa_rep_coeffs, grids.fa_rep_coeffs)
-    torch.testing.assert_close(migrated.fa_sol_coeffs, grids.fa_sol_coeffs)
-    torch.testing.assert_close(migrated.fa_elec_coeffs, grids.fa_elec_coeffs)
-    torch.testing.assert_close(migrated.lk_ball_coeffs, grids.lk_ball_coeffs)
-    torch.testing.assert_close(
-        migrated.lk_ball_water_coeffs, grids.lk_ball_water_coeffs
-    )
-    torch.testing.assert_close(migrated.lk_bridge_coeffs, grids.lk_bridge_coeffs)
 
 
 def test_cubic_bspline_round_trip_at_every_node():

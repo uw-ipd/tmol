@@ -906,43 +906,6 @@ def update_pool(
     )
 
 
-def _subsample_swarm_pool(
-    swarm: GAPool,
-    swarm_layout: LigandGeneLayout,
-    pool_layout: LigandGeneLayout,
-    *,
-    swarm_size: int,
-    npool: int,
-    rmsdthreshold: float,
-) -> GAPool:
-    """Reduce the wide minimized swarm to a small diverse GA pool."""
-
-    if swarm.genes.shape[0] != swarm_size:
-        raise ValueError("swarm population does not match swarm_size")
-    if pool_layout.template.n_poses != npool:
-        raise ValueError("pool layout does not match npool")
-
-    # Match update_pool: niching coordinates are rebuilt from minimized genes,
-    # while retained coordinates are the backend's minimized pose coordinates.
-    swarm_from_genes = swarm_layout.pose_stack_from_genes(swarm.genes)
-    heavy_coords = swarm_layout.ligand_heavy_coords(swarm_from_genes)
-    selected, n_diverse = select_diverse_low_energy(
-        swarm.energies,
-        heavy_coords,
-        npool=npool,
-        rmsdthreshold=rmsdthreshold,
-    )
-    return GAPool(
-        genes=swarm.genes[selected],
-        pose_stack=attr.evolve(
-            pool_layout.template, coords=swarm.pose_stack.coords[selected]
-        ),
-        energies=swarm.energies[selected],
-        n_diverse=int(n_diverse),
-        selected_indices=selected,
-    )
-
-
 def _initial_genes(
     layout: LigandGeneLayout,
     perturbation: DockingPerturbation,
@@ -1174,10 +1137,7 @@ def run_ga_docking(
     *,
     schedule: GASchedule = GASchedule(),
     seed: int = 0,
-    initialization: Literal[
-        "jitter", "random", "conformer", "aligner", "swarm"
-    ] = "jitter",
-    swarm_size: int = 4000,
+    initialization: Literal["jitter", "random", "conformer", "aligner"] = "jitter",
     pocket_bounds: torch.Tensor | None = None,
     random_placement: RandomPlacement = RandomPlacement(),
     sidechain_blocks: tuple[int, ...] | None = None,
@@ -1193,8 +1153,6 @@ def run_ga_docking(
     Rigid grid docking builds its population from a ligand-only single-block
     view. Flexible grid docking uses a compact ligand-plus-sidechains view;
     both restore the winning movable coordinates to the single input complex.
-    Swarm initialization minimizes a wide random population before selecting
-    the GA pool.
     Conformer initialization seeds ligand torsions from a library.
     Aligner sampling and seed-fraction controls are carried by
     ``ligand_aligner``; the scalar ``seed_fraction`` applies only to conformer
@@ -1203,16 +1161,9 @@ def run_ga_docking(
 
     if pose_stack.n_poses != 1:
         raise ValueError("pose_stack must contain one reference pose")
-    if initialization not in (
-        "jitter",
-        "random",
-        "conformer",
-        "aligner",
-        "swarm",
-    ):
+    if initialization not in ("jitter", "random", "conformer", "aligner"):
         raise ValueError(
-            "initialization must be 'jitter', 'random', 'conformer', 'aligner', "
-            "or 'swarm'"
+            "initialization must be 'jitter', 'random', 'conformer' or 'aligner'"
         )
     if initialization == "aligner" and not isinstance(backend, GridBackend):
         raise ValueError("aligner initialization requires a GridBackend")
@@ -1224,10 +1175,6 @@ def run_ga_docking(
         else validated_sidechain_blocks(pose_stack, ligand_block, sidechain_blocks)
     )
     compact_sidechain_blocks: tuple[int, ...] = ()
-    if initialization == "swarm" and requested_sidechain_blocks:
-        raise ValueError(
-            "swarm initialization is not yet supported with sidechain_blocks"
-        )
     if isinstance(backend, GridBackend):
         if backend.ligand_block != ligand_block:
             raise ValueError(
@@ -1285,24 +1232,7 @@ def run_ga_docking(
             generator=generator,
         )
 
-    pool = None
-    if initialization == "swarm":
-        swarm_population = repeat_pose_stack(pose_stack, swarm_size)
-        swarm_layout = LigandGeneLayout.from_pose_stack(
-            swarm_population, build_ligand_docking_dofs(swarm_population, ligand_block)
-        )
-        swarm_pool = optimize_generation(
-            random_genes(swarm_layout), swarm_layout, backend, maxiter=schedule.maxiter
-        )
-        pool = _subsample_swarm_pool(
-            swarm_pool,
-            swarm_layout,
-            layout,
-            swarm_size=swarm_size,
-            npool=schedule.npool,
-            rmsdthreshold=schedule.rmsdthreshold,
-        )
-    elif initialization == "jitter":
+    if initialization == "jitter":
         genes = _initial_genes(layout, schedule.initial_perturbation, generator)
     elif initialization == "random":
         genes = random_genes(layout)
@@ -1341,13 +1271,7 @@ def run_ga_docking(
         # historical random-placement distribution.
         reference_genes = layout.genes_from_pose_stack(layout.template)
         genes[0] = reference_genes[0]
-    if pool is None:
-        pool = optimize_generation(
-            genes,
-            layout,
-            backend,
-            maxiter=schedule.maxiter,
-        )
+    pool = optimize_generation(genes, layout, backend, maxiter=schedule.maxiter)
     best_history = [torch.min(pool.energies)]
     diverse_history: list[int] = []
 
@@ -1430,7 +1354,7 @@ def run_docking(
 
     ``ga_kwargs`` are the keyword arguments of :func:`run_ga_docking`
     (``schedule``, ``seed``, ``initialization`` -- here ``"random"`` unless
-    given -- and the pocket, swarm and conformer-seeding options).
+    given -- and the pocket and conformer-seeding options).
     """
     ga_kwargs.setdefault("initialization", "random")
 

@@ -553,7 +553,6 @@ class GridBackend(ScoringBackend):
         sidechain_blocks: tuple[int, ...] | None = None,
         value_only_line_search: bool = False,
         cuda_graph: bool = True,
-        fa_rep_smoothing: float = 0.0,
         ligand_intra_weight_profile: str = "search",
     ) -> "GridBackend":
         """Build one CPU receptor grid/live-term structure and reusable backend.
@@ -564,8 +563,6 @@ class GridBackend(ScoringBackend):
         ``value_only_line_search`` opts into energy-only Armijo trials.
         ``cuda_graph`` replays each minimization's energy/gradient evaluation
         from a captured CUDA graph (ignored on CPU).
-        ``fa_rep_smoothing`` opts into repulsive-grid smoothing with a radius
-        in Angstroms: 0.0 disables it; Rosetta's reference radius is 0.375 A.
         """
 
         if reference_pose_stack.n_poses != 1:
@@ -647,7 +644,6 @@ class GridBackend(ScoringBackend):
             voxel_spacing=voxel_spacing,
             bbox_padding=bbox_padding,
             build_lk_ball=lk_ball_grid,
-            fa_rep_smoothing=fa_rep_smoothing,
             excluded_receptor_blocks=(normalized_sidechain_blocks + context_blocks),
         )
         live_hbond = build_live_hbond_data(

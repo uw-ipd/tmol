@@ -365,34 +365,6 @@ def test_generation_loop_best_energy_is_monotone_and_strictly_improves():
     assert backend.maxiters == [schedule.maxiter] * (schedule.generations + 1)
 
 
-def test_swarm_initialization_is_deterministic_and_subsamples_the_swarm():
-    reference, _ = _load_cdk2_pose()
-    ligand_block = _ligand_block(reference)
-    swarm_size = 8
-    schedule = GASchedule(generations=1, npool=3, rmsdthreshold=1.0, maxiter=2)
-
-    def run():
-        backend = _TranslationImprovingBackend(reference, ligand_block)
-        result = run_ga_docking(
-            reference,
-            ligand_block,
-            backend,
-            schedule=schedule,
-            seed=20260827,
-            initialization="swarm",
-            swarm_size=swarm_size,
-        )
-        return result, backend
-
-    result, backend = run()
-    repeated, _ = run()
-    # wide generation 0 over the whole swarm, then the small GA pool
-    assert backend.population_sizes == [swarm_size, schedule.npool]
-    assert result.pool.genes.shape[0] == schedule.npool
-    torch.testing.assert_close(result.pool.genes, repeated.pool.genes)
-    torch.testing.assert_close(result.pool.energies, repeated.pool.energies)
-
-
 def test_cpu_fp64_continuous_ga_smoke():
     reference, param_db = _load_cdk2_pose()
     ligand_block = _ligand_block(reference)

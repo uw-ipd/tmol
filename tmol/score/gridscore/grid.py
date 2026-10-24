@@ -43,49 +43,6 @@ def ixform_rep(transformed_rep: torch.Tensor) -> torch.Tensor:
     return torch.pow(transformed_rep, -4) - 1
 
 
-def _smooth_fa_rep_grid(
-    fa_rep: torch.Tensor, smoothing: float, voxel_spacing: float
-) -> torch.Tensor:
-    """Apply the truncated spherical maximum filter used for transformed fa_rep."""
-    if smoothing == 0:
-        return fa_rep
-
-    window_width = math.ceil(smoothing / voxel_spacing)
-    smoothing_squared = smoothing * smoothing
-    smoothed = fa_rep.clone()
-    spatial_shape = fa_rep.shape[-3:]
-    for di in range(-window_width, window_width + 1):
-        for dj in range(-window_width, window_width + 1):
-            for dk in range(-window_width, window_width + 1):
-                distance_squared = (
-                    (di * voxel_spacing) ** 2
-                    + (dj * voxel_spacing) ** 2
-                    + (dk * voxel_spacing) ** 2
-                )
-                if distance_squared > smoothing_squared:
-                    continue
-                if di == 0 and dj == 0 and dk == 0:
-                    continue
-
-                destination = []
-                source = []
-                for size, offset in zip(spatial_shape, (di, dj, dk)):
-                    if offset < 0:
-                        destination.append(slice(-offset, size))
-                        source.append(slice(0, max(0, size + offset)))
-                    else:
-                        destination.append(slice(0, max(0, size - offset)))
-                        source.append(slice(offset, size))
-                destination_index = (..., *destination)
-                source_index = (..., *source)
-                torch.maximum(
-                    smoothed[destination_index],
-                    fa_rep[source_index],
-                    out=smoothed[destination_index],
-                )
-    return smoothed
-
-
 def _prefilter_cubic_bspline_axis_(values: torch.Tensor, axis: int) -> None:
     """Apply Rosetta's mirror-boundary cubic B-spline recursion on one axis."""
     lines_tensor = values.movedim(axis, -1).contiguous()
@@ -322,60 +279,37 @@ class GridSet:
     ) -> "GridSet":
         """Load a grid file produced by :meth:`save`."""
         state = torch.load(Path(path), map_location=map_location, weights_only=True)
-        version = state.get("version")
-        if version not in (1, 2, _SERIALIZATION_VERSION):
-            raise ValueError(f"unsupported grid serialization version: {version}")
+        if state.get("version") != _SERIALIZATION_VERSION:
+            raise ValueError(
+                f"unsupported grid serialization version: {state.get('version')}"
+            )
         atom_type_names = tuple(state["atom_type_names"])
         expected_map = {name: index for index, name in enumerate(atom_type_names)}
         if state["atom_type_to_grid"] != expected_map:
             raise ValueError("serialized atom_type_to_grid is inconsistent")
 
-        # Version 1 predates all spline coefficients. Version 2 could persist
-        # the reserved LK grid fields but had no corresponding coefficients.
-        # Migrate either case through CPU before honoring a GPU map location.
-        migrate_coefficients = version == 1 or (
-            version == 2
-            and any(
-                state.get(name) is not None
-                for name in ("lk_ball", "lk_ball_water", "lk_bridge")
-            )
-        )
-
-        def loaded_tensor(value: torch.Tensor | None) -> torch.Tensor | None:
-            if value is None or not migrate_coefficients:
-                return value
-            return value.cpu()
-
-        geometry_state = state["geometry"]
-        geometry = GridGeometry.from_dict(
-            {
-                **geometry_state,
-                "origin": loaded_tensor(geometry_state["origin"]),
-                "ligand_com": loaded_tensor(geometry_state["ligand_com"]),
-            }
-        )
-        grids = cls(
+        geometry = GridGeometry.from_dict(state["geometry"])
+        return cls(
             geometry=geometry,
             atom_type_names=atom_type_names,
-            atom_type_indices=loaded_tensor(state["atom_type_indices"]),
-            fa_atr=loaded_tensor(state["fa_atr"]),
-            fa_rep=loaded_tensor(state["fa_rep"]),
-            fa_sol=loaded_tensor(state["fa_sol"]),
-            fa_elec=loaded_tensor(state["fa_elec"]),
-            fa_atr_coeffs=loaded_tensor(state.get("fa_atr_coeffs")),
-            fa_rep_coeffs=loaded_tensor(state.get("fa_rep_coeffs")),
-            fa_sol_coeffs=loaded_tensor(state.get("fa_sol_coeffs")),
-            fa_elec_coeffs=loaded_tensor(state.get("fa_elec_coeffs")),
-            lk_ball=loaded_tensor(state["lk_ball"]),
-            lk_ball_water=loaded_tensor(state["lk_ball_water"]),
-            lk_bridge=loaded_tensor(state["lk_bridge"]),
+            atom_type_indices=state["atom_type_indices"],
+            fa_atr=state["fa_atr"],
+            fa_rep=state["fa_rep"],
+            fa_sol=state["fa_sol"],
+            fa_elec=state["fa_elec"],
+            fa_atr_coeffs=state.get("fa_atr_coeffs"),
+            fa_rep_coeffs=state.get("fa_rep_coeffs"),
+            fa_sol_coeffs=state.get("fa_sol_coeffs"),
+            fa_elec_coeffs=state.get("fa_elec_coeffs"),
+            lk_ball=state["lk_ball"],
+            lk_ball_water=state["lk_ball_water"],
+            lk_bridge=state["lk_bridge"],
             lk_ball_enabled=bool(state.get("lk_ball_enabled", False)),
             lk_bridge_enabled=bool(state.get("lk_bridge_enabled", False)),
-            lk_ball_coeffs=loaded_tensor(state.get("lk_ball_coeffs")),
-            lk_ball_water_coeffs=loaded_tensor(state.get("lk_ball_water_coeffs")),
-            lk_bridge_coeffs=loaded_tensor(state.get("lk_bridge_coeffs")),
+            lk_ball_coeffs=state.get("lk_ball_coeffs"),
+            lk_ball_water_coeffs=state.get("lk_ball_water_coeffs"),
+            lk_bridge_coeffs=state.get("lk_bridge_coeffs"),
         )
-        return grids.to(map_location) if migrate_coefficients else grids
 
     def to(
         self, device: str | torch.device, dtype: torch.dtype | None = None
@@ -607,14 +541,11 @@ def build_grid(
     score_function: ScoreFunction | None = None,
     build_lk_ball: bool = False,
     excluded_receptor_blocks: tuple[int, ...] = (),
-    fa_rep_smoothing: float = 0.0,
 ) -> GridSet:
     """Build beta16 all-atom grids and optional Rosetta-style LK-ball grids.
 
     Probe atom-type names are deduplicated and sorted, making the grid-to-type
     mapping deterministic even when the caller passes a set.
-    ``fa_rep_smoothing`` is an opt-in radius in Angstroms (0.0 disables it);
-    Rosetta's reference radius is 0.375 A.
     """
     if pose_stack.n_poses != 1:
         raise ValueError("M2b grid construction supports exactly one pose")
@@ -719,7 +650,6 @@ def build_grid(
         fa_atr, fa_rep, fa_sol, fa_elec = build_grid_op(*grid_args)
         lk_ball = lk_ball_water = lk_bridge = None
         lk_ball_enabled = lk_bridge_enabled = False
-    fa_rep = _smooth_fa_rep_grid(fa_rep, fa_rep_smoothing, geometry.voxel_spacing)
     return GridSet(
         geometry=geometry,
         atom_type_names=atom_type_names,
