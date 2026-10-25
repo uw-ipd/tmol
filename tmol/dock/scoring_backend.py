@@ -33,7 +33,6 @@ from tmol.pose import PoseStack
 from tmol.score import beta2016_score_function
 from tmol.score.common._cuda_graph import CapturedFunction
 from tmol.score.gridscore import GridScorer, GridSet, build_grid
-from tmol.score.gridscore.grid import probe_atom_types_from_name3
 from tmol.score.gridscore.live_hbond import LiveHBondData, build_live_hbond_data
 from tmol.score.gridscore.live_ligand_intra import (
     LiveLigandIntraData,
@@ -43,6 +42,7 @@ from tmol.score.gridscore.live_lk_ball import LiveLKBallData, build_live_lk_ball
 from tmol.score import ScoreFunction
 from tmol.score.gridscore._movable import (
     movable_block_mapping,
+    movable_atoms,
     movable_pose_stack,
     resolve_ligand_block,
     sidechain_context_blocks,
@@ -608,50 +608,35 @@ class GridBackend(ScoringBackend):
         if reference_pose_stack.device.type != "cpu":
             raise ValueError("grid construction requires a CPU reference pose")
         ligand_block = resolve_ligand_block(reference_pose_stack, ligand)
-        sidechain_blocks = flexible_residues
-        block_type_index = int(reference_pose_stack.block_type_ind64[0, ligand_block])
         pbt = reference_pose_stack.packed_block_types
+        block_type_index = int(reference_pose_stack.block_type_ind64[0, ligand_block])
         block_type = pbt.active_block_types[block_type_index]
-        ligand_name3 = block_type.name3
+        sidechain_blocks = validated_sidechain_blocks(
+            reference_pose_stack, ligand_block, flexible_residues or ()
+        )
+        context_blocks = sidechain_context_blocks(
+            reference_pose_stack, ligand_block, sidechain_blocks
+        )
+        moving = movable_atoms(reference_pose_stack, ligand_block, sidechain_blocks)
 
-        normalized_sidechain_blocks = (
-            ()
-            if sidechain_blocks is None
-            else validated_sidechain_blocks(
+        # Compact-pose atoms the GA moves: the ligand, plus flexible chi atoms.
+        grid_atom_indices = None
+        if sidechain_blocks:
+            movable_pose = movable_pose_stack(
                 reference_pose_stack, ligand_block, sidechain_blocks
             )
-        )
-        probe_names = probe_atom_types_from_name3(reference_pose_stack, ligand_name3)
-        context_blocks: tuple[int, ...] = ()
-        grid_atom_indices = None
-        movable_n_atoms = block_type.n_atoms
-        if normalized_sidechain_blocks:
-            context_blocks = sidechain_context_blocks(
-                reference_pose_stack,
-                ligand_block,
-                normalized_sidechain_blocks,
-            )
-
-            movable_pose = movable_pose_stack(
-                reference_pose_stack,
-                ligand_block,
-                normalized_sidechain_blocks,
-            )
-            source_blocks, compact_sidechain_blocks, _ = movable_block_mapping(
-                reference_pose_stack,
-                ligand_block,
-                normalized_sidechain_blocks,
+            _, compact_sidechains, _ = movable_block_mapping(
+                reference_pose_stack, ligand_block, sidechain_blocks
             )
             movable_dofs = build_ligand_docking_dofs(
-                movable_pose,
-                0,
-                sidechain_blocks=compact_sidechain_blocks,
-            )
-            movable_kin = PoseStackKinematicsModule(
-                movable_pose, movable_dofs.fold_forest
+                movable_pose, 0, sidechain_blocks=compact_sidechains
             )
             _, sidechain_atom_indices = _sidechain_coordinate_indices(
-                movable_pose, movable_dofs, movable_kin.kmd.forest
+                movable_pose,
+                movable_dofs,
+                PoseStackKinematicsModule(
+                    movable_pose, movable_dofs.fold_forest
+                ).kmd.forest,
             )
             grid_atom_indices = torch.cat(
                 (
@@ -659,32 +644,46 @@ class GridBackend(ScoringBackend):
                     sidechain_atom_indices[0].to(device="cpu"),
                 )
             ).contiguous()
-            movable_n_atoms = movable_pose.max_n_pose_atoms
-            query_atom_type_names = []
-            for compact_block in range(movable_pose.max_n_blocks):
-                compact_type = movable_pose.block_type(0, compact_block)
-                query_atom_type_names.extend(
-                    atom.atom_type for atom in compact_type.atoms
-                )
-            query_atom_type_names = tuple(
-                query_atom_type_names[index] for index in grid_atom_indices.tolist()
-            )
-            probe_names = tuple(sorted(set(probe_names) | set(query_atom_type_names)))
+        query = (
+            torch.arange(block_type.n_atoms)
+            if grid_atom_indices is None
+            else grid_atom_indices
+        )
+        source_types = [
+            int(reference_pose_stack.block_type_ind64[0, block])
+            for block in moving.source_blocks
+        ]
+        atom_types = [
+            atom.atom_type
+            for index in source_types
+            for atom in pbt.active_block_types[index].atoms[
+                : pbt.active_block_types[index].n_atoms
+            ]
+        ]
+        ligand_atom_types = tuple(atom_types[i] for i in query.tolist())
+
         grids = build_grid(
             reference_pose_stack,
-            probe_names,
+            tuple(sorted(set(ligand_atom_types))),
             param_db,
-            ligand_name3=ligand_name3,
+            ligand_name3=block_type.name3,
             voxel_spacing=voxel_spacing,
             bbox_padding=bbox_padding,
             build_lk_ball=lk_ball_grid,
-            excluded_receptor_blocks=(normalized_sidechain_blocks + context_blocks),
+            excluded_receptor_blocks=sidechain_blocks + context_blocks,
         )
+        # build_grid initializes the packed ljlk/elec parameters, incl. charges.
+        ligand_charges = torch.cat(
+            [
+                pbt.elec_partial_charge[index, : pbt.active_block_types[index].n_atoms]
+                for index in source_types
+            ]
+        )[query]
         live_hbond = build_live_hbond_data(
             reference_pose_stack,
             ligand_block,
             param_db,
-            sidechain_blocks=normalized_sidechain_blocks,
+            sidechain_blocks=sidechain_blocks,
             movable_atoms=grid_atom_indices,
         )
         live_ligand_intra = (
@@ -693,7 +692,7 @@ class GridBackend(ScoringBackend):
                 ligand_block,
                 param_db,
                 weight_profile=ligand_intra_weight_profile,
-                sidechain_blocks=normalized_sidechain_blocks,
+                sidechain_blocks=sidechain_blocks,
             )
             if include_ligand_intra
             else None
@@ -702,34 +701,9 @@ class GridBackend(ScoringBackend):
             reference_pose_stack,
             ligand_block,
             param_db,
-            sidechain_blocks=normalized_sidechain_blocks,
+            sidechain_blocks=sidechain_blocks,
             movable_atoms=grid_atom_indices,
         )
-        # build_grid initializes packed ljlk/elec parameters, including charges.
-        n_atoms = block_type.n_atoms
-        if normalized_sidechain_blocks:
-            all_atom_types = []
-            all_charges = []
-            for source_block in source_blocks:
-                source_type_index = int(
-                    reference_pose_stack.block_type_ind64[0, source_block]
-                )
-                source_type = pbt.active_block_types[source_type_index]
-                all_atom_types.extend(
-                    atom.atom_type for atom in source_type.atoms[: source_type.n_atoms]
-                )
-                all_charges.append(
-                    pbt.elec_partial_charge[source_type_index, : source_type.n_atoms]
-                )
-            ligand_atom_types = tuple(
-                all_atom_types[index] for index in grid_atom_indices.tolist()
-            )
-            ligand_charges = torch.cat(all_charges)[grid_atom_indices]
-        else:
-            ligand_atom_types = tuple(
-                atom.atom_type for atom in block_type.atoms[:n_atoms]
-            )
-            ligand_charges = pbt.elec_partial_charge[block_type_index, :n_atoms]
         return cls(
             grids,
             ligand_block,
@@ -741,10 +715,10 @@ class GridBackend(ScoringBackend):
             live_ligand_intra=live_ligand_intra,
             live_lk_ball=live_lk_ball,
             lk_ball_grid=lk_ball_grid,
-            sidechain_blocks=normalized_sidechain_blocks,
+            sidechain_blocks=sidechain_blocks,
             context_blocks=context_blocks,
             grid_atom_indices=grid_atom_indices,
-            movable_n_atoms=movable_n_atoms,
+            movable_n_atoms=moving.n_atoms,
             value_only_line_search=value_only_line_search,
             cuda_graph=cuda_graph,
         )
