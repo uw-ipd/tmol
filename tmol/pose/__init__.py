@@ -18,7 +18,6 @@ from ._pose_stack_builder import PoseStackBuilder  # noqa: F401
 from ._block_selection import (
     repeat_pose_stack,
     select_blocks,
-    with_chain_ids,
 )  # noqa: F401
 from ._sequence import (  # noqa: F401
     SeqToken,
@@ -56,7 +55,6 @@ __all__ = [
     "SplitBlockMapping",
     "repeat_pose_stack",
     "select_blocks",
-    "with_chain_ids",
     "atom_for_residue_label",
     "atom_label",
     "block_for_residue_label",
