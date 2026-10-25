@@ -12,7 +12,7 @@ from tmol import (
     FoldForest,
     MoveMap,
 )
-from tmol.optimization import run_min
+from tmol.optimization import KinematicMinimizer, run_min
 
 
 @pytest.mark.parametrize("per_pose", [False, True])
@@ -20,9 +20,7 @@ def test_run_min_value_only_matches_standard(per_pose):
     class QuadraticNetwork(torch.nn.Module):
         def __init__(self):
             super().__init__()
-            self.x = torch.nn.Parameter(
-                torch.tensor([8.0, -3.0], dtype=torch.float64)
-            )
+            self.x = torch.nn.Parameter(torch.tensor([8.0, -3.0], dtype=torch.float64))
             self.segment_ids = torch.arange(2, dtype=torch.int64)
             self.grad_modes = []
 
@@ -55,8 +53,6 @@ def test_run_min_value_only_matches_standard(per_pose):
         results.append((result, network.x.grad.detach().clone()))
     for standard, value_only in zip(*results):
         torch.testing.assert_close(value_only, standard, rtol=0.0, atol=0.0)
-
-from tmol.optimization import KinematicMinimizer
 
 
 def test_build_kinforest_sfxn_network_smoke(
