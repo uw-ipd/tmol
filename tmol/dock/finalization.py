@@ -340,6 +340,121 @@ def count_non_proton_ligand_chis(pose_stack: PoseStack, ligand_block: int) -> in
     return nchi
 
 
+def _refine_flexible(promoted, exact_sfxn, param_db, coord_mask):
+    """Rosetta dockflex "bbsc1": one hard-rep Cartesian minimization.
+
+    Ligand and flexible-sidechain atoms move in Cartesian space with
+    accept-to-best (L-BFGS, not Rosetta torsion-space linmin; no preliminary
+    cycle or optH), NOT a soft->hard ramp.
+    """
+
+    def cartesian_step(pose, step_sfxn, tol, max_iter):
+        return run_cart_min(
+            pose,
+            step_sfxn,
+            coord_mask=coord_mask,
+            optimizer_kwargs={"max_iter": max_iter, "rtol": tol},
+        )
+
+    return _soft_hard_refine(
+        promoted,
+        cartesian_step,
+        param_db=param_db,
+        device=promoted.device,
+        exact_sfxn=exact_sfxn,
+        schedule=_DOCKFLEX_SCHEDULE,
+        cycles=1,
+    )
+
+
+def _refine_rigid(
+    promoted,
+    reference,
+    exact_sfxn,
+    param_db,
+    ligand_block,
+    ligand_mask,
+    refine_schedule,
+    refine_cycles,
+):
+    """Torsion-space soft-to-hard refinement bracketed by ligand Cartesian min."""
+    promoted = _ligand_cartmin(promoted, exact_sfxn, ligand_mask)
+    ldofs = build_ligand_docking_dofs(promoted, ligand_block, sidechain_blocks=())
+
+    def torsion_step(pose, step_sfxn, tol, max_iter):
+        # Fixed-hydrogen harness: no whole-pose optH, ramp steps minimize only.
+        # rtol maps Rosetta's fractional-energy tolerance (in float32 1e-5 is
+        # below the dtype floor, so the hard step stops on gradient/atol/max_iter).
+        return run_kin_min(
+            pose,
+            step_sfxn,
+            ldofs.fold_forest,
+            ldofs.move_map,
+            optimizer_kwargs={"max_iter": max_iter, "rtol": tol},
+            kin_dtype=pose.coords.dtype,
+        )
+
+    promoted, _ = _soft_hard_refine(
+        promoted,
+        torsion_step,
+        param_db=param_db,
+        device=promoted.device,
+        exact_sfxn=exact_sfxn,
+        schedule=refine_schedule,
+        cycles=refine_cycles,
+    )
+    refined = _ligand_cartmin(promoted, exact_sfxn, ligand_mask)
+    # run_kin_min refolds the whole pose and float32 kinematics leave ~1e-3 A
+    # noise on the nominally fixed receptor; restore every non-ligand atom.
+    refined = attr.evolve(
+        refined,
+        coords=torch.where(
+            ligand_mask.unsqueeze(-1),
+            refined.coords,
+            reference.coords.expand(refined.n_poses, -1, -1),
+        ),
+    )
+    return refined, _score_pose_stack(refined, exact_sfxn)
+
+
+def _free_state_energies(
+    refined, reference, exact_sfxn, param_db, ligand_block, block_local_atoms
+):
+    """Energies of the relaxed free ligand and of the (flex-relaxed) receptor."""
+    constrained_sfxn = beta2016_score_function(refined.device, param_db=param_db)
+    constrained_sfxn.set_weight(ScoreType.constraint, 1.0)
+    relaxed_ligand = run_cart_min(
+        _with_coordinate_constraints(movable_pose_stack(refined, ligand_block)),
+        constrained_sfxn,
+        optimizer_kwargs={"max_iter": 30},
+    )
+    free_ligand_energy = _score_pose_stack(relaxed_ligand, exact_sfxn)
+
+    receptor = _receptor_only_pose_stack(reference, ligand_block)
+    if block_local_atoms:
+        kept = torch.nonzero(reference.block_type_ind64[0] >= 0).flatten().tolist()
+        kept = [block for block in kept if block != ligand_block]
+        receptor_block = {source: index for index, source in enumerate(kept)}
+        mask = torch.zeros(
+            receptor.coords.shape[:2], dtype=torch.bool, device=receptor.device
+        )
+        mask.scatter_(
+            1,
+            _mapped_atom_indices(
+                receptor,
+                tuple((receptor_block[b], atoms) for b, atoms in block_local_atoms),
+            ),
+            True,
+        )
+        receptor = run_cart_min(
+            receptor,
+            exact_sfxn,
+            coord_mask=mask,
+            optimizer_kwargs={"max_iter": 50},
+        )
+    return free_ligand_energy, _score_pose_stack(receptor, exact_sfxn)[0]
+
+
 def finalize_ga_docking(
     reference_pose_stack: PoseStack,
     backend,
@@ -401,118 +516,28 @@ def finalize_ga_docking(
     coord_mask.scatter_(1, _ligand_atom_indices(promoted, ligand_block), True)
     if sidechain_blocks:
         coord_mask.scatter_(1, _mapped_atom_indices(promoted, block_local_atoms), True)
-    if sidechain_blocks:
-        # FLEX: Rosetta dockflex uses a Cartesian "bbsc1" refinement = a single
-        # hard-rep minimization (repeat 1, fa_rep 1.0, tol 1e-5, <=200 iter), NOT
-        # a soft->hard ramp. Reproduce that here (ligand + flexible-sidechain atoms
-        # move in Cartesian space; accept-to-best as in Rosetta).
-        def cartesian_step(pose, step_sfxn, tol, max_iter):
-            # Cartesian L-BFGS, not Rosetta torsion-space linmin; preserves the
-            # rep ramp and accept-to-best, omits the preliminary cycle and optH.
-            return run_cart_min(
-                pose,
-                step_sfxn,
-                coord_mask=coord_mask,
-                optimizer_kwargs={"max_iter": max_iter, "rtol": tol},
-            )
-
-        refined, complex_energy = _soft_hard_refine(
-            promoted,
-            cartesian_step,
-            param_db=backend.param_db,
-            device=promoted.device,
-            exact_sfxn=exact_sfxn,
-            schedule=_DOCKFLEX_SCHEDULE,
-            cycles=1,
+        refined, complex_energy = _refine_flexible(
+            promoted, exact_sfxn, backend.param_db, coord_mask
         )
     else:
-        # RIGID: bracket torsion-space soft-to-hard with ligand Cartesian min.
-        ligand_mask = coord_mask  # No flexible sidechains: ligand atoms only.
-        promoted = _ligand_cartmin(promoted, exact_sfxn, ligand_mask)
-        ldofs = build_ligand_docking_dofs(promoted, ligand_block, sidechain_blocks=())
-
-        def torsion_step(pose, step_sfxn, tol, max_iter):
-            # Fixed-hydrogen harness: no whole-pose optH, ramp steps minimize
-            # only. rtol maps Rosetta's fractional-energy tolerance (in float32
-            # 1e-5 is below the dtype floor, so the hard step stops on
-            # gradient/atol/max_iter instead).
-            return run_kin_min(
-                pose,
-                step_sfxn,
-                ldofs.fold_forest,
-                ldofs.move_map,
-                optimizer_kwargs={"max_iter": max_iter, "rtol": tol},
-                kin_dtype=pose.coords.dtype,
-            )
-
-        promoted, _ = _soft_hard_refine(
+        refined, complex_energy = _refine_rigid(
             promoted,
-            torsion_step,
-            param_db=backend.param_db,
-            device=promoted.device,
-            exact_sfxn=exact_sfxn,
-            schedule=refine_schedule,
-            cycles=refine_cycles,
-        )
-        refined = _ligand_cartmin(promoted, exact_sfxn, ligand_mask)
-        # Rigid docking fixes the receptor by construction, but run_kin_min
-        # refolds the whole pose from internal DOFs and float32 forward
-        # kinematics near the ligand root jump leaves ~1e-3 A noise on the
-        # nominally fixed receptor atoms. Restore every non-ligand atom to the
-        # reference so only the ligand is refined (ligand_mask marks the ligand).
-        keep_ligand = ligand_mask.unsqueeze(-1)
-        refined = attr.evolve(
-            refined,
-            coords=torch.where(
-                keep_ligand,
-                refined.coords,
-                reference_pose_stack.coords.expand(refined.n_poses, -1, -1),
-            ),
-        )
-        complex_energy = _score_pose_stack(refined, exact_sfxn)
-
-    ligand_only = movable_pose_stack(refined, ligand_block)
-    constrained_ligand = _with_coordinate_constraints(ligand_only)
-    constrained_sfxn = beta2016_score_function(
-        promoted.device, param_db=backend.param_db
-    )
-    constrained_sfxn.set_weight(ScoreType.constraint, 1.0)
-    relaxed_ligand = run_cart_min(
-        constrained_ligand,
-        constrained_sfxn,
-        optimizer_kwargs={"max_iter": 30},
-    )
-    free_ligand_energy = _score_pose_stack(relaxed_ligand, exact_sfxn)
-
-    receptor = _receptor_only_pose_stack(reference_pose_stack, ligand_block)
-    if sidechain_blocks:
-        real_blocks = torch.nonzero(
-            reference_pose_stack.block_type_ind64[0] >= 0, as_tuple=False
-        ).flatten()
-        keep_blocks = real_blocks[real_blocks != ligand_block].tolist()
-        source_to_receptor = {
-            source_block: receptor_block
-            for receptor_block, source_block in enumerate(keep_blocks)
-        }
-        receptor_block_local_atoms = tuple(
-            (source_to_receptor[source_block], local_atoms)
-            for source_block, local_atoms in block_local_atoms
-        )
-        receptor_coord_mask = torch.zeros(
-            receptor.coords.shape[:2], dtype=torch.bool, device=receptor.device
-        )
-        receptor_coord_mask.scatter_(
-            1,
-            _mapped_atom_indices(receptor, receptor_block_local_atoms),
-            True,
-        )
-        receptor = run_cart_min(
-            receptor,
+            reference_pose_stack,
             exact_sfxn,
-            coord_mask=receptor_coord_mask,
-            optimizer_kwargs={"max_iter": 50},
+            backend.param_db,
+            ligand_block,
+            coord_mask,
+            refine_schedule,
+            refine_cycles,
         )
-    free_receptor_energy = _score_pose_stack(receptor, exact_sfxn)[0]
+    free_ligand_energy, free_receptor_energy = _free_state_energies(
+        refined,
+        reference_pose_stack,
+        exact_sfxn,
+        backend.param_db,
+        ligand_block,
+        sidechain_blocks and block_local_atoms,
+    )
     free_receptor_energies = free_receptor_energy.expand_as(complex_energy)
 
     nchi_value = count_non_proton_ligand_chis(reference_pose_stack, ligand_block)
