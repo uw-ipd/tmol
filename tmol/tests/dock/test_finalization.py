@@ -401,10 +401,7 @@ def test_cdk2_grid_docking_exact_finalization_and_dg_assembly():
     cpu_reference, param_db = _load_cdk2_pose()
     ligand_block = _ligand_block(cpu_reference)
     grid_backend = GridBackend.from_pose_stack(
-        cpu_reference,
-        ligand_block,
-        param_db,
-        kin_dtype=torch.float32,
+        cpu_reference, param_db, ligand=ligand_block, kin_dtype=torch.float32
     )
     reference, _ = _load_cdk2_pose_on_device(torch.device("cuda"))
     result = run_docking(
@@ -478,8 +475,8 @@ def test_cdk2_flexible_grid_docking_exact_finalization_e2e():
     sidechain_blocks = _flexible_sidechains(cpu_reference, ligand_block)
     grid_backend = GridBackend.from_pose_stack(
         cpu_reference,
-        ligand_block,
         param_db,
+        ligand=ligand_block,
         kin_dtype=torch.float32,
         flexible_residues=sidechain_blocks,
     )

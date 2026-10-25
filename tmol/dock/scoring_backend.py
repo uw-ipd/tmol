@@ -572,9 +572,9 @@ class GridBackend(ScoringBackend):
     def from_pose_stack(
         cls,
         reference_pose_stack: PoseStack,
-        ligand: str | int,
         param_db: ParameterDatabase,
         *,
+        ligand: str | int | tuple[str, int] | None = None,
         flexible_residues: Sequence[int] | None = None,
         voxel_spacing: float = 0.25,
         bbox_padding: float = 4.0,
@@ -590,8 +590,10 @@ class GridBackend(ScoringBackend):
         Args:
             reference_pose_stack: One CPU pose holding the receptor and the
                 ligand (in any placement; the search starts from random poses).
-            ligand: The ligand's residue name (e.g. ``"ATP"``) or block index.
             param_db: Scoring database including the ligand's parameters.
+            ligand: The ligand: residue name (``"ATP"``), ``(chain, residue
+                number)``, block index, or ``None`` for the only non-polymer,
+                non-water block.
             flexible_residues: Receptor residues (block indices, e.g. from
                 :func:`select_pocket_residues`) whose sidechains move.
 

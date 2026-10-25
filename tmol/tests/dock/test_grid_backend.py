@@ -33,10 +33,7 @@ def cpu_grid_case():
     reference, param_db = _load_cdk2_pose()
     ligand_block = _ligand_block(reference)
     backend = GridBackend.from_pose_stack(
-        reference,
-        ligand_block,
-        param_db,
-        kin_dtype=torch.float64,
+        reference, param_db, ligand=ligand_block, kin_dtype=torch.float64
     )
     population = repeat_pose_stack(reference, 2)
     docking_dofs = build_ligand_docking_dofs(population, ligand_block)
@@ -112,8 +109,8 @@ def test_exact_live_lk_ball_differs_from_gridded_backend(cpu_grid_case):
     case = cpu_grid_case
     exact = GridBackend.from_pose_stack(
         case.reference,
-        case.ligand_block,
         case.param_db,
+        ligand=case.ligand_block,
         kin_dtype=torch.float64,
         lk_ball_grid=False,
     )
@@ -682,3 +679,23 @@ def test_run_docking_returns_ranked_single_cdk2_output(
         rtol=0.0,
         atol=0.0,
     )
+
+
+def test_ligand_is_found_by_default_name_chain_residue_or_block():
+    from tmol.score.gridscore._movable import resolve_ligand_block
+
+    reference, _ = _load_cdk2_pose()
+    ligand_block = _ligand_block(reference)
+    info = reference.pdb_info
+    chain_residue = (
+        str(info.chain_labels[0, ligand_block]),
+        int(info.residue_labels[0, ligand_block]),
+    )
+    name3 = reference.block_type(0, ligand_block).name3
+
+    for ligand in (None, name3, chain_residue, ligand_block):
+        assert resolve_ligand_block(reference, ligand) == ligand_block
+    with pytest.raises(ValueError, match="matches 0 blocks"):
+        resolve_ligand_block(reference, "NOPE")
+    with pytest.raises(ValueError, match="not present"):
+        resolve_ligand_block(reference, reference.max_n_blocks + 5)

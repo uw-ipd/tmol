@@ -308,7 +308,7 @@ def _block_heavy_coords(
 
 def select_pocket_residues(
     pose_stack: PoseStack,
-    ligand: str | int,
+    ligand: str | int | tuple[str, int] | None = None,
     cutoff: float = 6.0,
 ) -> torch.Tensor:
     """Return sorted polymer residues (block indices) contacting ligand heavy atoms.

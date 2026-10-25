@@ -271,8 +271,8 @@ def test_flexible_grid_atom_partition_and_score_decomposition_fp64(
     sidechain_blocks = _cdk2_sidechain_blocks(reference, ligand_block)
     backend = GridBackend.from_pose_stack(
         reference,
-        ligand_block,
         param_db,
+        ligand=ligand_block,
         kin_dtype=torch.float64,
         flexible_residues=sidechain_blocks,
     )
@@ -414,8 +414,8 @@ def test_flexible_grid_search_moves_sidechain_and_restores_full_complex(
     sidechain_blocks = _cdk2_sidechain_blocks(cpu_reference, ligand_block)
     backend = GridBackend.from_pose_stack(
         cpu_reference,
-        ligand_block,
         param_db,
+        ligand=ligand_block,
         kin_dtype=torch.float32,
         flexible_residues=sidechain_blocks,
     )

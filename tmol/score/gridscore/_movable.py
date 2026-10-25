@@ -43,24 +43,54 @@ def has_nonpolymer_connection(
     return False
 
 
-def resolve_ligand_block(pose_stack: PoseStack, ligand: str | int) -> int:
-    """Block index of a ligand given by residue name (``"ATP"``) or block index."""
+_WATERS = frozenset({"HOH", "WAT", "TP3", "TIP3"})
+
+
+def resolve_ligand_block(
+    pose_stack: PoseStack, ligand: str | int | tuple[str, int] | None = None
+) -> int:
+    """Block index of the ligand to dock.
+
+    ``ligand`` is a residue name (``"ATP"``), a ``(chain, residue number)`` pair,
+    a block index, or ``None`` for the pose's only non-polymer, non-water block.
+    """
     types = pose_stack.packed_block_types.active_block_types
-    names = [
-        "" if index < 0 else types[index].name3
-        for index in pose_stack.block_type_ind64[0].tolist()
+    blocks = [
+        (block, types[index])
+        for block, index in enumerate(pose_stack.block_type_ind64[0].tolist())
+        if index >= 0
     ]
-    if isinstance(ligand, str):
-        matches = [block for block, name in enumerate(names) if name == ligand]
-        if len(matches) != 1:
-            raise ValueError(
-                f"expected exactly one ligand block named {ligand!r}, "
-                f"found {len(matches)}"
-            )
-        return matches[0]
-    if not 0 <= ligand < len(names) or not names[ligand]:
-        raise ValueError(f"ligand block {ligand} is not present in the pose")
-    return ligand
+    if isinstance(ligand, int):
+        if ligand not in dict(blocks):
+            raise ValueError(f"ligand block {ligand} is not present in the pose")
+        return ligand
+    pdb_info = pose_stack.pdb_info
+    candidates = {
+        block: f"{block_type.name3} {pdb_info.chain_labels[0, block]}"
+        f"{pdb_info.residue_labels[0, block]}"
+        for block, block_type in blocks
+        if not block_type.properties.polymer.is_polymer
+        and block_type.name3 not in _WATERS
+    }
+    if ligand is None:
+        matches = list(candidates)
+    elif isinstance(ligand, str):
+        matches = [b for b, t in blocks if t.name3 == ligand]
+    else:
+        chain, number = ligand
+        matches = [
+            b
+            for b, _ in blocks
+            if pdb_info.chain_labels[0, b] == chain
+            and pdb_info.residue_labels[0, b] == number
+        ]
+    if len(matches) != 1:
+        raise ValueError(
+            f"ligand {ligand!r} matches {len(matches)} blocks; non-polymer "
+            f"candidates are {sorted(candidates.values())}. Pass a residue "
+            "name, a (chain, residue number) pair or a block index."
+        )
+    return matches[0]
 
 
 def validated_sidechain_blocks(
