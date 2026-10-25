@@ -7,7 +7,7 @@ import attr
 import numpy
 import torch
 
-from tmol.dock import select_pocket_residue_blocks
+from tmol.dock import select_pocket_residues
 from tmol.dock.ga import LigandGeneLayout
 from tmol.dock.ligand_dofs import build_ligand_docking_dofs
 from tmol.dock.ga import (
@@ -91,7 +91,7 @@ def _pdb_residue_id(pose_stack, block):
 
 def _one_sidechain_movable_pose(full_pose, same_chain):
     ligand_block = _ligand_block(full_pose)
-    selected = select_pocket_residue_blocks(full_pose, ligand_block, cutoff=6.0)
+    selected = select_pocket_residues(full_pose, ligand_block, cutoff=6.0)
     selected_block = _connected_chi_blocks(full_pose, ligand_block, selected)[0]
     source = full_pose
     if same_chain:
@@ -112,7 +112,7 @@ def test_movable_pose_preserves_retained_polymer_connections_and_k0_bytes(
 ):
     pose_stack, _ = cdk2_pose_and_db
     ligand_block = _ligand_block(pose_stack)
-    selected = select_pocket_residue_blocks(pose_stack, ligand_block, cutoff=6.0)
+    selected = select_pocket_residues(pose_stack, ligand_block, cutoff=6.0)
     connected_pair = _connected_chi_blocks(pose_stack, ligand_block, selected)
 
     movable = movable_pose_stack(pose_stack, ligand_block, connected_pair)
@@ -183,7 +183,7 @@ def test_movable_pose_preserves_retained_polymer_connections_and_k0_bytes(
 def test_flexible_sidechain_gene_roundtrip_and_isolation(cdk2_pose_and_db):
     full_pose, _ = cdk2_pose_and_db
     ligand_block = _ligand_block(full_pose)
-    selected = select_pocket_residue_blocks(full_pose, ligand_block, cutoff=6.0)
+    selected = select_pocket_residues(full_pose, ligand_block, cutoff=6.0)
     selected_blocks = _connected_chi_blocks(full_pose, ligand_block, selected)
 
     pose_stack = movable_pose_stack(full_pose, ligand_block, selected_blocks)
@@ -430,7 +430,7 @@ def test_ga_operators_handle_appended_sidechain_chis(cdk2_pose_and_db):
 def test_grid_final_result_writes_sidechain_coordinates(cpu_grid_case):
     case = cpu_grid_case
     full_pose = case.reference
-    selected = select_pocket_residue_blocks(full_pose, case.ligand_block, cutoff=6.0)
+    selected = select_pocket_residues(full_pose, case.ligand_block, cutoff=6.0)
     selected_blocks = _connected_chi_blocks(full_pose, case.ligand_block, selected)
     pose_stack = movable_pose_stack(full_pose, case.ligand_block, selected_blocks)
     _, compact_sidechains, _ = movable_block_mapping(

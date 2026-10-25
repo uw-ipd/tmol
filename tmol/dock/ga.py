@@ -48,10 +48,7 @@ from tmol.pose import PoseStack
 from tmol.pose import repeat_pose_stack
 from tmol.score.gridscore._movable import (
     has_nonpolymer_connection,
-    movable_block_mapping,
-    movable_pose_stack,
-    sidechain_context_blocks,
-    validated_sidechain_blocks,
+    resolve_ligand_block,
 )
 
 if TYPE_CHECKING:
@@ -309,12 +306,12 @@ def _block_heavy_coords(
     return pose_stack.coords[pose_indices[:, None], atom_indices]
 
 
-def select_pocket_residue_blocks(
+def select_pocket_residues(
     pose_stack: PoseStack,
-    ligand_block: int,
+    ligand: str | int,
     cutoff: float = 6.0,
 ) -> torch.Tensor:
-    """Return sorted polymer blocks contacting ligand heavy atoms.
+    """Return sorted polymer residues (block indices) contacting ligand heavy atoms.
 
     A block is selected when any of its heavy atoms is within ``cutoff`` of a
     ligand heavy atom in any pose. Non-polymer blocks, including cofactors and
@@ -325,8 +322,7 @@ def select_pocket_residue_blocks(
     Chi-less residues (e.g. ALA, GLY) are excluded as well: they have nothing to
     move, so the returned set is directly usable as flexible ``sidechain_blocks``.
     """
-    if ligand_block < 0 or ligand_block >= pose_stack.max_n_blocks:
-        raise ValueError("ligand_block is out of range")
+    ligand_block = resolve_ligand_block(pose_stack, ligand)
     cutoff = float(cutoff)
 
     ligand_heavy = _block_heavy_coords(pose_stack, ligand_block)
@@ -1130,161 +1126,150 @@ def _conformer_library_or_none(ligand_mol2, pose_stack, ligand_block, **library_
         return None
 
 
-def run_ga_docking(
-    pose_stack: PoseStack,
-    ligand_block: int,
+def _initial_genes_for(
+    initialization: str,
+    layout: LigandGeneLayout,
     backend: ScoringBackend,
+    generator: torch.Generator,
     *,
-    schedule: GASchedule = GASchedule(),
-    seed: int = 0,
-    initialization: Literal["jitter", "random", "conformer", "aligner"] = "jitter",
-    pocket_bounds: torch.Tensor | None = None,
-    random_placement: RandomPlacement = RandomPlacement(),
-    sidechain_blocks: tuple[int, ...] | None = None,
-    ligand_mol2: str | Path | None = None,
-    n_conformers: int = 200,
-    seed_fraction: float = 0.5,
-    energy_window: float = 20.0,
-    cluster_rmsd: float = 0.5,
-    ligand_aligner: LigandAligner = LigandAligner(),
-) -> GAResult:
-    """Dock one reference ligand using a population of candidate poses.
+    schedule: GASchedule,
+    pocket_bounds: torch.Tensor | None,
+    random_placement: RandomPlacement,
+    conformers: dict,
+    ligand_aligner: LigandAligner,
+    pose_stack: PoseStack,
+) -> torch.Tensor:
+    """Starting genes of the population for the chosen ``initialization``."""
 
-    Rigid grid docking builds its population from a ligand-only single-block
-    view. Flexible grid docking uses a compact ligand-plus-sidechains view;
-    both restore the winning movable coordinates to the single input complex.
-    Conformer initialization seeds ligand torsions from a library.
-    Aligner sampling and seed-fraction controls are carried by
-    ``ligand_aligner``; the scalar ``seed_fraction`` applies only to conformer
-    initialization.
-    """
-
-    if pose_stack.n_poses != 1:
-        raise ValueError("pose_stack must contain one reference pose")
-    if initialization not in ("jitter", "random", "conformer", "aligner"):
-        raise ValueError(
-            "initialization must be 'jitter', 'random', 'conformer' or 'aligner'"
-        )
-    if initialization == "aligner" and not isinstance(backend, GridBackend):
-        raise ValueError("aligner initialization requires a GridBackend")
-    complex_reference = None
-    complex_ligand_block = ligand_block
-    requested_sidechain_blocks = (
-        ()
-        if sidechain_blocks is None
-        else validated_sidechain_blocks(pose_stack, ligand_block, sidechain_blocks)
-    )
-    compact_sidechain_blocks: tuple[int, ...] = ()
-    if isinstance(backend, GridBackend):
-        if backend.ligand_block != ligand_block:
-            raise ValueError(
-                f"backend was built for ligand block {backend.ligand_block}, "
-                f"not {ligand_block}"
-            )
-        if backend.sidechain_blocks != requested_sidechain_blocks:
-            raise ValueError(
-                "run_ga_docking sidechain_blocks must match the GridBackend "
-                "construction"
-            )
-        complex_reference = pose_stack
-        if requested_sidechain_blocks:
-            actual_context = sidechain_context_blocks(
-                pose_stack, ligand_block, requested_sidechain_blocks
-            )
-            if actual_context != backend.context_blocks:
-                raise ValueError(
-                    "run_ga_docking peptide context must match the GridBackend "
-                    "construction"
-                )
-            _, compact_sidechain_blocks, _ = movable_block_mapping(
-                pose_stack, ligand_block, requested_sidechain_blocks
-            )
-            pose_stack = movable_pose_stack(
-                pose_stack, ligand_block, requested_sidechain_blocks
-            )
-        else:
-            pose_stack = movable_pose_stack(pose_stack, ligand_block)
-        ligand_block = 0
-        backend = backend.for_ligand_block(ligand_block)
-    elif requested_sidechain_blocks:
-        raise ValueError(
-            "flexible-sidechain docking requires a GridBackend built with "
-            "the receptor-minus-flexible-and-neighbor partition"
-        )
-    population = repeat_pose_stack(pose_stack, schedule.npool)
-    if compact_sidechain_blocks:
-        docking_dofs = build_ligand_docking_dofs(
-            population,
-            ligand_block,
-            sidechain_blocks=compact_sidechain_blocks,
-        )
-    else:
-        docking_dofs = build_ligand_docking_dofs(population, ligand_block)
-    layout = LigandGeneLayout.from_pose_stack(population, docking_dofs)
-    generator = torch.Generator(device=pose_stack.device)
-    generator.manual_seed(seed)
-
-    def random_genes(target_layout):
+    def random_genes():
         return _random_initial_genes(
-            target_layout,
+            layout,
             pocket_bounds=pocket_bounds,
             placement=random_placement,
             generator=generator,
         )
 
     if initialization == "jitter":
-        genes = _initial_genes(layout, schedule.initial_perturbation, generator)
-    elif initialization == "random":
-        genes = random_genes(layout)
-    elif initialization == "conformer":
+        return _initial_genes(layout, schedule.initial_perturbation, generator)
+    if initialization == "random":
+        return random_genes()
+    if initialization == "conformer":
         library = _conformer_library_or_none(
-            ligand_mol2,
+            conformers["ligand_mol2"],
             pose_stack,
-            ligand_block,
-            n_conformers=n_conformers,
-            energy_window=energy_window,
-            cluster_rmsd=cluster_rmsd,
+            0,
+            n_conformers=conformers["n_conformers"],
+            energy_window=conformers["energy_window"],
+            cluster_rmsd=conformers["cluster_rmsd"],
         )
         if library is None:
-            genes = random_genes(layout)
-        else:
-            genes = _conformer_initial_genes(
-                layout,
-                library.coords,
-                seed_fraction=seed_fraction,
-                pocket_bounds=pocket_bounds,
-                placement=random_placement,
-                generator=generator,
-            )
-    else:
-        genes = ligand_aligner.seed_genes(
+            return random_genes()
+        return _conformer_initial_genes(
             layout,
-            backend,
-            random_genes(layout),
+            library.coords,
+            seed_fraction=conformers["seed_fraction"],
             pocket_bounds=pocket_bounds,
+            placement=random_placement,
             generator=generator,
         )
-    if initialization in ("random", "conformer") and compact_sidechain_blocks:
-        # Retain the reference as the first flexible candidate, making
-        # the flexible search monotone with respect to the supplied
-        # ligand/sidechain state while the remaining members retain the
-        # historical random-placement distribution.
-        reference_genes = layout.genes_from_pose_stack(layout.template)
-        genes[0] = reference_genes[0]
-    pool = optimize_generation(genes, layout, backend, maxiter=schedule.maxiter)
+    return ligand_aligner.seed_genes(
+        layout,
+        backend,
+        random_genes(),
+        pocket_bounds=pocket_bounds,
+        generator=generator,
+    )
+
+
+def run_docking(
+    pose_stack: PoseStack,
+    backend: ScoringBackend,
+    *,
+    schedule: GASchedule = GASchedule(),
+    seed: int = 0,
+    initialization: Literal["random", "jitter", "conformer", "aligner"] = "random",
+    pocket_bounds: torch.Tensor | None = None,
+    random_placement: RandomPlacement = RandomPlacement(),
+    ligand_mol2: str | Path | None = None,
+    n_conformers: int = 200,
+    seed_fraction: float = 0.5,
+    energy_window: float = 20.0,
+    cluster_rmsd: float = 0.5,
+    ligand_aligner: LigandAligner = LigandAligner(),
+    finalize: bool = False,
+    top_k: int = 1,
+) -> DockingResult:
+    """Dock the backend's ligand into the complex ``pose_stack``.
+
+    ``pose_stack`` is the single-pose complex the backend was built from, with
+    the ligand in any placement. The backend chooses the ligand and which
+    receptor sidechains are flexible; a genetic algorithm (``schedule``) then
+    searches ligand pose, torsions and flexible chis.
+
+    ``initialization`` selects the starting population: ``"random"`` places the
+    ligand randomly (inside ``pocket_bounds`` if given), ``"jitter"`` perturbs
+    the input pose (refinement), ``"conformer"`` seeds torsions from a
+    conformer library of ``ligand_mol2``, ``"aligner"`` uses ``ligand_aligner``.
+
+    Without ``finalize`` the result holds the grid-ranked pool. With
+    ``finalize=True`` the ``top_k`` candidates are promoted to full complexes,
+    exact-refined, and ranked by binding free energy (``dG``); ``best_pose_stack``
+    and the energies then come from that refinement, while ``best_genes`` /
+    ``ranked_genes`` stay the grid-GA genes (Cartesian refinement changes bond
+    lengths that torsion genes cannot represent). The grid-GA output is always
+    available as ``ga_result``.
+    """
+
+    if pose_stack.n_poses != 1:
+        raise ValueError("pose_stack must contain one reference pose")
+    if initialization == "aligner" and not isinstance(backend, GridBackend):
+        raise ValueError("aligner initialization requires a GridBackend")
+    reference = pose_stack
+    search_pose, search_backend, compact_sidechains = backend.search_view(reference)
+    population = repeat_pose_stack(search_pose, schedule.npool)
+    ligand_block = search_backend.ligand_block
+    docking_dofs = build_ligand_docking_dofs(
+        population, ligand_block, sidechain_blocks=compact_sidechains
+    )
+    layout = LigandGeneLayout.from_pose_stack(population, docking_dofs)
+    generator = torch.Generator(device=reference.device)
+    generator.manual_seed(seed)
+
+    genes = _initial_genes_for(
+        initialization,
+        layout,
+        search_backend,
+        generator,
+        schedule=schedule,
+        pocket_bounds=pocket_bounds,
+        random_placement=random_placement,
+        conformers=dict(
+            ligand_mol2=ligand_mol2,
+            n_conformers=n_conformers,
+            seed_fraction=seed_fraction,
+            energy_window=energy_window,
+            cluster_rmsd=cluster_rmsd,
+        ),
+        ligand_aligner=ligand_aligner,
+        pose_stack=search_pose,
+    )
+    if initialization in ("random", "conformer") and compact_sidechains:
+        # Keep the reference as the first flexible candidate, making the
+        # flexible search monotone w.r.t. the supplied ligand/sidechain state.
+        genes[0] = layout.genes_from_pose_stack(layout.template)[0]
+    pool = optimize_generation(genes, layout, search_backend, maxiter=schedule.maxiter)
     best_history = [torch.min(pool.energies)]
     diverse_history: list[int] = []
 
     # Rosetta GAOptimizer.cc:104-113.
     for _ in range(schedule.generations):
-        offspring_genes = next_generation(
-            pool.genes,
-            schedule.npool,
-            schedule.pmut,
-            generator=generator,
-        )
         offspring = optimize_generation(
-            offspring_genes, layout, backend, maxiter=schedule.maxiter
+            next_generation(
+                pool.genes, schedule.npool, schedule.pmut, generator=generator
+            ),
+            layout,
+            search_backend,
+            maxiter=schedule.maxiter,
         )
         pool = update_pool(
             pool,
@@ -1296,25 +1281,21 @@ def run_ga_docking(
         best_history.append(torch.min(pool.energies))
         diverse_history.append(pool.n_diverse)
 
-    (
-        ranked_genes,
-        ranked_energies,
-        best_genes,
-        best_energies,
-        best_pose_stack,
-    ) = _ranked_result(pose_stack, pool)
-    if complex_reference is not None:
+    ranked_genes, ranked_energies, best_genes, best_energies, best_pose_stack = (
+        _ranked_result(search_pose, pool)
+    )
+    if search_pose is not reference:
         best_pose_stack = _place_ligand_in_reference(
-            complex_reference,
-            complex_ligand_block,
+            reference,
+            backend.ligand_block,
             best_pose_stack,
-            sidechain_blocks=requested_sidechain_blocks,
-            compact_sidechain_blocks=compact_sidechain_blocks,
+            sidechain_blocks=backend.sidechain_blocks,
+            compact_sidechain_blocks=compact_sidechains,
             sidechain_atom_indices=(
-                layout.sidechain_atom_indices[0] if requested_sidechain_blocks else None
+                layout.sidechain_atom_indices[0] if compact_sidechains else None
             ),
         )
-    return GAResult(
+    ga_result = GAResult(
         pool=pool,
         best_energy_history=torch.stack(best_history),
         diverse_count_history=tuple(diverse_history),
@@ -1324,41 +1305,6 @@ def run_ga_docking(
         best_energies=best_energies,
         best_pose_stack=best_pose_stack,
     )
-
-
-def run_docking(
-    pose_stack: PoseStack,
-    ligand_block: int,
-    backend: ScoringBackend,
-    *,
-    finalize: bool = False,
-    top_k: int = 1,
-    **ga_kwargs,
-) -> DockingResult:
-    """Run one prepared ligand through the selected initialization and GA docking.
-
-    Without finalization, the returned ``best_pose_stack`` contains one pose,
-    while the ranked tensors retain all ``schedule.npool`` final candidates with
-    a leading singleton dimension. With ``finalize=True``, only the grid-ranked
-    ``top_k`` are promoted to full complexes, exact-refined, and returned in
-    dG-ranked order; the original grid-GA result remains available as
-    ``ga_result``.
-
-    NOTE: with ``finalize=True`` the ``best_pose_stack`` holds the exact
-    Cartesian-refined coordinates, but ``best_genes`` / ``ranked_genes`` remain
-    the PRE-refinement grid-GA genes. Cartesian refinement changes bond lengths
-    and angles that the torsion-space gene cannot represent, so rebuilding
-    coordinates from these genes reproduces the pre-refine pose, NOT
-    ``best_pose_stack``. Use ``best_pose_stack`` / ``finalization.pose_stack``
-    for the refined coordinates and the genes only as grid-GA provenance.
-
-    ``ga_kwargs`` are the keyword arguments of :func:`run_ga_docking`
-    (``schedule``, ``seed``, ``initialization`` -- here ``"random"`` unless
-    given -- and the pocket and conformer-seeding options).
-    """
-    ga_kwargs.setdefault("initialization", "random")
-
-    ga_result = run_ga_docking(pose_stack, ligand_block, backend, **ga_kwargs)
     if not finalize:
         return DockingResult(
             best_pose_stack=ga_result.best_pose_stack,
@@ -1371,18 +1317,12 @@ def run_docking(
 
     from tmol.dock.finalization import finalize_ga_docking
 
-    finalization = finalize_ga_docking(
-        pose_stack, ligand_block, backend, ga_result, top_k=top_k
-    )
-    best_pose_stack = attr.evolve(
-        pose_stack,
-        coords=finalization.pose_stack.coords[:1].detach().clone(),
-    )
+    finalization = finalize_ga_docking(reference, backend, ga_result, top_k=top_k)
     return DockingResult(
-        best_pose_stack=best_pose_stack,
+        best_pose_stack=attr.evolve(
+            reference, coords=finalization.pose_stack.coords[:1].detach().clone()
+        ),
         best_energies=finalization.dG[:, 0],
-        # PRE-refine grid-GA genes: they do NOT parameterize the Cartesian-refined
-        # best_pose_stack (see run_docking docstring). Kept as GA provenance.
         best_genes=finalization.genes[:, 0],
         ranked_energies=finalization.dG,
         ranked_genes=finalization.genes,
@@ -1403,8 +1343,7 @@ __all__ = [
     "mutate",
     "next_generation",
     "optimize_generation",
-    "run_ga_docking",
     "run_docking",
-    "select_pocket_residue_blocks",
+    "select_pocket_residues",
     "update_pool",
 ]

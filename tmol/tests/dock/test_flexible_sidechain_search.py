@@ -7,7 +7,7 @@ import time
 import pytest
 import torch
 
-from tmol.dock import GASchedule, GridBackend, run_docking, select_pocket_residue_blocks
+from tmol.dock import GASchedule, GridBackend, run_docking, select_pocket_residues
 from tmol.dock.ga import LigandGeneLayout
 from tmol.dock.ligand_dofs import build_ligand_docking_dofs
 from tmol.dock.ligand_dofs import (
@@ -41,7 +41,7 @@ from tmol.score.gridscore._movable import (
 
 
 def _cdk2_sidechain_blocks(reference, ligand_block):
-    selected = select_pocket_residue_blocks(reference, ligand_block, cutoff=6.0)
+    selected = select_pocket_residues(reference, ligand_block, cutoff=6.0)
     return _connected_chi_blocks(reference, ligand_block, selected)[:2]
 
 
@@ -274,7 +274,7 @@ def test_flexible_grid_atom_partition_and_score_decomposition_fp64(
         ligand_block,
         param_db,
         kin_dtype=torch.float64,
-        sidechain_blocks=sidechain_blocks,
+        flexible_residues=sidechain_blocks,
     )
     movable, docking_dofs, layout = _movable_layout(
         reference, ligand_block, sidechain_blocks
@@ -417,7 +417,7 @@ def test_flexible_grid_search_moves_sidechain_and_restores_full_complex(
         ligand_block,
         param_db,
         kin_dtype=torch.float32,
-        sidechain_blocks=sidechain_blocks,
+        flexible_residues=sidechain_blocks,
     )
     cpu_movable, _, _ = _movable_layout(cpu_reference, ligand_block, sidechain_blocks)
     cpu_energy, cpu_gradient = backend.for_ligand_block(
@@ -449,7 +449,6 @@ def test_flexible_grid_search_moves_sidechain_and_restores_full_complex(
     started = time.perf_counter()
     result = run_docking(
         reference,
-        ligand_block,
         backend,
         schedule=GASchedule(
             generations=1,
@@ -459,7 +458,6 @@ def test_flexible_grid_search_moves_sidechain_and_restores_full_complex(
             maxiter=10,
         ),
         seed=20260825,
-        sidechain_blocks=sidechain_blocks,
     )
     torch.cuda.synchronize()
     wall_seconds = time.perf_counter() - started

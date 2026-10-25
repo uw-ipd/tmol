@@ -125,19 +125,11 @@ def select_blocks(pose_stack: PoseStack, blocks: Sequence[int]) -> PoseStack:
     )
 
 
-def with_chain_ids(pose_stack: PoseStack, chain_id: torch.Tensor) -> PoseStack:
-    """Copy of ``pose_stack`` with new ``[pose, block]`` chain ids."""
-    chain_id = chain_id.to(torch.int64)
-    return attr.evolve(
-        pose_stack, chain_id=chain_id.to(torch.int32), chain_id64=chain_id
-    )
-
-
 def repeat_pose_stack(pose_stack: PoseStack, n_poses: int) -> PoseStack:
     """A PoseStack of ``n_poses`` independent copies of a single pose.
 
-    Unlike :meth:`PoseStackBuilder.from_poses`, the packed block types are kept
-    as they are, so a pose built on a wider block-type set is not narrowed.
+    Unlike :meth:`PoseStackBuilder.from_poses` this keeps the coordinate dtype
+    and the constraint set, and is about twice as fast.
     """
     if pose_stack.n_poses != 1:
         raise ValueError("only a single reference pose can be replicated")

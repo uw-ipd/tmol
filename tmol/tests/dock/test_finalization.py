@@ -10,7 +10,7 @@ import torch
 
 import tmol.dock.finalization as finalization_module
 from tmol.database import ParameterDatabase
-from tmol.dock import GASchedule, GridBackend, run_docking, select_pocket_residue_blocks
+from tmol.dock import GASchedule, GridBackend, run_docking, select_pocket_residues
 from tmol.dock.finalization import count_non_proton_ligand_chis
 from tmol.dock.ga import GAPool, GAResult, LigandGeneLayout
 from tmol.dock.ligand_dofs import build_ligand_docking_dofs
@@ -54,7 +54,7 @@ def _load_target(target: str, device: torch.device):
 
 
 def _flexible_sidechains(reference, ligand_block, count=1):
-    selected = select_pocket_residue_blocks(reference, ligand_block, cutoff=6.0)
+    selected = select_pocket_residues(reference, ligand_block, cutoff=6.0)
     sidechain_blocks = tuple(
         block
         for block in selected.detach().cpu().tolist()
@@ -173,7 +173,7 @@ def test_top_candidates_are_promoted_without_moving_receptor():
     with pytest.raises(ValueError, match="requires one reference pose"):
         _promote_top_candidates(population, ligand_block, ga_result, top_k=2)
     with pytest.raises(ValueError, match="requires one reference pose"):
-        finalize_ga_docking(population, ligand_block, None, ga_result, top_k=2)
+        finalize_ga_docking(population, None, ga_result, top_k=2)
 
     promoted, promoted_genes = _promote_top_candidates(
         reference, ligand_block, ga_result, top_k=2
@@ -309,7 +309,7 @@ def test_cdk2_cpu_flexible_finalization_refines_sidechain_and_apo(monkeypatch):
         return result
 
     monkeypatch.setattr(finalization_module, "run_cart_min", capture_apo)
-    final = finalize_ga_docking(reference, ligand_block, backend, ga_result, top_k=1)
+    final = finalize_ga_docking(reference, backend, ga_result, top_k=1)
     final_sidechain_atoms = _mapped_atom_indices(final.pose_stack, block_local_atoms)
     sidechain_refine_delta = torch.amax(
         torch.linalg.vector_norm(
@@ -409,7 +409,6 @@ def test_cdk2_grid_docking_exact_finalization_and_dg_assembly():
     reference, _ = _load_cdk2_pose_on_device(torch.device("cuda"))
     result = run_docking(
         reference,
-        ligand_block,
         grid_backend,
         schedule=GASchedule(
             generations=1,
@@ -482,14 +481,13 @@ def test_cdk2_flexible_grid_docking_exact_finalization_e2e():
         ligand_block,
         param_db,
         kin_dtype=torch.float32,
-        sidechain_blocks=sidechain_blocks,
+        flexible_residues=sidechain_blocks,
     )
     reference, _ = _load_cdk2_pose_on_device(torch.device("cuda"))
     torch.cuda.synchronize()
     started = time.perf_counter()
     result = run_docking(
         reference,
-        ligand_block,
         grid_backend,
         schedule=GASchedule(
             generations=1,
@@ -501,7 +499,6 @@ def test_cdk2_flexible_grid_docking_exact_finalization_e2e():
         seed=20260826,
         finalize=True,
         top_k=2,
-        sidechain_blocks=sidechain_blocks,
     )
     torch.cuda.synchronize()
     wall_seconds = time.perf_counter() - started

@@ -9,7 +9,7 @@ import torch
 
 import tmol.dock.ga as ga_module
 from tmol.dock import GridBackend, LigandAligner, RandomPlacement
-from tmol.dock.ga import LigandGeneLayout, run_ga_docking
+from tmol.dock.ga import LigandGeneLayout, run_docking
 from tmol.dock.ligand_dofs import build_ligand_docking_dofs
 from tmol.tests.dock.test_ligand_dof_roundtrip import (
     _ligand_block,
@@ -164,7 +164,7 @@ def cpu_flexible_initialization_case(cpu_aligner_case):
         case.reference,
         case.ligand_block,
         case.param_db,
-        sidechain_blocks=sidechains,
+        flexible_residues=sidechains,
         kin_dtype=torch.float64,
     )
     return SimpleNamespace(case=case, sidechains=sidechains, backend=backend)
@@ -175,7 +175,7 @@ def test_flexible_initialization_retains_reference(
     cpu_flexible_initialization_case, monkeypatch, initialization
 ):
     prepared = cpu_flexible_initialization_case
-    case, sidechains, backend = prepared.case, prepared.sidechains, prepared.backend
+    case, backend = prepared.case, prepared.backend
     captured = []
     original = ga_module.optimize_generation
 
@@ -185,11 +185,9 @@ def test_flexible_initialization_retains_reference(
         return original(genes, layout, scoring_backend, **kwargs)
 
     monkeypatch.setattr(ga_module, "optimize_generation", capture)
-    run_ga_docking(
+    run_docking(
         case.reference,
-        case.ligand_block,
         backend,
-        sidechain_blocks=sidechains,
         schedule=ga_module.GASchedule(generations=1, npool=2, maxiter=1),
         initialization=initialization,
         ligand_aligner=LigandAligner(n_candidates=4),

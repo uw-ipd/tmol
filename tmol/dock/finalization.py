@@ -342,7 +342,6 @@ def count_non_proton_ligand_chis(pose_stack: PoseStack, ligand_block: int) -> in
 
 def finalize_ga_docking(
     reference_pose_stack: PoseStack,
-    ligand_block: int,
     backend,
     ga_result: GAResult,
     *,
@@ -370,6 +369,7 @@ def finalize_ga_docking(
         raise ValueError(f"top_k ({top_k}) cannot exceed GA pool size ({npool})")
     if not hasattr(backend, "param_db"):
         raise TypeError("finalization requires a backend with a parameter database")
+    ligand_block = backend.ligand_block
 
     (
         sidechain_blocks,

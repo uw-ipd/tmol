@@ -11,7 +11,7 @@ import torch
 import tmol.dock.ga as ga_module
 import tmol.dock.scoring_backend as scoring_backend_module
 from tmol.dock import ContinuousBackend, GASchedule, GridBackend, run_docking
-from tmol.dock.ga import LigandGeneLayout, run_ga_docking
+from tmol.dock.ga import LigandGeneLayout, run_docking
 from tmol.dock.ligand_dofs import build_ligand_docking_dofs
 from tmol.optimization import build_kinforest_network, run_min
 from tmol.score.gridscore import GridScorer
@@ -183,20 +183,16 @@ def _assert_ligand_only_grid_ga_matches_full_complex(
         pmut=0.2,
         maxiter=5,
     )
-    full_complex = run_ga_docking(
+    full_complex = run_docking(
         reference,
-        ligand_block,
         _FullComplexGridBackend(backend),
         schedule=schedule,
         seed=20260822,
-    )
-    ligand_only = run_ga_docking(
-        reference,
-        ligand_block,
-        backend,
-        schedule=schedule,
-        seed=20260822,
-    )
+        initialization="jitter",
+    ).ga_result
+    ligand_only = run_docking(
+        reference, backend, schedule=schedule, seed=20260822, initialization="jitter"
+    ).ga_result
 
     history_err = float(
         torch.max(
@@ -530,9 +526,8 @@ def test_grid_minimize_and_full_ga_cdk2_correctness(cpu_grid_case):
         torch.minimum(after, before), after, rtol=0.0, atol=1.0e-8
     )
 
-    result = run_ga_docking(
+    result = run_docking(
         case.reference,
-        case.ligand_block,
         case.backend,
         schedule=GASchedule(
             generations=2,
@@ -542,7 +537,8 @@ def test_grid_minimize_and_full_ga_cdk2_correctness(cpu_grid_case):
             maxiter=5,
         ),
         seed=20260822,
-    )
+        initialization="jitter",
+    ).ga_result
     history = result.best_energy_history
     assert torch.all(history[1:] <= history[:-1] + 1.0e-8)
     assert torch.any(history[1:] < history[0] - 1.0e-8)
@@ -627,7 +623,7 @@ def test_run_docking_returns_ranked_single_cdk2_output(
         reference, param_db = _load_cdk2_pose_on_device(device)
     ligand_block = _ligand_block(reference)
     if backend_kind == "continuous":
-        backend = ContinuousBackend(param_db, kin_dtype=dtype)
+        backend = ContinuousBackend(ligand_block, param_db, kin_dtype=dtype)
     else:
         backend = GridBackend(
             case.backend.grids,
@@ -648,13 +644,7 @@ def test_run_docking_returns_ranked_single_cdk2_output(
         pmut=0.2,
         maxiter=1,
     )
-    result = run_docking(
-        reference,
-        ligand_block,
-        backend,
-        schedule=schedule,
-        seed=20260822,
-    )
+    result = run_docking(reference, backend, schedule=schedule, seed=20260822)
 
     assert result.best_pose_stack.n_poses == 1
     assert result.ga_result.pool.pose_stack.n_poses == schedule.npool

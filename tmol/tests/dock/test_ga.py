@@ -15,7 +15,7 @@ import tmol.dock.ga as ga_module
 import tmol.dock.scoring_backend as scoring_backend_module
 from tmol.dock import ContinuousBackend, GASchedule
 from tmol.dock._diversity import ligand_heavy_atom_rms
-from tmol.dock.ga import LigandGeneLayout, crossover, run_ga_docking
+from tmol.dock.ga import LigandGeneLayout, crossover, run_docking
 from tmol.dock.ligand_dofs import build_ligand_docking_dofs
 from tmol.dock.scoring_backend import MinimizationResult, ScoringBackend
 from tmol.tests.dock.test_ligand_dof_roundtrip import _load_cdk2_pose_on_device
@@ -175,6 +175,7 @@ def test_minimize_returns_gene_from_optimizer_masked_dofs(
 
     monkeypatch.setattr(scoring_backend_module, "run_min", capture_noop_min)
     result = ContinuousBackend(
+        case.ligand_block,
         case.param_db,
         kin_dtype=torch.float64,
         value_only_line_search=value_only_line_search,
@@ -295,6 +296,7 @@ def test_diverse_low_energy_selection_matches_independent_greedy_reference(
 
 class _TranslationImprovingBackend(ScoringBackend):
     def __init__(self, reference, ligand_block):
+        self.ligand_block = ligand_block
         block_type_index = int(reference.block_type_ind64[0, ligand_block])
         block_type = reference.packed_block_types.active_block_types[block_type_index]
         self.offset = int(reference.block_coord_offset64[0, ligand_block])
@@ -350,13 +352,9 @@ def test_generation_loop_best_energy_is_monotone_and_strictly_improves():
         pmut=0.0,
         maxiter=3,
     )
-    result = run_ga_docking(
-        reference,
-        ligand_block,
-        backend,
-        schedule=schedule,
-        seed=7,
-    )
+    result = run_docking(
+        reference, backend, schedule=schedule, seed=7, initialization="jitter"
+    ).ga_result
 
     history = result.best_energy_history
     assert result.pool.genes.shape == (schedule.npool, 8)
@@ -368,10 +366,9 @@ def test_generation_loop_best_energy_is_monotone_and_strictly_improves():
 def test_cpu_fp64_continuous_ga_smoke():
     reference, param_db = _load_cdk2_pose()
     ligand_block = _ligand_block(reference)
-    result = run_ga_docking(
+    result = run_docking(
         reference,
-        ligand_block,
-        ContinuousBackend(param_db, kin_dtype=torch.float64),
+        ContinuousBackend(ligand_block, param_db, kin_dtype=torch.float64),
         schedule=GASchedule(
             generations=1,
             npool=2,
@@ -380,7 +377,8 @@ def test_cpu_fp64_continuous_ga_smoke():
             maxiter=2,
         ),
         seed=20260821,
-    )
+        initialization="jitter",
+    ).ga_result
     assert result.pool.genes.shape == (2, 8)
     assert result.pool.genes.dtype == torch.float64
     assert torch.isfinite(result.pool.genes).all()
@@ -394,13 +392,13 @@ def test_gpu_fp32_cdk2_default_vsx_schedule():
     reference, param_db = _load_cdk2_pose_on_device(device)
     ligand_block = _ligand_block(reference)
     schedule = GASchedule()
-    result = run_ga_docking(
+    result = run_docking(
         reference,
-        ligand_block,
-        ContinuousBackend(param_db, kin_dtype=torch.float32),
+        ContinuousBackend(ligand_block, param_db, kin_dtype=torch.float32),
         schedule=schedule,
         seed=20260821,
-    )
+        initialization="jitter",
+    ).ga_result
 
     history = result.best_energy_history
     assert result.pool.genes.shape == (schedule.npool, 8)
@@ -445,5 +443,5 @@ def test_continuous_backend_score_is_weighted_beta16_total():
         weights = oracle_sfxn.weights_tensor().to(dtype=unweighted_term_rows.dtype)
         expected = torch.sum(weights[:, None] * unweighted_term_rows, dim=0)
 
-    actual = ContinuousBackend(param_db).score(pose_stack)
+    actual = ContinuousBackend(_ligand_block(reference), param_db).score(pose_stack)
     torch.testing.assert_close(actual, expected, rtol=1.0e-12, atol=1.0e-10)

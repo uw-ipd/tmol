@@ -18,7 +18,6 @@ from ._pose_stack_builder import PoseStackBuilder  # noqa: F401
 from ._block_selection import (
     repeat_pose_stack,
     select_blocks,
-    with_chain_ids,
 )  # noqa: F401
 from ._sequence import (  # noqa: F401
     SeqToken,
@@ -43,7 +42,6 @@ __all__ = [
     "SplitBlockMapping",
     "repeat_pose_stack",
     "select_blocks",
-    "with_chain_ids",
     "get_named_torsions",
     "get_torsion_names",
     "resolve_block_type_names",

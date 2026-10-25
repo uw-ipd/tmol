@@ -4,9 +4,10 @@ The partition is a compact PoseStack: the ligand is block 0, followed by the
 flexible sidechains and their immediate peptide neighbors in source order.
 """
 
+import attr
 import torch
 
-from tmol.pose import PoseStack, select_blocks, with_chain_ids
+from tmol.pose import PoseStack, select_blocks
 
 
 def has_nonpolymer_connection(
@@ -38,6 +39,26 @@ def has_nonpolymer_connection(
         if bool(torch.any(partners[:, conn] >= 0)):
             return True
     return False
+
+
+def resolve_ligand_block(pose_stack: PoseStack, ligand: str | int) -> int:
+    """Block index of a ligand given by residue name (``"ATP"``) or block index."""
+    types = pose_stack.packed_block_types.active_block_types
+    names = [
+        "" if index < 0 else types[index].name3
+        for index in pose_stack.block_type_ind64[0].tolist()
+    ]
+    if isinstance(ligand, str):
+        matches = [block for block, name in enumerate(names) if name == ligand]
+        if len(matches) != 1:
+            raise ValueError(
+                f"expected exactly one ligand block named {ligand!r}, "
+                f"found {len(matches)}"
+            )
+        return matches[0]
+    if not 0 <= ligand < len(names) or not names[ligand]:
+        raise ValueError(f"ligand block {ligand} is not present in the pose")
+    return ligand
 
 
 def validated_sidechain_blocks(
@@ -219,4 +240,4 @@ def movable_pose_stack(
     chains = compact.chain_id64.clone()
     # One past the retained receptor maximum cannot collide with any chain.
     chains[:, 0] = chains[:, 1:].amax(dim=1) + 1 if chains.shape[1] > 1 else 0
-    return with_chain_ids(compact, chains)
+    return attr.evolve(compact, chain_id=chains.to(torch.int32), chain_id64=chains)

@@ -9,7 +9,7 @@ import torch
 import tmol.dock.ga as ga_module
 from tmol.dock import ContinuousBackend, GASchedule
 from tmol.dock.conformer_seed import generate_conformer_library
-from tmol.dock.ga import run_ga_docking
+from tmol.dock.ga import run_docking
 from tmol.tests.data import data_path
 from tmol.tests.dock.test_ga import _TranslationImprovingBackend
 from tmol.tests.dock.test_ligand_dof_roundtrip import (
@@ -84,26 +84,24 @@ def test_conformer_ga_is_deterministic_and_builds_library_once(
         pmut=0.2,
         maxiter=1,
     )
-    result = run_ga_docking(
+    result = run_docking(
         reference,
-        ligand_block,
-        ContinuousBackend(param_db, kin_dtype=torch.float64),
+        ContinuousBackend(ligand_block, param_db, kin_dtype=torch.float64),
         schedule=schedule,
         seed=79,
         initialization="conformer",
         ligand_mol2=CDK2_MOL2,
-    )
+    ).ga_result
     assert len(calls) == 1
 
-    independent = run_ga_docking(
+    independent = run_docking(
         reference,
-        ligand_block,
-        ContinuousBackend(param_db, kin_dtype=torch.float64),
+        ContinuousBackend(ligand_block, param_db, kin_dtype=torch.float64),
         schedule=schedule,
         seed=79,
         initialization="conformer",
         ligand_mol2=CDK2_MOL2,
-    )
+    ).ga_result
     assert len(calls) == 2
     torch.testing.assert_close(
         result.best_genes,
@@ -129,28 +127,26 @@ def test_failed_conformer_generation_falls_back_byte_identically(monkeypatch, ca
         pmut=0.2,
         maxiter=1,
     )
-    random = run_ga_docking(
+    random = run_docking(
         reference,
-        ligand_block,
         _TranslationImprovingBackend(reference, ligand_block),
         schedule=schedule,
         seed=83,
         initialization="random",
-    )
+    ).ga_result
 
     def fail_generation(*args, **kwargs):
         raise ValueError("not MMFF-typeable")
 
     monkeypatch.setattr(ga_module, "generate_conformer_library", fail_generation)
-    fallback = run_ga_docking(
+    fallback = run_docking(
         reference,
-        ligand_block,
         _TranslationImprovingBackend(reference, ligand_block),
         schedule=schedule,
         seed=83,
         initialization="conformer",
         ligand_mol2=CDK2_MOL2,
-    )
+    ).ga_result
     assert torch.equal(fallback.pool.genes, random.pool.genes)
     assert torch.equal(fallback.pool.energies, random.pool.energies)
     assert "falling back to blind random initialization" in caplog.text

@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 import copy
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Sequence
 
 import attrs
 import torch
@@ -44,6 +44,7 @@ from tmol.score import ScoreFunction
 from tmol.score.gridscore._movable import (
     movable_block_mapping,
     movable_pose_stack,
+    resolve_ligand_block,
     sidechain_context_blocks,
     validated_sidechain_blocks,
 )
@@ -109,7 +110,20 @@ class ScoringBackend(ABC):
     internal objective and gradient representation, but it must preserve these
     input and output semantics so the population loop does not depend on the
     backend.
+
+    A backend is built for one ligand: ``ligand_block`` is its block index in
+    the reference complex, and ``sidechain_blocks`` the receptor residues
+    (block indices) whose sidechains move with it.
     """
+
+    ligand_block: int
+    sidechain_blocks: tuple[int, ...] = ()
+
+    def search_view(
+        self, pose_stack: PoseStack
+    ) -> tuple[PoseStack, "ScoringBackend", tuple[int, ...]]:
+        """The pose, backend and flexible blocks the GA actually searches over."""
+        return pose_stack, self, ()
 
     @abstractmethod
     def score(self, pose_stack: PoseStack) -> torch.Tensor:
@@ -136,6 +150,7 @@ class ContinuousBackend(ScoringBackend):
     whole-pose scoring module is rendered for each input PoseStack.
 
     Args:
+        ligand_block: Block index of the ligand in the complex to be docked.
         param_db: Optional ligand-extended scoring parameter database.
         kin_dtype: Internal-coordinate dtype for minimization. By default the
             input coordinate dtype is used.
@@ -145,6 +160,7 @@ class ContinuousBackend(ScoringBackend):
 
     def __init__(
         self,
+        ligand_block: int,
         param_db: Optional[ParameterDatabase] = None,
         *,
         kin_dtype: Optional[torch.dtype] = None,
@@ -152,6 +168,7 @@ class ContinuousBackend(ScoringBackend):
     ) -> None:
         if kin_dtype not in (None, torch.float32, torch.float64):
             raise ValueError("kin_dtype must be torch.float32 or torch.float64")
+        self.ligand_block = ligand_block
         self.param_db = param_db
         self.kin_dtype = kin_dtype
         self.value_only_line_search = value_only_line_search
@@ -523,6 +540,20 @@ class GridBackend(ScoringBackend):
         self._scorers: dict[tuple[torch.device, torch.dtype], GridScorer] = {}
         self._atom_index_cache: dict[tuple, torch.Tensor] = {}
 
+    def search_view(
+        self, pose_stack: PoseStack
+    ) -> tuple[PoseStack, "GridBackend", tuple[int, ...]]:
+        """Compact ligand(+flexible sidechain) pose the GA searches over."""
+        compact_sidechains: tuple[int, ...] = ()
+        if self.sidechain_blocks:
+            _, compact_sidechains, _ = movable_block_mapping(
+                pose_stack, self.ligand_block, self.sidechain_blocks
+            )
+        compact = movable_pose_stack(
+            pose_stack, self.ligand_block, self.sidechain_blocks
+        )
+        return compact, self.for_ligand_block(0), compact_sidechains
+
     def for_ligand_block(self, ligand_block: int) -> "GridBackend":
         """Return a lightweight view targeting another ligand block index.
 
@@ -541,21 +572,28 @@ class GridBackend(ScoringBackend):
     def from_pose_stack(
         cls,
         reference_pose_stack: PoseStack,
-        ligand_block: int,
+        ligand: str | int,
         param_db: ParameterDatabase,
         *,
-        ligand_name3: Optional[str] = None,
+        flexible_residues: Sequence[int] | None = None,
         voxel_spacing: float = 0.25,
         bbox_padding: float = 4.0,
         kin_dtype: Optional[torch.dtype] = None,
         lk_ball_grid: bool = True,
         include_ligand_intra: bool = True,
-        sidechain_blocks: tuple[int, ...] | None = None,
         value_only_line_search: bool = False,
         cuda_graph: bool = True,
         ligand_intra_weight_profile: str = "search",
     ) -> "GridBackend":
-        """Build one CPU receptor grid/live-term structure and reusable backend.
+        """Build the receptor grid and live terms for one ligand of a complex.
+
+        Args:
+            reference_pose_stack: One CPU pose holding the receptor and the
+                ligand (in any placement; the search starts from random poses).
+            ligand: The ligand's residue name (e.g. ``"ATP"``) or block index.
+            param_db: Scoring database including the ligand's parameters.
+            flexible_residues: Receptor residues (block indices, e.g. from
+                :func:`select_pocket_residues`) whose sidechains move.
 
         ``lk_ball_grid=True`` selects Rosetta's weighted gridded approximation;
         ``False`` retains the exact live LK-ball path. Ligand-intra scoring is
@@ -569,16 +607,12 @@ class GridBackend(ScoringBackend):
             raise ValueError("grid construction requires one reference pose")
         if reference_pose_stack.device.type != "cpu":
             raise ValueError("grid construction requires a CPU reference pose")
-        if ligand_block < 0 or ligand_block >= reference_pose_stack.max_n_blocks:
-            raise ValueError("ligand_block is out of range")
+        ligand_block = resolve_ligand_block(reference_pose_stack, ligand)
+        sidechain_blocks = flexible_residues
         block_type_index = int(reference_pose_stack.block_type_ind64[0, ligand_block])
-        if block_type_index < 0:
-            raise ValueError("ligand_block is absent from the reference pose")
         pbt = reference_pose_stack.packed_block_types
         block_type = pbt.active_block_types[block_type_index]
-        ligand_name3 = ligand_name3 or block_type.name3
-        if block_type.name3 != ligand_name3:
-            raise ValueError("ligand_name3 does not match ligand_block")
+        ligand_name3 = block_type.name3
 
         normalized_sidechain_blocks = (
             ()
