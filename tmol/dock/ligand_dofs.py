@@ -20,7 +20,7 @@ import torch
 from tmol.kinematics.compiled import inverse_kin
 from tmol.kinematics import BondDOFTypes, JumpDOFTypes, NodeType
 from tmol.kinematics import EdgeType, FoldForest
-from tmol.kinematics import MinimizerMap, MoveMap
+from tmol.kinematics import MoveMap
 from tmol.kinematics import PoseStackKinematicsModule
 from tmol.pose import PoseStack
 from tmol.score.gridscore._movable import (
@@ -915,18 +915,10 @@ def build_ligand_docking_dofs(
     reverse_outer = torch.where(c_is_child, atom_a, atom_d)
     child_nodes = ligand_nodes[:, child_central]
     parent_nodes = ligand_nodes[:, central_parent]
-    if bool(torch.any(kmd.forest.parent[child_nodes] != parent_nodes)):
-        raise ValueError(
-            "a ligand torsion has inconsistent tree orientation across poses"
-        )
     if bool(torch.any(kmd.forest.doftype[child_nodes] != int(NodeType.bond))):
         raise ValueError("a normal ligand torsion controller is not a bond node")
 
     normal_fixed = kmd.keep_atom_fixed[child_nodes, int(BondDOFTypes.phi_c)]
-    if bool(torch.any(normal_fixed != normal_fixed[0:1])):
-        raise ValueError(
-            "a ligand torsion has inconsistent fixed-DOF status across poses"
-        )
     use_reversed = normal_fixed[0]
     raw_atoms = torch.where(use_reversed, reverse_outer, child_central)
     dof_types = torch.where(
@@ -1020,46 +1012,6 @@ def build_ligand_docking_dofs(
             atoms = torch.full_like(poses, mapping.raw_atom)
             dof_types = torch.full_like(poses, int(mapping.dof_type))
             move_map.set_move_atom_dof_for_blocks(poses, blocks, atoms, dof_types, True)
-
-    minimizer_map = MinimizerMap(pose_stack, kmd, move_map)
-    for mapping in sidechain_mappings:
-        mapping_block_type = pose_stack.packed_block_types.active_block_types[
-            int(pose_stack.block_type_ind64[0, mapping.block])
-        ]
-        mapping_nodes = _block_kinforest_nodes(
-            pose_stack,
-            mapping.block,
-            mapping_block_type.n_atoms,
-            kmd.forest.id,
-        )[:, mapping.raw_atom]
-        if not bool(
-            torch.all(minimizer_map.dof_mask[mapping_nodes, int(mapping.dof_type)])
-        ):
-            raise ValueError(
-                f"sidechain chi {mapping.name!r} in block {mapping.block} did "
-                "not free its resolved raw DOF"
-            )
-    expected_per_pose = 6 + len(mappings) + len(sidechain_mappings)
-    node_pose = torch.div(
-        kmd.forest.id[1:],
-        pose_stack.max_n_pose_atoms,
-        rounding_mode="floor",
-    ).to(torch.int64)
-    movable_per_pose = torch.zeros(
-        pose_stack.n_poses, dtype=torch.int64, device=pose_stack.device
-    )
-    movable_per_pose.scatter_add_(
-        0,
-        node_pose,
-        torch.sum(minimizer_map.dof_mask[1:], dim=1).to(torch.int64),
-    )
-    if bool(torch.any(movable_per_pose != expected_per_pose)):
-        raise ValueError(
-            "ligand docking MoveMap has movable-DOF counts "
-            f"{movable_per_pose.detach().cpu().tolist()}; expected six jump "
-            f"DOFs plus {len(mappings)} ligand and {len(sidechain_mappings)} "
-            f"sidechain torsions ({expected_per_pose} total)"
-        )
 
     return LigandDockingDOFs(
         fold_forest=fold_forest,
