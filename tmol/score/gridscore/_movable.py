@@ -4,6 +4,8 @@ The partition is a compact PoseStack: the ligand is block 0, followed by the
 flexible sidechains and their immediate peptide neighbors in source order.
 """
 
+from typing import NamedTuple
+
 import attr
 import torch
 
@@ -241,3 +243,48 @@ def movable_pose_stack(
     # One past the retained receptor maximum cannot collide with any chain.
     chains[:, 0] = chains[:, 1:].amax(dim=1) + 1 if chains.shape[1] > 1 else 0
     return attr.evolve(compact, chain_id=chains.to(torch.int32), chain_id64=chains)
+
+
+class MovableAtoms(NamedTuple):
+    """Where the moving blocks' atoms sit in the compact docking pose."""
+
+    source_blocks: tuple[int, ...]
+    compact_offsets: tuple[int, ...]
+    atom_map: torch.Tensor  # [pose atom] -> compact atom index, -1 for fixed atoms
+    n_atoms: int
+
+
+def movable_atoms(
+    pose_stack: PoseStack, ligand_block: int, sidechain_blocks=()
+) -> MovableAtoms:
+    """Compact-pose index of every atom of the ligand, sidechains and context."""
+
+    source_blocks, _, _ = movable_block_mapping(
+        pose_stack, ligand_block, sidechain_blocks
+    )
+    compact = movable_pose_stack(pose_stack, ligand_block, sidechain_blocks)
+    atom_map = torch.full((pose_stack.coords.shape[1],), -1, dtype=torch.int64)
+    n_block_atoms = pose_stack.packed_block_types.n_atoms.to(torch.int64)
+    offsets = []
+    for compact_block, block in enumerate(source_blocks):
+        offset = int(compact.block_coord_offset64[0, compact_block])
+        n_atoms = int(n_block_atoms[pose_stack.block_type_ind64[0, block]])
+        start = int(pose_stack.block_coord_offset64[0, block])
+        atom_map[start : start + n_atoms] = torch.arange(n_atoms) + offset
+        offsets.append(offset)
+    return MovableAtoms(
+        source_blocks, tuple(offsets), atom_map, compact.max_n_pose_atoms
+    )
+
+
+def pose_atom_table(pose_stack: PoseStack) -> tuple[torch.Tensor, ...]:
+    """``(atom, block, block type, block-local atom)`` of each real atom of pose 0."""
+
+    block_types = pose_stack.block_type_ind64[0]
+    blocks = torch.nonzero(block_types >= 0).squeeze(1)
+    counts = pose_stack.packed_block_types.n_atoms.to(torch.int64)[block_types[blocks]]
+    block = blocks.repeat_interleave(counts)
+    first = torch.cumsum(counts, 0) - counts
+    local = torch.arange(int(counts.sum())) - first.repeat_interleave(counts)
+    atom = pose_stack.block_coord_offset64[0, block] + local
+    return atom, block, block_types[block], local

@@ -685,7 +685,6 @@ class GridBackend(ScoringBackend):
             ligand_block,
             param_db,
             sidechain_blocks=normalized_sidechain_blocks,
-            context_blocks=context_blocks,
             movable_atoms=grid_atom_indices,
         )
         live_ligand_intra = (
@@ -704,7 +703,6 @@ class GridBackend(ScoringBackend):
             ligand_block,
             param_db,
             sidechain_blocks=normalized_sidechain_blocks,
-            context_blocks=context_blocks,
             movable_atoms=grid_atom_indices,
         )
         # build_grid initializes packed ljlk/elec parameters, including charges.

@@ -106,5 +106,5 @@ def test_live_lk_ball_rejects_covalently_connected_ligand():
     connections = pose_stack.inter_residue_connections64.clone()
     connections[0, ligand, 0] = torch.tensor((receptor, 0))
     connected = attr.evolve(pose_stack, inter_residue_connections64=connections)
-    with pytest.raises(ValueError, match="no covalent receptor connections"):
+    with pytest.raises(ValueError, match="disconnected ligand"):
         build_live_lk_ball_data(connected, ligand, param_db)

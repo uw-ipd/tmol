@@ -92,3 +92,35 @@ class LiveData:
                 value = value.to(device=device).contiguous()
             values[field.name] = value
         return type(self)(**values)
+
+
+def derived_atom_indices(pose_stack) -> torch.Tensor:
+    """Hbond base atoms ``[atom, (donor heavy, acceptor base, acceptor base0)]``."""
+    from tmol.score.hbond.potentials import gen_hbond_bases
+
+    pbt = pose_stack.packed_block_types
+    params = pbt.hbpbt_params
+    with torch.no_grad():
+        _, derived = gen_hbond_bases(
+            pose_stack.coords.reshape(-1, 3).contiguous(),
+            pose_stack.rot_coord_offset,
+            pose_stack.first_rot_for_block,
+            pose_stack.first_rot_block_type,
+            pose_stack.block_ind_for_rot,
+            pose_stack.pose_ind_for_rot,
+            pose_stack.block_type_ind_for_rot,
+            pose_stack.inter_residue_connections,
+            pbt.n_atoms,
+            pbt.n_conn,
+            pbt.conn_atom,
+            pbt.n_all_bonds,
+            pbt.all_bonds,
+            pbt.atom_all_bond_ranges,
+            params.tile_n_donH,
+            params.tile_n_acc,
+            params.tile_donH_inds,
+            params.tile_acc_inds,
+            params.tile_acceptor_hybridization,
+            params.is_hydrogen,
+        )
+    return derived.to(torch.int64)

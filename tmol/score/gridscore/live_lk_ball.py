@@ -12,13 +12,14 @@ from tmol.pose import PoseStack
 from tmol.score.common import convert_float64
 from tmol.score.lk_ball import LKBallEnergyTerm
 
-from ._movable import (
-    movable_block_mapping,
-    movable_pose_stack,
-    sidechain_context_blocks,
-    validated_sidechain_blocks,
+from ._common import (
+    LiveData,
+    build_cell_list,
+    cell_grid,
+    derived_atom_indices,
+    validate_ligand_coords,
 )
-from ._common import LiveData, build_cell_list, cell_grid, validate_ligand_coords
+from ._movable import movable_atoms as movable_atoms_of, pose_atom_table
 
 MAX_N_WATER = 4
 
@@ -130,36 +131,6 @@ def _generate_reference_waters(
         return gen_pose_waters(*args).detach().to(torch.float64).contiguous()
 
 
-def _derived_atom_indices(pose_stack: PoseStack) -> torch.Tensor:
-    from tmol.score.hbond.potentials import gen_hbond_bases
-
-    pbt = pose_stack.packed_block_types
-    with torch.no_grad():
-        _, derived = gen_hbond_bases(
-            pose_stack.coords.reshape(-1, 3).contiguous(),
-            pose_stack.rot_coord_offset,
-            pose_stack.first_rot_for_block,
-            pose_stack.first_rot_block_type,
-            pose_stack.block_ind_for_rot,
-            pose_stack.pose_ind_for_rot,
-            pose_stack.block_type_ind_for_rot,
-            pose_stack.inter_residue_connections,
-            pbt.n_atoms,
-            pbt.n_conn,
-            pbt.conn_atom,
-            pbt.n_all_bonds,
-            pbt.all_bonds,
-            pbt.atom_all_bond_ranges,
-            pbt.hbpbt_params.tile_n_donH,
-            pbt.hbpbt_params.tile_n_acc,
-            pbt.hbpbt_params.tile_donH_inds,
-            pbt.hbpbt_params.tile_acc_inds,
-            pbt.hbpbt_params.tile_acceptor_hybridization,
-            pbt.hbpbt_params.is_hydrogen,
-        )
-    return derived
-
-
 def _ligand_water_topology(
     pose_stack: PoseStack,
     ligand_block: int,
@@ -247,31 +218,39 @@ def _ligand_water_topology(
     return polar, atom_to_polar, kinds, atoms, params, rings
 
 
+def _polar_atom_mask(pbt, block_types: torch.Tensor) -> torch.Tensor:
+    """``[block type, atom]`` mask of hbond donor heavy atoms and acceptors."""
+    mask = torch.zeros(pbt.atom_types.shape, dtype=torch.bool)
+    for index in block_types.unique().tolist():
+        hb = pbt.active_block_types[index].hbbt_params
+        mask[index, torch.as_tensor(hb.don_hvy_inds, dtype=torch.int64)] = True
+        mask[index, torch.as_tensor(hb.acc_inds, dtype=torch.int64)] = True
+    return mask
+
+
 def build_live_lk_ball_data(
     pose_stack: PoseStack,
     ligand_block: int,
     param_db: ParameterDatabase,
     *,
     sidechain_blocks: tuple[int, ...] = (),
-    context_blocks: tuple[int, ...] = (),
     movable_atoms: Sequence[int] | None = None,
 ) -> LiveLKBallData:
-    """Build movable water topology and one fixed-receptor cell structure."""
+    """Build movable water topology and one fixed-receptor cell structure.
+
+    ``movable_atoms`` are the compact-pose atoms that move (all ligand atoms by
+    default; required with ``sidechain_blocks``).
+    """
 
     if pose_stack.n_poses != 1 or pose_stack.device.type != "cpu":
         raise ValueError("live LK-ball construction requires one CPU pose")
-    if ligand_block < 0 or ligand_block >= pose_stack.max_n_blocks:
-        raise ValueError("ligand_block is out of range")
-    if int(pose_stack.block_type_ind64[0, ligand_block]) < 0:
-        raise ValueError("ligand_block is absent from the reference pose")
-    ligand_connection_partners = pose_stack.inter_residue_connections64[
-        0, ligand_block, :, 0
-    ]
-    if bool(torch.any(ligand_connection_partners >= 0)):
-        raise ValueError(
-            "live grid LK-ball requires a ligand block with no covalent "
-            "receptor connections"
-        )
+    if sidechain_blocks and movable_atoms is None:
+        raise ValueError("sidechain_blocks require the compact movable_atoms")
+    moving = movable_atoms_of(pose_stack, ligand_block, sidechain_blocks)
+    is_query = torch.ones(moving.n_atoms, dtype=torch.bool)
+    if movable_atoms is not None:
+        is_query = torch.zeros(moving.n_atoms, dtype=torch.bool)
+        is_query[torch.as_tensor(list(movable_atoms), dtype=torch.int64)] = True
 
     term = LKBallEnergyTerm(param_db, torch.device("cpu"))
     for block_type in pose_stack.packed_block_types.active_block_types:
@@ -279,217 +258,85 @@ def build_live_lk_ball_data(
     term.setup_packed_block_types(pose_stack.packed_block_types)
     type_params = _pack_type_params(term)
     reference_waters = _generate_reference_waters(pose_stack, term)
-    derived_atom_inds = _derived_atom_indices(pose_stack)
+    derived = derived_atom_indices(pose_stack)
     pbt = pose_stack.packed_block_types
+    is_hydrogen = pbt.hbpbt_params.is_hydrogen.to(torch.bool)
 
-    ligand_type_index = int(pose_stack.block_type_ind64[0, ligand_block])
-    ligand_type = pbt.active_block_types[ligand_type_index]
-    ligand_n_atoms = ligand_type.n_atoms
-    if sidechain_blocks:
-        sidechain_blocks = validated_sidechain_blocks(
-            pose_stack, ligand_block, sidechain_blocks
+    # Moving atoms and their water topology, block by block of the compact pose.
+    atom_types, hydrogens = [], []
+    polar, kinds, water_atoms, water_params, rings = [], [], [], [], []
+    for source, offset in zip(moving.source_blocks, moving.compact_offsets):
+        type_index = int(pose_stack.block_type_ind64[0, source])
+        n_atoms = pbt.active_block_types[type_index].n_atoms
+        atom_types.append(pbt.atom_types[type_index, :n_atoms].to(torch.int64))
+        hydrogens.append(is_hydrogen[type_index, :n_atoms])
+        block_polar, _, *topology = _ligand_water_topology(
+            pose_stack, source, term, derived
         )
-        expected_context = sidechain_context_blocks(
-            pose_stack, ligand_block, sidechain_blocks
+        keep = is_query[block_polar + offset]
+        block_kinds, block_atoms, block_params, block_rings = (
+            t[keep] for t in topology
         )
-        if context_blocks and tuple(context_blocks) != expected_context:
-            raise ValueError("context_blocks do not match sidechain peptide neighbors")
-        if movable_atoms is None:
-            raise ValueError("sidechain_blocks require the compact movable_atoms")
-        context_blocks = expected_context
-        movable_pose = movable_pose_stack(pose_stack, ligand_block, sidechain_blocks)
-        source_blocks, _, _ = movable_block_mapping(
-            pose_stack, ligand_block, sidechain_blocks
-        )
-        query_atoms = {int(atom) for atom in movable_atoms}
-        compact_atom_types = []
-        compact_is_hydrogen = []
-        polar_parts = []
-        water_kind_parts = []
-        water_atom_parts = []
-        water_param_parts = []
-        water_ring_parts = []
-        for compact_block, source_block in enumerate(source_blocks):
-            type_index = int(pose_stack.block_type_ind64[0, source_block])
-            block_type = pbt.active_block_types[type_index]
-            n_atoms = block_type.n_atoms
-            compact_offset = int(movable_pose.block_coord_offset64[0, compact_block])
-            compact_atom_types.append(
-                pbt.atom_types[type_index, :n_atoms].to(torch.int64)
-            )
-            compact_is_hydrogen.append(
-                pbt.hbpbt_params.is_hydrogen[type_index, :n_atoms].to(torch.bool)
-            )
-            (
-                block_polar,
-                _,
-                block_kinds,
-                block_atoms,
-                block_params,
-                block_rings,
-            ) = _ligand_water_topology(
-                pose_stack, source_block, term, derived_atom_inds
-            )
-            compact_polar = block_polar + compact_offset
-            keep_polar = torch.tensor(
-                [int(atom) in query_atoms for atom in compact_polar],
-                dtype=torch.bool,
-            )
-            if not bool(torch.any(keep_polar)):
-                continue
-            selected_atoms = block_atoms[keep_polar].clone()
-            active_atoms = selected_atoms >= 0
-            selected_atoms[active_atoms] += compact_offset
-            polar_parts.append(compact_polar[keep_polar])
-            water_kind_parts.append(block_kinds[keep_polar])
-            water_atom_parts.append(selected_atoms)
-            water_param_parts.append(block_params[keep_polar])
-            water_ring_parts.append(block_rings[keep_polar])
+        polar.append(block_polar[keep] + offset)
+        kinds.append(block_kinds)
+        water_atoms.append(torch.where(block_atoms >= 0, block_atoms + offset, -1))
+        water_params.append(block_params)
+        rings.append(block_rings)
+    ligand_atom_types = torch.cat(atom_types)
+    ligand_polar_atoms = torch.cat(polar).contiguous()
+    ligand_atom_to_polar = torch.full((moving.n_atoms,), -1, dtype=torch.int64)
+    ligand_atom_to_polar[ligand_polar_atoms] = torch.arange(ligand_polar_atoms.shape[0])
+    ligand_heavy_atoms = torch.nonzero(is_query & ~torch.cat(hydrogens)).squeeze(1)
 
-        ligand_n_atoms = movable_pose.max_n_pose_atoms
-        ligand_atom_types = torch.cat(compact_atom_types)
-        ligand_atom_params = type_params[ligand_atom_types].contiguous()
-        is_hydrogen = torch.cat(compact_is_hydrogen)
-        ligand_heavy_atoms = torch.tensor(
-            sorted(atom for atom in query_atoms if not bool(is_hydrogen[atom])),
-            dtype=torch.int64,
-        ).contiguous()
-        ligand_polar_atoms = (
-            torch.cat(polar_parts).to(torch.int64).contiguous()
-            if polar_parts
-            else torch.empty(0, dtype=torch.int64)
-        )
-        ligand_atom_to_polar = torch.full((ligand_n_atoms,), -1, dtype=torch.int64)
-        if ligand_polar_atoms.numel():
-            ligand_atom_to_polar[ligand_polar_atoms] = torch.arange(
-                ligand_polar_atoms.shape[0], dtype=torch.int64
-            )
-        ligand_water_kinds = (
-            torch.cat(water_kind_parts).contiguous()
-            if water_kind_parts
-            else torch.empty((0, MAX_N_WATER), dtype=torch.int64)
-        )
-        ligand_water_atoms = (
-            torch.cat(water_atom_parts).contiguous()
-            if water_atom_parts
-            else torch.empty((0, MAX_N_WATER, 3), dtype=torch.int64)
-        )
-        ligand_water_params = (
-            torch.cat(water_param_parts).contiguous()
-            if water_param_parts
-            else torch.empty((0, MAX_N_WATER, 3), dtype=torch.float64)
-        )
-        ligand_water_is_ring = (
-            torch.cat(water_ring_parts).contiguous()
-            if water_ring_parts
-            else torch.empty((0, MAX_N_WATER), dtype=torch.int64)
-        )
-    else:
-        sidechain_blocks = ()
-        if context_blocks:
-            raise ValueError("context_blocks require sidechain_blocks")
-        context_blocks = ()
-        ligand_atom_types = pbt.atom_types[ligand_type_index, :ligand_n_atoms].to(
-            torch.int64
-        )
-        ligand_atom_params = type_params[ligand_atom_types].contiguous()
-        ligand_heavy_atoms = (
-            torch.nonzero(
-                pbt.hbpbt_params.is_hydrogen[ligand_type_index, :ligand_n_atoms] == 0
-            )
-            .reshape(-1)
-            .to(torch.int64)
-            .contiguous()
-        )
-        (
-            ligand_polar_atoms,
-            ligand_atom_to_polar,
-            ligand_water_kinds,
-            ligand_water_atoms,
-            ligand_water_params,
-            ligand_water_is_ring,
-        ) = _ligand_water_topology(pose_stack, ligand_block, term, derived_atom_inds)
-
-    receptor_coords = []
-    receptor_params = []
-    receptor_waters = []
-    receptor_polar_atoms = []
-    for block_index in range(pose_stack.max_n_blocks):
-        type_index = int(pose_stack.block_type_ind64[0, block_index])
-        if (
-            type_index < 0
-            or block_index == ligand_block
-            or block_index in sidechain_blocks
-            or block_index in context_blocks
-        ):
-            continue
-        block_type = pbt.active_block_types[type_index]
-        offset = int(pose_stack.block_coord_offset64[0, block_index])
-        local_polar = set(block_type.hbbt_params.don_hvy_inds.tolist()) | set(
-            block_type.hbbt_params.acc_inds.tolist()
-        )
-        for atom in range(block_type.n_atoms):
-            if int(pbt.hbpbt_params.is_hydrogen[type_index, atom]) != 0:
-                continue
-            receptor_index = len(receptor_coords)
-            global_atom = offset + atom
-            atom_type = int(pbt.atom_types[type_index, atom])
-            receptor_coords.append(
-                pose_stack.coords.reshape(-1, 3)[global_atom].to(torch.float64)
-            )
-            receptor_params.append(type_params[atom_type])
-            receptor_waters.append(reference_waters[global_atom])
-            if atom in local_polar:
-                receptor_polar_atoms.append(receptor_index)
-    if not receptor_coords:
+    # Fixed receptor heavy atoms, with their reference waters and polar flag.
+    atom, _, block_type, local = pose_atom_table(pose_stack)
+    heavy = (moving.atom_map[atom] < 0) & ~is_hydrogen[block_type, local]
+    atom, block_type, local = atom[heavy], block_type[heavy], local[heavy]
+    if not atom.numel():
         raise ValueError("pose contains no receptor heavy atoms")
-    receptor_coords_t = torch.stack(receptor_coords).contiguous()
-    receptor_params_t = torch.stack(receptor_params).contiguous()
-    receptor_waters_t = torch.stack(receptor_waters).contiguous()
-    receptor_polar_atoms_t = torch.tensor(
-        receptor_polar_atoms, dtype=torch.int64
-    ).contiguous()
+    receptor_coords = pose_stack.coords.reshape(-1, 3)[atom].to(torch.float64)
+    receptor_polar_atoms = torch.nonzero(
+        _polar_atom_mask(pbt, block_type)[block_type, local]
+    ).squeeze(1)
 
     global_params = term._lk_ball_global_params.to(torch.float64).contiguous()
     cutoff = float(global_params[0, 4])
-    cell_origin, cell_dims = cell_grid(receptor_coords_t, cutoff)
-    receptor_indices = torch.arange(receptor_coords_t.shape[0], dtype=torch.int64)
-    receptor_cell_offsets, receptor_cell_indices = build_cell_list(
-        receptor_coords_t,
+    cell_origin, cell_dims = cell_grid(receptor_coords, cutoff)
+    atom_offsets, atom_indices = build_cell_list(
+        receptor_coords,
         cell_origin,
         cell_dims,
         cutoff,
-        receptor_indices,
-        "receptor LK-ball atom",
+        label="receptor LK-ball atom",
     )
-    receptor_polar_cell_offsets, receptor_polar_cell_indices = build_cell_list(
-        receptor_coords_t[receptor_polar_atoms_t],
+    polar_offsets, polar_indices = build_cell_list(
+        receptor_coords[receptor_polar_atoms],
         cell_origin,
         cell_dims,
         cutoff,
-        receptor_polar_atoms_t,
+        receptor_polar_atoms,
         "receptor LK-ball atom",
     )
     return LiveLKBallData(
-        n_ligand_atoms=ligand_n_atoms,
-        ligand_atom_params=ligand_atom_params,
-        ligand_heavy_atoms=ligand_heavy_atoms,
-        ligand_polar_atoms=ligand_polar_atoms.contiguous(),
-        ligand_atom_to_polar=ligand_atom_to_polar.contiguous(),
-        ligand_water_kinds=ligand_water_kinds.contiguous(),
-        ligand_water_atoms=ligand_water_atoms.contiguous(),
-        ligand_water_params=ligand_water_params.contiguous(),
-        ligand_water_is_ring=ligand_water_is_ring.contiguous(),
-        receptor_coords=receptor_coords_t,
-        receptor_params=receptor_params_t,
-        receptor_waters=receptor_waters_t,
-        receptor_polar_atoms=receptor_polar_atoms_t,
+        n_ligand_atoms=moving.n_atoms,
+        ligand_atom_params=type_params[ligand_atom_types].contiguous(),
+        ligand_heavy_atoms=ligand_heavy_atoms.contiguous(),
+        ligand_polar_atoms=ligand_polar_atoms,
+        ligand_atom_to_polar=ligand_atom_to_polar,
+        ligand_water_kinds=torch.cat(kinds).contiguous(),
+        ligand_water_atoms=torch.cat(water_atoms).contiguous(),
+        ligand_water_params=torch.cat(water_params).contiguous(),
+        ligand_water_is_ring=torch.cat(rings).contiguous(),
+        receptor_coords=receptor_coords.contiguous(),
+        receptor_params=type_params[pbt.atom_types[block_type, local].to(torch.int64)],
+        receptor_waters=reference_waters[atom],
+        receptor_polar_atoms=receptor_polar_atoms.contiguous(),
         cell_origin=cell_origin.contiguous(),
         cell_dims=cell_dims,
-        receptor_cell_offsets=receptor_cell_offsets,
-        receptor_cell_indices=receptor_cell_indices,
-        receptor_polar_cell_offsets=receptor_polar_cell_offsets,
-        receptor_polar_cell_indices=receptor_polar_cell_indices,
+        receptor_cell_offsets=atom_offsets,
+        receptor_cell_indices=atom_indices,
+        receptor_polar_cell_offsets=polar_offsets,
+        receptor_polar_cell_indices=polar_indices,
         global_params=global_params,
     )
 
