@@ -180,9 +180,7 @@ def test_value_only_matches_standard_at_accepted_iteration_prefix(max_iter):
     value_only = _run_counted_quadratic(True, max_iter=max_iter)
     for actual, expected in zip(value_only[:2], standard[:2]):
         torch.testing.assert_close(actual, expected, rtol=0.0, atol=0.0)
-    torch.testing.assert_close(
-        value_only[2][-1], standard[2][-1], rtol=0.0, atol=0.0
-    )
+    torch.testing.assert_close(value_only[2][-1], standard[2][-1], rtol=0.0, atol=0.0)
     x, gradient = value_only[:2]
     torch.testing.assert_close(gradient, 2 * (x - x.new_tensor([1.0, 2.0])))
 

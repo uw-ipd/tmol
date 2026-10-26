@@ -105,6 +105,8 @@ def run_min(
             any nn.Module with a compatible interface.
         optimizer_cls: A torch.optim.Optimizer class. Must support a
             closure-based step() call (e.g. LBFGS_Armijo, torch LBFGS).
+            An optimizer with a truthy ``value_only_line_search`` attribute
+            is also passed a gradient-free energy closure for its line search.
         optimizer_kwargs: Dict of keyword arguments passed to the optimizer
             constructor.
         verbose: Print timing information.
