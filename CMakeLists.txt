@@ -386,7 +386,7 @@ set(_C_SOURCES
   tmol/score/gridscore/potentials/grid_interp_pose_score.cpu.cpp
   tmol/score/gridscore/potentials/live_hbond.cpu.cpp
   tmol/score/gridscore/potentials/live_lk_ball.cpu.cpp
-  tmol/score/gridscore/potentials/grid_lk_ball.cpu.cpp
+  tmol/score/gridscore/potentials/grid_score.cpu.cpp
   tmol/score/gridscore/potentials/grid_build.cpu.cpp
   # score/constraint
   tmol/score/constraint/potentials/compiled.ops.cpp
@@ -434,7 +434,7 @@ if(TMOL_HAS_CUDA)
     tmol/score/gridscore/potentials/grid_interp_pose_score.cuda.cu
     tmol/score/gridscore/potentials/live_hbond.cuda.cu
     tmol/score/gridscore/potentials/live_lk_ball.cuda.cu
-    tmol/score/gridscore/potentials/grid_lk_ball.cuda.cu
+    tmol/score/gridscore/potentials/grid_score.cuda.cu
     tmol/score/gridscore/potentials/grid_build.cuda.cu
     tmol/score/genbonded/potentials/genbonded_pose_score.cuda.cu
     tmol/score/constraint/potentials/constraint_score.cuda.cu

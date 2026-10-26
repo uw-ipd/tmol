@@ -12,7 +12,7 @@
 #include <tmol/score/common/device_operations.hh>
 #include <tmol/score/gridscore/potentials/grid_build.hh>
 #include <tmol/score/gridscore/potentials/grid_interp_pose_score.hh>
-#include <tmol/score/gridscore/potentials/grid_lk_ball.hh>
+#include <tmol/score/gridscore/potentials/grid_score.hh>
 #include <tmol/score/gridscore/potentials/live_hbond.hh>
 #include <tmol/score/gridscore/potentials/live_lk_ball.hh>
 #include <tmol/score/ljlk/potentials/lj.hh>
@@ -557,148 +557,87 @@ std::tuple<Tensor, Tensor> live_lk_ball(
   return std::make_tuple(energies, gradients);
 }
 
-void validate_grid_lk_ball_water_inputs(
-    Tensor const& ligand_coords,
-    Tensor const& ligand_polar_atoms,
-    Tensor const& ligand_water_kinds,
-    Tensor const& ligand_water_atoms,
-    Tensor const& ligand_water_params,
-    Tensor const& ligand_water_is_ring,
-    double water_distance) {
-  auto const device = ligand_coords.device();
-  auto const dtype = ligand_coords.scalar_type();
-  auto check_real = [&](Tensor const& value, char const* name) {
-    TORCH_CHECK(
-        value.device() == device, name, " must match coordinate device");
-    TORCH_CHECK(
-        value.scalar_type() == dtype, name, " must match coordinate dtype");
-    TORCH_CHECK(value.is_contiguous(), name, " must be contiguous");
-  };
-  auto check_int = [&](Tensor const& value, char const* name) {
-    TORCH_CHECK(
-        value.device() == device, name, " must match coordinate device");
-    TORCH_CHECK(
-        value.scalar_type() == tmol::native::ScalarType::Long,
-        name,
-        " must be int64");
-    TORCH_CHECK(value.is_contiguous(), name, " must be contiguous");
-  };
-  check_real(ligand_coords, "ligand_coords");
-  check_real(ligand_water_params, "ligand_water_params");
-  check_int(ligand_polar_atoms, "ligand_polar_atoms");
-  check_int(ligand_water_kinds, "ligand_water_kinds");
-  check_int(ligand_water_atoms, "ligand_water_atoms");
-  check_int(ligand_water_is_ring, "ligand_water_is_ring");
-  TORCH_CHECK(
-      ligand_coords.dim() == 3 && ligand_coords.size(2) == 3
-          && ligand_coords.size(0) > 0 && ligand_coords.size(1) > 0,
-      "ligand_coords must have shape [n_poses, n_atoms, 3]");
-  int64_t const n_polar = ligand_polar_atoms.size(0);
-  TORCH_CHECK(
-      ligand_coords.size(0) <= std::numeric_limits<int>::max()
-          && ligand_coords.size(1) <= std::numeric_limits<int>::max()
-          && n_polar <= std::numeric_limits<int>::max(),
-      "gridded LK-ball water dimensions exceed kernel integer range");
-  TORCH_CHECK(
-      ligand_polar_atoms.dim() == 1 && ligand_water_kinds.dim() == 2
-          && ligand_water_kinds.size(0) == n_polar
-          && ligand_water_kinds.size(1) == 4 && ligand_water_atoms.dim() == 3
-          && ligand_water_atoms.size(0) == n_polar
-          && ligand_water_atoms.size(1) == 4 && ligand_water_atoms.size(2) == 3
-          && ligand_water_params.dim() == 3
-          && ligand_water_params.sizes() == ligand_water_atoms.sizes()
-          && ligand_water_is_ring.sizes() == ligand_water_kinds.sizes(),
-      "ligand water arrays have inconsistent shapes");
-  TORCH_CHECK(
-      std::isfinite(water_distance) && water_distance > 0,
-      "water_distance must be finite and positive");
+std::tuple<Tensor, Tensor> grid_score_atoms(
+    Tensor coords,
+    Tensor grid_atoms,
+    Tensor atom_types,
+    Tensor charges,
+    Tensor atr,
+    Tensor rep,
+    Tensor sol,
+    Tensor elec,
+    Tensor lk_ball,
+    Tensor origin,
+    double voxel_spacing,
+    Tensor weights,
+    double out_of_bounds_penalty) {
+  Tensor energy, gradient;
+  TMOL_DISPATCH_FLOATING_DEVICE(coords.options(), "grid_score_atoms", ([&] {
+    using Real = scalar_t;
+    constexpr tmol::Device Dev = device_t;
+    auto result = GridScoreDispatch<common::DeviceOperations, Dev, Real, int64_t>::
+        atoms(
+            interpolation_context,
+            TCAST(coords),
+            TCAST(grid_atoms),
+            TCAST(atom_types),
+            TCAST(charges),
+            TCAST(atr),
+            TCAST(rep),
+            TCAST(sol),
+            TCAST(elec),
+            TCAST(lk_ball),
+            TCAST(origin),
+            Real(voxel_spacing),
+            TCAST(weights),
+            Real(out_of_bounds_penalty));
+    energy = std::get<0>(result).tensor;
+    gradient = std::get<1>(result).tensor;
+  }));
+  return {energy, gradient};
 }
 
-Tensor build_lk_ball_waters(
-    Tensor ligand_coords,
-    Tensor ligand_polar_atoms,
-    Tensor ligand_water_kinds,
-    Tensor ligand_water_atoms,
-    Tensor ligand_water_params,
-    Tensor ligand_water_is_ring,
-    double water_distance) {
-  validate_grid_lk_ball_water_inputs(
-      ligand_coords,
-      ligand_polar_atoms,
-      ligand_water_kinds,
-      ligand_water_atoms,
-      ligand_water_params,
-      ligand_water_is_ring,
-      water_distance);
-  Tensor waters;
-  TMOL_DISPATCH_FLOATING_DEVICE(
-      ligand_coords.options(), "build_lk_ball_waters", ([&] {
-        using Real = scalar_t;
-        constexpr tmol::Device Dev = device_t;
-        waters =
-            GridLKBallDispatch<common::DeviceOperations, Dev, Real, int64_t>::
-                build_waters(
-                    interpolation_context,
-                    TCAST(ligand_coords),
-                    TCAST(ligand_polar_atoms),
-                    TCAST(ligand_water_kinds),
-                    TCAST(ligand_water_atoms),
-                    TCAST(ligand_water_params),
-                    TCAST(ligand_water_is_ring),
-                    Real(water_distance))
-                    .tensor;
-      }));
-  return waters;
-}
-
-Tensor propagate_lk_ball_water_gradients(
-    Tensor ligand_coords,
-    Tensor ligand_polar_atoms,
-    Tensor ligand_water_kinds,
-    Tensor ligand_water_atoms,
-    Tensor ligand_water_params,
-    Tensor ligand_water_is_ring,
-    Tensor water_gradients,
-    double water_distance) {
-  validate_grid_lk_ball_water_inputs(
-      ligand_coords,
-      ligand_polar_atoms,
-      ligand_water_kinds,
-      ligand_water_atoms,
-      ligand_water_params,
-      ligand_water_is_ring,
-      water_distance);
-  TORCH_CHECK(
-      water_gradients.device() == ligand_coords.device()
-          && water_gradients.scalar_type() == ligand_coords.scalar_type()
-          && water_gradients.is_contiguous(),
-      "water_gradients must match coordinates and be contiguous");
-  TORCH_CHECK(
-      water_gradients.dim() == 4
-          && water_gradients.size(0) == ligand_coords.size(0)
-          && water_gradients.size(1) == ligand_polar_atoms.size(0)
-          && water_gradients.size(2) == 4 && water_gradients.size(3) == 3,
-      "water_gradients must have shape [n_poses, n_polar, 4, 3]");
-  Tensor gradients;
-  TMOL_DISPATCH_FLOATING_DEVICE(
-      ligand_coords.options(), "propagate_lk_ball_water_gradients", ([&] {
-        using Real = scalar_t;
-        constexpr tmol::Device Dev = device_t;
-        gradients =
-            GridLKBallDispatch<common::DeviceOperations, Dev, Real, int64_t>::
-                propagate_water_gradients(
-                    interpolation_context,
-                    TCAST(ligand_coords),
-                    TCAST(ligand_polar_atoms),
-                    TCAST(ligand_water_kinds),
-                    TCAST(ligand_water_atoms),
-                    TCAST(ligand_water_params),
-                    TCAST(ligand_water_is_ring),
-                    TCAST(water_gradients),
-                    Real(water_distance))
-                    .tensor;
-      }));
-  return gradients;
+// Adds the gridded LK-ball water terms to ``energy`` and ``gradient`` in place.
+Tensor grid_score_waters(
+    Tensor coords,
+    Tensor polar_atoms,
+    Tensor water_kinds,
+    Tensor water_atoms,
+    Tensor water_params,
+    Tensor water_is_ring,
+    Tensor polar_types,
+    Tensor water_grid,
+    Tensor bridge_grid,
+    Tensor origin,
+    double voxel_spacing,
+    double water_distance,
+    double fade,
+    bool bridge_enabled,
+    Tensor energy,
+    Tensor gradient) {
+  TMOL_DISPATCH_FLOATING_DEVICE(coords.options(), "grid_score_waters", ([&] {
+    using Real = scalar_t;
+    constexpr tmol::Device Dev = device_t;
+    GridScoreDispatch<common::DeviceOperations, Dev, Real, int64_t>::waters(
+        interpolation_context,
+        TCAST(coords),
+        TCAST(polar_atoms),
+        TCAST(water_kinds),
+        TCAST(water_atoms),
+        TCAST(water_params),
+        TCAST(water_is_ring),
+        TCAST(polar_types),
+        TCAST(water_grid),
+        TCAST(bridge_grid),
+        TCAST(origin),
+        Real(voxel_spacing),
+        Real(water_distance),
+        Real(fade),
+        bridge_enabled,
+        TCAST(energy),
+        TCAST(gradient));
+  }));
+  return energy;
 }
 
 TMOL_LIBRARY(tmol_gridscore, m) {
@@ -706,10 +645,8 @@ TMOL_LIBRARY(tmol_gridscore, m) {
   m.def("interpolate_with_derivatives", TMOL_FN(&interpolate_with_derivatives));
   m.def("live_hbond", TMOL_FN(&live_hbond));
   m.def("live_lk_ball", TMOL_FN(&live_lk_ball));
-  m.def("build_lk_ball_waters", TMOL_FN(&build_lk_ball_waters));
-  m.def(
-      "propagate_lk_ball_water_gradients",
-      TMOL_FN(&propagate_lk_ball_water_gradients));
+  m.def("grid_score_atoms", TMOL_FN(&grid_score_atoms));
+  m.def("grid_score_waters", TMOL_FN(&grid_score_waters));
 }
 
 }  // namespace potentials

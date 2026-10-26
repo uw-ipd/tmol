@@ -1,17 +1,17 @@
 #include <tmol/score/common/device_operations.cuda.impl.cuh>
-#include <tmol/score/gridscore/potentials/grid_lk_ball.impl.hh>
+#include <tmol/score/gridscore/potentials/grid_score.impl.hh>
 
 namespace tmol {
 namespace score {
 namespace gridscore {
 namespace potentials {
 
-template struct GridLKBallDispatch<
+template struct GridScoreDispatch<
     common::DeviceOperations,
     tmol::Device::CUDA,
     float,
     int64_t>;
-template struct GridLKBallDispatch<
+template struct GridScoreDispatch<
     common::DeviceOperations,
     tmol::Device::CUDA,
     double,

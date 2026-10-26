@@ -11,11 +11,16 @@ iteration is captured once as a CUDA graph and replayed.
 
 from __future__ import annotations
 
+import threading
 from typing import Callable
 
 import torch
 
 from tmol.dock._lbfgs_compiled import lbfgs_direction, lbfgs_update
+
+# Entering a torch CUDA graph synchronizes the whole device, which is illegal while
+# another thread captures: captures (once per minimizer) are serialized.
+_CAPTURE_LOCK = threading.Lock()
 
 # evaluate(x[trial, pose, dof]) -> (energy[trial, pose], gradient[trial, pose, dof])
 Evaluate = Callable[[torch.Tensor], tuple[torch.Tensor, torch.Tensor]]
@@ -84,6 +89,10 @@ class BatchedLBFGS:
         )
 
     def _capture(self) -> None:
+        with _CAPTURE_LOCK:
+            self._capture_locked()
+
+    def _capture_locked(self) -> None:
         start = self.x.clone()
         stream = torch.cuda.Stream(device=self.x.device)
         stream.wait_stream(torch.cuda.current_stream(self.x.device))
@@ -92,7 +101,9 @@ class BatchedLBFGS:
                 self._iterate()
         torch.cuda.current_stream(self.x.device).wait_stream(stream)
         self._graph = torch.cuda.CUDAGraph()
-        with torch.cuda.graph(self._graph, stream=stream), torch.no_grad():
+        with torch.cuda.graph(
+            self._graph, stream=stream, capture_error_mode="thread_local"
+        ), torch.no_grad():
             self._iterate()
         self._start = start
 
