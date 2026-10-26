@@ -460,93 +460,31 @@ if(TMOL_ENABLE_MPS)
   include("${CMAKE_SOURCE_DIR}/cmake/TmolMetalShader.cmake")
   set(_TMOL_GENERATED "${CMAKE_BINARY_DIR}/generated")
 
-  set(_TMOL_ELEC_SHADER
-      "${_TMOL_GENERATED}/tmol/score/elec/potentials/elec_mps_kernels_source.h")
-  tmol_embed_metal_shader(
-    "${CMAKE_SOURCE_DIR}/tmol/score/elec/potentials/elec_mps_kernels.metal.in"
-    "${_TMOL_ELEC_SHADER}"
-    kElecMetalShaderSource
+  # <dir>/<stem> of each .metal.in, and the symbol its source is embedded as.
+  set(_TMOL_SHADERS
+    "tmol/score/elec/potentials/elec_mps_kernels|kElecMetalShaderSource"
+    "tmol/score/ljlk/potentials/ljlk_mps_kernels|kLJLKMetalShaderSource"
+    "tmol/score/ljlk/potentials/ljlk_elec_mps_kernels|kLJLKElecMetalShaderSource"
+    "tmol/pack/compiled/streaming_interaction_graph_mps_kernels|kStreamingInteractionGraphMetalShaderSource"
+    "tmol/score/lk_ball/potentials/lk_ball_mps_kernels|kLKBallMetalShaderSource"
+    "tmol/score/lk_ball/potentials/gen_pose_waters_mps_kernels|kWaterGenMetalShaderSource"
+    "tmol/score/hbond/potentials/hbond_mps_kernels|kHBondMetalShaderSource"
+    "tmol/score/hbond/potentials/gen_hbond_bases_mps_kernels|kHBondBasesMetalShaderSource"
+    "tmol/score/common/pose_total_reduce_mps_kernels|kPoseTotalReduceMetalShaderSource"
+    "tmol/pack/compiled/annealer_mps_kernels|kAnnealerMetalShaderSource"
+    "tmol/score/common/sphere_overlap_mps_kernels|kSphereOverlapMetalShaderSource"
   )
-
-  set(_TMOL_LJLK_SHADER
-      "${_TMOL_GENERATED}/tmol/score/ljlk/potentials/ljlk_mps_kernels_source.h")
-  tmol_embed_metal_shader(
-    "${CMAKE_SOURCE_DIR}/tmol/score/ljlk/potentials/ljlk_mps_kernels.metal.in"
-    "${_TMOL_LJLK_SHADER}"
-    kLJLKMetalShaderSource
-  )
-
-  set(_TMOL_LJLK_ELEC_SHADER
-      "${_TMOL_GENERATED}/tmol/score/ljlk/potentials/ljlk_elec_mps_kernels_source.h")
-  tmol_embed_metal_shader(
-    "${CMAKE_SOURCE_DIR}/tmol/score/ljlk/potentials/ljlk_elec_mps_kernels.metal.in"
-    "${_TMOL_LJLK_ELEC_SHADER}"
-    kLJLKElecMetalShaderSource
-  )
-
-  set(_TMOL_STREAMING_IG_SHADER
-      "${_TMOL_GENERATED}/tmol/pack/compiled/streaming_interaction_graph_mps_kernels_source.h")
-  tmol_embed_metal_shader(
-    "${CMAKE_SOURCE_DIR}/tmol/pack/compiled/streaming_interaction_graph_mps_kernels.metal.in"
-    "${_TMOL_STREAMING_IG_SHADER}"
-    kStreamingInteractionGraphMetalShaderSource
-  )
-
-  set(_TMOL_LK_BALL_SHADER
-      "${_TMOL_GENERATED}/tmol/score/lk_ball/potentials/lk_ball_mps_kernels_source.h")
-  tmol_embed_metal_shader(
-    "${CMAKE_SOURCE_DIR}/tmol/score/lk_ball/potentials/lk_ball_mps_kernels.metal.in"
-    "${_TMOL_LK_BALL_SHADER}"
-    kLKBallMetalShaderSource
-  )
-
-  set(_TMOL_WATERGEN_SHADER
-      "${_TMOL_GENERATED}/tmol/score/lk_ball/potentials/gen_pose_waters_mps_kernels_source.h")
-  tmol_embed_metal_shader(
-    "${CMAKE_SOURCE_DIR}/tmol/score/lk_ball/potentials/gen_pose_waters_mps_kernels.metal.in"
-    "${_TMOL_WATERGEN_SHADER}"
-    kWaterGenMetalShaderSource
-  )
-
-  set(_TMOL_HBOND_SHADER
-      "${_TMOL_GENERATED}/tmol/score/hbond/potentials/hbond_mps_kernels_source.h")
-  tmol_embed_metal_shader(
-    "${CMAKE_SOURCE_DIR}/tmol/score/hbond/potentials/hbond_mps_kernels.metal.in"
-    "${_TMOL_HBOND_SHADER}"
-    kHBondMetalShaderSource
-  )
-
-  set(_TMOL_HBOND_BASES_SHADER
-      "${_TMOL_GENERATED}/tmol/score/hbond/potentials/gen_hbond_bases_mps_kernels_source.h")
-  tmol_embed_metal_shader(
-    "${CMAKE_SOURCE_DIR}/tmol/score/hbond/potentials/gen_hbond_bases_mps_kernels.metal.in"
-    "${_TMOL_HBOND_BASES_SHADER}"
-    kHBondBasesMetalShaderSource
-  )
-
-  set(_TMOL_POSE_REDUCE_SHADER
-      "${_TMOL_GENERATED}/tmol/score/common/pose_total_reduce_mps_kernels_source.h")
-  tmol_embed_metal_shader(
-    "${CMAKE_SOURCE_DIR}/tmol/score/common/pose_total_reduce_mps_kernels.metal.in"
-    "${_TMOL_POSE_REDUCE_SHADER}"
-    kPoseTotalReduceMetalShaderSource
-  )
-
-  set(_TMOL_ANNEALER_SHADER
-      "${_TMOL_GENERATED}/tmol/pack/compiled/annealer_mps_kernels_source.h")
-  tmol_embed_metal_shader(
-    "${CMAKE_SOURCE_DIR}/tmol/pack/compiled/annealer_mps_kernels.metal.in"
-    "${_TMOL_ANNEALER_SHADER}"
-    kAnnealerMetalShaderSource
-  )
-
-  set(_TMOL_SPHERE_SHADER
-      "${_TMOL_GENERATED}/tmol/score/common/sphere_overlap_mps_kernels_source.h")
-  tmol_embed_metal_shader(
-    "${CMAKE_SOURCE_DIR}/tmol/score/common/sphere_overlap_mps_kernels.metal.in"
-    "${_TMOL_SPHERE_SHADER}"
-    kSphereOverlapMetalShaderSource
-  )
+  foreach(_entry IN LISTS _TMOL_SHADERS)
+    string(REPLACE "|" ";" _entry "${_entry}")
+    list(GET _entry 0 _stem)
+    list(GET _entry 1 _symbol)
+    tmol_embed_metal_shader(
+      "${CMAKE_SOURCE_DIR}/${_stem}.metal.in"
+      "${_TMOL_GENERATED}/${_stem}_source.h"
+      ${_symbol}
+    )
+    list(APPEND _C_SOURCES "${_TMOL_GENERATED}/${_stem}_source.h")
+  endforeach()
 
   list(APPEND _C_SOURCES
     tmol/score/common/mps_launch.cpp
@@ -558,17 +496,6 @@ if(TMOL_ENABLE_MPS)
     tmol/score/lk_ball/potentials/gen_pose_waters.mps.cpp
     tmol/score/hbond/potentials/hbond_pose_score.mps.cpp
     tmol/score/hbond/potentials/gen_hbond_bases.mps.cpp
-    "${_TMOL_ELEC_SHADER}"
-    "${_TMOL_LJLK_SHADER}"
-    "${_TMOL_LJLK_ELEC_SHADER}"
-    "${_TMOL_STREAMING_IG_SHADER}"
-    "${_TMOL_LK_BALL_SHADER}"
-    "${_TMOL_WATERGEN_SHADER}"
-    "${_TMOL_HBOND_SHADER}"
-    "${_TMOL_HBOND_BASES_SHADER}"
-    "${_TMOL_POSE_REDUCE_SHADER}"
-    "${_TMOL_SPHERE_SHADER}"
-    "${_TMOL_ANNEALER_SHADER}"
   )
 endif()
 

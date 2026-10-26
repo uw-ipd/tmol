@@ -5,6 +5,7 @@
 // pose_total_reduce_kernels.hh, compiled here from the same source the CPU and
 // CUDA backends use.
 
+#include <tmol/score/common/mps_entry.hh>
 #include <tmol/score/common/device_operations.mps.impl.hh>
 #include <tmol/score/common/launch_box_macros.hh>
 #include <tmol/score/common/pose_total_reduce_ctx.hh>
@@ -27,15 +28,14 @@ typedef PoseTotalReduceShared<float, launch_t::sm_ptx::nt> Shared;
 
 kernel void pose_total_reduce_f32(
     device const int64_t* meta [[buffer(0)]],
-    device void* b1 [[buffer(1)]],
-    device void* b2 [[buffer(2)]],
+      TMOL_MPS_BIND_2,
     uint cta [[threadgroup_position_in_grid]],
     uint tid [[thread_position_in_threadgroup]],
     uint n_threads [[threads_per_threadgroup]]) {
   static_assert(
       Ctx::n_views == 2,
       "buffer bindings here must cover every view visit_views enumerates");
-  device void* ptrs[2] = {b1, b2};
+  device void* ptrs[2] = {TMOL_MPS_PTRS_2};
   threadgroup Shared shared;
   threadgroup float reduce_scratch[TMOL_N_SIMDS];
   Ctx ctx = tmol::score::common::mps_build_ctx<Ctx>(
