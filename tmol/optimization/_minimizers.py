@@ -105,6 +105,8 @@ def run_min(
             any nn.Module with a compatible interface.
         optimizer_cls: A torch.optim.Optimizer class. Must support a
             closure-based step() call (e.g. LBFGS_Armijo, torch LBFGS).
+            An optimizer with a truthy ``value_only_line_search`` attribute
+            is also passed a gradient-free energy closure for its line search.
         optimizer_kwargs: Dict of keyword arguments passed to the optimizer
             constructor.
         verbose: Print timing information.
@@ -142,10 +144,18 @@ def run_min(
         total.backward()
         return E if segmented else total
 
+    def value_only_closure() -> torch.Tensor:
+        with torch.no_grad():
+            E = sfxn_module()
+        return E if segmented else E.sum()
+
     if timing_device is not None:
         synchronize_device(timing_device)
     end_time1 = time.perf_counter()
-    optimizer.step(closure)
+    if getattr(optimizer, "value_only_line_search", False):
+        optimizer.step(closure, value_only_closure)
+    else:
+        optimizer.step(closure)
     if timing_device is not None:
         synchronize_device(timing_device)
     end_time2 = time.perf_counter()

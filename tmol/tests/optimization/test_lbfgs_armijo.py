@@ -50,6 +50,148 @@ class SimpleLJScore:
         return self
 
 
+def _run_counted_quadratic(value_only_line_search=None, *, max_iter=6):
+    x = torch.tensor([8.0, -3.0], dtype=torch.float64, requires_grad=True)
+    target = torch.tensor([1.0, 2.0], dtype=x.dtype)
+    kwargs = dict(
+        lr=1.0,
+        max_iter=max_iter,
+        rtol=1.0e-8,
+        atol=1.0e-8,
+        gradtol=1.0e-12,
+        history_size=4,
+    )
+    if value_only_line_search is not None:
+        kwargs["value_only_line_search"] = value_only_line_search
+    optimizer = LBFGS_Armijo([x], **kwargs)
+    full_history = []
+    value_history = []
+
+    def energy():
+        return torch.sum((x - target) ** 2)
+
+    def closure():
+        optimizer.zero_grad()
+        loss = energy()
+        loss.backward()
+        full_history.append(loss.detach().clone())
+        return loss
+
+    def value_only_closure():
+        with torch.no_grad():
+            loss = energy()
+        assert not loss.requires_grad
+        value_history.append(loss.detach().clone())
+        return loss
+
+    if value_only_line_search:
+        optimizer.step(closure, value_only_closure)
+    else:
+        optimizer.step(closure)
+    state = optimizer.state[x]
+    state_snapshot = {
+        key: value.detach().clone() if torch.is_tensor(value) else value
+        for key, value in state.items()
+        if key
+        in (
+            "func_evals",
+            "n_iter",
+            "t",
+            "history_start",
+            "history_count",
+            "prev_flat_grad",
+            "prev_loss_vec",
+            "x_ref",
+            "old_dirs_mat",
+            "old_stps_mat",
+        )
+    }
+    return (
+        x.detach().clone(),
+        x.grad.detach().clone(),
+        tuple(full_history),
+        tuple(value_history),
+        state_snapshot,
+    )
+
+
+def _assert_counted_runs_equal(actual, expected):
+    for actual_value, expected_value in zip(actual[:-1], expected[:-1]):
+        if torch.is_tensor(actual_value):
+            assert torch.equal(actual_value, expected_value)
+        else:
+            assert len(actual_value) == len(expected_value)
+            assert all(
+                torch.equal(actual_item, expected_item)
+                for actual_item, expected_item in zip(actual_value, expected_value)
+            )
+    assert actual[-1].keys() == expected[-1].keys()
+    for key in actual[-1]:
+        actual_value = actual[-1][key]
+        expected_value = expected[-1][key]
+        if key in ("old_dirs_mat", "old_stps_mat"):
+            # Only populated history slots are initialized and consumed.
+            actual_value = actual_value[: actual[-1]["history_count"]]
+            expected_value = expected_value[: expected[-1]["history_count"]]
+        if torch.is_tensor(actual_value):
+            assert torch.equal(actual_value, expected_value), key
+        else:
+            assert actual_value == expected_value, key
+
+
+def test_full_gradient_trial_default_matches_explicit_false_bit_exactly():
+    _assert_counted_runs_equal(
+        _run_counted_quadratic(None),
+        _run_counted_quadratic(False),
+    )
+
+
+def test_value_only_trials_refresh_gradient_and_are_self_deterministic():
+    first = _run_counted_quadratic(True)
+    second = _run_counted_quadratic(True)
+    _assert_counted_runs_equal(first, second)
+
+    x, gradient, full_history, value_history, state = first
+    assert len(full_history) == state["n_iter"] + 1
+    assert len(value_history) > 0
+    standard = _run_counted_quadratic(False)
+    assert len(full_history) < len(standard[2])
+    assert state["func_evals"] == len(full_history) + len(value_history)
+    # Both evaluators implement the same objective: accepted minima and
+    # gradients must agree, in addition to value-only self-determinism.
+    torch.testing.assert_close(x, standard[0], rtol=0.0, atol=0.0)
+    torch.testing.assert_close(gradient, standard[1], rtol=0.0, atol=0.0)
+    torch.testing.assert_close(full_history[-1], standard[2][-1], rtol=0.0, atol=0.0)
+    target = torch.tensor([1.0, 2.0], dtype=x.dtype)
+    torch.testing.assert_close(gradient, 2 * (x - target))
+
+
+def test_value_only_line_search_requires_value_closure():
+    x = torch.zeros(1, requires_grad=True)
+    optimizer = LBFGS_Armijo([x], value_only_line_search=True)
+
+    with pytest.raises(ValueError, match="value_only_closure is required"):
+        optimizer.step(lambda: x.sum())
+
+
+@pytest.mark.parametrize("max_iter", [1, 2])
+def test_value_only_matches_standard_at_accepted_iteration_prefix(max_iter):
+    standard = _run_counted_quadratic(False, max_iter=max_iter)
+    value_only = _run_counted_quadratic(True, max_iter=max_iter)
+    for actual, expected in zip(value_only[:2], standard[:2]):
+        torch.testing.assert_close(actual, expected, rtol=0.0, atol=0.0)
+    torch.testing.assert_close(value_only[2][-1], standard[2][-1], rtol=0.0, atol=0.0)
+    x, gradient = value_only[:2]
+    torch.testing.assert_close(gradient, 2 * (x - x.new_tensor([1.0, 2.0])))
+
+
+@pytest.mark.parametrize("value", [None, 0, 1, "true"])
+def test_value_only_line_search_requires_bool(value):
+    x = torch.zeros(1, requires_grad=True)
+    with pytest.raises(TypeError, match="value_only_line_search must be bool"):
+        LBFGS_Armijo([x], value_only_line_search=value)
+
+
 def test_lbfgs_requires_one_parameter_tensor():
     x = torch.nn.Parameter(torch.zeros(1))
     y = torch.nn.Parameter(torch.zeros(1))

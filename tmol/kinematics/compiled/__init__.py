@@ -3,6 +3,8 @@
 from ._compiled_ops import (  # noqa: F401
     forward_kin_op,
     forward_only_op,
+    forward_with_ht_op,
+    kin_deriv_op,
     get_kfo_indices_for_atoms,
     get_kfo_atom_parents,
     get_children,
