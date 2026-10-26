@@ -1,4 +1,6 @@
 import torch
+import pytest
+import attrs
 
 from tmol import (
     CartesianMinimizer,
@@ -10,9 +12,47 @@ from tmol import (
     FoldForest,
     MoveMap,
 )
-import attrs
+from tmol.optimization import KinematicMinimizer, run_min
 
-from tmol.optimization import KinematicMinimizer
+
+@pytest.mark.parametrize("per_pose", [False, True])
+def test_run_min_value_only_matches_standard(per_pose):
+    class QuadraticNetwork(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.x = torch.nn.Parameter(torch.tensor([8.0, -3.0], dtype=torch.float64))
+            self.segment_ids = torch.arange(2, dtype=torch.int64)
+            self.grad_modes = []
+
+        def forward(self):
+            self.grad_modes.append(torch.is_grad_enabled())
+            return (self.x - self.x.new_tensor([1.0, 2.0])) ** 2
+
+        def pose_stack_from_dofs(self):
+            return self.x.detach().clone()
+
+    results = []
+    for value_only in (False, True):
+        network = QuadraticNetwork()
+        result = run_min(
+            network,
+            optimizer_kwargs={
+                "value_only_line_search": value_only,
+                "max_iter": 6,
+                "rtol": 1.0e-8,
+                "atol": 1.0e-8,
+                "gradtol": 1.0e-12,
+                "history_size": 4,
+            },
+            per_pose=per_pose,
+        )
+        assert (False in network.grad_modes) == value_only
+        torch.testing.assert_close(
+            network.x.grad, 2 * (result - result.new_tensor([1.0, 2.0]))
+        )
+        results.append((result, network.x.grad.detach().clone()))
+    for standard, value_only in zip(*results):
+        torch.testing.assert_close(value_only, standard, rtol=0.0, atol=0.0)
 
 
 def test_build_kinforest_sfxn_network_smoke(

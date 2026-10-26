@@ -7,6 +7,8 @@
 error_this_should_not_be_compiled();  // nvcc should not include this file
 #endif
 
+#include <algorithm>
+
 #include "device_operations.hh"
 #include "workgroup_lane.hh"
 #include "counting.hh"
@@ -249,6 +251,24 @@ struct DeviceOperations<tmol::Device::CPU> {
       last_val = next_val;
     }
     return dst_t;
+  }
+
+  template <typename T, typename Int, typename Comp>
+  static void segmented_sort(
+      ContextManager&,
+      T* keys,
+      int n,
+      Int* seg_start_inds,
+      int n_segs,
+      Comp comp) {
+    if (n <= 1) {
+      return;
+    }
+    for (int i = 0; i < n_segs; ++i) {
+      int const start = seg_start_inds[i];
+      int const end = i + 1 < n_segs ? seg_start_inds[i + 1] : n;
+      std::sort(keys + start, keys + end, comp);
+    }
   }
 
   template <

@@ -15,6 +15,7 @@ from ._pdb_info import (  # noqa: F401
 from ._inter_block_bondsep import InterBlockBondsep  # noqa: F401
 from ._pose_stack import PoseStack  # noqa: F401
 from ._pose_stack_builder import PoseStackBuilder  # noqa: F401
+from ._block_selection import repeat_pose_stack, select_blocks
 from ._sequence import (  # noqa: F401
     SeqToken,
     resolve_block_type_names,
@@ -49,6 +50,8 @@ __all__ = [
     "SeqToken",
     "SplitBlockEntry",
     "SplitBlockMapping",
+    "repeat_pose_stack",
+    "select_blocks",
     "atom_for_residue_label",
     "atom_label",
     "block_for_residue_label",
