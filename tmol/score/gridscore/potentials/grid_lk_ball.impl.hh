@@ -49,8 +49,8 @@ auto GridLKBallDispatch<DeviceOps, D, Real, Int>::build_waters(
     int const water = work % 4;
     Int const kind = ligand_water_kinds[polar][water];
     if (kind == 0) {
-      waters[pose][polar][water] = Real3::Constant(
-          std::numeric_limits<Real>::quiet_NaN());
+      waters[pose][polar][water] =
+          Real3::Constant(std::numeric_limits<Real>::quiet_NaN());
       return;
     }
     Real3 const xyz0 = ligand_coords[pose][ligand_water_atoms[polar][water][0]];
@@ -72,7 +72,8 @@ auto GridLKBallDispatch<DeviceOps, D, Real, Int>::build_waters(
     }
     waters[pose][polar][water] = result;
   };
-  DeviceOps<D>::template forall<launch_t>(mgr, n_poses * n_polar * 4, build_water);
+  DeviceOps<D>::template forall<launch_t>(
+      mgr, n_poses * n_polar * 4, build_water);
   return waters_t;
 }
 

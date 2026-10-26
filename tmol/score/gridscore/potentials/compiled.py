@@ -5,6 +5,8 @@ _ops = load_ops(
     __file__,
     [
         "compiled.ops.cpp",
+        "grid_build.cpu.cpp",
+        "grid_build.cuda.cu",
         "grid_interp_pose_score.cpu.cpp",
         "grid_interp_pose_score.cuda.cu",
         "grid_lk_ball.cpu.cpp",
@@ -18,7 +20,6 @@ _ops = load_ops(
 )
 
 build_grid = _ops.build_grid
-build_grid_lk_ball = _ops.build_grid_lk_ball
 interpolate_with_derivatives = _ops.interpolate_with_derivatives
 live_hbond = _ops.live_hbond
 live_lk_ball = _ops.live_lk_ball

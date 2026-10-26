@@ -37,8 +37,7 @@ auto LiveHBondDispatch<DeviceOps, D, Real, Int>::forward(
     TView<Int, 1, D> receptor_acceptor_cell_offsets,
     TView<Int, 1, D> receptor_acceptor_cell_indices,
     TView<hbond::potentials::HBondPairParams<Real>, 2, D> pair_params,
-    TView<hbond::potentials::HBondPolynomials<double>, 2, D>
-        pair_polynomials,
+    TView<hbond::potentials::HBondPolynomials<double>, 2, D> pair_polynomials,
     TView<hbond::potentials::HBondGlobalParams<Real>, 1, D> global_params)
     -> std::tuple<TPack<Real, 1, D>, TPack<HBVec<Real, 3>, 2, D>> {
   using hbond::potentials::hbond_score;
@@ -51,8 +50,9 @@ auto LiveHBondDispatch<DeviceOps, D, Real, Int>::forward(
   auto gradients_t = TPack<HBVec<Real, 3>, 2, D>::zeros({n_poses, n_atoms});
   auto energies = energies_t.view;
   auto gradients = gradients_t.view;
-  // One work item per (pose, ligand site): a donor hydrogen is scored against the
-  // receptor acceptors around it, a ligand acceptor against the receptor donors.
+  // One work item per (pose, ligand site): a donor hydrogen is scored against
+  // the receptor acceptors around it, a ligand acceptor against the receptor
+  // donors.
   int const n_sites = n_ligand_donors + n_ligand_acceptors;
   LAUNCH_BOX_32;
   auto evaluate_site = [=] TMOL_DEVICE_FUNC(int work) {
@@ -63,7 +63,8 @@ auto LiveHBondDispatch<DeviceOps, D, Real, Int>::forward(
     auto const globals = global_params[0];
     Real const cutoff = globals.max_ha_dis;
 
-    // Ligand site: three atoms (donor, hydrogen, unused | acceptor, base, base0).
+    // Ligand site: three atoms (donor, hydrogen, unused | acceptor, base,
+    // base0).
     Int atoms[3] = {-1, -1, -1};
     Int site_type;
     if (is_donor) {
@@ -82,17 +83,17 @@ auto LiveHBondDispatch<DeviceOps, D, Real, Int>::forward(
     if (!is_donor) p2 = ligand_coords[pose][atoms[2]];
     Vec3 const anchor = is_donor ? p1 : p0;  // hydrogen | acceptor
 
-    TView<Int, 1, D> const offsets = is_donor ? receptor_acceptor_cell_offsets
-                                              : receptor_donor_cell_offsets;
-    TView<Int, 1, D> const indices = is_donor ? receptor_acceptor_cell_indices
-                                              : receptor_donor_cell_indices;
+    TView<Int, 1, D> const offsets =
+        is_donor ? receptor_acceptor_cell_offsets : receptor_donor_cell_offsets;
+    TView<Int, 1, D> const indices =
+        is_donor ? receptor_acceptor_cell_indices : receptor_donor_cell_indices;
     Real total = 0;
     Vec3 grad[3] = {Vec3::Zero(), Vec3::Zero(), Vec3::Zero()};
 
     Int cell_xyz[3];
     for (int axis = 0; axis < 3; ++axis) {
-      cell_xyz[axis] =
-          static_cast<Int>(std::floor((anchor[axis] - cell_origin[axis]) / cutoff));
+      cell_xyz[axis] = static_cast<Int>(
+          std::floor((anchor[axis] - cell_origin[axis]) / cutoff));
     }
     for (Int dx = -1; dx <= 1; ++dx) {
       Int const x = cell_xyz[0] + dx;
@@ -115,7 +116,8 @@ auto LiveHBondDispatch<DeviceOps, D, Real, Int>::forward(
                   acceptor,
                   receptor_acceptors[receptor_site][1],
                   receptor_acceptors[receptor_site][2],
-                  pair_params[site_type][receptor_acceptor_types[receptor_site]],
+                  pair_params[site_type]
+                             [receptor_acceptor_types[receptor_site]],
                   pair_polynomials[site_type]
                                   [receptor_acceptor_types[receptor_site]],
                   globals);

@@ -24,8 +24,8 @@ EIGEN_DEVICE_FUNC Int mirror_grid_index(Int index, Int size) {
 template <typename Real>
 EIGEN_DEVICE_FUNC void cubic_bspline_weights(Real fraction, Real weights[4]) {
   weights[3] = fraction * fraction * fraction / Real(6);
-  weights[0] = Real(1) / Real(6)
-               + fraction * (fraction - Real(1)) / Real(2) - weights[3];
+  weights[0] = Real(1) / Real(6) + fraction * (fraction - Real(1)) / Real(2)
+               - weights[3];
   weights[2] = fraction + weights[0] - Real(2) * weights[3];
   weights[1] = Real(1) - weights[0] - weights[2] - weights[3];
 }
@@ -35,12 +35,9 @@ EIGEN_DEVICE_FUNC void cubic_bspline_weights_and_derivatives(
     Real fraction, Real weights[4], Real derivatives[4]) {
   cubic_bspline_weights(fraction, weights);
   derivatives[3] = fraction * fraction / Real(2);
-  derivatives[0] =
-      fraction - Real(1) / Real(2) - derivatives[3];
-  derivatives[2] =
-      Real(1) + derivatives[0] - fraction * fraction;
-  derivatives[1] =
-      -derivatives[0] - derivatives[2] - derivatives[3];
+  derivatives[0] = fraction - Real(1) / Real(2) - derivatives[3];
+  derivatives[2] = Real(1) + derivatives[0] - fraction * fraction;
+  derivatives[1] = -derivatives[0] - derivatives[2] - derivatives[3];
 }
 
 template <
@@ -79,10 +76,10 @@ auto GridInterpDispatch<DeviceOps, D, Real, Int>::forward_with_derivatives(
     Vec<Real, 3> index = indices[point];
     Int const grid = grid_indices[point];
     Real const max_index = Real(1 << 30);
-    if (grid < 0 || grid >= n_grids
-        || !std::isfinite(index[0]) || std::abs(index[0]) > max_index
-        || !std::isfinite(index[1]) || std::abs(index[1]) > max_index
-        || !std::isfinite(index[2]) || std::abs(index[2]) > max_index) {
+    if (grid < 0 || grid >= n_grids || !std::isfinite(index[0])
+        || std::abs(index[0]) > max_index || !std::isfinite(index[1])
+        || std::abs(index[1]) > max_index || !std::isfinite(index[2])
+        || std::abs(index[2]) > max_index) {
       Real const nan = std::numeric_limits<Real>::quiet_NaN();
       values[point] = nan;
       penalties[point] = nan;
@@ -141,11 +138,9 @@ auto GridInterpDispatch<DeviceOps, D, Real, Int>::forward_with_derivatives(
                           [stencil[2][z_offset]];
           value += weights[0][x_offset] * weights[1][y_offset]
                    * weights[2][z_offset] * coefficient;
-          gradient[0] += weight_derivatives[0][x_offset]
-                         * weights[1][y_offset] * weights[2][z_offset]
-                         * coefficient;
-          gradient[1] += weights[0][x_offset]
-                         * weight_derivatives[1][y_offset]
+          gradient[0] += weight_derivatives[0][x_offset] * weights[1][y_offset]
+                         * weights[2][z_offset] * coefficient;
+          gradient[1] += weights[0][x_offset] * weight_derivatives[1][y_offset]
                          * weights[2][z_offset] * coefficient;
           gradient[2] += weights[0][x_offset] * weights[1][y_offset]
                          * weight_derivatives[2][z_offset] * coefficient;

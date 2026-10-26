@@ -23,8 +23,7 @@ template <
 auto LiveLKBallDispatch<DeviceOps, D, Real, Int>::forward(
     ContextManager& mgr,
     TView<LKBVec<Real, 3>, 2, D> ligand_coords,
-    TView<lk_ball::potentials::LKBallTypeParams<Real>, 1, D>
-        ligand_atom_params,
+    TView<lk_ball::potentials::LKBallTypeParams<Real>, 1, D> ligand_atom_params,
     TView<Int, 1, D> ligand_heavy_atoms,
     TView<Int, 1, D> ligand_polar_atoms,
     TView<Int, 1, D> ligand_atom_to_polar,
@@ -45,9 +44,9 @@ auto LiveLKBallDispatch<DeviceOps, D, Real, Int>::forward(
     TView<lk_ball::potentials::LKBallGlobalParams<Real>, 1, D> global_params,
     bool use_cell_list)
     -> std::tuple<TPack<Real, 2, D>, TPack<LKBVec<Real, 3>, 3, D>> {
-  using lk_ball::potentials::LKBallTypeParams;
   using lk_ball::potentials::build_don_water;
   using lk_ball::potentials::lk_ball_score;
+  using lk_ball::potentials::LKBallTypeParams;
   using Waters = Eigen::Matrix<Real, 4, 3>;
   using Real3 = LKBVec<Real, 3>;
   using common::accumulate;
@@ -57,8 +56,7 @@ auto LiveLKBallDispatch<DeviceOps, D, Real, Int>::forward(
   int const n_ligand_heavy = ligand_heavy_atoms.size(0);
   int const n_ligand_polar = ligand_polar_atoms.size(0);
   auto energies_t = TPack<Real, 2, D>::zeros({n_poses, 4});
-  auto gradients_t =
-      TPack<Real3, 3, D>::zeros({n_poses, 4, n_atoms});
+  auto gradients_t = TPack<Real3, 3, D>::zeros({n_poses, 4, n_atoms});
   auto energies = energies_t.view;
   auto gradients = gradients_t.view;
 
@@ -72,12 +70,13 @@ auto LiveLKBallDispatch<DeviceOps, D, Real, Int>::forward(
   auto evaluate_site = [=] TMOL_DEVICE_FUNC(int work) {
     int const pose = work / (n_sites * 3);
     int const site = (work / 3) % n_sites;
-    int const x_slab = work % 3 - 1;  // this item scans receptor cells at cx + x_slab
+    int const x_slab =
+        work % 3 - 1;  // this item scans receptor cells at cx + x_slab
     bool const is_polar_site = site < n_ligand_polar;
-    Int const atom = is_polar_site
-                         ? ligand_polar_atoms[site]
-                         : ligand_heavy_atoms[site - n_ligand_polar];
-    Int const polar_site = is_polar_site ? Int(site) : ligand_atom_to_polar[atom];
+    Int const atom = is_polar_site ? ligand_polar_atoms[site]
+                                   : ligand_heavy_atoms[site - n_ligand_polar];
+    Int const polar_site =
+        is_polar_site ? Int(site) : ligand_atom_to_polar[atom];
     Real const cutoff = global_params[0].distance_threshold;
     auto const globals = global_params[0];
     Real3 const L = ligand_coords[pose][atom];
@@ -86,21 +85,26 @@ auto LiveLKBallDispatch<DeviceOps, D, Real, Int>::forward(
                             int channel, Int target, Real3 const& gradient) {
       accumulate<D, Real3>::add(gradients[pose][channel][target], gradient);
     };
-    // Ligand waters (kind 1: donor, kind 2: acceptor) of this atom's polar site.
+    // Ligand waters (kind 1: donor, kind 2: acceptor) of this atom's polar
+    // site.
     Waters WL = Waters::Constant(std::numeric_limits<Real>::quiet_NaN());
     if (polar_site >= 0) {
       for (int water = 0; water < 4; ++water) {
         Int const kind = ligand_water_kinds[polar_site][water];
         if (kind == 0) continue;
-        Real3 const xyz0 = ligand_coords[pose][ligand_water_atoms[polar_site][water][0]];
-        Real3 xyz1 = ligand_coords[pose][ligand_water_atoms[polar_site][water][1]];
+        Real3 const xyz0 =
+            ligand_coords[pose][ligand_water_atoms[polar_site][water][0]];
+        Real3 xyz1 =
+            ligand_coords[pose][ligand_water_atoms[polar_site][water][1]];
         Real3 const parameters = ligand_water_params[polar_site][water];
         if (kind == 1) {
           WL.row(water) = build_don_water<Real>::V(xyz0, xyz1, parameters[0]);
           continue;
         }
-        Real3 const xyz2 = ligand_coords[pose][ligand_water_atoms[polar_site][water][2]];
-        if (ligand_water_is_ring[polar_site][water]) xyz1 = (xyz1 + xyz2) / Real(2);
+        Real3 const xyz2 =
+            ligand_coords[pose][ligand_water_atoms[polar_site][water][2]];
+        if (ligand_water_is_ring[polar_site][water])
+          xyz1 = (xyz1 + xyz2) / Real(2);
         WL.row(water) = common::build_coordinate<Real>::V(
             xyz0, xyz1, xyz2, parameters[0], parameters[1], parameters[2]);
       }
@@ -115,7 +119,8 @@ auto LiveLKBallDispatch<DeviceOps, D, Real, Int>::forward(
       Real3 xyz1 = ligand_coords[pose][atom1];
       Real3 const parameters = ligand_water_params[polar_site][water];
       if (kind == 1) {
-        auto const dwater = build_don_water<Real>::dV(xyz0, xyz1, parameters[0]);
+        auto const dwater =
+            build_don_water<Real>::dV(xyz0, xyz1, parameters[0]);
         add_gradient(channel, atom0, dwater.dD * dE_dW);
         add_gradient(channel, atom1, dwater.dH * dE_dW);
         return;
@@ -154,14 +159,16 @@ auto LiveLKBallDispatch<DeviceOps, D, Real, Int>::forward(
       // lk_ball_score is asymmetric: I is the desolvated atom, J the occluder.
       auto const& lig = ligand_atom_params[atom];
       auto const& rec = receptor_params[receptor_atom];
-      auto const value =
-          is_polar_site
-              ? lk_ball_score<Real, 4>::V(L, R, WL, WR, Real(5), lig, rec, globals)
-              : lk_ball_score<Real, 4>::V(R, L, WR, WL, Real(5), rec, lig, globals);
-      auto const deriv =
-          is_polar_site
-              ? lk_ball_score<Real, 4>::dV(L, R, WL, WR, Real(5), lig, rec, globals)
-              : lk_ball_score<Real, 4>::dV(R, L, WR, WL, Real(5), rec, lig, globals);
+      auto const value = is_polar_site
+                             ? lk_ball_score<Real, 4>::V(
+                                   L, R, WL, WR, Real(5), lig, rec, globals)
+                             : lk_ball_score<Real, 4>::V(
+                                   R, L, WR, WL, Real(5), rec, lig, globals);
+      auto const deriv = is_polar_site
+                             ? lk_ball_score<Real, 4>::dV(
+                                   L, R, WL, WR, Real(5), lig, rec, globals)
+                             : lk_ball_score<Real, 4>::dV(
+                                   R, L, WR, WL, Real(5), rec, lig, globals);
       energy[0] += value.lkball_iso;
       energy[1] += value.lkball;
       energy[2] += value.lkbridge;
@@ -194,7 +201,8 @@ auto LiveLKBallDispatch<DeviceOps, D, Real, Int>::forward(
       add_gradient(3, atom, d_direct.d_lkbridge_uncpl);
       if (polar_site < 0) return;
       for (int water = 0; water < 4; ++water) {
-        add_water_gradient(water, 0, d_water.d_lkball_iso.row(water).transpose());
+        add_water_gradient(
+            water, 0, d_water.d_lkball_iso.row(water).transpose());
         add_water_gradient(water, 1, d_water.d_lkball.row(water).transpose());
         add_water_gradient(water, 2, d_water.d_lkbridge.row(water).transpose());
         add_water_gradient(
@@ -233,7 +241,8 @@ auto LiveLKBallDispatch<DeviceOps, D, Real, Int>::forward(
     }
     flush();
   };
-  DeviceOps<D>::template forall<launch_t>(mgr, n_poses * n_sites * 3, evaluate_site);
+  DeviceOps<D>::template forall<launch_t>(
+      mgr, n_poses * n_sites * 3, evaluate_site);
   return std::make_tuple(energies_t, gradients_t);
 }
 

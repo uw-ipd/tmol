@@ -22,12 +22,12 @@ from tmol.score.ljlk import LJLKEnergyTerm
 from tmol.score.lk_ball import LKBallEnergyTerm
 from tmol.score import ScoreFunction, ScoreType, beta2016_score_function
 
+from ._common import build_cell_list, cell_grid
 from .live_lk_ball import _generate_reference_waters
 
 DEFAULT_VOXEL_SPACING = 0.25
 DEFAULT_BBOX_PADDING = 4.0
 _SERIALIZATION_VERSION = 3
-_CUBIC_BSPLINE_POLE = math.sqrt(3.0) - 2.0
 OUT_OF_BOUNDS_PENALTY = 50.0
 GRID_LK_BALL_WATER_DISTANCE = 2.65
 GRID_LK_BALL_FADE = 1.0
@@ -43,73 +43,44 @@ def ixform_rep(transformed_rep: torch.Tensor) -> torch.Tensor:
     return torch.pow(transformed_rep, -4) - 1
 
 
-def _prefilter_cubic_bspline_axis_(values: torch.Tensor, axis: int) -> None:
-    """Apply Rosetta's mirror-boundary cubic B-spline recursion on one axis."""
-    lines_tensor = values.movedim(axis, -1).contiguous()
-    lines = lines_tensor.reshape(-1, lines_tensor.shape[-1])
-    line_length = lines.shape[1]
-    if line_length == 1:
-        return
+def _mirror_spline_inverse(n: int) -> torch.Tensor:
+    """Inverse of the cubic B-spline interpolation matrix with mirror boundaries.
 
-    pole = _CUBIC_BSPLINE_POLE
-    gain = (1.0 - pole) * (1.0 - 1.0 / pole)
-    lines.mul_(gain)
-
-    tolerance = torch.finfo(values.dtype).eps
-    horizon = min(line_length, math.ceil(math.log(tolerance) / math.log(abs(pole))))
-    if horizon < line_length:
-        causal = lines[:, 0].clone()
-        pole_power = pole
-        for index in range(1, horizon):
-            causal.add_(lines[:, index], alpha=pole_power)
-            pole_power *= pole
-    else:
-        pole_power = pole
-        inverse_pole = 1.0 / pole
-        opposite_power = pole ** (line_length - 1)
-        causal = lines[:, 0] + opposite_power * lines[:, -1]
-        opposite_power *= opposite_power * inverse_pole
-        for index in range(1, line_length - 1):
-            causal.add_(lines[:, index], alpha=pole_power + opposite_power)
-            pole_power *= pole
-            opposite_power *= inverse_pole
-        causal.div_(1.0 - pole_power * pole_power)
-    lines[:, 0] = causal
-
-    for index in range(1, line_length):
-        lines[:, index].add_(lines[:, index - 1], alpha=pole)
-
-    lines[:, -1] = (pole / (pole * pole - 1.0)) * (pole * lines[:, -2] + lines[:, -1])
-    for index in range(line_length - 2, -1, -1):
-        lines[:, index] = pole * (lines[:, index + 1] - lines[:, index])
-
-    values.copy_(lines_tensor.movedim(-1, axis))
+    Row ``k`` is ``(c[k-1] + 4 c[k] + c[k+1]) / 6`` with ``c[-1] = c[1]`` and
+    ``c[n] = c[n-2]`` (Rosetta's mirror boundary).
+    """
+    matrix = torch.zeros((n, n), dtype=torch.float64)
+    index = torch.arange(n)
+    matrix[index, index] = 4.0 / 6.0
+    matrix[index[:-1], index[:-1] + 1] = 1.0 / 6.0
+    matrix[index[1:], index[1:] - 1] = 1.0 / 6.0
+    matrix[0, 1] *= 2
+    matrix[-1, -2] *= 2
+    return torch.linalg.inv(matrix)
 
 
 def compute_cubic_bspline_coefficients(values: torch.Tensor) -> torch.Tensor:
     """Compute separable cubic B-spline coefficients with mirror boundaries.
 
     The final three tensor axes are the spatial ``(x, y, z)`` axes. Leading
-    axes, such as the grid atom-type axis, index independent grids. This is a
-    one-time CPU precomputation and intentionally does not preserve autograd.
+    axes, such as the grid atom-type axis, index independent grids. Runs on the
+    device of ``values`` (float64 internally, cast back) as three batched
+    matrix products, and does not preserve autograd.
     """
-    if values.device.type != "cpu":
-        raise ValueError("spline coefficients must be computed on CPU")
     if values.ndim < 3:
         raise ValueError("grid values must have at least three dimensions")
     if any(size <= 0 for size in values.shape[-3:]):
         raise ValueError("spatial grid dimensions must be positive")
 
-    # Run the Thevenaz recursion in float64 regardless of input dtype: Rosetta's
-    # prefilter always uses DBL_EPSILON for the causal-init horizon, so a float32
-    # epsilon would truncate the horizon differently. Cast back at the end.
-    # NOTE: .clone() is essential — the recursion is IN-PLACE, and .to(float64) on
-    # a float64 input aliases the source, which would corrupt `values`.
-    input_dtype = values.dtype
-    coefficients = values.detach().clone().to(torch.float64).contiguous()
+    coefficients = values.detach().to(torch.float64)
     for axis in range(coefficients.ndim - 3, coefficients.ndim):
-        _prefilter_cubic_bspline_axis_(coefficients, axis)
-    return coefficients.to(input_dtype)
+        n = coefficients.shape[axis]
+        if n > 1:
+            inverse = _mirror_spline_inverse(n).to(values.device)
+            coefficients = (coefficients.movedim(axis, -1) @ inverse.T).movedim(
+                -1, axis
+            )
+    return coefficients.contiguous().to(values.dtype)
 
 
 @dataclass(frozen=True)
@@ -199,10 +170,6 @@ class GridSet:
             grid = getattr(self, grid_name)
             coefficients = getattr(self, coefficient_name)
             if coefficients is None:
-                if grid.device.type != "cpu":
-                    raise ValueError(
-                        f"{coefficient_name} is required for a non-CPU GridSet"
-                    )
                 coefficients = compute_cubic_bspline_coefficients(grid)
                 object.__setattr__(self, coefficient_name, coefficients)
             if coefficients.dtype != grid.dtype or coefficients.device != grid.device:
@@ -301,6 +268,17 @@ class GridSet:
             lk_ball_water_coeffs=state.get("lk_ball_water_coeffs"),
             lk_bridge_coeffs=state.get("lk_bridge_coeffs"),
         )
+
+    def on(self, device: str | torch.device, dtype: torch.dtype) -> "GridSet":
+        """``to(device, dtype)``, computed once per target and cached on the set.
+
+        Lets every backend that shares this ``GridSet`` share one device copy.
+        """
+        cache = self.__dict__.setdefault("_device_copies", {})
+        key = (torch.device(device), dtype)
+        if key not in cache:
+            cache[key] = self.to(device, dtype)
+        return cache[key]
 
     def to(
         self, device: str | torch.device, dtype: torch.dtype | None = None
@@ -520,6 +498,67 @@ def _extract_ligand_and_receptor_atoms(
     )
 
 
+def compute_receptor_grids(
+    receptor_coords: torch.Tensor,
+    receptor_types: torch.Tensor,
+    receptor_charges: torch.Tensor,
+    probe_types: torch.Tensor,
+    origin: torch.Tensor,
+    dims: tuple[int, int, int],
+    voxel_spacing: float,
+    ljlk_type_params: torch.Tensor,
+    ljlk_global_params: torch.Tensor,
+    elec_global_params: torch.Tensor,
+    *,
+    receptor_waters: torch.Tensor | None = None,
+    lk_ball_weights: torch.Tensor | None = None,
+    device: str | torch.device = "cpu",
+) -> list[torch.Tensor]:
+    """Receptor-vs-probe grids on ``device``: ``[fa_atr, fa_rep, fa_sol, fa_elec]``
+    plus ``[lk_ball, lk_ball_water, lk_bridge]`` when ``lk_ball_weights`` is given.
+
+    ``fa_rep`` is transformed, typed grids are ``[probe, x, y, z]``. Inputs are
+    CPU tensors (float64 coordinates and charges, int64 types); a CSR cell list
+    over the receptor atoms bounds the neighbor search on the device.
+    """
+    from .potentials.compiled import build_grid as build_grid_op
+
+    device = torch.device(device)
+    max_dis = float(max(ljlk_global_params[0, 0], elec_global_params[4]))
+    cell_origin, cell_dims = cell_grid(receptor_coords, max_dis)
+    cell_offsets, cell_indices = build_cell_list(
+        receptor_coords, cell_origin, cell_dims, max_dis
+    )
+    build_lk_ball = lk_ball_weights is not None
+    if receptor_waters is None:
+        receptor_waters = torch.zeros((1, 4, 3), dtype=torch.float64)
+    if lk_ball_weights is None:
+        lk_ball_weights = torch.zeros(4, dtype=torch.float64)
+    on = lambda t: t.contiguous().to(device)  # noqa: E731
+    grids = build_grid_op(
+        on(receptor_coords),
+        on(receptor_types),
+        on(receptor_charges),
+        on(receptor_waters),
+        on(probe_types),
+        on(ljlk_type_params),
+        ljlk_global_params.contiguous(),
+        elec_global_params.contiguous(),
+        lk_ball_weights.contiguous(),
+        on(cell_offsets),
+        on(cell_indices),
+        on(cell_origin),
+        on(cell_dims),
+        on(origin),
+        torch.tensor(dims, dtype=torch.int64),
+        float(voxel_spacing),
+        build_lk_ball,
+    )
+    typed = (probe_types.shape[0], *dims)
+    shapes = [typed] * 3 + [tuple(dims)] + [typed] * 3
+    return [grid.view(shape) for grid, shape in zip(grids, shapes)]
+
+
 def build_grid(
     pose_stack: PoseStack,
     probe_atom_types: Sequence[str],
@@ -531,8 +570,11 @@ def build_grid(
     score_function: ScoreFunction | None = None,
     build_lk_ball: bool = False,
     excluded_receptor_blocks: tuple[int, ...] = (),
+    device: str | torch.device = "cpu",
 ) -> GridSet:
     """Build beta16 all-atom grids and optional Rosetta-style LK-ball grids.
+
+    The grids are computed (and spline-prefiltered) on ``device``.
 
     Probe atom-type names are deduplicated and sorted, making the grid-to-type
     mapping deterministic even when the caller passes a set.
@@ -593,57 +635,46 @@ def build_grid(
         ljlk_term, elec_term
     )
 
-    from .potentials.compiled import build_grid as build_grid_op
-
-    dims = torch.tensor(geometry.dims, dtype=torch.int64)
-    grid_args = (
-        receptor_coords,
-        receptor_types,
-        receptor_charges,
-        probe_atom_type_indices,
-        geometry.origin.contiguous(),
-        dims,
-        geometry.voxel_spacing,
-        ljlk_type_params,
-        ljlk_global_params,
-        elec_global_params,
-    )
+    lk_ball_weights = None
     if build_lk_ball:
         if score_function is None:
             score_function = beta2016_score_function(
                 torch.device("cpu"), param_db=param_db
             )
-        lk_ball_weights = (
-            torch.stack(
-                [
-                    score_function.get_weight(score_type)
-                    for score_type in LK_BALL_SCORE_TYPES
-                ]
-            )
-            .to(dtype=torch.float64, device="cpu")
-            .contiguous()
-        )
-        lk_ball_enabled = bool(torch.any(lk_ball_weights != 0))
-        lk_bridge_enabled = bool(torch.any(lk_ball_weights[2:] != 0))
-        from .potentials.compiled import build_grid_lk_ball
-
-        (
-            fa_atr,
-            fa_rep,
-            fa_sol,
-            fa_elec,
-            lk_ball,
-            lk_ball_water,
-            lk_bridge,
-        ) = build_grid_lk_ball(*grid_args, receptor_waters, lk_ball_weights)
-    else:
-        fa_atr, fa_rep, fa_sol, fa_elec = build_grid_op(*grid_args)
-        lk_ball = lk_ball_water = lk_bridge = None
-        lk_ball_enabled = lk_bridge_enabled = False
+        lk_ball_weights = torch.stack(
+            [score_function.get_weight(t) for t in LK_BALL_SCORE_TYPES]
+        ).to(dtype=torch.float64, device="cpu")
+    device = torch.device(device)
+    fa_atr, fa_rep, fa_sol, fa_elec, *lk = compute_receptor_grids(
+        receptor_coords,
+        receptor_types,
+        receptor_charges,
+        probe_atom_type_indices,
+        geometry.origin,
+        geometry.dims,
+        geometry.voxel_spacing,
+        ljlk_type_params,
+        ljlk_global_params,
+        elec_global_params,
+        receptor_waters=receptor_waters,
+        lk_ball_weights=lk_ball_weights,
+        device=device,
+    )
+    lk_ball, lk_ball_water, lk_bridge = lk if build_lk_ball else (None,) * 3
+    lk_ball_enabled = build_lk_ball and bool(torch.any(lk_ball_weights != 0))
+    lk_bridge_enabled = build_lk_ball and bool(torch.any(lk_ball_weights[2:] != 0))
+    on = lambda t: t.contiguous().to(device)  # noqa: E731
+    geometry = GridGeometry(
+        origin=on(geometry.origin),
+        dims=geometry.dims,
+        voxel_spacing=geometry.voxel_spacing,
+        ligand_com=on(geometry.ligand_com),
+        max_radius=geometry.max_radius,
+    )
     return GridSet(
         geometry=geometry,
         atom_type_names=atom_type_names,
-        atom_type_indices=probe_atom_type_indices,
+        atom_type_indices=on(probe_atom_type_indices),
         fa_atr=fa_atr,
         fa_rep=fa_rep,
         fa_sol=fa_sol,

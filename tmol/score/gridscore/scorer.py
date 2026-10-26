@@ -122,7 +122,7 @@ class GridScorer:
         grid_atoms: torch.Tensor | None = None,
     ) -> None:
         device = torch.empty(0, device=device).device
-        self.grids = grids.to(device, dtype=dtype)
+        self.grids = grids.on(device, dtype)
         self.live_hbond = live_hbond and live_hbond.to(device, dtype)
         self.live_lk_ball = live_lk_ball and live_lk_ball.to(device, dtype)
         self.live_ligand_intra = live_ligand_intra and live_ligand_intra.to(
