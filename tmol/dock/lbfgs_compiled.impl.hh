@@ -130,7 +130,8 @@ void LBFGSDispatch<DeviceDispatch, D, Real>::update(
           if (trial_f[t][i] <= f[i] + c1 * alpha[t][i] * gd[i]) first = t;
         }
         if (first < 0) {
-          // No acceptable step: restart from steepest descent, with a smaller step.
+          // No acceptable step: restart from steepest descent, with a smaller
+          // step.
           for (int j = 0; j < history; ++j) rho[i][j] = 0;
           shrink[i] = shrink[i] / 64;
           small[i] = 0;
@@ -153,7 +154,8 @@ void LBFGSDispatch<DeviceDispatch, D, Real>::update(
         }
         for (int j = 0; j + 1 < history; ++j) rho[i][j] = rho[i][j + 1];
         bool const useful = sy > Real(1e-10) * std::sqrt(ss) * std::sqrt(yy);
-        rho[i][history - 1] = useful ? Real(1) / std::max(sy, Real(1e-30)) : Real(0);
+        rho[i][history - 1] =
+            useful ? Real(1) / std::max(sy, Real(1e-30)) : Real(0);
         if (useful) gamma[i] = sy / std::max(yy, Real(1e-30));
 
         Real const new_f = trial_f[first][i];

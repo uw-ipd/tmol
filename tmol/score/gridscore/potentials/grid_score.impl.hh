@@ -36,7 +36,7 @@ EIGEN_DEVICE_FUNC GridVec<Real, 3> water_position(
     // A hydrogen coincident with its donor has no direction: use the donor.
     return (xyz1 - xyz0).squaredNorm() > Real(0)
                ? lk_ball::potentials::build_don_water<Real>::V(
-                   xyz0, xyz1, water_distance)
+                     xyz0, xyz1, water_distance)
                : xyz0;
   }
   Real3 const xyz2 = coords[pose][atoms[2]];
@@ -66,8 +66,10 @@ EIGEN_DEVICE_FUNC void propagate_water_gradient(
   if (kind == 1) {
     auto const deriv = lk_ball::potentials::build_don_water<Real>::dV(
         xyz0, xyz1, water_distance);
-    common::accumulate<D, Real3>::add(gradient[pose][atoms[0]], deriv.dD * dE_dW);
-    common::accumulate<D, Real3>::add(gradient[pose][atoms[1]], deriv.dH * dE_dW);
+    common::accumulate<D, Real3>::add(
+        gradient[pose][atoms[0]], deriv.dD * dE_dW);
+    common::accumulate<D, Real3>::add(
+        gradient[pose][atoms[1]], deriv.dH * dE_dW);
     return;
   }
   Real3 const xyz2 = coords[pose][atoms[2]];
@@ -81,9 +83,11 @@ EIGEN_DEVICE_FUNC void propagate_water_gradient(
     common::accumulate<D, Real3>::add(
         gradient[pose][atoms[2]], Real(0.5) * deriv.dgp * dE_dW);
   } else {
-    common::accumulate<D, Real3>::add(gradient[pose][atoms[1]], deriv.dgp * dE_dW);
+    common::accumulate<D, Real3>::add(
+        gradient[pose][atoms[1]], deriv.dgp * dE_dW);
   }
-  common::accumulate<D, Real3>::add(gradient[pose][atoms[2]], deriv.dggp * dE_dW);
+  common::accumulate<D, Real3>::add(
+      gradient[pose][atoms[2]], deriv.dggp * dE_dW);
 }
 
 }  // namespace grid_score_detail
@@ -114,8 +118,7 @@ auto GridScoreDispatch<DeviceOps, D, Real, Int>::atoms(
   int const n_grid_atoms = grid_atoms.size(0);
   int const n_types = atr.size(0);
   bool const with_lk_ball = lk_ball.size(0) > 0;
-  int const dims[3] = {
-      int(atr.size(1)), int(atr.size(2)), int(atr.size(3))};
+  int const dims[3] = {int(atr.size(1)), int(atr.size(2)), int(atr.size(3))};
   auto energy_t = TPack<Real, 2, D>::zeros({n_poses, n_grid_atoms});
   auto gradient_t = TPack<GridVec<Real, 3>, 2, D>::zeros({n_poses, n_atoms});
   auto energy = energy_t.view;
@@ -139,8 +142,7 @@ auto GridScoreDispatch<DeviceOps, D, Real, Int>::atoms(
         if (!stencil.valid || type < 0 || type >= n_types) {
           energy[pose][g] = std::numeric_limits<Real>::quiet_NaN();
           for (int axis = 0; axis < 3; ++axis) {
-            gradient[pose][atom][axis] =
-                std::numeric_limits<Real>::quiet_NaN();
+            gradient[pose][atom][axis] = std::numeric_limits<Real>::quiet_NaN();
           }
           return;
         }
@@ -164,9 +166,8 @@ auto GridScoreDispatch<DeviceOps, D, Real, Int>::atoms(
           gradient[pose][atom][axis] =
               scale
               * (weights[0] * d_atr[axis] + weights[1] * rep_slope * d_rep[axis]
-                 + weights[2] * d_sol[axis]
-                 + weights[3] * charge * d_elec[axis] + d_lk[axis]
-                 + stencil.penalty_gradient[axis]);
+                 + weights[2] * d_sol[axis] + weights[3] * charge * d_elec[axis]
+                 + d_lk[axis] + stencil.penalty_gradient[axis]);
         }
       });
   return {energy_t, gradient_t};
@@ -235,7 +236,8 @@ void GridScoreDispatch<DeviceOps, D, Real, Int>::waters(
             for (int axis = 0; axis < 3; ++axis) {
               position[axis] = (water[axis] - origin[axis]) / voxel_spacing;
             }
-            auto const stencil = make_grid_stencil<Real>(position, dims, Real(0));
+            auto const stencil =
+                make_grid_stencil<Real>(position, dims, Real(0));
             if (!stencil.valid) {
               Real const nan = std::numeric_limits<Real>::quiet_NaN();
               value_water[slot] = value_bridge[slot] = nan;
@@ -245,10 +247,16 @@ void GridScoreDispatch<DeviceOps, D, Real, Int>::waters(
               continue;
             }
             contract_grid<D, Real>(
-                water_grid, polar_types[polar], stencil, value_water[slot],
+                water_grid,
+                polar_types[polar],
+                stencil,
+                value_water[slot],
                 slope_water[slot]);
             contract_grid<D, Real>(
-                bridge_grid, polar_types[polar], stencil, value_bridge[slot],
+                bridge_grid,
+                polar_types[polar],
+                stencil,
+                value_bridge[slot],
                 slope_bridge[slot]);
           }
           if (!any_water) return;

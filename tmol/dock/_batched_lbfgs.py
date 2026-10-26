@@ -78,14 +78,35 @@ class BatchedLBFGS:
     def _iterate(self) -> None:
         """One L-BFGS iteration: fused direction, batched line-search trials, fused update."""
         trial_x, alpha, gd = lbfgs_direction(
-            self.x, self.g, self.s_hist, self.y_hist, self.rho, self.gamma,
-            self.shrink, self.n_trials,
+            self.x,
+            self.g,
+            self.s_hist,
+            self.y_hist,
+            self.rho,
+            self.gamma,
+            self.shrink,
+            self.n_trials,
         )
         trial_f, trial_g = self.evaluate(trial_x)
         lbfgs_update(
-            self.x, self.f, self.g, self.s_hist, self.y_hist, self.rho, self.gamma,
-            self.shrink, self.small, self.active, trial_x, trial_f, trial_g, alpha,
-            gd, self.c1, self.atol, self.patience,
+            self.x,
+            self.f,
+            self.g,
+            self.s_hist,
+            self.y_hist,
+            self.rho,
+            self.gamma,
+            self.shrink,
+            self.small,
+            self.active,
+            trial_x,
+            trial_f,
+            trial_g,
+            alpha,
+            gd,
+            self.c1,
+            self.atol,
+            self.patience,
         )
 
     def _capture(self) -> None:
@@ -101,13 +122,18 @@ class BatchedLBFGS:
                 self._iterate()
         torch.cuda.current_stream(self.x.device).wait_stream(stream)
         self._graph = torch.cuda.CUDAGraph()
-        with torch.cuda.graph(
-            self._graph, stream=stream, capture_error_mode="thread_local"
-        ), torch.no_grad():
+        with (
+            torch.cuda.graph(
+                self._graph, stream=stream, capture_error_mode="thread_local"
+            ),
+            torch.no_grad(),
+        ):
             self._iterate()
         self._start = start
 
-    def minimize(self, x0: torch.Tensor, max_iter: int, check_every: int = 10) -> torch.Tensor:
+    def minimize(
+        self, x0: torch.Tensor, max_iter: int, check_every: int = 10
+    ) -> torch.Tensor:
         """Run up to ``max_iter`` iterations from ``x0``; returns the final DOFs."""
         with torch.no_grad():
             self._reset(x0)

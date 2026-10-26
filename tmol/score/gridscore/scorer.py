@@ -266,7 +266,10 @@ class GridScorer:
                 OUT_OF_BOUNDS_PENALTY,
             )
             energies = atom_energies.sum(dim=1)
-            if self._lk_heavy_coeffs.shape[0] and self.live_lk_ball.ligand_polar_atoms.numel():
+            if (
+                self._lk_heavy_coeffs.shape[0]
+                and self.live_lk_ball.ligand_polar_atoms.numel()
+            ):
                 data = self.live_lk_ball
                 grid_score_waters(
                     coords,

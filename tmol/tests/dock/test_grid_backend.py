@@ -13,7 +13,6 @@ import tmol.dock.scoring_backend as scoring_backend_module
 from tmol.dock import ContinuousBackend, GASchedule, GridBackend, run_docking
 from tmol.dock.ga import LigandGeneLayout
 from tmol.dock.ligand_dofs import build_ligand_docking_dofs
-from tmol.optimization import build_kinforest_network, run_min
 from tmol.tests.dock.test_ligand_dof_roundtrip import _load_cdk2_pose_on_device
 from tmol.tests.dock.test_ligand_dof_roundtrip import (
     _ligand_block,

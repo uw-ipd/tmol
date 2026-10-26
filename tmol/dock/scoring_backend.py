@@ -472,7 +472,9 @@ class _PopulationMinimizer:
 
         def evaluate(x):
             energy, gradient = self.objective.energy_and_gradient(x.reshape(-1))
-            return energy.reshape(n_trials, n_poses).to(x.dtype), gradient.reshape(shape)
+            return energy.reshape(n_trials, n_poses).to(x.dtype), gradient.reshape(
+                shape
+            )
 
         x0 = self.objective.initial_masked_dofs.reshape(n_trials, n_poses, -1)[0]
         self.lbfgs = BatchedLBFGS(
@@ -799,9 +801,8 @@ class GridBackend(ScoringBackend):
                 self.ligand_charges,
                 device=device,
                 dtype=dtype,
-                score_function=beta2016_score_function(
-                    torch.device(device), param_db=self.param_db
-                ),
+                # Only the term weights are read: the memoized default has them.
+                score_function=beta2016_score_function(torch.device(device)),
                 live_hbond=self.live_hbond,
                 live_lk_ball=self.live_lk_ball,
                 live_ligand_intra=self.live_ligand_intra,

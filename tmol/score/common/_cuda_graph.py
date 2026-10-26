@@ -118,33 +118,3 @@ class CapturedScoringGraph(torch.nn.Module):
         if self.module.training != self._graph_training_state:
             return self.module(coords)
         return _ReplayScoringGraph.apply(self, coords, *self._parameters_for_capture)
-
-
-class CapturedFunction:
-    """Replay of a CUDA-graph capture of ``function(x) -> Tensor | tuple[Tensor, ...]``.
-
-    ``function`` must run entirely on the device with fixed shapes: no host
-    synchronisation and no host-to-device copies. Outputs are returned as
-    copies, so callers may keep them across replays.
-    """
-
-    def __init__(self, function, example: torch.Tensor):
-        self._input = example.detach().clone()
-        device = self._input.device
-        stream = torch.cuda.Stream(device=device)
-        stream.wait_stream(torch.cuda.current_stream(device))
-        with torch.cuda.stream(stream), torch.no_grad():
-            for _ in range(3):  # warm up lazily built state outside the capture
-                function(self._input)
-        torch.cuda.current_stream(device).wait_stream(stream)
-        self._graph = torch.cuda.CUDAGraph()
-        with torch.cuda.graph(self._graph, stream=stream), torch.no_grad():
-            output = function(self._input)
-        self._single = isinstance(output, torch.Tensor)
-        self._outputs = (output,) if self._single else tuple(output)
-
-    def __call__(self, x: torch.Tensor):
-        self._input.copy_(x.detach())
-        self._graph.replay()
-        outputs = tuple(output.clone() for output in self._outputs)
-        return outputs[0] if self._single else outputs

@@ -572,28 +572,30 @@ std::tuple<Tensor, Tensor> grid_score_atoms(
     Tensor weights,
     double out_of_bounds_penalty) {
   Tensor energy, gradient;
-  TMOL_DISPATCH_FLOATING_DEVICE(coords.options(), "grid_score_atoms", ([&] {
-    using Real = scalar_t;
-    constexpr tmol::Device Dev = device_t;
-    auto result = GridScoreDispatch<common::DeviceOperations, Dev, Real, int64_t>::
-        atoms(
-            interpolation_context,
-            TCAST(coords),
-            TCAST(grid_atoms),
-            TCAST(atom_types),
-            TCAST(charges),
-            TCAST(atr),
-            TCAST(rep),
-            TCAST(sol),
-            TCAST(elec),
-            TCAST(lk_ball),
-            TCAST(origin),
-            Real(voxel_spacing),
-            TCAST(weights),
-            Real(out_of_bounds_penalty));
-    energy = std::get<0>(result).tensor;
-    gradient = std::get<1>(result).tensor;
-  }));
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      coords.options(), "grid_score_atoms", ([&] {
+        using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
+        auto result =
+            GridScoreDispatch<common::DeviceOperations, Dev, Real, int64_t>::
+                atoms(
+                    interpolation_context,
+                    TCAST(coords),
+                    TCAST(grid_atoms),
+                    TCAST(atom_types),
+                    TCAST(charges),
+                    TCAST(atr),
+                    TCAST(rep),
+                    TCAST(sol),
+                    TCAST(elec),
+                    TCAST(lk_ball),
+                    TCAST(origin),
+                    Real(voxel_spacing),
+                    TCAST(weights),
+                    Real(out_of_bounds_penalty));
+        energy = std::get<0>(result).tensor;
+        gradient = std::get<1>(result).tensor;
+      }));
   return {energy, gradient};
 }
 
@@ -615,28 +617,29 @@ Tensor grid_score_waters(
     bool bridge_enabled,
     Tensor energy,
     Tensor gradient) {
-  TMOL_DISPATCH_FLOATING_DEVICE(coords.options(), "grid_score_waters", ([&] {
-    using Real = scalar_t;
-    constexpr tmol::Device Dev = device_t;
-    GridScoreDispatch<common::DeviceOperations, Dev, Real, int64_t>::waters(
-        interpolation_context,
-        TCAST(coords),
-        TCAST(polar_atoms),
-        TCAST(water_kinds),
-        TCAST(water_atoms),
-        TCAST(water_params),
-        TCAST(water_is_ring),
-        TCAST(polar_types),
-        TCAST(water_grid),
-        TCAST(bridge_grid),
-        TCAST(origin),
-        Real(voxel_spacing),
-        Real(water_distance),
-        Real(fade),
-        bridge_enabled,
-        TCAST(energy),
-        TCAST(gradient));
-  }));
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      coords.options(), "grid_score_waters", ([&] {
+        using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
+        GridScoreDispatch<common::DeviceOperations, Dev, Real, int64_t>::waters(
+            interpolation_context,
+            TCAST(coords),
+            TCAST(polar_atoms),
+            TCAST(water_kinds),
+            TCAST(water_atoms),
+            TCAST(water_params),
+            TCAST(water_is_ring),
+            TCAST(polar_types),
+            TCAST(water_grid),
+            TCAST(bridge_grid),
+            TCAST(origin),
+            Real(voxel_spacing),
+            Real(water_distance),
+            Real(fade),
+            bridge_enabled,
+            TCAST(energy),
+            TCAST(gradient));
+      }));
   return energy;
 }
 
