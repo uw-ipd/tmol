@@ -686,7 +686,9 @@ to extract the optimized PoseStack.</p>
 <li><p><strong>sfxn_module</strong> – A CartesianSfxnNetwork, KinForestSfxnNetwork, or
 any nn.Module with a compatible interface.</p></li>
 <li><p><strong>optimizer_cls</strong> – A torch.optim.Optimizer class. Must support a
-closure-based step() call (e.g. LBFGS_Armijo, torch LBFGS).</p></li>
+closure-based step() call (e.g. LBFGS_Armijo, torch LBFGS).
+An optimizer with a truthy <code class="docutils literal notranslate"><span class="pre">value_only_line_search</span></code> attribute
+is also passed a gradient-free energy closure for its line search.</p></li>
 <li><p><strong>optimizer_kwargs</strong> – Dict of keyword arguments passed to the optimizer
 constructor.</p></li>
 <li><p><strong>verbose</strong> – Print timing information.</p></li>
