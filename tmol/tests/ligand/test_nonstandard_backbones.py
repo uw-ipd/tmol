@@ -33,11 +33,8 @@ import biotite.structure as struc
 import biotite.structure.info as info
 
 from tmol import ParameterDatabase
-from tmol.ligand._preparation import (
-    LigandPreparationError,
-    _prepare_polymer_residue,
-    _ideal_coords_by_name,
-)
+from tmol.ligand import LigandPreparationError
+from tmol.ligand._preparation import _prepare_polymer_residue, _ideal_coords_by_name
 from tmol.ligand._polymer_profile import _alpha_profile, _profile_for_atom_array
 from tmol.ligand._registry import _rebuild_canonical_ordering
 

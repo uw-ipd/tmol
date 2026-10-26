@@ -1,4 +1,4 @@
-"""Independent Cartesian reference for the peptide-bond torsions."""
+"""Independent Cartesian reference for the peptide-bond impropers."""
 
 import pytest
 import torch
@@ -8,7 +8,7 @@ from tmol.tests.score.common import pose_stack_from_pdb_and_resnums
 
 
 @pytest.mark.parametrize("resnums", [[(0, 4)], [(17, 20)]])
-def test_peptide_bond_torsion_energy_and_gradient(
+def test_peptide_bond_improper_energy_and_gradient(
     ubq_pdb, default_database, torch_device, resnums
 ):
     pose = pose_stack_from_pdb_and_resnums(ubq_pdb, torch_device, resnums)
@@ -20,7 +20,7 @@ def test_peptide_bond_torsion_energy_and_gradient(
     term.setup_poses(pose)
     module = term.render_block_pair_scoring_module(pose)
     coords = pose.coords.double().clone()
-    # Twist the peptide bonds away from planarity, where the energy and its
+    # Twist the peptide groups away from planarity, where the energy and its
     # gradient would be near zero whether or not the terms are scored.
     coords += 0.17 * torch.sin(
         torch.arange(coords.numel(), device=torch_device)
@@ -31,13 +31,16 @@ def test_peptide_bond_torsion_energy_and_gradient(
         n_blocks, n_blocks
     )
     weights.fill_diagonal_(0)
-    actual = (module(coords)[2, 0] * weights).sum()
+    energies = module(coords)
+    # no cart_bonded torsion spans the peptide bond; omega scores it
+    assert float((energies[2, 0] * weights).abs().sum()) == 0
+    actual = (energies[3, 0] * weights).sum()
 
     def xyz(block, name):
         bt = pbt.active_block_types[int(pose.block_type_ind[0, block])]
         return coords[0, int(pose.block_coord_offset[0, block]) + bt.atom_to_idx[name]]
 
-    def torsion(k2, a, b, c, d):
+    def improper(k2, a, b, c, d):
         # k2 * (cos(2 phi - pi) + 1), the wildcard rows' potential, is
         # 2 k2 sin(phi)^2. Plane normals avoid tmol's dihedral routines.
         first = torch.linalg.cross(b - a, c - b)
@@ -50,10 +53,11 @@ def test_peptide_bond_torsion_energy_and_gradient(
         right = left + 1
         bt = pbt.active_block_types[int(pose.block_type_ind[0, right])]
         c, n = xyz(left, "C"), xyz(right, "N")
-        energy = torsion(9.667, xyz(left, "O"), c, n, xyz(right, "CA"))
-        if bt.base_name != "PRO":
-            energy = energy + torsion(10.458, xyz(left, "CA"), c, n, xyz(right, "H"))
-            energy = energy + torsion(10.992, xyz(left, "O"), c, n, xyz(right, "H"))
+        energy = improper(9.667, xyz(left, "CA"), n, c, xyz(left, "O"))
+        if bt.base_name == "PRO":
+            energy = energy + improper(11.534, xyz(right, "CD"), c, n, xyz(right, "CA"))
+        else:
+            energy = energy + improper(10.458, xyz(right, "CA"), c, n, xyz(right, "H"))
         expected += weights[left, right] * energy
     assert float(expected.detach()) > 0.01
     torch.testing.assert_close(actual, expected, atol=2e-6, rtol=2e-6)

@@ -22,16 +22,12 @@ import numpy as np
 import pytest
 
 from tmol import ParameterDatabase
-from tmol.ligand._preparation import (
-    LigandPreparationError,
-    _prepare_polymer_residue,
-    _ideal_coords_by_name,
-)
+from tmol.ligand import LigandPreparationError, prepare_ligands
+from tmol.ligand._preparation import _prepare_polymer_residue, _ideal_coords_by_name
 from tmol.ligand._detect import (
     _chem_comp_types_from_cif,
     _is_polymer_linking_component_type,
 )
-from tmol.ligand import prepare_ligands
 from tmol.ligand._polymer_profile import _alpha_profile
 from tmol.ligand._registry import _rebuild_canonical_ordering
 from tmol.tests.data import data_path

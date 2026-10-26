@@ -203,7 +203,7 @@ def test_isolated_halogen_charge_provenance(
 ) -> None:
     """Reject authored neutral halogen without overriding source or CCD charge."""
     from tmol import pose_stack_from_atom_array
-    from tmol.ligand._preparation import LigandPreparationError
+    from tmol.ligand import LigandPreparationError
     from tmol.tests.ligand.test_local_conjugate_params import _charges
 
     path = _write_halogen_cif(tmp_path, source_charge)
@@ -566,9 +566,7 @@ def test_shared_parser_builds_and_scores_general_chemistry(fixture, torch_device
             if ion == "PO4":
                 from rdkit import Chem
 
-                from tmol.ligand._structure_to_smiles import (
-                    ligand_smiles_from_atom_array,
-                )
+                from tmol.ligand import ligand_smiles_from_atom_array
 
                 generated_smiles = ligand_smiles_from_atom_array(residue, res_name=ion)
                 generated = Chem.MolFromSmiles(generated_smiles)
@@ -706,7 +704,7 @@ def test_known_and_unknown_chemistry_share_file_contract(
     from tmol.ligand import prepare_ligand_from_mol2
     from tmol.ligand import write_params_from_mol2
     from tmol.ligand import nonstandard_residue_info_from_mol2
-    from tmol.ligand._preparation import LigandPreparationError
+    from tmol.ligand import LigandPreparationError
     from tmol.tests.io.test_atomworks_corpus_regressions import _score_and_minimize
     import tmol.ligand._preparation as preparation
 

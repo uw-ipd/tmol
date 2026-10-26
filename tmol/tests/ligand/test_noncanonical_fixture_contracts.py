@@ -193,7 +193,7 @@ def test_renamed_components_process_identically(fixture, torch_device):
         renamed_array.res_name[renamed_array.res_name == original] = alias
 
     if _described_from_an_unplaced_copy(array, aliases):
-        from tmol.ligand._preparation import LigandPreparationError
+        from tmol.ligand import LigandPreparationError
 
         with pytest.raises(LigandPreparationError, match="declared but unresolved"):
             pose_stack_from_atom_array(

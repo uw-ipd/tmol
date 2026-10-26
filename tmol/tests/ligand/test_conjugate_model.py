@@ -7,13 +7,12 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 
 from tmol import atom_array_from_file
-from tmol.ligand import prepare_ligands
+from tmol.ligand import prepare_ligands, ligand_smiles_from_atom_array
 from tmol.ligand._conjugate_model import (
     _capped_conjugate_models,
     _without_cross_bonds_to,
 )
 from tmol.ligand._detect import _dimorphite_protonate_smiles
-from tmol.ligand._structure_to_smiles import ligand_smiles_from_atom_array
 from tmol.tests.data import data_path
 from tmol.tests.pack.test_conjugated_group_packing import FIXTURES
 
@@ -199,7 +198,7 @@ def test_capped_generation_preserves_observed_stereochemistry(conjugate_input):
         _model_identity,
         _generate_conjugate_connection_params,
     )
-    from tmol.ligand._detect import nonstandard_residue_info_from_smiles_via_mol2
+    from tmol.ligand import nonstandard_residue_info_from_smiles_via_mol2
     from tmol.ligand._rdkit_mol import _ligand_atom_array_to_rdkit_mol
 
     _, array, database = conjugate_input
@@ -312,10 +311,8 @@ def test_unprepared_covalent_partner_is_refused_or_cut_but_never_a_crash():
     to honour its own contract and drop the link.
     """
     from tmol import ParameterDatabase
-    from tmol.ligand._preparation import (
-        LigandPreparationError,
-        _prepare_conjugate_params,
-    )
+    from tmol.ligand import LigandPreparationError
+    from tmol.ligand._preparation import _prepare_conjugate_params
 
     array = _serine_bonded_to_boronate()
     param_db = ParameterDatabase.get_default()
@@ -396,7 +393,7 @@ def test_a_ligand_holding_mercury_is_refused_as_a_metal_ligand():
     from atomworks.io.utils.ccd import atom_array_from_ccd_code
 
     from tmol import pose_stack_from_atom_array
-    from tmol.ligand._preparation import LigandPreparationError
+    from tmol.ligand import LigandPreparationError
 
     ligand = atom_array_from_ccd_code("EMC")
     with pytest.raises(LigandPreparationError, match="metal atoms"):

@@ -11,7 +11,7 @@ from tmol.ligand._polymer_profile import (
     _na_profile,
     _profile_for_atom_array,
 )
-from tmol.ligand._structure_to_smiles import ligand_smiles_from_atom_array
+from tmol.ligand import ligand_smiles_from_atom_array
 
 
 @pytest.mark.parametrize("code", ["BAL", "ASP"])

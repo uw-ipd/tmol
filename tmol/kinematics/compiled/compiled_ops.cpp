@@ -149,6 +149,70 @@ Tensor forward_only_op(
   return coords;
 };
 
+std::tuple<Tensor, Tensor> forward_with_ht_op(
+    Tensor dofs,
+    Tensor nodes_f,
+    Tensor scans_f,
+    Tensor gens_f,
+    Tensor kintree) {
+  Tensor coords;
+  Tensor HTs;
+
+  using Int = int32_t;
+
+  TMOL_DISPATCH_FLOATING_DEVICE(dofs.options(), "forward_kin_with_ht_op", ([&] {
+                                  using Real = scalar_t;
+                                  constexpr tmol::Device Dev = device_t;
+
+                                  auto result =
+                                      ForwardKinDispatch<Dev, Real, Int>::f(
+                                          mgr,
+                                          TCAST(dofs),
+                                          TCAST(nodes_f),
+                                          TCAST(scans_f),
+                                          TCAST(gens_f),
+                                          TCAST(kintree));
+
+                                  coords = std::get<0>(result).tensor;
+                                  HTs = std::get<1>(result).tensor;
+                                }));
+
+  return std::make_tuple(coords, HTs);
+};
+
+Tensor kin_deriv_op(
+    Tensor dVdx,
+    Tensor HTs,
+    Tensor dofs,
+    Tensor nodes_b,
+    Tensor scans_b,
+    Tensor gens_b,
+    Tensor kintree) {
+  Tensor dV_ddof;
+
+  using Int = int32_t;
+
+  TMOL_DISPATCH_FLOATING_DEVICE(HTs.options(), "kin_deriv_only_op", ([&] {
+                                  using Real = scalar_t;
+                                  constexpr tmol::Device Dev = device_t;
+
+                                  auto result =
+                                      KinDerivDispatch<Dev, Real, Int>::f(
+                                          mgr,
+                                          TCAST(dVdx),
+                                          TCAST(HTs),
+                                          TCAST(dofs),
+                                          TCAST(nodes_b),
+                                          TCAST(scans_b),
+                                          TCAST(gens_b),
+                                          TCAST(kintree));
+
+                                  dV_ddof = result.tensor;
+                                }));
+
+  return dV_ddof;
+};
+
 auto get_kfo_indices_for_atoms(
     Tensor pose_stack_block_coord_offset,
     Tensor pose_stack_block_type,
@@ -651,6 +715,8 @@ auto inv_kin_dispatch(
 TMOL_LIBRARY(tmol_kin, m) {
   m.def("forward_kin_op", TMOL_FN(&kinematic_op));
   m.def("forward_only_op", TMOL_FN(&forward_only_op));
+  m.def("forward_with_ht_op", TMOL_FN(&forward_with_ht_op));
+  m.def("kin_deriv_op", TMOL_FN(&kin_deriv_op));
   m.def("get_kfo_indices_for_atoms", TMOL_FN(&get_kfo_indices_for_atoms));
   m.def("get_kfo_atom_parents", TMOL_FN(&get_kfo_atom_parents));
   m.def("get_children", TMOL_FN(&get_children));

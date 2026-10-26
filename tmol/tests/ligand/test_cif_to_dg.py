@@ -128,7 +128,7 @@ def _canonical(smiles: str) -> str | None:
 @pytest.mark.parametrize("variant", _VARIANTS)
 def test_cif_smiles_matches_reference(stem: str, variant: str) -> None:
     """SMILES derivation reproduces the reference for both CIF variants."""
-    from tmol.ligand._structure_to_smiles import ligand_smiles_from_atom_array
+    from tmol.ligand import ligand_smiles_from_atom_array
 
     code, expected = _LIGANDS[stem]
     arr = _load_ligand_array(stem, variant)
@@ -139,7 +139,7 @@ def test_cif_smiles_matches_reference(stem: str, variant: str) -> None:
 @pytest.mark.parametrize("stem", sorted(_LIGANDS))
 def test_mapped_smiles_preserves_heavy_atom_source_order(stem: str) -> None:
     """Explicit input hydrogens do not suppress heavy-atom map numbers."""
-    from tmol.ligand._structure_to_smiles import ligand_smiles_from_atom_array
+    from tmol.ligand import ligand_smiles_from_atom_array
     from tmol.ligand._openbabel_compat import _source_atom_order_from_mapped_smiles
 
     code, _ = _LIGANDS[stem]
@@ -256,7 +256,7 @@ def test_smiles_hard_fail_without_bond_table() -> None:
     import biotite.structure as struc
     import numpy as np
 
-    from tmol.ligand._structure_to_smiles import ligand_smiles_from_atom_array
+    from tmol.ligand import ligand_smiles_from_atom_array
 
     arr = _load_ligand_array("vww", "bonds_absent")
     arr.bonds = struc.BondList(len(arr))

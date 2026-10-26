@@ -60,7 +60,7 @@ def test_seeded_preparation_owns_its_molecule(smiles, torch_device):
     from tmol import pose_stack_from_atom_array
     from tmol.ligand import prepare_ligand_from_smiles
     from tmol.ligand._conformer_generation import _generate_conformer
-    from tmol.ligand._detect import nonstandard_residue_info_from_smiles_via_mol2
+    from tmol.ligand import nonstandard_residue_info_from_smiles_via_mol2
 
     first = _generate_conformer(smiles, seed=47)
     expected = first.write("mol2")
@@ -648,7 +648,7 @@ def test_prepare_ligands_rejects_multi_model_stack() -> None:
 
 def test_prepare_ligands_strict_raises_on_unpreparable_ligand() -> None:
     """A ligand that cannot yield a SMILES raises under strict_ligands=True."""
-    from tmol.ligand._preparation import LigandPreparationError
+    from tmol.ligand import LigandPreparationError
     from tmol.ligand import prepare_ligands
 
     # The parp ligand CIF has bond orders the unified SMILES path can't use, so
@@ -683,7 +683,7 @@ def test_prepare_ligands_honors_lenient_mode_for_ligand_preparation_errors(
     tmol does not support. Lenient mode must drop it like any other unknown
     rather than crash.
     """
-    from tmol.ligand._preparation import LigandPreparationError
+    from tmol.ligand import LigandPreparationError
     from tmol.ligand import prepare_ligands
     from tmol.ligand import _preparation
 
@@ -717,7 +717,7 @@ def test_prepare_ligands_rejects_incomplete_generated_chemistry(
 
     import attr
 
-    from tmol.ligand._preparation import LigandPreparationError
+    from tmol.ligand import LigandPreparationError
     from tmol.ligand import prepare_ligands
     from tmol.ligand import _preparation
 

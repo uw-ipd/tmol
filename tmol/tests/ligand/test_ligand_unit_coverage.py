@@ -603,7 +603,7 @@ class TestEquivalenceElementFromName:
 # --------------------------------------------------------------------------- #
 class TestLigandAtomArrayToRdkitMol:
     def _info(self, arr):
-        from tmol.ligand._detect import NonStandardResidueInfo
+        from tmol.ligand import NonStandardResidueInfo
 
         return NonStandardResidueInfo(
             res_name="LG1",

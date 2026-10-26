@@ -22,6 +22,7 @@ import logging
 import subprocess
 import sys
 import tempfile
+import warnings
 from importlib import import_module
 from pathlib import Path
 from urllib.request import urlretrieve
@@ -39,6 +40,27 @@ logging.getLogger("atomworks.constants").addFilter(
             )
         )
     )
+)
+# Load-time notices that are routine for the tutorial structures (dropped
+# solvent/additives, terminal-residue guesses, JIT CUDA_HOME). Also installed at
+# import time, since the star import already loads tmol and its compiled ops.
+for _name in (
+    "torch.utils.cpp_extension",
+    "tmol.io._pose_stack_from_biotite",
+    "tmol.ligand._polymer_profile",
+):
+    logging.getLogger(_name).addFilter(lambda record: record.levelno >= logging.ERROR)
+for _message in (
+    "Renumbering chain",
+    "Keeping one residue per site",
+    "Sparse invariant checks are implicitly disabled",
+):
+    warnings.filterwarnings("ignore", message=_message)
+# biotite's PDB writer uses numpy's deprecated chararray.
+warnings.filterwarnings(
+    "ignore",
+    message=".*Use an ndarray with a string or bytes dtype instead",
+    category=DeprecationWarning,
 )
 
 TUTORIAL_REF = "master"

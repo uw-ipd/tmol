@@ -12,8 +12,12 @@ from tmol import (
     pose_stack_from_atom_array,
     beta2016_score_function,
 )
-from tmol.ligand import prepare_ligands, load_params_file, write_params_file
-from tmol.ligand._params_file import TMOL_FORMAT_VERSION
+from tmol.ligand import (
+    prepare_ligands,
+    load_params_file,
+    write_params_file,
+    TMOL_FORMAT_VERSION,
+)
 from tmol.ligand._registry import _inject_ligand_preparations
 from tmol.tests.data import data_path
 from tmol.tests.pack.test_conjugated_group_packing import FIXTURES

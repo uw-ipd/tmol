@@ -20,7 +20,7 @@ from tmol import (
     ScoreType,
 )
 from tmol.io import build_context_from_atom_array
-from tmol.ligand._preparation import LigandPreparationError
+from tmol.ligand import LigandPreparationError
 from tmol.pack._build_missing_sidechains import _build_missing_sidechains
 from tmol.tests.data import data_path
 

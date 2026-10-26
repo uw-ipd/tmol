@@ -33,7 +33,7 @@ PLI_DATA_DIR = data_path("protein_ligand_test")
 def test_nitric_oxide_is_not_converted_to_nitroxyl(torch_device):
     """1KOI NO has no hydrogen; its radical cannot be filled with an H to prepare it."""
     from tmol import atom_array_from_file, pose_stack_from_atom_array
-    from tmol.ligand._preparation import LigandPreparationError
+    from tmol.ligand import LigandPreparationError
 
     array = atom_array_from_file(
         data_path("sweep_regressions", "nitric_oxide_1koi.cif.zst")
@@ -108,7 +108,7 @@ class TestFullPipeline:
         polymer-linking residue covalently attached to the chain), so strict
         mode raises on the first one encountered instead of dropping it.
         """
-        from tmol.ligand._preparation import LigandPreparationError
+        from tmol.ligand import LigandPreparationError
 
         with pytest.raises(LigandPreparationError, match="not supported"):
             prepare_ligands(cif_155c_with_hem, param_db=param_db)
@@ -167,7 +167,7 @@ def test_prepare_ligands_missing_ligand_atom_fails(
 
     from tmol import ParameterDatabase
     from tmol import pose_stack_from_atom_array
-    from tmol.ligand._preparation import LigandPreparationError
+    from tmol.ligand import LigandPreparationError
 
     bt = cif_184l_with_i4b.copy()
     ligand_atoms = numpy.nonzero(bt.res_name == "I4B")[0]

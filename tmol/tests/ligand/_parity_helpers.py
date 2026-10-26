@@ -10,8 +10,10 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from tmol.tests.ligand._params_reference import BOND_TOKEN_TO_TYPE
-from tmol.ligand import prepare_single_ligand
-from tmol.ligand._detect import nonstandard_residue_info_from_smiles_via_mol2
+from tmol.ligand import (
+    prepare_single_ligand,
+    nonstandard_residue_info_from_smiles_via_mol2,
+)
 from tmol.ligand._registry import LigandPreparation
 
 

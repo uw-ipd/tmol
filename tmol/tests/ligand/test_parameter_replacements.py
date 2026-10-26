@@ -9,14 +9,18 @@ import yaml
 
 from tmol import ParameterDatabase, pose_stack_from_atom_array, beta2016_score_function
 from tmol.database import _inject_residue_params
-from tmol.ligand import load_params_file, prepare_ligands, write_params_file
+from tmol.ligand import (
+    load_params_file,
+    prepare_ligands,
+    write_params_file,
+    TMOL_FORMAT_VERSION,
+)
 from tmol.ligand._local_conjugate_params import (
     _generate_conjugate_parameters,
     _install_conjugate_parameters,
 )
 from tmol.ligand._registry import LigandPreparation, _inject_ligand_preparations
 from tmol.tests.ligand import test_conjugate_model
-from tmol.ligand._params_file import TMOL_FORMAT_VERSION
 
 conjugate_input = test_conjugate_model.conjugate_input
 

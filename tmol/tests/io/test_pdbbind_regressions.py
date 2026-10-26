@@ -66,7 +66,7 @@ def test_a_carboxyl_written_with_single_bonds_reads_as_a_carboxylate(tmp_path):
     bonds to O and OXT; the planar group is a carboxylate, not a geminal diol."""
     from rdkit import Chem
 
-    from tmol.ligand._structure_to_smiles import ligand_smiles_from_atom_array
+    from tmol.ligand import ligand_smiles_from_atom_array
 
     ligand = atom_array_from_file(
         _unpacked(tmp_path, "single_bonded_carboxyl_2xej.mol2.zst")

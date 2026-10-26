@@ -8,7 +8,7 @@ import yaml
 from tmol.chemical import ResidueTypeSet
 from tmol.score import GenBondedEnergyTerm
 from tmol.score.genbonded._genbonded_energy_term import MAX_HIER_DEPTH
-from tmol.ligand._params_file import TMOL_FORMAT_VERSION
+from tmol.ligand import TMOL_FORMAT_VERSION
 
 GLOBAL_HIERARCHY_HOPS = {
     "CH1": "CS1",

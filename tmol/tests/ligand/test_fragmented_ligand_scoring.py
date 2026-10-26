@@ -358,7 +358,7 @@ def test_fragment_interactions_validate_inputs(torch_device):
 
 
 def test_duplicate_ligand_names_require_same_fragment_layout():
-    from tmol.ligand._preparation import LigandPreparationError
+    from tmol.ligand import LigandPreparationError
     from tmol.ligand import prepare_ligands
 
     structure, params_path, preparation = _load_fixture()
@@ -377,7 +377,7 @@ def test_duplicate_ligand_names_require_same_fragment_layout():
 
 
 def test_prepare_ligands_rejects_too_small_fragment():
-    from tmol.ligand._preparation import LigandPreparationError
+    from tmol.ligand import LigandPreparationError
     from tmol.ligand import prepare_ligands
 
     structure, params_path, _ = _load_fixture("egfr")
@@ -400,7 +400,7 @@ def test_prepare_ligands_rejects_too_small_fragment():
 
 
 def test_prepare_ligands_rejects_unassigned_fragment_atoms_public_path():
-    from tmol.ligand._preparation import LigandPreparationError
+    from tmol.ligand import LigandPreparationError
     from tmol.ligand import prepare_ligands
 
     structure, params_path, _ = _load_fixture("egfr")

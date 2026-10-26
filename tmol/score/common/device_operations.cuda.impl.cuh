@@ -9,6 +9,7 @@ error_this_should_not_be_compiled();  // gcc should not include this file
 #include <moderngpu/kernel_load_balance.hxx>
 #include <moderngpu/kernel_reduce.hxx>
 #include <moderngpu/kernel_scan.hxx>
+#include <moderngpu/kernel_segsort.hxx>
 #include <moderngpu/cta_reduce.hxx>
 
 #include "device_operations.hh"
@@ -245,6 +246,21 @@ struct DeviceOperations<tmol::Device::CUDA> {
         identity,
         *context);
     return dst_scan_t;
+  }
+
+  template <typename T, typename Int, typename Comp>
+  static void segmented_sort(
+      ContextManager& mgr,
+      T* keys,
+      int n,
+      Int* seg_start_inds,
+      int n_segs,
+      Comp comp) {
+    if (n <= 1) {
+      return;
+    }
+    std::shared_ptr<mgpu::standard_context_t> context = _get_context(mgr);
+    mgpu::segmented_sort(keys, n, seg_start_inds, n_segs, comp, *context);
   }
 
   template <int N_T, int WIDTH, typename T>
