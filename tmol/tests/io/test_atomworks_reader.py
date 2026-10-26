@@ -567,10 +567,10 @@ def test_shared_parser_builds_and_scores_general_chemistry(fixture, torch_device
                 from rdkit import Chem
 
                 from tmol.ligand._structure_to_smiles import (
-                    _ligand_smiles_from_atom_array,
+                    ligand_smiles_from_atom_array,
                 )
 
-                generated_smiles = _ligand_smiles_from_atom_array(residue, res_name=ion)
+                generated_smiles = ligand_smiles_from_atom_array(residue, res_name=ion)
                 generated = Chem.MolFromSmiles(generated_smiles)
                 assert generated_smiles == "O=P([O-])([O-])[O-]"
                 assert Chem.GetFormalCharge(generated) == charge

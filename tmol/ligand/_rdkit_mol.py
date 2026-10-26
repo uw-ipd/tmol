@@ -3,7 +3,7 @@
 Builds an RDKit ``Mol`` from a ligand ``AtomArray`` while preserving the
 source's explicit bond orders and aromatic/subtype annotations. Protonation
 and partial-charge generation are handled upstream by the SMILES -> OpenBabel
-mol2 step (:func:`tmol.ligand._detect._nonstandard_residue_info_from_smiles_via_mol2`),
+mol2 step (:func:`tmol.ligand._detect.nonstandard_residue_info_from_smiles_via_mol2`),
 so this module does not protonate or recompute chemistry.
 """
 

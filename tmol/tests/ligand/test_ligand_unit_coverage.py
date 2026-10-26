@@ -543,7 +543,7 @@ class TestStructureToSmiles:
         # Bonds are present, but SMILES generation yields nothing.
         monkeypatch.setattr(mod, "_mol_to_smiles", lambda *a, **k: None)
         with pytest.raises(ValueError, match="Could not derive a SMILES"):
-            mod._ligand_smiles_from_atom_array(self._array(), res_name="LIG")
+            mod.ligand_smiles_from_atom_array(self._array(), res_name="LIG")
 
 
 # --------------------------------------------------------------------------- #

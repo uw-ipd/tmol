@@ -352,7 +352,7 @@ def _terminal_chemistry(
     from tmol.ligand._atom_typing import _assign_tmol_atom_types, _sanitize_tolerant
     from tmol.ligand._detect import _dimorphite_protonate_smiles
     from tmol.ligand._polymer_profile import _cap_residue
-    from tmol.ligand._structure_to_smiles import _ligand_smiles_from_atom_array
+    from tmol.ligand._structure_to_smiles import ligand_smiles_from_atom_array
 
     terminal = _terminal_cap_profile(
         profile, chemdb, template, connection == profile.down
@@ -380,7 +380,7 @@ def _terminal_chemistry(
         return None
     connection_index = names.index(site_name)
 
-    smiles = _ligand_smiles_from_atom_array(capped, with_atom_map=True)
+    smiles = ligand_smiles_from_atom_array(capped, with_atom_map=True)
     mol = Chem.MolFromSmiles(_dimorphite_protonate_smiles(smiles, ph=ph))
     if mol is None:
         return None

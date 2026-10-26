@@ -60,14 +60,14 @@ def test_seeded_preparation_owns_its_molecule(smiles, torch_device):
     from tmol import pose_stack_from_atom_array
     from tmol.ligand import prepare_ligand_from_smiles
     from tmol.ligand._conformer_generation import _generate_conformer
-    from tmol.ligand._detect import _nonstandard_residue_info_from_smiles_via_mol2
+    from tmol.ligand._detect import nonstandard_residue_info_from_smiles_via_mol2
 
     first = _generate_conformer(smiles, seed=47)
     expected = first.write("mol2")
     first.OBMol.GetAtom(1).SetVector(100, 200, 300)
     first.OBMol.GetAtom(1).SetFormalCharge(0)
     assert _generate_conformer(smiles, seed=47).write("mol2") == expected
-    info = _nonstandard_residue_info_from_smiles_via_mol2(
+    info = nonstandard_residue_info_from_smiles_via_mol2(
         smiles, res_name="LG1", protonate=False, seed=47
     )
     database, _ = prepare_ligand_from_smiles(

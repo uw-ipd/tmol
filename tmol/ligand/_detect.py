@@ -516,7 +516,7 @@ def _nonstandard_residue_info_from_mol2_block(
     In-memory analogue of :func:`nonstandard_residue_info_from_mol2` — parses a
     TRIPOS mol2 block directly, with no temp-file write/read. Preferred for
     high-throughput SMILES batches (see
-    :func:`_nonstandard_residue_info_from_smiles_via_mol2`).
+    :func:`nonstandard_residue_info_from_smiles_via_mol2`).
     """
     from tmol.ligand._openbabel_compat import (
         OpenBabelUnavailableError,
@@ -787,7 +787,7 @@ def _dimorphite_protonate_smiles(smiles: str, ph: float = 7.4) -> str:
     return Chem.MolToSmiles(protonated)
 
 
-def _nonstandard_residue_info_from_smiles_via_mol2(
+def nonstandard_residue_info_from_smiles_via_mol2(
     smiles: str,
     res_name: str | None = None,
     *,

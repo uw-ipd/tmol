@@ -244,10 +244,10 @@ def _with_lewis_structure(ligand: struc.AtomArray) -> None:
     """
     from rdkit import Chem
 
-    from tmol.ligand._structure_to_smiles import _ligand_smiles_from_atom_array
+    from tmol.ligand._structure_to_smiles import ligand_smiles_from_atom_array
 
     try:
-        smiles = _ligand_smiles_from_atom_array(ligand, with_atom_map=True)
+        smiles = ligand_smiles_from_atom_array(ligand, with_atom_map=True)
     except ValueError:
         return
     mol = Chem.MolFromSmiles(smiles)

@@ -48,6 +48,27 @@ def test_ligand_all_excludes_vendored_and_internal_helpers():
     assert "print_header" not in ligand.__all__
 
 
+def test_ligand_all_contains_user_facing_names():
+    from tmol import ligand
+
+    expected = {
+        # errors, return types and format constant users need to name
+        "LigandPreparationError",
+        "NonStandardResidueInfo",
+        "TMOL_FORMAT_VERSION",
+        # SMILES helpers paired with the public pose-level ones
+        "smiles_from_block_type",
+        "smiles_from_pose_stack",
+        "ligand_smiles_from_atom_array",
+        "nonstandard_residue_info_from_mol2",
+        "nonstandard_residue_info_from_smiles_via_mol2",
+    }
+    assert expected <= set(ligand.__all__)
+    for name in expected:
+        assert getattr(ligand, name) is not None
+    assert "LigandPreparation" not in ligand.__all__
+
+
 def test_documented_fragment_interaction_helper_is_public():
     import tmol
 

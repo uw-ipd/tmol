@@ -2,7 +2,7 @@
 
 This is the entry to tmol's unified ligand path: a CIF/atom-array ligand is
 converted to a SMILES string here, then handed to the existing
-SMILES -> params pipeline (:func:`_nonstandard_residue_info_from_smiles_via_mol2`).
+SMILES -> params pipeline (:func:`nonstandard_residue_info_from_smiles_via_mol2`).
 
 The SMILES always reflects the *input atoms as given* -- there is no residue-code
 / CCD-template lookup (that risks substituting an unrelated molecule when a CIF
@@ -63,7 +63,7 @@ def _tag_source_atom_map(mol: Chem.Mol, atom_array: AtomArray) -> None:
         mol.GetAtomWithIdx(mol_idx).SetAtomMapNum(int(source_idx) + 1)
 
 
-def _ligand_smiles_from_atom_array(
+def ligand_smiles_from_atom_array(
     atom_array: AtomArray,
     *,
     res_name: str | None = None,

@@ -35,7 +35,7 @@ from tmol.ligand._detect import (
     _detect_nonstandard_residues,
     _is_polymer_linking_component_type,
     _with_resolved_coordinates,
-    _nonstandard_residue_info_from_smiles_via_mol2,
+    nonstandard_residue_info_from_smiles_via_mol2,
 )
 from tmol.ligand._conjugation_patches import _charges_for_database_residue
 from tmol.ligand._input_repair import _deprotonate_overprotonated_oxyacids
@@ -48,7 +48,7 @@ from tmol.ligand._registry import (
 )
 from tmol.ligand._mol3d import _authoritative_charges_by_index
 from tmol.ligand._residue_builder import _build_residue_type
-from tmol.ligand._structure_to_smiles import _ligand_smiles_from_atom_array
+from tmol.ligand._structure_to_smiles import ligand_smiles_from_atom_array
 from tmol.ligand._rdkit_mol import _ligand_atom_array_to_rdkit_mol
 from tmol.ligand._polymer_profile import _na_base_reference
 from tmol.ligand._rotamer_reference import _cached_profiles
@@ -420,7 +420,7 @@ def prepare_single_ligand(
     protonation state and authoritative per-atom partial charges (the OpenBabel
     MMFF94 charges produced by the SMILES -> mol2 step). Protonation and charge
     generation are *not* done here -- they happen upstream in
-    ``tmol.ligand._detect._nonstandard_residue_info_from_smiles_via_mol2``.
+    ``tmol.ligand._detect.nonstandard_residue_info_from_smiles_via_mol2``.
 
     Charges are mapped onto atoms by stable RDKit index (source atom order),
     so they are independent of the atom renaming below and never recomputed.
@@ -997,7 +997,7 @@ def _prepare_ligand_via_smiles(
         elements=tuple(array.element),
         coords=array.coord,
     )
-    smiles = _ligand_smiles_from_atom_array(
+    smiles = ligand_smiles_from_atom_array(
         array,
         res_name=ligand_info.res_name,
         with_atom_map=True,
@@ -1005,7 +1005,7 @@ def _prepare_ligand_via_smiles(
     )
 
     try:
-        smiles_info = _nonstandard_residue_info_from_smiles_via_mol2(
+        smiles_info = nonstandard_residue_info_from_smiles_via_mol2(
             smiles,
             res_name=ligand_info.res_name,
             ph=ph,
@@ -2464,7 +2464,7 @@ def prepare_ligand_from_smiles(
             first; set ``False`` to pin an already-protonated SMILES verbatim.
         seed: Fixed RNG seed for reproducible 3D coordinates; ``None`` is random.
     """
-    lig = _nonstandard_residue_info_from_smiles_via_mol2(
+    lig = nonstandard_residue_info_from_smiles_via_mol2(
         smiles,
         res_name=res_name,
         ph=ph,
