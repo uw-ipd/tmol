@@ -11,7 +11,7 @@ from tmol import (
     pose_stack_from_atom_array,
 )
 from tmol.ligand import prepare_ligand_from_smiles, smiles_from_pose_stack
-from tmol.ligand._block_type_smiles import _smiles_from_block_type
+from tmol.ligand._block_type_smiles import smiles_from_block_type
 from tmol.tests.data import data_path
 
 
@@ -47,7 +47,7 @@ def default_types():
 )
 def test_canonical_types(default_types, name, expected):
     types, chem_db = default_types
-    assert _smiles_from_block_type(types[name], chem_db) == expected
+    assert smiles_from_block_type(types[name], chem_db) == expected
 
 
 def test_every_default_type_converts(default_types):
@@ -55,20 +55,20 @@ def test_every_default_type_converts(default_types):
     for name, rt in types.items():
         if name == "VRT":
             continue
-        assert Chem.MolFromSmiles(_smiles_from_block_type(rt, chem_db)) is not None
+        assert Chem.MolFromSmiles(smiles_from_block_type(rt, chem_db)) is not None
 
 
 def test_type_without_real_atoms_raises(default_types):
     types, chem_db = default_types
     with pytest.raises(ValueError):
-        _smiles_from_block_type(types["VRT"], chem_db)
+        smiles_from_block_type(types["VRT"], chem_db)
 
 
 def test_atom_map_numbers_block_type_atoms(default_types):
     types, chem_db = default_types
     rt = types["SER"]
     element = {t.name: t.element for t in chem_db.atom_types}
-    mol = Chem.MolFromSmiles(_smiles_from_block_type(rt, chem_db, atom_map=True))
+    mol = Chem.MolFromSmiles(smiles_from_block_type(rt, chem_db, atom_map=True))
     mapped = {
         a.GetAtomMapNum(): a.GetSymbol() for a in mol.GetAtoms() if a.GetAtomMapNum()
     }
@@ -99,14 +99,14 @@ def test_prepared_ligand_round_trips(smiles):
         for r in ResidueTypeSet.from_database(db.chemical).residue_types
         if r.name == "LIG"
     )
-    assert _smiles_from_block_type(rt, db.chemical) == Chem.CanonSmiles(smiles)
+    assert smiles_from_block_type(rt, db.chemical) == Chem.CanonSmiles(smiles)
 
 
 def test_pose_matches_type(torch_device):
     pose_stack = extended_pose_stack_from_sequences("ACDHKPSY", device=torch_device)
     chem_db = pose_stack.packed_block_types.chem_db
     for block in range(pose_stack.max_n_blocks):
-        assert smiles_from_pose_stack(pose_stack, 0, block) == _smiles_from_block_type(
+        assert smiles_from_pose_stack(pose_stack, 0, block) == smiles_from_block_type(
             pose_stack.block_type(0, block), chem_db
         )
 

@@ -13,7 +13,7 @@ from tmol.ligand._conjugate_model import (
     _without_cross_bonds_to,
 )
 from tmol.ligand._detect import _dimorphite_protonate_smiles
-from tmol.ligand._structure_to_smiles import _ligand_smiles_from_atom_array
+from tmol.ligand._structure_to_smiles import ligand_smiles_from_atom_array
 from tmol.tests.data import data_path
 from tmol.tests.pack.test_conjugated_group_packing import FIXTURES
 
@@ -87,7 +87,7 @@ def test_capped_group_identity_and_mmff_coverage(conjugate_input, duplicate):
             int(source): i for i, source in enumerate(atoms) if source >= 0
         }
         smi = _dimorphite_protonate_smiles(
-            _ligand_smiles_from_atom_array(model.atom_array, with_atom_map=True), ph=7.4
+            ligand_smiles_from_atom_array(model.atom_array, with_atom_map=True), ph=7.4
         )
         mol = Chem.AddHs(Chem.MolFromSmiles(smi))
         assert len(Chem.GetMolFrags(mol)) == 1
@@ -141,7 +141,7 @@ def test_two_lysine_anchors_keep_distinct_chemical_contexts(conjugate_input):
     assert len(model.connections) == 2
     assert len(set(model.source_residue_indices)) == 3
     smi = _dimorphite_protonate_smiles(
-        _ligand_smiles_from_atom_array(model.atom_array, with_atom_map=True), ph=7.4
+        ligand_smiles_from_atom_array(model.atom_array, with_atom_map=True), ph=7.4
     )
     mol = Chem.AddHs(Chem.MolFromSmiles(smi))
     props = AllChem.MMFFGetMoleculeProperties(mol)
@@ -188,9 +188,9 @@ def test_group_topology_is_independent_of_coordinates(conjugate_input):
                 actual.atom_array.bonds.as_array(), expected.atom_array.bonds.as_array()
             )
             assert actual.connections == expected.connections
-            assert _ligand_smiles_from_atom_array(
+            assert ligand_smiles_from_atom_array(
                 actual.atom_array, with_atom_map=True
-            ) == _ligand_smiles_from_atom_array(expected.atom_array, with_atom_map=True)
+            ) == ligand_smiles_from_atom_array(expected.atom_array, with_atom_map=True)
 
 
 def test_capped_generation_preserves_observed_stereochemistry(conjugate_input):
@@ -199,7 +199,7 @@ def test_capped_generation_preserves_observed_stereochemistry(conjugate_input):
         _model_identity,
         _generate_conjugate_connection_params,
     )
-    from tmol.ligand._detect import _nonstandard_residue_info_from_smiles_via_mol2
+    from tmol.ligand._detect import nonstandard_residue_info_from_smiles_via_mol2
     from tmol.ligand._rdkit_mol import _ligand_atom_array_to_rdkit_mol
 
     _, array, database = conjugate_input
@@ -220,7 +220,7 @@ def test_capped_generation_preserves_observed_stereochemistry(conjugate_input):
             )
             assert model.molecule.GetNumConformers() == 0
             smiles = Chem.MolToSmiles(Chem.RemoveHs(mol), ignoreAtomMapNumbers=True)
-            info = _nonstandard_residue_info_from_smiles_via_mol2(
+            info = nonstandard_residue_info_from_smiles_via_mol2(
                 smiles, res_name="CONJ", protonate=False, seed=20250828
             )
             generated = _ligand_atom_array_to_rdkit_mol(info, keep_hydrogens=True)

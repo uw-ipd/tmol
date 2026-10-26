@@ -11,7 +11,7 @@ from types import SimpleNamespace
 
 from tmol.tests.ligand._params_reference import BOND_TOKEN_TO_TYPE
 from tmol.ligand import prepare_single_ligand
-from tmol.ligand._detect import _nonstandard_residue_info_from_smiles_via_mol2
+from tmol.ligand._detect import nonstandard_residue_info_from_smiles_via_mol2
 from tmol.ligand._registry import LigandPreparation
 
 
@@ -25,7 +25,7 @@ def prepare_seed_entry(entry) -> LigandPreparation:
     protonation state deterministically. Uses the entry's charge mode so the
     regression is genuinely driven by the manifest.
     """
-    info = _nonstandard_residue_info_from_smiles_via_mol2(
+    info = nonstandard_residue_info_from_smiles_via_mol2(
         entry.expected_prot_smiles, res_name=entry.name, protonate=False
     )
     return prepare_single_ligand(info)

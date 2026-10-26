@@ -66,13 +66,13 @@ def test_a_carboxyl_written_with_single_bonds_reads_as_a_carboxylate(tmp_path):
     bonds to O and OXT; the planar group is a carboxylate, not a geminal diol."""
     from rdkit import Chem
 
-    from tmol.ligand._structure_to_smiles import _ligand_smiles_from_atom_array
+    from tmol.ligand._structure_to_smiles import ligand_smiles_from_atom_array
 
     ligand = atom_array_from_file(
         _unpacked(tmp_path, "single_bonded_carboxyl_2xej.mol2.zst")
     )
     carbon = int(list(ligand.atom_name).index("C")) + 1
-    mol = Chem.MolFromSmiles(_ligand_smiles_from_atom_array(ligand, with_atom_map=True))
+    mol = Chem.MolFromSmiles(ligand_smiles_from_atom_array(ligand, with_atom_map=True))
     (atom,) = [a for a in mol.GetAtoms() if a.GetAtomMapNum() == carbon]
     assert sorted(b.GetBondTypeAsDouble() for b in atom.GetBonds()) == [1, 1, 2]
 

@@ -2,7 +2,7 @@
 
 The unified ligand path derives every ligand's partial charges from its SMILES
 via OpenBabel MMFF94 (see
-:func:`tmol.ligand._detect._nonstandard_residue_info_from_smiles_via_mol2`). Those
+:func:`tmol.ligand._detect.nonstandard_residue_info_from_smiles_via_mol2`). Those
 charges arrive on the detected ligand as an ``{atom_name: charge}`` map in
 source-atom order. This module maps them onto the prepared molecule purely by
 stable atom index, so charges are wholly independent of any later atom renaming

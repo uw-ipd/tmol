@@ -11,7 +11,7 @@ from tmol.ligand._polymer_profile import (
     _na_profile,
     _profile_for_atom_array,
 )
-from tmol.ligand._structure_to_smiles import _ligand_smiles_from_atom_array
+from tmol.ligand._structure_to_smiles import ligand_smiles_from_atom_array
 
 
 @pytest.mark.parametrize("code", ["BAL", "ASP"])
@@ -26,7 +26,7 @@ def test_capping_replaces_terminal_hydroxyl_and_preserves_sidechain(code):
     carbon = int(np.where(capped.atom_name == "C")[0][0])
     bonds = capped.bonds.as_array()
     assert sum(int(o) for i, j, o in bonds if carbon in (i, j)) == 4
-    assert _ligand_smiles_from_atom_array(capped, res_name=code)
+    assert ligand_smiles_from_atom_array(capped, res_name=code)
     assert "OXT" in array.atom_name  # Source was not modified.
 
 
@@ -50,4 +50,4 @@ def test_phosphate_completion_preserves_one_double_bond(missing):
     orders = [int(o) for i, j, o in completed.bonds.as_array() if phosphorus in (i, j)]
     assert sorted(orders) == [1, 1, 2]
     capped, _ = _cap_residue(completed, profile)
-    assert _ligand_smiles_from_atom_array(capped, res_name="8OG")
+    assert ligand_smiles_from_atom_array(capped, res_name="8OG")

@@ -174,7 +174,7 @@ def _smiles(block_type, chem_db, atom_coords, attachments, hydrogens, atom_map):
     return smiles
 
 
-def _smiles_from_block_type(
+def smiles_from_block_type(
     block_type, chem_db, *, hydrogens: bool = False, atom_map: bool = False
 ) -> str:
     """Canonical SMILES of a residue type, with stereochemistry from its ideal
