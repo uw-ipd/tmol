@@ -440,9 +440,9 @@
 <span class="w">    </span><span class="sd">"""xyzs -&gt; HTs, dofs</span>
 <span class="sd">    - "backward" kinematics</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics.compiled._compiled_ops</span><span class="w"> </span><span class="kn">import</span> <span class="n">inverse_kin</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics.compiled._compiled_ops</span><span class="w"> </span><span class="kn">import</span> <span class="n">_inverse_kin</span>
 
-    <span class="n">raw_dofs</span> <span class="o">=</span> <span class="n">inverse_kin</span><span class="p">(</span>
+    <span class="n">raw_dofs</span> <span class="o">=</span> <span class="n">_inverse_kin</span><span class="p">(</span>
         <span class="n">coords</span><span class="p">,</span>
         <span class="n">kinforest</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>
         <span class="n">kinforest</span><span class="o">.</span><span class="n">frame_x</span><span class="p">,</span>

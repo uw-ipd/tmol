@@ -1336,12 +1336,12 @@
             <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
                 <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ljlk_module</span><span class="p">(</span><span class="n">coords</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">elec_module</span><span class="p">(</span><span class="n">coords</span><span class="p">)),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span>
             <span class="p">)</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.ljlk.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">ljlk_elec_pose_scores</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.ljlk.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">_ljlk_elec_pose_scores</span>
 
         <span class="c1"># Preserve the normal term wrapper's lazy float64 support.  The</span>
         <span class="c1"># composite selects arguments from each child's dtype-adjusted static</span>
         <span class="c1"># tail rather than bypassing it and reading raw float32 parameters.</span>
-        <span class="p">(</span><span class="n">scores</span><span class="p">,)</span> <span class="o">=</span> <span class="n">ljlk_elec_pose_scores</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">scores</span><span class="p">,)</span> <span class="o">=</span> <span class="n">_ljlk_elec_pose_scores</span><span class="p">(</span>
             <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_native_arguments</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">shared_block_neighbors</span><span class="p">,</span> <span class="n">flat_coords</span><span class="p">),</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">n_valid_rots</span><span class="p">,</span>
         <span class="p">)</span>
@@ -1351,11 +1351,11 @@
         <span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">shared_block_neighbors</span><span class="p">,</span> <span class="n">score_weights</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">flat_coords</span><span class="o">=</span><span class="kc">None</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Return one weighted lane while retaining the decomposed fallback."""</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.ljlk.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">ljlk_elec_weighted_pose_scores</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.ljlk.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">_ljlk_elec_weighted_pose_scores</span>
 
         <span class="k">if</span> <span class="n">score_weights</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">coords</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
             <span class="n">score_weights</span> <span class="o">=</span> <span class="n">score_weights</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-        <span class="p">(</span><span class="n">scores</span><span class="p">,)</span> <span class="o">=</span> <span class="n">ljlk_elec_weighted_pose_scores</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">scores</span><span class="p">,)</span> <span class="o">=</span> <span class="n">_ljlk_elec_weighted_pose_scores</span><span class="p">(</span>
             <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_native_arguments</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">shared_block_neighbors</span><span class="p">,</span> <span class="n">flat_coords</span><span class="p">),</span>
             <span class="n">score_weights</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">n_valid_rots</span><span class="p">,</span>
@@ -1376,12 +1376,12 @@
                 <span class="nb">getattr</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="s2">"classname"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"LJLK"</span>
                 <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">second</span><span class="p">,</span> <span class="s2">"classname"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"Elec"</span>
             <span class="p">):</span>
-                <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.elec.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">elec_pose_scores</span>
-                <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.ljlk.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">ljlk_pose_scores</span>
+                <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.elec.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">_elec_pose_scores</span>
+                <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.ljlk.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">_ljlk_pose_scores</span>
 
                 <span class="n">is_builtin_pair</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="nb">getattr</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="s2">"term_score_poses"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="n">ljlk_pose_scores</span>
-                    <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">second</span><span class="p">,</span> <span class="s2">"term_score_poses"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="n">elec_pose_scores</span>
+                    <span class="nb">getattr</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="s2">"term_score_poses"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="n">_ljlk_pose_scores</span>
+                    <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">second</span><span class="p">,</span> <span class="s2">"term_score_poses"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="n">_elec_pose_scores</span>
                 <span class="p">)</span>
             <span class="k">if</span> <span class="p">(</span>
                 <span class="n">is_builtin_pair</span>
@@ -1660,13 +1660,13 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_reduce_weighted_fused_lanes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">score_lanes</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Combine one already-weighted fused lane in one native reduction."""</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.ljlk.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">weighted_fused_score_sum</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.ljlk.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">_weighted_fused_score_sum</span>
 
         <span class="n">weight_begin</span><span class="p">,</span> <span class="n">weight_end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fused_ljlk_elec_weight_range</span>
         <span class="n">score_weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span>
         <span class="k">if</span> <span class="n">score_weights</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">score_lanes</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
             <span class="n">score_weights</span> <span class="o">=</span> <span class="n">score_weights</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">score_lanes</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-        <span class="p">(</span><span class="n">scores</span><span class="p">,)</span> <span class="o">=</span> <span class="n">weighted_fused_score_sum</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">scores</span><span class="p">,)</span> <span class="o">=</span> <span class="n">_weighted_fused_score_sum</span><span class="p">(</span>
             <span class="n">score_lanes</span><span class="p">,</span> <span class="n">score_weights</span><span class="p">,</span> <span class="n">weight_begin</span><span class="p">,</span> <span class="n">weight_end</span> <span class="o">-</span> <span class="n">weight_begin</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">scores</span>
@@ -2146,13 +2146,13 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">use_weighted_fusion</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">*</span> <span class="n">score_lanes</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.ljlk.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">weighted_fused_score_sum</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.ljlk.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">_weighted_fused_score_sum</span>
 
         <span class="n">weight_begin</span><span class="p">,</span> <span class="n">weight_end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fused_weight_range</span>
         <span class="n">score_weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span>
         <span class="k">if</span> <span class="n">score_weights</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">score_lanes</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
             <span class="n">score_weights</span> <span class="o">=</span> <span class="n">score_weights</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">score_lanes</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-        <span class="p">(</span><span class="n">scores</span><span class="p">,)</span> <span class="o">=</span> <span class="n">weighted_fused_score_sum</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">scores</span><span class="p">,)</span> <span class="o">=</span> <span class="n">_weighted_fused_score_sum</span><span class="p">(</span>
             <span class="n">score_lanes</span><span class="p">,</span> <span class="n">score_weights</span><span class="p">,</span> <span class="n">weight_begin</span><span class="p">,</span> <span class="n">weight_end</span> <span class="o">-</span> <span class="n">weight_begin</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">scores</span>
@@ -2345,13 +2345,13 @@
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.ljlk.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-            <span class="n">ljlk_elec_weighted_rotamer_scores</span><span class="p">,</span>
+            <span class="n">_ljlk_elec_weighted_rotamer_scores</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="n">tensor_args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
         <span class="n">max_dis</span><span class="p">,</span> <span class="n">score_weights</span><span class="p">,</span> <span class="n">empty_dispatch</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:]</span>
         <span class="n">empty_gradients</span> <span class="o">=</span> <span class="n">score_weights</span><span class="o">.</span><span class="n">new_empty</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-        <span class="n">scores</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">ljlk_elec_weighted_rotamer_scores</span><span class="p">(</span>
+        <span class="n">scores</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_ljlk_elec_weighted_rotamer_scores</span><span class="p">(</span>
             <span class="o">*</span><span class="n">tensor_args</span><span class="p">,</span>
             <span class="n">max_dis</span><span class="p">,</span>
             <span class="n">score_weights</span><span class="p">,</span>
@@ -2373,7 +2373,7 @@
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">score_gradients</span><span class="p">,</span> <span class="n">_</span><span class="p">):</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.ljlk.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-            <span class="n">ljlk_elec_weighted_rotamer_scores</span><span class="p">,</span>
+            <span class="n">_ljlk_elec_weighted_rotamer_scores</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="n">saved_tensors</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">saved_tensors</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
@@ -2382,7 +2382,7 @@
             <span class="n">ctx</span><span class="o">.</span><span class="n">scalar_args</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">if</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">ctx</span><span class="o">.</span><span class="n">scalar_args</span> <span class="k">else</span> <span class="nb">next</span><span class="p">(</span><span class="n">saved_tensors</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">n_inputs</span><span class="p">)</span>
         <span class="p">]</span>
-        <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">coord_gradients</span> <span class="o">=</span> <span class="n">ljlk_elec_weighted_rotamer_scores</span><span class="p">(</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">coord_gradients</span> <span class="o">=</span> <span class="n">_ljlk_elec_weighted_rotamer_scores</span><span class="p">(</span>
             <span class="o">*</span><span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">score_gradients</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dispatch_indices</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">coord_gradients</span><span class="p">,)</span> <span class="o">+</span> <span class="p">(</span><span class="kc">None</span><span class="p">,)</span> <span class="o">*</span> <span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">n_inputs</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
@@ -2426,7 +2426,7 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">score_weights</span><span class="p">):</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.ljlk.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-            <span class="n">ljlk_elec_weighted_rotamer_scores</span><span class="p">,</span>
+            <span class="n">_ljlk_elec_weighted_rotamer_scores</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">score_weights</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">coords</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
@@ -2438,20 +2438,20 @@
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_grad_enabled</span><span class="p">()</span> <span class="ow">and</span> <span class="n">coords</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">_FusedLJLKAndElecRotamerFunction</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
-        <span class="n">scores</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">ljlk_elec_weighted_rotamer_scores</span><span class="p">(</span>
+        <span class="n">scores</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_ljlk_elec_weighted_rotamer_scores</span><span class="p">(</span>
             <span class="o">*</span><span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">score_weights</span><span class="o">.</span><span class="n">new_empty</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">scores</span><span class="p">,</span> <span class="n">indices</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">iter_packing_dispatches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Yield canonical maximum-cutoff dispatches by block-pair window."""</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.ljlk.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">ljlk_elec_rotamer_dispatch</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.ljlk.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">_ljlk_elec_rotamer_dispatch</span>
 
         <span class="n">native_args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_native_arguments</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
         <span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span> <span class="o">=</span> <span class="n">native_args</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
         <span class="n">n_candidates</span> <span class="o">=</span> <span class="n">n_poses</span> <span class="o">*</span> <span class="n">max_n_blocks</span> <span class="o">*</span> <span class="p">(</span><span class="n">max_n_blocks</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
         <span class="k">for</span> <span class="n">begin</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_candidates</span><span class="p">,</span> <span class="n">_PACK_ROTAMER_BLOCK_PAIR_WINDOW</span><span class="p">):</span>
-            <span class="k">yield</span> <span class="n">ljlk_elec_rotamer_dispatch</span><span class="p">(</span>
+            <span class="k">yield</span> <span class="n">_ljlk_elec_rotamer_dispatch</span><span class="p">(</span>
                 <span class="n">native_args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
                 <span class="n">native_args</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
                 <span class="n">native_args</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
@@ -2468,7 +2468,7 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">iter_packing_entries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">score_weights</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">topology_only</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Yield bounded canonical dispatch windows for packing."""</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.ljlk.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-            <span class="n">ljlk_elec_weighted_rotamer_scores</span><span class="p">,</span>
+            <span class="n">_ljlk_elec_weighted_rotamer_scores</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">score_weights</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">coords</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
@@ -2486,7 +2486,7 @@
                     <span class="k">yield</span> <span class="n">indices</span><span class="p">,</span> <span class="n">empty_values</span>
                     <span class="k">del</span> <span class="n">indices</span>
                     <span class="k">continue</span>
-                <span class="n">scores</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">ljlk_elec_weighted_rotamer_scores</span><span class="p">(</span>
+                <span class="n">scores</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_ljlk_elec_weighted_rotamer_scores</span><span class="p">(</span>
                     <span class="o">*</span><span class="n">native_args</span><span class="p">,</span>
                     <span class="n">score_weights</span><span class="p">,</span>
                     <span class="n">empty_values</span><span class="p">,</span>
@@ -2511,13 +2511,13 @@
             <span class="nb">getattr</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="s2">"classname"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"LJLK"</span>
             <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">second</span><span class="p">,</span> <span class="s2">"classname"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"Elec"</span>
         <span class="p">):</span>
-            <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.elec.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">elec_rotamer_scores_shared</span>
-            <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.ljlk.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">ljlk_rotamer_scores</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.elec.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">_elec_rotamer_scores_shared</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.ljlk.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">_ljlk_rotamer_scores</span>
 
             <span class="n">is_builtin_pair</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="nb">getattr</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="s2">"term_score_poses"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="n">ljlk_rotamer_scores</span>
+                <span class="nb">getattr</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="s2">"term_score_poses"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="n">_ljlk_rotamer_scores</span>
                 <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">second</span><span class="p">,</span> <span class="s2">"term_score_poses"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-                <span class="ow">is</span> <span class="n">elec_rotamer_scores_shared</span>
+                <span class="ow">is</span> <span class="n">_elec_rotamer_scores_shared</span>
             <span class="p">)</span>
         <span class="k">if</span> <span class="p">(</span>
             <span class="n">is_builtin_pair</span>

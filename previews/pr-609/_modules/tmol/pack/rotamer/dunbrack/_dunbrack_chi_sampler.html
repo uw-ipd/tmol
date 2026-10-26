@@ -1263,9 +1263,9 @@
         <span class="n">nchi_for_buildable_restype</span><span class="p">,</span>
         <span class="n">max_samples_per_restype</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">dun_sample_chi</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">_dun_sample_chi</span>
 
-        <span class="k">return</span> <span class="n">dun_sample_chi</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">_dun_sample_chi</span><span class="p">(</span>
             <span class="n">coords</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">dun_param_resolver</span><span class="o">.</span><span class="n">sampling_db</span><span class="o">.</span><span class="n">rotameric_prob_tables</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">dun_param_resolver</span><span class="o">.</span><span class="n">sampling_db</span><span class="o">.</span><span class="n">rotprob_table_sizes</span><span class="p">,</span>

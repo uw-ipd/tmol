@@ -910,12 +910,12 @@
         <span class="n">kmd</span><span class="p">:</span> <span class="n">KinematicModuleData</span><span class="p">,</span>
         <span class="n">mm</span><span class="p">:</span> <span class="n">MoveMap</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics.compiled._compiled_ops</span><span class="w"> </span><span class="kn">import</span> <span class="n">minimizer_map_from_movemap</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics.compiled._compiled_ops</span><span class="w"> </span><span class="kn">import</span> <span class="n">_minimizer_map_from_movemap</span>
 
         <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
 
         <span class="c1"># fmt: off</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dof_mask</span> <span class="o">=</span> <span class="n">minimizer_map_from_movemap</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dof_mask</span> <span class="o">=</span> <span class="n">_minimizer_map_from_movemap</span><span class="p">(</span>
             <span class="n">kmd</span><span class="o">.</span><span class="n">forest</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
             <span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_pose_atoms</span><span class="p">,</span>
             <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset</span><span class="p">,</span>

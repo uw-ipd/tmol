@@ -461,7 +461,7 @@
     <span class="n">_detect_nonstandard_residues</span><span class="p">,</span>
     <span class="n">_is_polymer_linking_component_type</span><span class="p">,</span>
     <span class="n">_with_resolved_coordinates</span><span class="p">,</span>
-    <span class="n">_nonstandard_residue_info_from_smiles_via_mol2</span><span class="p">,</span>
+    <span class="n">nonstandard_residue_info_from_smiles_via_mol2</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._conjugation_patches</span><span class="w"> </span><span class="kn">import</span> <span class="n">_charges_for_database_residue</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._input_repair</span><span class="w"> </span><span class="kn">import</span> <span class="n">_deprotonate_overprotonated_oxyacids</span>
@@ -474,7 +474,7 @@
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._mol3d</span><span class="w"> </span><span class="kn">import</span> <span class="n">_authoritative_charges_by_index</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._residue_builder</span><span class="w"> </span><span class="kn">import</span> <span class="n">_build_residue_type</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._structure_to_smiles</span><span class="w"> </span><span class="kn">import</span> <span class="n">_ligand_smiles_from_atom_array</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._structure_to_smiles</span><span class="w"> </span><span class="kn">import</span> <span class="n">ligand_smiles_from_atom_array</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._rdkit_mol</span><span class="w"> </span><span class="kn">import</span> <span class="n">_ligand_atom_array_to_rdkit_mol</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._polymer_profile</span><span class="w"> </span><span class="kn">import</span> <span class="n">_na_base_reference</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._rotamer_reference</span><span class="w"> </span><span class="kn">import</span> <span class="n">_cached_profiles</span>
@@ -482,6 +482,8 @@
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
+<div class="viewcode-block" id="LigandPreparationError">
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.LigandPreparationError">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">LigandPreparationError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""A detected ligand could not be prepared, registered, or retained.</span>
 
@@ -489,7 +491,8 @@
 <span class="sd">    paths) when ``strict_ligands=True`` and a non-standard residue is skipped</span>
 <span class="sd">    or fails preparation, instead of silently dropping it. Pass</span>
 <span class="sd">    ``strict_ligands=False`` to downgrade these failures to warnings.</span>
-<span class="sd">    """</span>
+<span class="sd">    """</span></div>
+
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_skip_or_raise</span><span class="p">(</span><span class="n">strict_ligands</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -848,7 +851,7 @@
 <span class="sd">    protonation state and authoritative per-atom partial charges (the OpenBabel</span>
 <span class="sd">    MMFF94 charges produced by the SMILES -&gt; mol2 step). Protonation and charge</span>
 <span class="sd">    generation are *not* done here -- they happen upstream in</span>
-<span class="sd">    ``tmol.ligand._detect._nonstandard_residue_info_from_smiles_via_mol2``.</span>
+<span class="sd">    ``tmol.ligand.nonstandard_residue_info_from_smiles_via_mol2``.</span>
 
 <span class="sd">    Charges are mapped onto atoms by stable RDKit index (source atom order),</span>
 <span class="sd">    so they are independent of the atom renaming below and never recomputed.</span>
@@ -1426,7 +1429,7 @@
         <span class="n">elements</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">element</span><span class="p">),</span>
         <span class="n">coords</span><span class="o">=</span><span class="n">array</span><span class="o">.</span><span class="n">coord</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">smiles</span> <span class="o">=</span> <span class="n">_ligand_smiles_from_atom_array</span><span class="p">(</span>
+    <span class="n">smiles</span> <span class="o">=</span> <span class="n">ligand_smiles_from_atom_array</span><span class="p">(</span>
         <span class="n">array</span><span class="p">,</span>
         <span class="n">res_name</span><span class="o">=</span><span class="n">ligand_info</span><span class="o">.</span><span class="n">res_name</span><span class="p">,</span>
         <span class="n">with_atom_map</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -1434,7 +1437,7 @@
     <span class="p">)</span>
 
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">smiles_info</span> <span class="o">=</span> <span class="n">_nonstandard_residue_info_from_smiles_via_mol2</span><span class="p">(</span>
+        <span class="n">smiles_info</span> <span class="o">=</span> <span class="n">nonstandard_residue_info_from_smiles_via_mol2</span><span class="p">(</span>
             <span class="n">smiles</span><span class="p">,</span>
             <span class="n">res_name</span><span class="o">=</span><span class="n">ligand_info</span><span class="o">.</span><span class="n">res_name</span><span class="p">,</span>
             <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span>
@@ -2901,7 +2904,7 @@
 <span class="sd">            first; set ``False`` to pin an already-protonated SMILES verbatim.</span>
 <span class="sd">        seed: Fixed RNG seed for reproducible 3D coordinates; ``None`` is random.</span>
 <span class="sd">    """</span>
-    <span class="n">lig</span> <span class="o">=</span> <span class="n">_nonstandard_residue_info_from_smiles_via_mol2</span><span class="p">(</span>
+    <span class="n">lig</span> <span class="o">=</span> <span class="n">nonstandard_residue_info_from_smiles_via_mol2</span><span class="p">(</span>
         <span class="n">smiles</span><span class="p">,</span>
         <span class="n">res_name</span><span class="o">=</span><span class="n">res_name</span><span class="p">,</span>
         <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span>

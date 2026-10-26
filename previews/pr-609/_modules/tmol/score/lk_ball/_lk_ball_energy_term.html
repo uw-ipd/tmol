@@ -716,7 +716,7 @@
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_gen_waters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">common_args</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">,</span> <span class="n">hbond_params</span><span class="p">):</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.lk_ball.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">gen_pose_waters</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.lk_ball.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">_gen_pose_waters</span>
 
         <span class="n">args</span> <span class="o">=</span> <span class="p">[</span>
             <span class="o">*</span><span class="n">common_args</span><span class="p">,</span>
@@ -744,10 +744,10 @@
         <span class="k">if</span> <span class="n">common_args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">:</span>
             <span class="n">_convert_float64</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">gen_pose_waters</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_gen_pose_waters</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">pose_score_lk_ball</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.lk_ball.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">lk_ball_pose_score</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.lk_ball.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">_lk_ball_pose_score</span>
 
         <span class="n">common_args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">5</span><span class="p">]</span>
         <span class="p">(</span>
@@ -788,10 +788,12 @@
         <span class="k">if</span> <span class="n">common_args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">:</span>
             <span class="n">_convert_float64</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">lk_ball_pose_score</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_lk_ball_pose_score</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">rotamer_score_lk_ball</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.lk_ball.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">lk_ball_rotamer_score_shared</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.lk_ball.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+            <span class="n">_lk_ball_rotamer_score_shared</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="n">common_args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">5</span><span class="p">]</span>
         <span class="p">(</span>
@@ -829,7 +831,7 @@
         <span class="k">if</span> <span class="n">common_args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">:</span>
             <span class="n">_convert_float64</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">lk_ball_rotamer_score_shared</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">shared_dispatch_indices</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_lk_ball_rotamer_score_shared</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">shared_dispatch_indices</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_pose_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose_score_lk_ball</span>

@@ -561,9 +561,9 @@
         <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io.details._build_missing_leaf_atoms</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
             <span class="n">_apply_h_geometric_completion</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io.details.compiled._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">gen_pose_leaf_atoms</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io.details.compiled._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">_gen_pose_leaf_atoms</span>
 
-        <span class="n">coords</span> <span class="o">=</span> <span class="n">gen_pose_leaf_atoms</span><span class="p">(</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">_gen_pose_leaf_atoms</span><span class="p">(</span>
             <span class="n">coords</span><span class="p">,</span>
             <span class="n">block_leaf_atom_is_missing</span><span class="p">,</span>
             <span class="n">pose_atom_is_missing</span><span class="p">,</span>

@@ -683,16 +683,16 @@
         <span class="nb">super</span><span class="p">(</span><span class="n">DunbrackEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_poses</span><span class="p">(</span><span class="n">poses</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_pose_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.dunbrack.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">dunbrack_pose_scores</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.dunbrack.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">_dunbrack_pose_scores</span>
 
-        <span class="k">return</span> <span class="n">dunbrack_pose_scores</span>
+        <span class="k">return</span> <span class="n">_dunbrack_pose_scores</span>
 
     <span class="n">score_only_in_no_grad</span> <span class="o">=</span> <span class="kc">True</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_rotamer_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.dunbrack.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">dunbrack_rotamer_scores</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.dunbrack.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">_dunbrack_rotamer_scores</span>
 
-        <span class="k">return</span> <span class="n">dunbrack_rotamer_scores</span>
+        <span class="k">return</span> <span class="n">_dunbrack_rotamer_scores</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_score_term_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">):</span>
         <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>

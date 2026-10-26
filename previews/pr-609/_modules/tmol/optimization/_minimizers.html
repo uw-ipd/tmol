@@ -531,6 +531,8 @@
 <span class="sd">            any nn.Module with a compatible interface.</span>
 <span class="sd">        optimizer_cls: A torch.optim.Optimizer class. Must support a</span>
 <span class="sd">            closure-based step() call (e.g. LBFGS_Armijo, torch LBFGS).</span>
+<span class="sd">            An optimizer with a truthy ``value_only_line_search`` attribute</span>
+<span class="sd">            is also passed a gradient-free energy closure for its line search.</span>
 <span class="sd">        optimizer_kwargs: Dict of keyword arguments passed to the optimizer</span>
 <span class="sd">            constructor.</span>
 <span class="sd">        verbose: Print timing information.</span>
@@ -568,10 +570,18 @@
         <span class="n">total</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">E</span> <span class="k">if</span> <span class="n">segmented</span> <span class="k">else</span> <span class="n">total</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">value_only_closure</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">E</span> <span class="o">=</span> <span class="n">sfxn_module</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">E</span> <span class="k">if</span> <span class="n">segmented</span> <span class="k">else</span> <span class="n">E</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
     <span class="k">if</span> <span class="n">timing_device</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">_synchronize_device</span><span class="p">(</span><span class="n">timing_device</span><span class="p">)</span>
     <span class="n">end_time1</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
-    <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">closure</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="s2">"value_only_line_search"</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">closure</span><span class="p">,</span> <span class="n">value_only_closure</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">closure</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">timing_device</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">_synchronize_device</span><span class="p">(</span><span class="n">timing_device</span><span class="p">)</span>
     <span class="n">end_time2</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>

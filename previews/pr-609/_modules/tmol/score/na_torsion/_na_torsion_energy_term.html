@@ -798,9 +798,9 @@
         <span class="k">return</span> <span class="n">_finish</span><span class="p">((</span><span class="n">zero</span><span class="p">,</span> <span class="n">zero</span><span class="p">),</span> <span class="n">output_block_pair_energies</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">rot_coords</span><span class="o">.</span><span class="n">is_cuda</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">output_block_pair_energies</span><span class="p">:</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">na_torsion_pose_score</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">_na_torsion_pose_score</span>
 
-        <span class="k">return</span> <span class="n">na_torsion_pose_score</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">_na_torsion_pose_score</span><span class="p">(</span>
             <span class="n">rot_coords</span><span class="p">,</span>
             <span class="n">pose_base</span><span class="p">,</span>
             <span class="n">pose_is_na</span><span class="p">,</span>
@@ -1350,9 +1350,9 @@
         <span class="n">base</span> <span class="o">=</span> <span class="n">rotamer_base</span>
         <span class="n">is_na</span> <span class="o">=</span> <span class="n">rotamer_is_na</span>
         <span class="k">if</span> <span class="n">rot_coords</span><span class="o">.</span><span class="n">is_cuda</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">rot_coords</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">:</span>
-            <span class="kn">from</span><span class="w"> </span><span class="nn">.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">na_torsion_pose_score</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">_na_torsion_pose_score</span>
 
-            <span class="n">score</span> <span class="o">=</span> <span class="n">na_torsion_pose_score</span><span class="p">(</span>
+            <span class="n">score</span> <span class="o">=</span> <span class="n">_na_torsion_pose_score</span><span class="p">(</span>
                 <span class="n">rot_coords</span><span class="p">,</span>
                 <span class="n">base</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
                 <span class="n">is_na</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>

@@ -909,12 +909,12 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_measure_dofs_from_orig_coords</span><span class="p">(</span>
     <span class="n">coords</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:],</span> <span class="n">kinforest</span><span class="p">:</span> <span class="n">KinForest</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="mi">9</span><span class="p">]:</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics.compiled._compiled_ops</span><span class="w"> </span><span class="kn">import</span> <span class="n">inverse_kin</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics.compiled._compiled_ops</span><span class="w"> </span><span class="kn">import</span> <span class="n">_inverse_kin</span>
 
     <span class="n">kinforest_coords</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)[</span><span class="n">kinforest</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)]</span>
     <span class="n">kinforest_coords</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># reset root</span>
 
-    <span class="n">dofs_orig</span> <span class="o">=</span> <span class="n">inverse_kin</span><span class="p">(</span>
+    <span class="n">dofs_orig</span> <span class="o">=</span> <span class="n">_inverse_kin</span><span class="p">(</span>
         <span class="n">kinforest_coords</span><span class="p">,</span>
         <span class="n">kinforest</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>
         <span class="n">kinforest</span><span class="o">.</span><span class="n">frame_x</span><span class="p">,</span>
@@ -1094,7 +1094,7 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        Rotamer coordinates shaped ``[n_atoms_total, 3]`` in residue-type order.</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics.compiled._compiled_ops</span><span class="w"> </span><span class="kn">import</span> <span class="n">forward_only_op</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics.compiled._compiled_ops</span><span class="w"> </span><span class="kn">import</span> <span class="n">_forward_only_op</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_p</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -1119,7 +1119,7 @@
         <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="p">)</span>
 
-    <span class="n">new_coords_kto</span> <span class="o">=</span> <span class="n">forward_only_op</span><span class="p">(</span>
+    <span class="n">new_coords_kto</span> <span class="o">=</span> <span class="n">_forward_only_op</span><span class="p">(</span>
         <span class="n">rot_dofs_kto</span><span class="p">,</span> <span class="n">_p</span><span class="p">(</span><span class="n">_t</span><span class="p">(</span><span class="n">nodes</span><span class="p">)),</span> <span class="n">_p</span><span class="p">(</span><span class="n">_t</span><span class="p">(</span><span class="n">scans</span><span class="p">)),</span> <span class="n">_p</span><span class="p">(</span><span class="n">_tcpu</span><span class="p">(</span><span class="n">gens</span><span class="p">)),</span> <span class="n">kinforest_stack</span>
     <span class="p">)</span>
 

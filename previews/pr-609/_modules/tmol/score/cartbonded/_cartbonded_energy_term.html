@@ -1071,9 +1071,9 @@
         <span class="nb">super</span><span class="p">(</span><span class="n">CartBondedEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_poses</span><span class="p">(</span><span class="n">poses</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_pose_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.cartbonded.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">cartbonded_pose_scores</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.cartbonded.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">_cartbonded_pose_scores</span>
 
-        <span class="k">return</span> <span class="n">cartbonded_pose_scores</span>
+        <span class="k">return</span> <span class="n">_cartbonded_pose_scores</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_packing_rotamer_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.cartbonded.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -1083,9 +1083,11 @@
         <span class="k">return</span> <span class="n">_iter_packing_rotamer_scores</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_rotamer_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.cartbonded.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">cartbonded_rotamer_scores</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.cartbonded.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+            <span class="n">_cartbonded_rotamer_scores</span><span class="p">,</span>
+        <span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">cartbonded_rotamer_scores</span>
+        <span class="k">return</span> <span class="n">_cartbonded_rotamer_scores</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_score_term_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">):</span>
         <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>

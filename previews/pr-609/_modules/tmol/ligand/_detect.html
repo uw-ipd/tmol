@@ -459,6 +459,8 @@
 <span class="n">_FORMAL_CHARGE_SPECIFIED_ANNOTATION</span> <span class="o">=</span> <span class="s2">"tmol_formal_charge_specified"</span>
 
 
+<div class="viewcode-block" id="NonStandardResidueInfo">
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.NonStandardResidueInfo">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">NonStandardResidueInfo</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Detected non-standard residue requiring preparation.</span>
@@ -520,7 +522,8 @@
     <span class="c1"># why this residue's chemistry cannot be trusted, or None</span>
     <span class="n">chemistry_problem</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="c1"># {own connection atom: {(partner residue name, partner atom name)}}</span>
-    <span class="n">connection_partners</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">hash</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">connection_partners</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">hash</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_missing_declared_atoms</span><span class="p">(</span><span class="n">residue</span><span class="p">):</span>
@@ -945,7 +948,7 @@
 <span class="sd">    In-memory analogue of :func:`nonstandard_residue_info_from_mol2` — parses a</span>
 <span class="sd">    TRIPOS mol2 block directly, with no temp-file write/read. Preferred for</span>
 <span class="sd">    high-throughput SMILES batches (see</span>
-<span class="sd">    :func:`_nonstandard_residue_info_from_smiles_via_mol2`).</span>
+<span class="sd">    :func:`nonstandard_residue_info_from_smiles_via_mol2`).</span>
 <span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._openbabel_compat</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">OpenBabelUnavailableError</span><span class="p">,</span>
@@ -1216,7 +1219,9 @@
     <span class="k">return</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolToSmiles</span><span class="p">(</span><span class="n">protonated</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_nonstandard_residue_info_from_smiles_via_mol2</span><span class="p">(</span>
+<div class="viewcode-block" id="nonstandard_residue_info_from_smiles_via_mol2">
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.nonstandard_residue_info_from_smiles_via_mol2">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">nonstandard_residue_info_from_smiles_via_mol2</span><span class="p">(</span>
     <span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -1278,7 +1283,8 @@
         <span class="n">partial_charges</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
             <span class="nb">zip</span><span class="p">(</span><span class="n">info</span><span class="o">.</span><span class="n">atom_array</span><span class="o">.</span><span class="n">atom_name</span><span class="p">,</span> <span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">partialcharge</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">molecule</span><span class="o">.</span><span class="n">atoms</span><span class="p">))</span>
         <span class="p">),</span>
-    <span class="p">)</span>
+    <span class="p">)</span></div>
+
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_component_types_from_annotations</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">explicit</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>

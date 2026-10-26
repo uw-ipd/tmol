@@ -469,6 +469,177 @@ from the public <a class="reference internal" href="#module-tmol.ligand" title="
 and <a class="reference internal" href="top_level.html#tmol.recombine_fragmented_ligands" title="tmol.recombine_fragmented_ligands"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmol.recombine_fragmented_ligands()</span></code></a> are imported from the top-level
 package and documented in <a class="reference internal" href="top_level.html"><span class="doc">Top-level API</span></a>.</p>
 <p id="module-tmol.ligand">Ligand typing, preparation, fragmentation, and serialization.</p>
+<dl class="py exception">
+<dt class="sig sig-object py" id="tmol.ligand.LigandPreparationError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmol.ligand.</span></span><span class="sig-name descname"><span class="pre">LigandPreparationError</span></span><a class="reference internal" href="../_modules/tmol/ligand/_preparation.html#LigandPreparationError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.ligand.LigandPreparationError" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#RuntimeError" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">RuntimeError</span></code></a></p>
+<p>A detected ligand could not be prepared, registered, or retained.</p>
+<p>Raised by <a class="reference internal" href="#tmol.ligand.prepare_ligands" title="tmol.ligand.prepare_ligands"><code class="xref py py-func docutils literal notranslate"><span class="pre">prepare_ligands()</span></code></a> (and the <code class="docutils literal notranslate"><span class="pre">prepare_ligands=True</span></code> IO
+paths) when <code class="docutils literal notranslate"><span class="pre">strict_ligands=True</span></code> and a non-standard residue is skipped
+or fails preparation, instead of silently dropping it. Pass
+<code class="docutils literal notranslate"><span class="pre">strict_ligands=False</span></code> to downgrade these failures to warnings.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmol.ligand.NonStandardResidueInfo">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmol.ligand.</span></span><span class="sig-name descname"><span class="pre">NonStandardResidueInfo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">res_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">component_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">atom_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elements</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coords</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><span class="pre">ndarray</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">atom_array</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AtomArray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">covalently_linked</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">partial_charges</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_protonation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">original_single_bonds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#frozenset" title="(in Python v3.15)"><span class="pre">frozenset</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#frozenset" title="(in Python v3.15)"><span class="pre">frozenset</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_atom_order</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connection_atom_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#frozenset" title="(in Python v3.15)"><span class="pre">frozenset</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_polymer_entity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chemistry_problem</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connection_partners</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><span class="pre">dict</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/ligand/_detect.html#NonStandardResidueInfo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.ligand.NonStandardResidueInfo" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Detected non-standard residue requiring preparation.</p>
+<p>Any residue not in tmol’s standard database is represented here,
+regardless of whether it is a true ligand, modified amino acid,
+or modified nucleotide.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmol.ligand.NonStandardResidueInfo.res_name">
+<span class="sig-name descname"><span class="pre">res_name</span></span><a class="headerlink" href="#tmol.ligand.NonStandardResidueInfo.res_name" title="Link to this definition">#</a></dt>
+<dd><p>Three-letter residue code (e.g. “ATP”, “NAG”).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmol.ligand.NonStandardResidueInfo.component_type">
+<span class="sig-name descname"><span class="pre">component_type</span></span><a class="headerlink" href="#tmol.ligand.NonStandardResidueInfo.component_type" title="Link to this definition">#</a></dt>
+<dd><p>Chemical component type the input file declares, or
+“UNKNOWN” where it declares none.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmol.ligand.NonStandardResidueInfo.in_polymer_entity">
+<span class="sig-name descname"><span class="pre">in_polymer_entity</span></span><a class="headerlink" href="#tmol.ligand.NonStandardResidueInfo.in_polymer_entity" title="Link to this definition">#</a></dt>
+<dd><p>Whether the input file places this residue in a
+polymer entity (mmCIF label_seq_id). <code class="docutils literal notranslate"><span class="pre">None</span></code> where the source
+cannot say, as a bare SMILES cannot.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)">bool</a> | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmol.ligand.NonStandardResidueInfo.chemistry_problem">
+<span class="sig-name descname"><span class="pre">chemistry_problem</span></span><a class="headerlink" href="#tmol.ligand.NonStandardResidueInfo.chemistry_problem" title="Link to this definition">#</a></dt>
+<dd><p>Why this residue’s chemistry cannot be established,
+or None. A residue carrying one is refused rather than prepared
+from atoms that may not be the whole molecule.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a> | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmol.ligand.NonStandardResidueInfo.atom_names">
+<span class="sig-name descname"><span class="pre">atom_names</span></span><a class="headerlink" href="#tmol.ligand.NonStandardResidueInfo.atom_names" title="Link to this definition">#</a></dt>
+<dd><p>Atom names for one representative instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)">tuple</a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a>, …]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmol.ligand.NonStandardResidueInfo.elements">
+<span class="sig-name descname"><span class="pre">elements</span></span><a class="headerlink" href="#tmol.ligand.NonStandardResidueInfo.elements" title="Link to this definition">#</a></dt>
+<dd><p>Element symbols for each atom.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)">tuple</a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a>, …]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmol.ligand.NonStandardResidueInfo.coords">
+<span class="sig-name descname"><span class="pre">coords</span></span><a class="headerlink" href="#tmol.ligand.NonStandardResidueInfo.coords" title="Link to this definition">#</a></dt>
+<dd><p>Cartesian coordinates of shape (n_atoms, 3).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)">numpy.ndarray</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmol.ligand.NonStandardResidueInfo.atom_array">
+<span class="sig-name descname"><span class="pre">atom_array</span></span><a class="headerlink" href="#tmol.ligand.NonStandardResidueInfo.atom_array" title="Link to this definition">#</a></dt>
+<dd><p>The sub-AtomArray (with bonds if available).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>biotite.structure.AtomArray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmol.ligand.NonStandardResidueInfo.connection_atom_names">
+<span class="sig-name descname"><span class="pre">connection_atom_names</span></span><a class="headerlink" href="#tmol.ligand.NonStandardResidueInfo.connection_atom_names" title="Link to this definition">#</a></dt>
+<dd><p>Names of the atoms bonded to a neighbouring
+residue, which is where this residue’s polymer connections attach.
+<code class="docutils literal notranslate"><span class="pre">None</span></code> where the source cannot say, as a bare SMILES cannot.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#frozenset" title="(in Python v3.15)">frozenset</a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a>] | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmol.ligand.NonStandardResidueInfo.partial_charges">
+<span class="sig-name descname"><span class="pre">partial_charges</span></span><a class="headerlink" href="#tmol.ligand.NonStandardResidueInfo.partial_charges" title="Link to this definition">#</a></dt>
+<dd><p>Authoritative <code class="docutils literal notranslate"><span class="pre">{atom_name:</span> <span class="pre">charge}</span></code> map (OpenBabel
+MMFF94 charges). Set only on the mol2 / SMILES-via-mol2 reader path,
+where <code class="docutils literal notranslate"><span class="pre">prepare_single_ligand</span></code> consumes them directly. <code class="docutils literal notranslate"><span class="pre">None</span></code> for
+raw CIF/atom-array detections (the unified path re-derives charges
+from the SMILES).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)">dict</a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a>, <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)">float</a>] | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmol.ligand.NonStandardResidueInfo.skip_protonation">
+<span class="sig-name descname"><span class="pre">skip_protonation</span></span><a class="headerlink" href="#tmol.ligand.NonStandardResidueInfo.skip_protonation" title="Link to this definition">#</a></dt>
+<dd><p>If True, Dimorphite-DL protonation is skipped and
+explicit hydrogens from the input (mol2) are preserved. Paired with
+<code class="docutils literal notranslate"><span class="pre">partial_charges</span></code> on the mol2 / SMILES-via-mol2 path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmol.ligand.NonStandardResidueInfo.original_single_bonds">
+<span class="sig-name descname"><span class="pre">original_single_bonds</span></span><a class="headerlink" href="#tmol.ligand.NonStandardResidueInfo.original_single_bonds" title="Link to this definition">#</a></dt>
+<dd><p>Optional set of <code class="docutils literal notranslate"><span class="pre">frozenset({name_a,</span> <span class="pre">name_b})</span></code>
+pairs that the source mol2 records as literal single (order <code class="docutils literal notranslate"><span class="pre">'1'</span></code>)
+bonds, keyed by disambiguated atom name. <code class="docutils literal notranslate"><span class="pre">_build_chi_topology</span></code> uses
+these to honor the mol2 bond order (Rosetta-faithful) instead of
+RDKit’s post-kekulization order. Only set on the mol2 / SMILES-via-
+mol2 paths; <code class="docutils literal notranslate"><span class="pre">None</span></code> elsewhere.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#frozenset" title="(in Python v3.15)">frozenset</a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#frozenset" title="(in Python v3.15)">frozenset</a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a>]] | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="tmol.ligand.inject_params_file">
 <span class="sig-prename descclassname"><span class="pre">tmol.ligand.</span></span><span class="sig-name descname"><span class="pre">inject_params_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="top_level.html#tmol.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><span class="pre">Path</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict_atom_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="top_level.html#tmol.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></span><a class="reference internal" href="../_modules/tmol/ligand/_params_file.html#inject_params_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.ligand.inject_params_file" title="Link to this definition">#</a></dt>
@@ -479,6 +650,37 @@ package and documented in <a class="reference internal" href="top_level.html"><s
 <dt class="sig sig-object py" id="tmol.ligand.inject_params_files">
 <span class="sig-prename descclassname"><span class="pre">tmol.ligand.</span></span><span class="sig-name descname"><span class="pre">inject_params_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="top_level.html#tmol.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">paths</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><span class="pre">Path</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict_atom_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="top_level.html#tmol.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></span><a class="reference internal" href="../_modules/tmol/ligand/_params_file.html#inject_params_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.ligand.inject_params_files" title="Link to this definition">#</a></dt>
 <dd><p>Load multiple <code class="docutils literal notranslate"><span class="pre">.tmol</span></code> files and inject them in one shot.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.ligand.ligand_smiles_from_atom_array">
+<span class="sig-prename descclassname"><span class="pre">tmol.ligand.</span></span><span class="sig-name descname"><span class="pre">ligand_smiles_from_atom_array</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atom_array</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AtomArray</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">res_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_atom_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_hydrogens</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span></span><a class="reference internal" href="../_modules/tmol/ligand/_structure_to_smiles.html#ligand_smiles_from_atom_array"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.ligand.ligand_smiles_from_atom_array" title="Link to this definition">#</a></dt>
+<dd><p>Derive a canonical SMILES for a ligand AtomArray from its bond table.</p>
+<p>The SMILES is derived purely from the input atoms and their explicit bonds
+(never a residue-code / CCD-template lookup, never geometry-based bond
+perception). Geometry-based bond-<em>order</em> corrections are still applied for
+motifs the input encodes inconsistently (carboxylates).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atom_array</strong> – The ligand sub-array (heavy + optional hydrogen atoms).</p></li>
+<li><p><strong>res_name</strong> – Residue code, used only for log/error messages.</p></li>
+<li><p><strong>with_atom_map</strong> – Tag heavy atoms with source-index map numbers for CIF
+atom naming downstream.</p></li>
+<li><p><strong>keep_hydrogens</strong> – Preserve the supplied hydrogen counts, including zero,
+when the input already has its intended protonation state.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A canonical SMILES string.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If the AtomArray carries no bond table (bond orders must be
+    supplied by the input; a bonds-absent ligand such as a plain PDB
+    cannot be prepared without guessing chemistry), or if no SMILES
+    could be derived from the bonds present.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -498,12 +700,50 @@ legacy flat schema (top-level <code class="docutils literal notranslate"><span c
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmol.ligand.nonstandard_residue_info_from_mol2">
-<span class="sig-prename descclassname"><span class="pre">tmol.ligand.</span></span><span class="sig-name descname"><span class="pre">nonstandard_residue_info_from_mol2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mol2_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><span class="pre">Path</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">res_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">NonStandardResidueInfo</span></span></span><a class="reference internal" href="../_modules/tmol/ligand/_detect.html#nonstandard_residue_info_from_mol2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.ligand.nonstandard_residue_info_from_mol2" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmol.ligand.</span></span><span class="sig-name descname"><span class="pre">nonstandard_residue_info_from_mol2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mol2_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><span class="pre">Path</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">res_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#tmol.ligand.NonStandardResidueInfo" title="tmol.ligand._detect.NonStandardResidueInfo"><span class="pre">NonStandardResidueInfo</span></a></span></span><a class="reference internal" href="../_modules/tmol/ligand/_detect.html#nonstandard_residue_info_from_mol2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.ligand.nonstandard_residue_info_from_mol2" title="Link to this definition">#</a></dt>
 <dd><p>Construct <code class="docutils literal notranslate"><span class="pre">NonStandardResidueInfo</span></code> from a ligand Mol2 file.</p>
 <p>Low-level reader retained for the DUD-80 SMILES-&gt;params parity harness
 (it reads both the OpenBabel-generated and Rosetta ground-truth mol2
 files). Preserves Tripos aromatic flags, atom-type subtypes, and per-atom
 partial charges, avoiding lossy rdkit&lt;-&gt;biotite round-trips.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.ligand.nonstandard_residue_info_from_smiles_via_mol2">
+<span class="sig-prename descclassname"><span class="pre">tmol.ligand.</span></span><span class="sig-name descname"><span class="pre">nonstandard_residue_info_from_smiles_via_mol2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">smiles</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">res_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">ph</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">7.4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">protonate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#tmol.ligand.NonStandardResidueInfo" title="tmol.ligand._detect.NonStandardResidueInfo"><span class="pre">NonStandardResidueInfo</span></a></span></span><a class="reference internal" href="../_modules/tmol/ligand/_detect.html#nonstandard_residue_info_from_smiles_via_mol2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.ligand.nonstandard_residue_info_from_smiles_via_mol2" title="Link to this definition">#</a></dt>
+<dd><p>Construct <code class="docutils literal notranslate"><span class="pre">NonStandardResidueInfo</span></code> from a SMILES via the mol2 route.</p>
+<p>Implements the canonical ligand-prep protocol end to end:</p>
+<ol class="arabic simple" start="0">
+<li><p>normalize bare radical oxygens (<code class="docutils literal notranslate"><span class="pre">[O]</span></code> -&gt; <code class="docutils literal notranslate"><span class="pre">[O-]</span></code>) so source
+carboxylate/sulfonate notation has a well-defined charge,</p></li>
+<li><p>optionally pKa-protonate the SMILES with Dimorphite-DL (<code class="docutils literal notranslate"><span class="pre">protonate</span></code>),</p></li>
+<li><p>generate a 3D mol2 with MMFF94 partial charges via OpenBabel (kept
+in memory as a string — no temp file), then</p></li>
+<li><p>read that mol2 with <code class="xref py py-func docutils literal notranslate"><span class="pre">_nonstandard_residue_info_from_mol2_block()</span></code>.</p></li>
+</ol>
+<p>This never builds a biotite atom-array from an RDKit embedding and never
+recomputes MMFF on a reconstructed graph — the OpenBabel MMFF94 charges
+flow through untouched (<code class="docutils literal notranslate"><span class="pre">skip_protonation</span></code> / authoritative charges are
+set by the mol2 reader), so fused-ring aromatics keep correct charges.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>smiles</strong> – Ligand SMILES string.</p></li>
+<li><p><strong>res_name</strong> – Residue name (default inferred / <code class="docutils literal notranslate"><span class="pre">&quot;L_1&quot;</span></code>).</p></li>
+<li><p><strong>ph</strong> – Target pH for the Dimorphite protonation step.</p></li>
+<li><p><strong>protonate</strong> – When <code class="docutils literal notranslate"><span class="pre">True</span></code> (default) run Dimorphite on <code class="docutils literal notranslate"><span class="pre">smiles</span></code> first;
+set <code class="docutils literal notranslate"><span class="pre">False</span></code> to pin an already-protonated SMILES verbatim.</p></li>
+<li><p><strong>seed</strong> – Fixed RNG seed for reproducible 3D coordinates; <code class="docutils literal notranslate"><span class="pre">None</span></code> is random.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>OpenBabelUnavailableError</strong> – If the <code class="docutils literal notranslate"><span class="pre">openbabel</span></code> package is missing
+    (this path requires it for the SMILES -&gt; mol2 conversion).</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If OpenBabel cannot build a charged mol2 for <code class="docutils literal notranslate"><span class="pre">smiles</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -611,7 +851,7 @@ skip residue generation. Missing attachment records are generated;
 existing records are reused without regeneration.</p></li>
 <li><p><strong>params_output</strong> – Optional path to write all prepared ligand data
 to a tmol YAML params file for later reuse.</p></li>
-<li><p><strong>strict_ligands</strong> – If True (default), raise <code class="xref py py-class docutils literal notranslate"><span class="pre">LigandPreparationError</span></code>
+<li><p><strong>strict_ligands</strong> – If True (default), raise <a class="reference internal" href="#tmol.ligand.LigandPreparationError" title="tmol.ligand.LigandPreparationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">LigandPreparationError</span></code></a>
 when a detected non-standard residue is skipped (metal-containing or
 covalently linked) or fails preparation, instead of silently
 dropping it. If False, such residues are logged as warnings and
@@ -649,7 +889,7 @@ ParameterDatabase is a new instance with all detected ligands
 injected; the input <code class="docutils literal notranslate"><span class="pre">param_db</span></code> is not modified.</p>
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>LigandPreparationError</strong> – If <code class="docutils literal notranslate"><span class="pre">strict_ligands</span></code> and any detected ligand
+<dd class="field-odd"><p><a class="reference internal" href="#tmol.ligand.LigandPreparationError" title="tmol.ligand.LigandPreparationError"><strong>LigandPreparationError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">strict_ligands</span></code> and any detected ligand
     cannot be prepared and registered.</p>
 </dd>
 </dl>
@@ -657,14 +897,14 @@ injected; the input <code class="docutils literal notranslate"><span class="pre"
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmol.ligand.prepare_single_ligand">
-<span class="sig-prename descclassname"><span class="pre">tmol.ligand.</span></span><span class="sig-name descname"><span class="pre">prepare_single_ligand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ligand_info</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">NonStandardResidueInfo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name_source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">NonStandardResidueInfo</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">assign_ring_chis</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">generate_heavy_chi_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_hydrogen_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">LigandPreparation</span></span></span><a class="reference internal" href="../_modules/tmol/ligand/_preparation.html#prepare_single_ligand"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.ligand.prepare_single_ligand" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmol.ligand.</span></span><span class="sig-name descname"><span class="pre">prepare_single_ligand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ligand_info</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#tmol.ligand.NonStandardResidueInfo" title="tmol.ligand._detect.NonStandardResidueInfo"><span class="pre">NonStandardResidueInfo</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">name_source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#tmol.ligand.NonStandardResidueInfo" title="tmol.ligand._detect.NonStandardResidueInfo"><span class="pre">NonStandardResidueInfo</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">assign_ring_chis</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">generate_heavy_chi_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_hydrogen_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">LigandPreparation</span></span></span><a class="reference internal" href="../_modules/tmol/ligand/_preparation.html#prepare_single_ligand"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.ligand.prepare_single_ligand" title="Link to this definition">#</a></dt>
 <dd><p>Build a <code class="xref py py-class docutils literal notranslate"><span class="pre">LigandPreparation</span></code> from a SMILES-derived ligand.</p>
 <p>This is the final, naming-and-typing step of the unified pipeline. Its input
 must already be fully resolved chemistry: explicit hydrogens at the desired
 protonation state and authoritative per-atom partial charges (the OpenBabel
 MMFF94 charges produced by the SMILES -&gt; mol2 step). Protonation and charge
 generation are <em>not</em> done here – they happen upstream in
-<code class="docutils literal notranslate"><span class="pre">tmol.ligand._detect._nonstandard_residue_info_from_smiles_via_mol2</span></code>.</p>
+<code class="docutils literal notranslate"><span class="pre">tmol.ligand.nonstandard_residue_info_from_smiles_via_mol2</span></code>.</p>
 <p>Charges are mapped onto atoms by stable RDKit index (source atom order),
 so they are independent of the atom renaming below and never recomputed.</p>
 <p>Returns a <code class="xref py py-class docutils literal notranslate"><span class="pre">LigandPreparation</span></code> – the same struct
@@ -689,6 +929,24 @@ up parent by parent; otherwise name them by parent.</p></li>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">ligand_info</span></code> lacks explicit hydrogens / authoritative
     charges (there is no charge-generation fallback).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.ligand.smiles_from_block_type">
+<span class="sig-prename descclassname"><span class="pre">tmol.ligand.</span></span><span class="sig-name descname"><span class="pre">smiles_from_block_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">block_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chem_db</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">hydrogens</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atom_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span></span><a class="reference internal" href="../_modules/tmol/ligand/_block_type_smiles.html#smiles_from_block_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.ligand.smiles_from_block_type" title="Link to this definition">#</a></dt>
+<dd><p>Canonical SMILES of a residue type, with stereochemistry from its ideal
+geometry and a [*] for each connection that is not a metal site.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>block_type</strong> – A RefinedResidueType (patched types describe patched chemistry).</p></li>
+<li><p><strong>chem_db</strong> – The chemical database the type was built from (element lookup).</p></li>
+<li><p><strong>hydrogens</strong> – Keep explicit hydrogens in the SMILES.</p></li>
+<li><p><strong>atom_map</strong> – Number each atom by its block-type atom index + 1 (hydrogens
+only when kept).</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -796,15 +1054,34 @@ as in <a class="reference internal" href="#tmol.ligand.prepare_ligand_from_mol2"
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.LigandPreparationError"><code class="docutils literal notranslate"><span class="pre">LigandPreparationError</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.NonStandardResidueInfo"><code class="docutils literal notranslate"><span class="pre">NonStandardResidueInfo</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.NonStandardResidueInfo.res_name"><code class="docutils literal notranslate"><span class="pre">NonStandardResidueInfo.res_name</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.NonStandardResidueInfo.component_type"><code class="docutils literal notranslate"><span class="pre">NonStandardResidueInfo.component_type</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.NonStandardResidueInfo.in_polymer_entity"><code class="docutils literal notranslate"><span class="pre">NonStandardResidueInfo.in_polymer_entity</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.NonStandardResidueInfo.chemistry_problem"><code class="docutils literal notranslate"><span class="pre">NonStandardResidueInfo.chemistry_problem</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.NonStandardResidueInfo.atom_names"><code class="docutils literal notranslate"><span class="pre">NonStandardResidueInfo.atom_names</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.NonStandardResidueInfo.elements"><code class="docutils literal notranslate"><span class="pre">NonStandardResidueInfo.elements</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.NonStandardResidueInfo.coords"><code class="docutils literal notranslate"><span class="pre">NonStandardResidueInfo.coords</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.NonStandardResidueInfo.atom_array"><code class="docutils literal notranslate"><span class="pre">NonStandardResidueInfo.atom_array</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.NonStandardResidueInfo.connection_atom_names"><code class="docutils literal notranslate"><span class="pre">NonStandardResidueInfo.connection_atom_names</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.NonStandardResidueInfo.partial_charges"><code class="docutils literal notranslate"><span class="pre">NonStandardResidueInfo.partial_charges</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.NonStandardResidueInfo.skip_protonation"><code class="docutils literal notranslate"><span class="pre">NonStandardResidueInfo.skip_protonation</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.NonStandardResidueInfo.original_single_bonds"><code class="docutils literal notranslate"><span class="pre">NonStandardResidueInfo.original_single_bonds</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.inject_params_file"><code class="docutils literal notranslate"><span class="pre">inject_params_file()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.inject_params_files"><code class="docutils literal notranslate"><span class="pre">inject_params_files()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.ligand_smiles_from_atom_array"><code class="docutils literal notranslate"><span class="pre">ligand_smiles_from_atom_array()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.load_params_file"><code class="docutils literal notranslate"><span class="pre">load_params_file()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.nonstandard_residue_info_from_mol2"><code class="docutils literal notranslate"><span class="pre">nonstandard_residue_info_from_mol2()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.nonstandard_residue_info_from_smiles_via_mol2"><code class="docutils literal notranslate"><span class="pre">nonstandard_residue_info_from_smiles_via_mol2()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.prepare_ligand_from_cif"><code class="docutils literal notranslate"><span class="pre">prepare_ligand_from_cif()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.prepare_ligand_from_mol2"><code class="docutils literal notranslate"><span class="pre">prepare_ligand_from_mol2()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.prepare_ligand_from_smiles"><code class="docutils literal notranslate"><span class="pre">prepare_ligand_from_smiles()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.prepare_ligands"><code class="docutils literal notranslate"><span class="pre">prepare_ligands()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.prepare_single_ligand"><code class="docutils literal notranslate"><span class="pre">prepare_single_ligand()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.smiles_from_block_type"><code class="docutils literal notranslate"><span class="pre">smiles_from_block_type()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.smiles_from_pose_stack"><code class="docutils literal notranslate"><span class="pre">smiles_from_pose_stack()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.write_params_file"><code class="docutils literal notranslate"><span class="pre">write_params_file()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.ligand.write_params_from_mol2"><code class="docutils literal notranslate"><span class="pre">write_params_from_mol2()</span></code></a></li>
