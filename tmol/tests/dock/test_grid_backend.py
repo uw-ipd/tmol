@@ -11,7 +11,7 @@ import torch
 import tmol.dock.ga as ga_module
 import tmol.dock.scoring_backend as scoring_backend_module
 from tmol.dock import ContinuousBackend, GASchedule, GridBackend, run_docking
-from tmol.dock.ga import LigandGeneLayout, run_docking
+from tmol.dock.ga import LigandGeneLayout
 from tmol.dock.ligand_dofs import build_ligand_docking_dofs
 from tmol.optimization import build_kinforest_network, run_min
 from tmol.score.gridscore import GridScorer
@@ -22,6 +22,7 @@ from tmol.tests.dock.test_ligand_dof_roundtrip import (
 )
 from tmol.pose import repeat_pose_stack
 from tmol.score.gridscore._movable import (
+    resolve_ligand_block,
     movable_pose_stack,
 )
 
@@ -33,7 +34,7 @@ def cpu_grid_case():
     reference, param_db = _load_cdk2_pose()
     ligand_block = _ligand_block(reference)
     backend = GridBackend.from_pose_stack(
-        reference, param_db, ligand=ligand_block, kin_dtype=torch.float64
+        reference, ligand_block, param_db, kin_dtype=torch.float64
     )
     population = repeat_pose_stack(reference, 2)
     docking_dofs = build_ligand_docking_dofs(population, ligand_block)
@@ -109,8 +110,8 @@ def test_exact_live_lk_ball_differs_from_gridded_backend(cpu_grid_case):
     case = cpu_grid_case
     exact = GridBackend.from_pose_stack(
         case.reference,
+        case.ligand_block,
         case.param_db,
-        ligand=case.ligand_block,
         kin_dtype=torch.float64,
         lk_ball_grid=False,
     )
@@ -681,21 +682,22 @@ def test_run_docking_returns_ranked_single_cdk2_output(
     )
 
 
-def test_ligand_is_found_by_default_name_chain_residue_or_block():
-    from tmol.score.gridscore._movable import resolve_ligand_block
-
+def test_ligand_is_found_by_name_block_mask_or_atoms():
     reference, _ = _load_cdk2_pose()
-    ligand_block = _ligand_block(reference)
-    info = reference.pdb_info
-    chain_residue = (
-        str(info.chain_labels[0, ligand_block]),
-        int(info.residue_labels[0, ligand_block]),
-    )
-    name3 = reference.block_type(0, ligand_block).name3
+    block = _ligand_block(reference)
+    name3 = reference.block_type(0, block).name3
+    offset = int(reference.block_coord_offset64[0, block])
+    n_atoms = reference.block_type(0, block).n_atoms
+    block_mask = torch.zeros(reference.max_n_blocks, dtype=torch.bool)
+    block_mask[block] = True
+    atom_mask = torch.zeros(reference.coords.shape[1], dtype=torch.bool)
+    atom_mask[offset : offset + n_atoms] = True
+    atom_ids = torch.arange(offset, offset + n_atoms)
 
-    for ligand in (None, name3, chain_residue, ligand_block):
-        assert resolve_ligand_block(reference, ligand) == ligand_block
-    with pytest.raises(ValueError, match="matches 0 blocks"):
-        resolve_ligand_block(reference, "NOPE")
-    with pytest.raises(ValueError, match="not present"):
-        resolve_ligand_block(reference, reference.max_n_blocks + 5)
+    for ligand in (name3, block, block_mask, atom_mask, atom_ids):
+        assert resolve_ligand_block(reference, ligand) == block
+    for bad in ("NOPE", reference.max_n_blocks + 5, ~block_mask, atom_ids - 1):
+        with pytest.raises(ValueError, match="selects"):
+            resolve_ligand_block(reference, bad)
+    with pytest.raises(ValueError, match="mask must have"):
+        resolve_ligand_block(reference, torch.zeros(3, dtype=torch.bool))

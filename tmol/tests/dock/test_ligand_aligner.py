@@ -26,7 +26,7 @@ def cpu_aligner_case():
     reference, param_db = _load_cdk2_pose()
     ligand_block = _ligand_block(reference)
     backend = GridBackend.from_pose_stack(
-        reference, param_db, ligand=ligand_block, kin_dtype=torch.float64
+        reference, ligand_block, param_db, kin_dtype=torch.float64
     ).for_ligand_block(0)
     ligand = movable_pose_stack(reference, ligand_block)
     return SimpleNamespace(
@@ -159,8 +159,8 @@ def cpu_flexible_initialization_case(cpu_aligner_case):
     assert sidechains
     backend = GridBackend.from_pose_stack(
         case.reference,
+        case.ligand_block,
         case.param_db,
-        ligand=case.ligand_block,
         flexible_residues=sidechains,
         kin_dtype=torch.float64,
     )

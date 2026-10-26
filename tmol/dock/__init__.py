@@ -5,14 +5,14 @@ Dock one ligand of a protein-ligand complex ``pose_stack`` (a single-pose
 
     from tmol.dock import GridBackend, GASchedule, run_docking
 
-    backend = GridBackend.from_pose_stack(pose_stack, param_db)
+    backend = GridBackend.from_pose_stack(pose_stack, "LG1", param_db)
     result = run_docking(pose_stack, backend, schedule=GASchedule(npool=100))
     result.best_pose_stack, result.best_energies
 
-The ligand is the pose's only non-polymer, non-water block; with several, name
-it with ``ligand="ATP"``, ``ligand=("A", 301)`` (chain, residue number) or a block
-index. To dock many ligands, build one complex and one backend per ligand; to let
-pocket sidechains move, pass ``flexible_residues=select_pocket_residues(pose_stack)``.
+``"LG1"`` is the ligand's residue name; a block index, or a boolean mask / atom
+indices selecting its block, work too. To dock many ligands, build one complex and
+one backend per ligand; to let pocket sidechains move, pass
+``flexible_residues=select_pocket_residues(pose_stack, "LG1")``.
 """
 
 from .ga import (

@@ -43,54 +43,46 @@ def has_nonpolymer_connection(
     return False
 
 
-_WATERS = frozenset({"HOH", "WAT", "TP3", "TIP3"})
+def resolve_ligand_block(pose_stack: PoseStack, ligand) -> int:
+    """Block index of the ligand to dock, from any of:
 
+    * a residue name (``"ATP"``), unique in the pose;
+    * a block index;
+    * a boolean mask over blocks (``[n_blocks]``) or over atoms
+      (``[n_atoms]``, indexing ``pose_stack.coords[0]``);
+    * integer atom indices into ``pose_stack.coords[0]``.
 
-def resolve_ligand_block(
-    pose_stack: PoseStack, ligand: str | int | tuple[str, int] | None = None
-) -> int:
-    """Block index of the ligand to dock.
-
-    ``ligand`` is a residue name (``"ATP"``), a ``(chain, residue number)`` pair,
-    a block index, or ``None`` for the pose's only non-polymer, non-water block.
+    A mask or atom indices must select a single block.
     """
-    types = pose_stack.packed_block_types.active_block_types
-    blocks = [
-        (block, types[index])
-        for block, index in enumerate(pose_stack.block_type_ind64[0].tolist())
-        if index >= 0
-    ]
-    if isinstance(ligand, int):
-        if ligand not in dict(blocks):
-            raise ValueError(f"ligand block {ligand} is not present in the pose")
-        return ligand
-    pdb_info = pose_stack.pdb_info
-    candidates = {
-        block: f"{block_type.name3} {pdb_info.chain_labels[0, block]}"
-        f"{pdb_info.residue_labels[0, block]}"
-        for block, block_type in blocks
-        if not block_type.properties.polymer.is_polymer
-        and block_type.name3 not in _WATERS
-    }
-    if ligand is None:
-        matches = list(candidates)
-    elif isinstance(ligand, str):
-        matches = [b for b, t in blocks if t.name3 == ligand]
-    else:
-        chain, number = ligand
-        matches = [
-            b
-            for b, _ in blocks
-            if pdb_info.chain_labels[0, b] == chain
-            and pdb_info.residue_labels[0, b] == number
+    n_blocks, n_atoms = pose_stack.max_n_blocks, pose_stack.coords.shape[1]
+    present = pose_stack.block_type_ind64[0] >= 0
+    if isinstance(ligand, str):
+        types = pose_stack.packed_block_types.active_block_types
+        blocks = [
+            block
+            for block, index in enumerate(pose_stack.block_type_ind64[0].tolist())
+            if index >= 0 and types[index].name3 == ligand
         ]
-    if len(matches) != 1:
-        raise ValueError(
-            f"ligand {ligand!r} matches {len(matches)} blocks; non-polymer "
-            f"candidates are {sorted(candidates.values())}. Pass a residue "
-            "name, a (chain, residue number) pair or a block index."
-        )
-    return matches[0]
+    elif isinstance(ligand, int):
+        blocks = [ligand] if 0 <= ligand < n_blocks and present[ligand] else []
+    else:
+        selection = torch.as_tensor(ligand)
+        if selection.dtype == torch.bool and selection.numel() == n_blocks:
+            blocks = torch.nonzero(selection & present).flatten().tolist()
+        else:
+            if selection.dtype == torch.bool:
+                if selection.numel() != n_atoms:
+                    raise ValueError(
+                        f"a ligand mask must have {n_blocks} (blocks) or "
+                        f"{n_atoms} (atoms) entries, got {selection.numel()}"
+                    )
+                selection = torch.nonzero(selection).flatten()
+            atom, block, _, _ = pose_atom_table(pose_stack)
+            chosen = torch.isin(atom, selection.to(torch.int64))
+            blocks = block[chosen].unique().tolist()
+    if len(blocks) != 1:
+        raise ValueError(f"ligand {ligand!r} selects {len(blocks)} blocks, not one")
+    return blocks[0]
 
 
 def validated_sidechain_blocks(
