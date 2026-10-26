@@ -24,8 +24,14 @@ def data_path(*parts: str) -> Path:
 
 
 def read_text(path) -> str:
-    """Read a text fixture, transparently decompressing ``.zst`` files."""
+    """Read a text fixture, transparently decompressing ``.zst`` files.
+
+    A ``.zst`` path falls back to the plain file when the repository keeps that
+    fixture uncompressed (the tutorials download a few as plain files).
+    """
     path = Path(path)
+    if path.suffix == ".zst" and not path.exists():
+        path = path.with_suffix("")
     raw = path.read_bytes()
     if path.suffix == ".zst":
         raw = zstandard.ZstdDecompressor().stream_reader(io.BytesIO(raw)).read()
