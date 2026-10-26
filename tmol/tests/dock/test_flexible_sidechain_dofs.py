@@ -203,7 +203,7 @@ def test_flexible_sidechain_gene_roundtrip_and_isolation(cdk2_pose_and_db):
         compact_sidechains
     )
     assert all(
-        mapping.dof_name == "phi_c" for mapping in docking_dofs.sidechain_torsions
+        mapping.dof_type.name == "phi_c" for mapping in docking_dofs.sidechain_torsions
     )
     for mapping_index, mapping in enumerate(docking_dofs.sidechain_torsions):
         influenced_atoms = layout.sidechain_atom_indices[

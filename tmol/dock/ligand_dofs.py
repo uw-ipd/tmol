@@ -59,14 +59,9 @@ class LigandTorsionDOF:
     name: str
     torsion_index: int
     raw_atom: int
-    raw_atom_name: str
     dof_type: BondDOFTypes
     sign: int
     offset: torch.Tensor
-
-    @property
-    def dof_name(self) -> str:
-        return self.dof_type.name
 
 
 @dataclass(frozen=True)
@@ -78,14 +73,9 @@ class SidechainTorsionDOF:
     torsion_index: int
     sc_torsion_index: int
     raw_atom: int
-    raw_atom_name: str
     dof_type: BondDOFTypes
     sign: int
     offset: torch.Tensor
-
-    @property
-    def dof_name(self) -> str:
-        return self.dof_type.name
 
 
 @dataclass(frozen=True)
@@ -98,12 +88,6 @@ class LigandDockingDOFs:
     torsions: tuple[LigandTorsionDOF, ...]
     sidechain_blocks: tuple[int, ...] = ()
     sidechain_torsions: tuple[SidechainTorsionDOF, ...] = ()
-
-    @property
-    def logical_chi_to_raw_dof(self) -> dict[str, LigandTorsionDOF]:
-        """Return the docking-owned mapping keyed by logical torsion name."""
-
-        return {mapping.name: mapping for mapping in self.torsions}
 
 
 @dataclass(frozen=True)
@@ -821,7 +805,6 @@ def _resolve_sidechain_torsions(
                     torsion_index=torsion_index,
                     sc_torsion_index=sc_torsion_index,
                     raw_atom=raw_atom,
-                    raw_atom_name=block_type.atoms[raw_atom].name,
                     dof_type=dof_type,
                     sign=sign,
                     offset=offsets[:, sc_torsion_index],
@@ -978,7 +961,6 @@ def build_ligand_docking_dofs(
                 name=block_type.torsions[torsion_index].name,
                 torsion_index=torsion_index,
                 raw_atom=raw_atom,
-                raw_atom_name=block_type.atoms[raw_atom].name,
                 dof_type=dof_type,
                 sign=sign,
                 offset=offsets[:, torsion_index],

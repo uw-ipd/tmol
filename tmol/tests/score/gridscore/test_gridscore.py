@@ -47,10 +47,6 @@ def test_grid_geometry_index_conventions():
         torch.tensor([-11.25, -10.0, -8.75], dtype=torch.float64),
     )
     torch.testing.assert_close(
-        geometry.cartesian_from_one_based_index((4, 5, 6)),
-        geometry.cartesian_from_zero_based_index((3, 4, 5)),
-    )
-    torch.testing.assert_close(
         geometry.zero_based_index_from_cartesian(
             geometry.cartesian_from_zero_based_index((3, 4, 5))
         ),

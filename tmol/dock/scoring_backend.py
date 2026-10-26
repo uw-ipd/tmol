@@ -242,28 +242,6 @@ class ContinuousBackend(ScoringBackend):
         )
 
 
-class _GridPoseObjective(torch.nn.Module):
-    """Gather one ligand block and score it against a shared receptor grid."""
-
-    def __init__(
-        self,
-        backend: "GridBackend",
-        pose_stack: PoseStack,
-        ligand_block: int,
-    ) -> None:
-        super().__init__()
-        self.backend = backend
-        self.n_poses = pose_stack.n_poses
-        self.pose_indices = torch.arange(
-            pose_stack.n_poses, dtype=torch.int64, device=pose_stack.device
-        )
-        self.atom_indices = backend._movable_atom_indices(pose_stack, ligand_block)
-
-    def forward(self, coordinates: torch.Tensor) -> torch.Tensor:
-        ligand_coordinates = coordinates[self.pose_indices[:, None], self.atom_indices]
-        return self.backend._score_ligand_coordinates(ligand_coordinates)
-
-
 class _LightweightGridObjective:
     """Graph-free ligand-grid energy and docking-DOF derivative evaluator."""
 
@@ -591,8 +569,7 @@ class GridBackend(ScoringBackend):
             reference_pose_stack: One CPU pose holding the receptor and the
                 ligand (in any placement; the search starts from random poses).
             ligand: The ligand: residue name (``"ATP"``), block index, or a
-                boolean mask / atom indices selecting its block (see
-                :func:`resolve_ligand_block`).
+                boolean atom mask selecting exactly its atoms.
             param_db: Scoring database including the ligand's parameters.
             flexible_residues: Receptor residues (block indices, e.g. from
                 :func:`select_pocket_residues`) whose sidechains move.

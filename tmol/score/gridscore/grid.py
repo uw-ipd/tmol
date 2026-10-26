@@ -137,15 +137,6 @@ class GridGeometry:
         )
         return self.origin + self.voxel_spacing * index_tensor
 
-    def cartesian_from_one_based_index(
-        self, index: Sequence[int] | torch.Tensor
-    ) -> torch.Tensor:
-        """Return the Cartesian position for the M2 one-based node convention."""
-        index_tensor = torch.as_tensor(
-            index, dtype=self.origin.dtype, device=self.origin.device
-        )
-        return self.cartesian_from_zero_based_index(index_tensor - 1)
-
     def zero_based_index_from_cartesian(self, xyz: torch.Tensor) -> torch.Tensor:
         """Return the continuous zero-based grid index of a Cartesian point."""
         return (xyz - self.origin) / self.voxel_spacing
@@ -367,7 +358,6 @@ LK_BALL_SCORE_TYPES = (
     ScoreType.lk_bridge_uncpl,
 )
 LIVE_SCORE_TYPES = (ScoreType.hbond,) + LK_BALL_SCORE_TYPES
-GRID_AND_LIVE_SCORE_TYPES = GRID_SCORE_TYPES + LIVE_SCORE_TYPES
 
 
 def compute_grid_geometry(

@@ -44,42 +44,34 @@ def has_nonpolymer_connection(
 
 
 def resolve_ligand_block(pose_stack: PoseStack, ligand) -> int:
-    """Block index of the ligand to dock, from any of:
+    """Block index of the ligand to dock.
 
-    * a residue name (``"ATP"``), unique in the pose;
-    * a block index;
-    * a boolean mask over blocks (``[n_blocks]``) or over atoms
-      (``[n_atoms]``, indexing ``pose_stack.coords[0]``);
-    * integer atom indices into ``pose_stack.coords[0]``.
-
-    A mask or atom indices must select a single block.
+    ``ligand`` is a residue name (``"ATP"``, unique in the pose), a block index,
+    or a boolean mask over the atoms of ``pose_stack.coords[0]`` that selects
+    exactly the atoms of one block.
     """
-    n_blocks, n_atoms = pose_stack.max_n_blocks, pose_stack.coords.shape[1]
-    present = pose_stack.block_type_ind64[0] >= 0
+    block_types = pose_stack.block_type_ind64[0]
     if isinstance(ligand, str):
         types = pose_stack.packed_block_types.active_block_types
         blocks = [
             block
-            for block, index in enumerate(pose_stack.block_type_ind64[0].tolist())
+            for block, index in enumerate(block_types.tolist())
             if index >= 0 and types[index].name3 == ligand
         ]
     elif isinstance(ligand, int):
-        blocks = [ligand] if 0 <= ligand < n_blocks and present[ligand] else []
+        present = 0 <= ligand < block_types.numel() and block_types[ligand] >= 0
+        blocks = [ligand] if present else []
     else:
-        selection = torch.as_tensor(ligand)
-        if selection.dtype == torch.bool and selection.numel() == n_blocks:
-            blocks = torch.nonzero(selection & present).flatten().tolist()
-        else:
-            if selection.dtype == torch.bool:
-                if selection.numel() != n_atoms:
-                    raise ValueError(
-                        f"a ligand mask must have {n_blocks} (blocks) or "
-                        f"{n_atoms} (atoms) entries, got {selection.numel()}"
-                    )
-                selection = torch.nonzero(selection).flatten()
-            atom, block, _, _ = pose_atom_table(pose_stack)
-            chosen = torch.isin(atom, selection.to(torch.int64))
-            blocks = block[chosen].unique().tolist()
+        mask = torch.as_tensor(ligand, dtype=torch.bool)
+        if mask.shape != pose_stack.coords.shape[1:2]:
+            raise ValueError(
+                f"a ligand mask needs one entry per atom "
+                f"({pose_stack.coords.shape[1]}), got shape {tuple(mask.shape)}"
+            )
+        atom, block, _, _ = pose_atom_table(pose_stack)
+        blocks = block[mask[atom]].unique().tolist()
+        if len(blocks) == 1 and int(mask.sum()) != int((block == blocks[0]).sum()):
+            raise ValueError("a ligand mask must select all atoms of its block")
     if len(blocks) != 1:
         raise ValueError(f"ligand {ligand!r} selects {len(blocks)} blocks, not one")
     return blocks[0]

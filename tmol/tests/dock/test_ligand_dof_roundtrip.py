@@ -117,10 +117,14 @@ def test_cdk2_dof_count_and_bidirectional_mapping(cdk2_pose_and_db):
     minmap = MinimizerMap(pose_stack, kin_module.kmd, docking_dofs.move_map)
 
     assert len(docking_dofs.torsions) == 2
-    assert tuple(docking_dofs.logical_chi_to_raw_dof) == ("chi1", "chi2")
     assert int(torch.sum(minmap.dof_mask)) == 8
     assert [
-        (mapping.name, mapping.raw_atom_name, mapping.dof_name, mapping.sign)
+        (
+            mapping.name,
+            block_type_atom_name(pose_stack, ligand_block, mapping.raw_atom),
+            mapping.dof_type.name,
+            mapping.sign,
+        )
         for mapping in docking_dofs.torsions
     ] == [
         ("chi1", "C7", "phi_c", 1),
@@ -219,3 +223,7 @@ def _load_cdk2_pose_on_device(device: torch.device):
     )
     pose_stack.coords = pose_stack.coords.to(dtype=torch.float32)
     return pose_stack, context.parameter_database
+
+
+def block_type_atom_name(pose_stack, block, atom):
+    return pose_stack.block_type(0, block).atoms[atom].name

@@ -20,7 +20,7 @@ from tmol.tests.dock.test_ligand_dof_roundtrip import (
     _ligand_block,
     _load_cdk2_pose,
 )
-from tmol.pose import repeat_pose_stack
+from tmol.pose import PoseStack, repeat_pose_stack
 from tmol.score.gridscore._movable import (
     resolve_ligand_block,
     movable_pose_stack,
@@ -412,6 +412,28 @@ def test_lightweight_grid_dof_gradient_matches_finite_difference(grid_pose_case)
     assert analytic.grad_fn is None
 
 
+class _GridPoseObjective(torch.nn.Module):
+    """Gather one ligand block and score it against a shared receptor grid."""
+
+    def __init__(
+        self,
+        backend,
+        pose_stack: PoseStack,
+        ligand_block: int,
+    ) -> None:
+        super().__init__()
+        self.backend = backend
+        self.n_poses = pose_stack.n_poses
+        self.pose_indices = torch.arange(
+            pose_stack.n_poses, dtype=torch.int64, device=pose_stack.device
+        )
+        self.atom_indices = backend._movable_atom_indices(pose_stack, ligand_block)
+
+    def forward(self, coordinates: torch.Tensor) -> torch.Tensor:
+        ligand_coordinates = coordinates[self.pose_indices[:, None], self.atom_indices]
+        return self.backend._score_ligand_coordinates(ligand_coordinates)
+
+
 @pytest.mark.slow
 @pytest.mark.parametrize("value_only_line_search", [False, True])
 def test_lightweight_grid_minimize_matches_autograd_reference(
@@ -427,9 +449,7 @@ def test_lightweight_grid_minimize_matches_autograd_reference(
     raw_dofs = case.layout.raw_dofs_from_genes(genes)
     proposed = case.layout.pose_stack_from_genes(genes)
 
-    reference_objective = scoring_backend_module._GridPoseObjective(
-        case.backend, proposed, case.ligand_block
-    )
+    reference_objective = _GridPoseObjective(case.backend, proposed, case.ligand_block)
     reference_network = build_kinforest_network(
         proposed,
         None,
@@ -682,22 +702,23 @@ def test_run_docking_returns_ranked_single_cdk2_output(
     )
 
 
-def test_ligand_is_found_by_name_block_mask_or_atoms():
+def test_ligand_is_found_by_name_block_or_atom_mask():
     reference, _ = _load_cdk2_pose()
     block = _ligand_block(reference)
     name3 = reference.block_type(0, block).name3
     offset = int(reference.block_coord_offset64[0, block])
     n_atoms = reference.block_type(0, block).n_atoms
-    block_mask = torch.zeros(reference.max_n_blocks, dtype=torch.bool)
-    block_mask[block] = True
-    atom_mask = torch.zeros(reference.coords.shape[1], dtype=torch.bool)
-    atom_mask[offset : offset + n_atoms] = True
-    atom_ids = torch.arange(offset, offset + n_atoms)
+    atoms = torch.zeros(reference.coords.shape[1], dtype=torch.bool)
+    atoms[offset : offset + n_atoms] = True
 
-    for ligand in (name3, block, block_mask, atom_mask, atom_ids):
+    for ligand in (name3, block, atoms):
         assert resolve_ligand_block(reference, ligand) == block
-    for bad in ("NOPE", reference.max_n_blocks + 5, ~block_mask, atom_ids - 1):
+    partial = atoms.clone()
+    partial[offset] = False
+    for bad in ("NOPE", reference.max_n_blocks + 5, ~atoms, torch.zeros_like(atoms)):
         with pytest.raises(ValueError, match="selects"):
             resolve_ligand_block(reference, bad)
-    with pytest.raises(ValueError, match="mask must have"):
+    with pytest.raises(ValueError, match="all atoms of its block"):
+        resolve_ligand_block(reference, partial)
+    with pytest.raises(ValueError, match="one entry per atom"):
         resolve_ligand_block(reference, torch.zeros(3, dtype=torch.bool))
