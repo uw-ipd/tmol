@@ -11,7 +11,9 @@
 
 #include <tmol/score/common/device_operations.mps.impl.hh>
 #include <tmol/score/common/launch_box_macros.hh>
-#include <tmol/score/lk_ball/potentials/gen_pose_waters_ctx_metal.hh>
+#include <tmol/score/lk_ball/potentials/gen_pose_waters_ctx.hh>
+#include <tmol/score/common/mps_ctx_builder.hh>
+#include <tmol/utility/portable/metal_view.hh>
 #include <tmol/score/lk_ball/potentials/gen_pose_waters_kernels.hh>
 
 using tmol::score::common::DeviceOperations;
@@ -21,8 +23,8 @@ using namespace tmol::score::lk_ball::potentials;
 LAUNCH_BOX_32
 
 typedef WorkgroupLane<tmol::Device::MPS> Lane;
-typedef WaterGenCtxMetal<float, int32_t> WaterCtx;
-typedef WaterGenDerivCtxMetal<float, int32_t> WaterDerivCtx;
+typedef WaterGenCtxT<tmol::portable::MetalView, float, int32_t> WaterCtx;
+typedef WaterGenDerivCtxT<tmol::portable::MetalView, float, int32_t> WaterDerivCtx;
 
 #define TMOL_N_SIMDS ((launch_t::sm_ptx::nt + 31) / 32)
 

@@ -16,7 +16,8 @@
 #include <tmol/score/ljlk/potentials/params.hh>
 
 #include "water.hh"
-#include <tmol/score/lk_ball/potentials/gen_pose_waters_ctx_tensor.hh>
+#include <tmol/score/lk_ball/potentials/gen_pose_waters_ctx.hh>
+#include <tmol/score/common/tview_binder.hh>
 #include <tmol/score/lk_ball/potentials/gen_pose_waters_kernels.hh>
 #include <tmol/score/common/mps_launch.hh>
 #ifdef WITH_MPS
@@ -28,6 +29,16 @@ namespace tmol {
 namespace score {
 namespace lk_ball {
 namespace potentials {
+
+template <typename Real, typename Int, tmol::Device D>
+using WaterGenCtx =
+    WaterGenCtxT<tmol::score::common::TViewBinder<D>::template View, Real, Int>;
+
+template <typename Real, typename Int, tmol::Device D>
+using WaterGenDerivCtx = WaterGenDerivCtxT<
+    tmol::score::common::TViewBinder<D>::template View,
+    Real,
+    Int>;
 
 #define def auto TMOL_HD
 

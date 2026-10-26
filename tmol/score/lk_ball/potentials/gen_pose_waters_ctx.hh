@@ -14,7 +14,7 @@
 // host and back on every call.
 //
 // Templated on the view so the field list is declared exactly once; see
-// gen_pose_waters_ctx_tensor.hh for the host alias and lk_ball_ctx.hh for
+// gen_pose_waters.impl.hh for the host alias and lk_ball_ctx.hh for
 // the same pattern on the scoring side.
 
 #include <tmol/score/lk_ball/potentials/params_types.hh>

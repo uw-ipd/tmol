@@ -15,7 +15,8 @@
 // not need one.
 
 #include <tmol/pack/compiled/annealer.hh>
-#include <tmol/pack/compiled/annealer_ctx_tensor.hh>
+#include <tmol/pack/compiled/annealer_ctx.hh>
+#include <tmol/score/common/tview_binder.hh>
 #include <tmol/pack/compiled/annealer_kernels.hh>
 #include <tmol/score/common/mps_launch.hh>
 #ifdef WITH_MPS
@@ -31,6 +32,10 @@
 namespace tmol {
 namespace pack {
 namespace compiled {
+
+template <typename Real, typename Int, tmol::Device D>
+using AnnealerCtx =
+    AnnealerCtxT<tmol::score::common::TViewBinder<D>::template View, Real, Int>;
 
 // Funnel shape, matching the CUDA annealer.
 // The funnel's shape is CUDA's; its width and length are not, and both were

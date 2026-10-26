@@ -7,11 +7,12 @@
 
 #include <tmol/score/common/device_operations.mps.impl.hh>
 #include <tmol/score/common/launch_box_macros.hh>
-#include <tmol/score/common/pose_total_reduce_ctx_metal.hh>
+#include <tmol/score/common/pose_total_reduce_ctx.hh>
+#include <tmol/score/common/mps_ctx_builder.hh>
+#include <tmol/utility/portable/metal_view.hh>
 #include <tmol/score/common/pose_total_reduce_kernels.hh>
 
 using tmol::score::common::DeviceOperations;
-using tmol::score::common::PoseTotalReduceCtxMetal;
 using tmol::score::common::PoseTotalReduceShared;
 using tmol::score::common::WorkgroupLane;
 using tmol::score::common::pose_total_reduce_body;
@@ -19,7 +20,7 @@ using tmol::score::common::pose_total_reduce_body;
 LAUNCH_BOX_32
 
 typedef WorkgroupLane<tmol::Device::MPS> Lane;
-typedef PoseTotalReduceCtxMetal<float> Ctx;
+typedef tmol::score::common::PoseTotalReduceCtxT<tmol::portable::MetalView, float> Ctx;
 typedef PoseTotalReduceShared<float, launch_t::sm_ptx::nt> Shared;
 
 #define TMOL_N_SIMDS ((launch_t::sm_ptx::nt + 31) / 32)

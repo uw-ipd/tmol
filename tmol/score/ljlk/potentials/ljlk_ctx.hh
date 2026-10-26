@@ -11,7 +11,7 @@
 // Templated on the view so the field list is declared exactly once: the host
 // and CUDA builds instantiate it with TView, and a Metal translation unit --
 // which cannot include the torch tensor layer at all -- instantiates it with
-// tmol::portable::MetalView. See ljlk_ctx_tensor.hh for the host alias.
+// tmol::portable::MetalView. The host binds it to TView in the dispatch header.
 //
 // OutRank parameterizes the energy tensor, which differs between the two
 // kernel families: whole-pose scoring writes [term, pose, block, block] while

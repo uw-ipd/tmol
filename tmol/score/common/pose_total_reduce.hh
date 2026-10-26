@@ -15,13 +15,18 @@
 #ifdef WITH_MPS
 #include <tmol/score/common/pose_total_reduce_mps_kernels_source.h>
 #endif
-#include <tmol/score/common/pose_total_reduce_ctx_tensor.hh>
+#include <tmol/score/common/pose_total_reduce_ctx.hh>
+#include <tmol/score/common/tview_binder.hh>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/context_manager.hh>
 
 namespace tmol {
 namespace score {
 namespace common {
+
+template <typename Real, tmol::Device D>
+using PoseTotalReduceCtx =
+    PoseTotalReduceCtxT<TViewBinder<D>::template View, Real>;
 
 // Sum cells[term][pose][b1][b2] over the trailing two dimensions into
 // totals[term][pose][0][0], in a fixed order and with compensated arithmetic.

@@ -14,7 +14,9 @@
 
 #include <tmol/score/common/device_operations.mps.impl.hh>
 #include <tmol/score/common/launch_box_macros.hh>
-#include <tmol/pack/compiled/annealer_ctx_metal.hh>
+#include <tmol/pack/compiled/annealer_ctx.hh>
+#include <tmol/score/common/mps_ctx_builder.hh>
+#include <tmol/utility/portable/metal_view.hh>
 #include <tmol/pack/compiled/annealer_kernels.hh>
 
 using tmol::score::common::DeviceOperations;
@@ -24,7 +26,7 @@ using namespace tmol::pack::compiled;
 LAUNCH_BOX_32
 
 typedef WorkgroupLane<tmol::Device::MPS> Lane;
-typedef AnnealerCtxMetal<float, int32_t> Ctx;
+typedef AnnealerCtxT<tmol::portable::MetalView, float, int32_t> Ctx;
 
 #define TMOL_N_SIMDS ((launch_t::sm_ptx::nt + 31) / 32)
 

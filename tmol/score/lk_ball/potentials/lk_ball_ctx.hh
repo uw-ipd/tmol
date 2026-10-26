@@ -11,7 +11,7 @@
 // Templated on the view so the field list is declared exactly once: the host
 // and CUDA builds instantiate it with TView, and a Metal translation unit --
 // which cannot include the torch tensor layer at all -- instantiates it with
-// tmol::portable::MetalView. See lk_ball_ctx_tensor.hh for the host alias.
+// tmol::portable::MetalView. The host binds it to TView in the dispatch header.
 //
 // Only the forward energy kernel is covered. LK-ball computes derivatives in
 // a separate `backward` dispatch rather than inside the forward pass, so

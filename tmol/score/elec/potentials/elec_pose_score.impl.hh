@@ -27,7 +27,8 @@
 #include <tmol/score/common/warp_stride_reduce.hh>
 #include <tmol/score/elec/potentials/elec.hh>
 #include <tmol/score/elec/potentials/params.hh>
-#include <tmol/score/elec/potentials/elec_ctx_tensor.hh>
+#include <tmol/score/elec/potentials/elec_ctx.hh>
+#include <tmol/score/common/tview_binder.hh>
 #include <tmol/score/elec/potentials/elec_kernels.hh>
 #include <tmol/score/elec/potentials/elec_pose_score.hh>
 // Operator definitions; safe for CPU compilation
@@ -39,6 +40,13 @@ namespace tmol {
 namespace score {
 namespace elec {
 namespace potentials {
+
+template <typename Real, typename Int, tmol::Device D, int OutRank = 4>
+using ElecCtx = ElecCtxT<
+    tmol::score::common::TViewBinder<D>::template View,
+    Real,
+    Int,
+    OutRank>;
 using tmol::portable::Vec;
 // MACROS
 template <

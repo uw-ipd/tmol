@@ -29,7 +29,8 @@
 
 #include <tmol/score/ljlk/potentials/lj.hh>
 #include <tmol/score/ljlk/potentials/ljlk.hh>
-#include <tmol/score/ljlk/potentials/ljlk_ctx_tensor.hh>
+#include <tmol/score/ljlk/potentials/ljlk_ctx.hh>
+#include <tmol/score/common/tview_binder.hh>
 #include <tmol/score/ljlk/potentials/ljlk_kernels.hh>
 #include <tmol/score/common/mps_launch.hh>
 #ifdef WITH_MPS
@@ -50,6 +51,13 @@ namespace tmol {
 namespace score {
 namespace ljlk {
 namespace potentials {
+
+template <typename Real, typename Int, tmol::Device D, int OutRank = 4>
+using LJLKCtx = LJLKCtxT<
+    tmol::score::common::TViewBinder<D>::template View,
+    Real,
+    Int,
+    OutRank>;
 
 using tmol::portable::Vec;
 

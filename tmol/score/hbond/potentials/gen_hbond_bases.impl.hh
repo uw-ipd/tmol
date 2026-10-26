@@ -10,7 +10,8 @@
 #include <tmol/score/common/launch_box_macros.hh>
 
 #include <tmol/score/hbond/potentials/gen_hbond_bases.hh>
-#include <tmol/score/hbond/potentials/gen_hbond_bases_ctx_tensor.hh>
+#include <tmol/score/hbond/potentials/gen_hbond_bases_ctx.hh>
+#include <tmol/score/common/tview_binder.hh>
 #include <tmol/score/hbond/potentials/gen_hbond_bases_kernels.hh>
 #include <tmol/score/common/mps_launch.hh>
 #ifdef WITH_MPS
@@ -21,6 +22,12 @@ namespace tmol {
 namespace score {
 namespace hbond {
 namespace potentials {
+
+template <typename Real, typename Int, tmol::Device D>
+using HBondBasesCtx = HBondBasesCtxT<
+    tmol::score::common::TViewBinder<D>::template View,
+    Real,
+    Int>;
 
 template <
     template <tmol::Device> class DeviceOps,

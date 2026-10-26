@@ -26,7 +26,8 @@
 #include <tmol/score/common/warp_stride_reduce.hh>
 
 #include <tmol/score/lk_ball/potentials/lk_ball.hh>
-#include <tmol/score/lk_ball/potentials/lk_ball_ctx_tensor.hh>
+#include <tmol/score/lk_ball/potentials/lk_ball_ctx.hh>
+#include <tmol/score/common/tview_binder.hh>
 #include <tmol/score/lk_ball/potentials/lk_ball_kernels.hh>
 #include <tmol/score/common/mps_launch.hh>
 #ifdef WITH_MPS
@@ -337,6 +338,13 @@ namespace tmol {
 namespace score {
 namespace lk_ball {
 namespace potentials {
+
+template <typename Real, typename Int, tmol::Device D, int OutRank = 4>
+using LKBallCtx = LKBallCtxT<
+    tmol::score::common::TViewBinder<D>::template View,
+    Real,
+    Int,
+    OutRank>;
 
 using tmol::portable::Vec;
 

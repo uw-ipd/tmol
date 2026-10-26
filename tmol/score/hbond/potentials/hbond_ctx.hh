@@ -28,7 +28,7 @@ using tmol::portable::Vec;
 // Templated on the view so the field list is declared exactly once: the host
 // and CUDA builds instantiate it with TView, and a Metal translation unit --
 // which cannot include the torch tensor layer at all -- instantiates it with
-// tmol::portable::MetalView. See hbond_ctx_tensor.hh for the host alias.
+// tmol::portable::MetalView. The host binds it to TView in the dispatch header.
 //
 // PolyReal is the polynomial coefficient type, which is the one field whose
 // element type is backend-dependent: float64 on the host and CUDA, an

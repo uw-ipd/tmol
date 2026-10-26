@@ -15,7 +15,9 @@
 
 #include <tmol/score/common/device_operations.mps.impl.hh>
 #include <tmol/score/common/launch_box_macros.hh>
-#include <tmol/score/elec/potentials/elec_ctx_metal.hh>
+#include <tmol/score/elec/potentials/elec_ctx.hh>
+#include <tmol/score/common/mps_ctx_builder.hh>
+#include <tmol/utility/portable/metal_view.hh>
 #include <tmol/score/elec/potentials/elec_kernels.hh>
 
 using tmol::score::common::DeviceOperations;
@@ -27,9 +29,9 @@ LAUNCH_BOX_32
 typedef WorkgroupLane<tmol::Device::MPS> Lane;
 
 // Whole-pose scoring: output is [term, pose, block, block].
-typedef ElecCtxMetal<float, int32_t, 4> PoseCtx;
+typedef ElecCtxT<tmol::portable::MetalView, float, int32_t, 4> PoseCtx;
 // Rotamer scoring: output is [term, block_pair].
-typedef ElecCtxMetal<float, int32_t, 2> RotCtx;
+typedef ElecCtxT<tmol::portable::MetalView, float, int32_t, 2> RotCtx;
 
 typedef ElecSharedMem<float, TILE_SIZE, MAX_N_CONN, launch_t> ElecShared;
 

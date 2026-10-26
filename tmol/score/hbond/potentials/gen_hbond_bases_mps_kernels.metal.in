@@ -11,7 +11,9 @@
 
 #include <tmol/score/common/device_operations.mps.impl.hh>
 #include <tmol/score/common/launch_box_macros.hh>
-#include <tmol/score/hbond/potentials/gen_hbond_bases_ctx_metal.hh>
+#include <tmol/score/hbond/potentials/gen_hbond_bases_ctx.hh>
+#include <tmol/score/common/mps_ctx_builder.hh>
+#include <tmol/utility/portable/metal_view.hh>
 #include <tmol/score/hbond/potentials/gen_hbond_bases_kernels.hh>
 
 using tmol::score::common::DeviceOperations;
@@ -21,7 +23,7 @@ using namespace tmol::score::hbond::potentials;
 LAUNCH_BOX_32
 
 typedef WorkgroupLane<tmol::Device::MPS> Lane;
-typedef HBondBasesCtxMetal<float, int32_t> BasesCtx;
+typedef HBondBasesCtxT<tmol::portable::MetalView, float, int32_t> BasesCtx;
 typedef HBondBasesGenSharedData<float, HBOND_BASES_GEN_TILE_SIZE> BasesShared;
 
 #define TMOL_N_SIMDS ((launch_t::sm_ptx::nt + 31) / 32)

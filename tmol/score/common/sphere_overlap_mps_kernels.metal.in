@@ -12,7 +12,9 @@
 
 #include <tmol/score/common/device_operations.mps.impl.hh>
 #include <tmol/score/common/launch_box_macros.hh>
-#include <tmol/score/common/sphere_overlap_ctx_metal.hh>
+#include <tmol/score/common/sphere_overlap_ctx.hh>
+#include <tmol/score/common/mps_ctx_builder.hh>
+#include <tmol/utility/portable/metal_view.hh>
 #include <tmol/score/common/sphere_overlap_kernels.hh>
 
 using tmol::score::common::DeviceOperations;
@@ -23,11 +25,11 @@ using namespace tmol::score::common::sphere_overlap;
 LAUNCH_BOX_32
 
 typedef WorkgroupLane<tmol::Device::MPS> Lane;
-typedef BlockSpheresCtxMetal<float, int32_t> SpheresCtx;
-typedef BlockNeighborsCtxMetal<float, int32_t> NeighborsCtx;
-typedef RotSpheresCtxMetal<float, int32_t> RotSpheresCtx;
-typedef BlockSpheresFromRotCtxMetal<float, int32_t> BlockFromRotCtx;
-typedef RotPairListCtxMetal<float, int32_t> RotPairCtx;
+typedef BlockSpheresCtxT<tmol::portable::MetalView, float, int32_t> SpheresCtx;
+typedef BlockNeighborsCtxT<tmol::portable::MetalView, float, int32_t> NeighborsCtx;
+typedef RotSpheresCtxT<tmol::portable::MetalView, float, int32_t> RotSpheresCtx;
+typedef BlockSpheresFromRotCtxT<tmol::portable::MetalView, float, int32_t> BlockFromRotCtx;
+typedef RotPairListCtxT<tmol::portable::MetalView, float, int32_t> RotPairCtx;
 
 // One threadgroup per rotamer.
 kernel void compute_block_spheres_f32(

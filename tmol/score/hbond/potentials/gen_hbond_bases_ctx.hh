@@ -5,7 +5,7 @@
 // Declared once, templated on the view, so the CPU and CUDA builds bind it to
 // tmol::TView while a `.metal` translation unit -- which cannot include the
 // torch tensor layer at all -- binds it to tmol::portable::MetalView and runs
-// the same kernel body. See gen_hbond_bases_ctx_tensor.hh for the host alias.
+// the same kernel body. The host binds it to TView in the dispatch header.
 
 #include <tmol/utility/portable/device.hh>
 #include <tmol/utility/portable/matrix.hh>
