@@ -8,7 +8,7 @@ import torch
 
 from tmol.database import ParameterDatabase
 from tmol.dock.ligand_dofs import build_ligand_docking_dofs
-from tmol.io import pose_stack_from_biotite
+from tmol.io import pose_stack_from_atom_array
 from tmol.optimization import build_kinforest_network
 from tmol.score import ScoreFunction
 from tmol.tests.data import data_path
@@ -24,7 +24,7 @@ def _load_cdk2_pose():
     """Use exactly the cdk2 construction path from the gridscore oracle."""
 
     param_db = ParameterDatabase.get_default()
-    pose_stack, context = pose_stack_from_biotite(
+    pose_stack, context = pose_stack_from_atom_array(
         _load_complex_cif("cdk2"),
         torch.device("cpu"),
         prepare_ligands=True,
@@ -102,7 +102,7 @@ def _load_cdk2_pose_on_device(device: torch.device):
 
     # The Phase-1 helper is CPU/fp64-only. Repeat its exact construction on the
     # requested device for the GPU/fp32 batched lane.
-    pose_stack, context = pose_stack_from_biotite(
+    pose_stack, context = pose_stack_from_atom_array(
         _load_complex_cif("cdk2"),
         device,
         prepare_ligands=True,

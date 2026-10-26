@@ -12,7 +12,7 @@ import pytest
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.io import pose_stack_from_biotite
+from tmol.io import pose_stack_from_atom_array
 from tmol.score.gridscore import build_grid
 from tmol.score.ljlk import LJLKParamResolver
 from tmol.tests.data import data_path
@@ -41,7 +41,7 @@ PLI_DATA_DIR = data_path("protein_ligand_test")
 
 def _load_cdk2_pose():
     param_db = ParameterDatabase.get_default()
-    pose_stack, context = pose_stack_from_biotite(
+    pose_stack, context = pose_stack_from_atom_array(
         _load_complex_cif("cdk2"),
         torch.device("cpu"),
         prepare_ligands=True,

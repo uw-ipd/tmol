@@ -6,7 +6,7 @@ import pytest
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.io import pose_stack_from_biotite
+from tmol.io import pose_stack_from_atom_array
 from tmol.score.elec import ElecParamResolver
 from tmol.score.gridscore import GridScorer, GridSet, build_grid
 from tmol.score.gridscore.grid import (
@@ -146,7 +146,7 @@ def _grid_channels(grids, coords, atom_types, charges):
 
 def _load_target_pose(target):
     param_db = ParameterDatabase.get_default()
-    pose_stack, context = pose_stack_from_biotite(
+    pose_stack, context = pose_stack_from_atom_array(
         _load_complex_cif(target),
         torch.device("cpu"),
         prepare_ligands=True,
