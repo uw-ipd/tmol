@@ -214,36 +214,6 @@ void GridBuildDispatch<DeviceOps, D, Real, Int>::build(
 
   LAUNCH_BOX_32;
 
-  auto electrostatics = [=] TMOL_DEVICE_FUNC(int voxel) {
-    Real xyz[3];
-    voxel_xyz<D, Real, Int>(grid_origin, voxel_spacing, n_y, n_z, voxel, xyz);
-    Real sum = 0;
-    for_neighbors<D, Real, Int>(
-        xyz[0],
-        xyz[1],
-        xyz[2],
-        max_dis,
-        cell_origin,
-        cell_dims,
-        cell_offsets,
-        cell_indices,
-        [&](Int atom) {
-          Real const dx = xyz[0] - receptor_coords[atom][0];
-          Real const dy = xyz[1] - receptor_coords[atom][1];
-          Real const dz = xyz[2] - receptor_coords[atom][2];
-          Real const dist2 = dx * dx + dy * dy + dz * dz;
-          if (dist2 > elec_max2) return;
-          sum += tmol::score::elec::potentials::elec<Real>(
-              std::sqrt(dist2),
-              Real(1),
-              receptor_charges[atom],
-              Real(5),
-              elec_global);
-        });
-    elec[voxel] = sum;
-  };
-  DeviceOps<D>::template forall<launch_t>(mgr, n_voxels, electrostatics);
-
   // Per-probe running sums over one voxel's receptor neighbors.
   auto accumulate = [=] TMOL_DEVICE_FUNC(
                         LJLKTypeParams<Real> const& probe_params,
@@ -328,104 +298,69 @@ void GridBuildDispatch<DeviceOps, D, Real, Int>::build(
     }
   };
 
-  if constexpr (D == tmol::Device::CPU) {
-    // Neighbors outer, probes inner: distances and receptor parameters are
-    // computed once per pair of voxel and receptor atom.
-    std::vector<LJLKTypeParams<Real>> probes;
-    for (Int probe = 0; probe < n_probes; ++probe) {
-      probes.push_back(type_row<D, Real>(type_params, probe_types[probe]));
+  // One work item per (voxel, tile of probes): the receptor neighbors of a
+  // voxel (and their distances) are shared by the probes of a tile.
+  constexpr Int tile_size = 8;
+  Int const n_tiles = (n_probes + tile_size - 1) / tile_size;
+  auto tile_sums = [=] TMOL_DEVICE_FUNC(int work) {
+    Int const voxel = work / n_tiles;
+    Int const first = (work % n_tiles) * tile_size;
+    Int const count = std::min<Int>(tile_size, n_probes - first);
+    Real xyz[3];
+    voxel_xyz<D, Real, Int>(grid_origin, voxel_spacing, n_y, n_z, voxel, xyz);
+    LJLKTypeParams<Real> probes[tile_size];
+    PairSums<Real> sums[tile_size] = {};
+    for (Int p = 0; p < count; ++p) {
+      probes[p] = type_row<D, Real>(type_params, probe_types[first + p]);
     }
-    std::vector<LJLKTypeParams<Real>> types;
-    for (Int type = 0; type < type_params.size(0); ++type) {
-      types.push_back(type_row<D, Real>(type_params, type));
-    }
-    std::vector<char> waters(receptor_coords.size(0), 0);
-    if (build_lk_ball) {
-      for (Int atom = 0; atom < receptor_coords.size(0); ++atom) {
-        waters[atom] = has_water<D, Real>(receptor_waters, atom);
-      }
-    }
-    auto voxel_sums = [=, &probes, &types, &waters](int voxel) {
-      Real xyz[3];
-      voxel_xyz<D, Real, Int>(grid_origin, voxel_spacing, n_y, n_z, voxel, xyz);
-      std::vector<PairSums<Real>> sums(n_probes);
-      for_neighbors<D, Real, Int>(
-          xyz[0],
-          xyz[1],
-          xyz[2],
-          max_dis,
-          cell_origin,
-          cell_dims,
-          cell_offsets,
-          cell_indices,
-          [&](Int atom) {
-            Real const dx = xyz[0] - receptor_coords[atom][0];
-            Real const dy = xyz[1] - receptor_coords[atom][1];
-            Real const dz = xyz[2] - receptor_coords[atom][2];
-            Real const dist2 = dx * dx + dy * dy + dz * dz;
-            if (dist2 > lj_max2) return;
-            auto const& receptor = types[receptor_types[atom]];
-            for (Int probe = 0; probe < n_probes; ++probe) {
-              accumulate(
-                  probes[probe],
-                  receptor,
-                  atom,
-                  waters[atom] != 0,
-                  dist2,
-                  xyz[0],
-                  xyz[1],
-                  xyz[2],
-                  sums[probe]);
-            }
-          });
-      for (Int probe = 0; probe < n_probes; ++probe) {
-        store(probe, voxel, sums[probe]);
-      }
-    };
-    DeviceOps<D>::template forall<launch_t>(mgr, n_voxels, voxel_sums);
-  } else {
-    // One thread per (probe, voxel).
-    auto pair_sums = [=] TMOL_DEVICE_FUNC(int work) {
-      Int const probe = work / n_voxels;
-      Int const voxel = work % n_voxels;
-      Real xyz[3];
-      voxel_xyz<D, Real, Int>(grid_origin, voxel_spacing, n_y, n_z, voxel, xyz);
-      auto const probe_params =
-          type_row<D, Real>(type_params, probe_types[probe]);
-      PairSums<Real> sums{};
-      for_neighbors<D, Real, Int>(
-          xyz[0],
-          xyz[1],
-          xyz[2],
-          max_dis,
-          cell_origin,
-          cell_dims,
-          cell_offsets,
-          cell_indices,
-          [&](Int atom) {
-            Real const dx = xyz[0] - receptor_coords[atom][0];
-            Real const dy = xyz[1] - receptor_coords[atom][1];
-            Real const dz = xyz[2] - receptor_coords[atom][2];
-            Real const dist2 = dx * dx + dy * dy + dz * dz;
-            if (dist2 > lj_max2) return;
-            auto const receptor =
-                type_row<D, Real>(type_params, receptor_types[atom]);
+    Real elec_sum = 0;
+    for_neighbors<D, Real, Int>(
+        xyz[0],
+        xyz[1],
+        xyz[2],
+        max_dis,
+        cell_origin,
+        cell_dims,
+        cell_offsets,
+        cell_indices,
+        [&](Int atom) {
+          Real const dx = xyz[0] - receptor_coords[atom][0];
+          Real const dy = xyz[1] - receptor_coords[atom][1];
+          Real const dz = xyz[2] - receptor_coords[atom][2];
+          Real const dist2 = dx * dx + dy * dy + dz * dz;
+          if (first == 0 && dist2 <= elec_max2) {
+            elec_sum += tmol::score::elec::potentials::elec<Real>(
+                std::sqrt(dist2),
+                Real(1),
+                receptor_charges[atom],
+                Real(5),
+                elec_global);
+          }
+          if (dist2 > lj_max2) return;
+          auto const receptor =
+              type_row<D, Real>(type_params, receptor_types[atom]);
+          bool const has_waters =
+              build_lk_ball && has_water<D, Real>(receptor_waters, atom);
+          for (Int p = 0; p < count; ++p) {
             accumulate(
-                probe_params,
+                probes[p],
                 receptor,
                 atom,
-                build_lk_ball && has_water<D, Real>(receptor_waters, atom),
+                has_waters,
                 dist2,
                 xyz[0],
                 xyz[1],
                 xyz[2],
-                sums);
-          });
-      store(probe, voxel, sums);
-    };
-    DeviceOps<D>::template forall<launch_t>(
-        mgr, n_probes * n_voxels, pair_sums);
-  }
+                sums[p]);
+          }
+        });
+    if (first == 0) elec[voxel] = elec_sum;
+    for (Int p = 0; p < count; ++p) {
+      store(first + p, voxel, sums[p]);
+    }
+  };
+  DeviceOps<D>::template forall_independent<launch_t>(
+      mgr, n_voxels * n_tiles, tile_sums);
 }
 
 }  // namespace potentials
