@@ -44,28 +44,34 @@ namespace {
 
 template <typename Real>
 ElecGlobalParams<Real> load_elec_global_params(double const* g) {
-  Real const D = g[0], D0 = g[1], S = g[2], min_dis = g[3], max_dis = g[4];
-  Real const cutoff_offset =
-      322.0637 / (max_dis * eps<Real>(max_dis, D, D0, S));
-  Real const low_end = min_dis + 0.25;
-  Real const low_eps = eps<Real>(low_end, D, D0, S);
-  Real const high_start = max_dis - 1.0;
-  Real const high_eps = eps<Real>(high_start, D, D0, S);
+  // Derived constants are computed in double and narrowed once.
+  double const D = g[0], D0 = g[1], S = g[2], min_dis = g[3], max_dis = g[4];
+  double const cutoff_offset =
+      322.0637 / (max_dis * eps<double>(max_dis, D, D0, S));
+  double const low_end = min_dis + 0.25;
+  double const low_eps = eps<double>(low_end, D, D0, S);
+  double const high_start = max_dis - 1.0;
+  double const high_eps = eps<double>(high_start, D, D0, S);
   return ElecGlobalParams<Real>{
-      D,
-      D0,
-      S,
-      min_dis,
-      max_dis,
-      cutoff_offset,
-      322.0637 / (min_dis * eps<Real>(min_dis, D, D0, S)) - cutoff_offset,
-      322.0637 / (low_end * low_eps) - cutoff_offset,
-      -322.0637 * (low_eps + low_end * deps_ddist<Real>(low_end, D, D0, S))
-          / (low_end * low_end * low_eps * low_eps),
-      322.0637 / (high_start * high_eps) - cutoff_offset,
-      -322.0637
-          * (high_eps + high_start * deps_ddist<Real>(high_start, D, D0, S))
-          / (high_start * high_start * high_eps * high_eps)};
+      Real(D),
+      Real(D0),
+      Real(S),
+      Real(min_dis),
+      Real(max_dis),
+      Real(cutoff_offset),
+      Real(
+          322.0637 / (min_dis * eps<double>(min_dis, D, D0, S))
+          - cutoff_offset),
+      Real(322.0637 / (low_end * low_eps) - cutoff_offset),
+      Real(
+          -322.0637
+          * (low_eps + low_end * deps_ddist<double>(low_end, D, D0, S))
+          / (low_end * low_end * low_eps * low_eps)),
+      Real(322.0637 / (high_start * high_eps) - cutoff_offset),
+      Real(
+          -322.0637
+          * (high_eps + high_start * deps_ddist<double>(high_start, D, D0, S))
+          / (high_start * high_start * high_eps * high_eps))};
 }
 
 }  // namespace

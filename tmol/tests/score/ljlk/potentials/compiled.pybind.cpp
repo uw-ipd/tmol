@@ -148,7 +148,8 @@ void bind_potentials(pybind11::module& m) {
                 / (low_end * low_end * low_eps * low_eps),
             Real(322.0637) / (high_start * high_eps) - cutoff_offset,
             -Real(322.0637)
-                * (high_eps + high_start * deps_ddist<Real>(high_start, D, D0, S))
+                * (high_eps
+                   + high_start * deps_ddist<Real>(high_start, D, D0, S))
                 / (high_start * high_start * high_eps * high_eps)};
         return tmol::score::elec::potentials::elec<Real>(
             dist, charge_i, charge_j, bonded_path_length, params);

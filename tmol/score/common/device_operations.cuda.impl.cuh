@@ -260,8 +260,7 @@ struct DeviceOperations<tmol::Device::CUDA> {
       return;
     }
     std::shared_ptr<mgpu::standard_context_t> context = _get_context(mgr);
-    mgpu::segmented_sort(
-        keys, n, seg_start_inds, n_segs, comp, *context);
+    mgpu::segmented_sort(keys, n, seg_start_inds, n_segs, comp, *context);
   }
 
   template <int N_T, int WIDTH, typename T>

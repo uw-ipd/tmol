@@ -20,9 +20,7 @@ def test_run_min_value_only_matches_standard(per_pose):
     class QuadraticNetwork(torch.nn.Module):
         def __init__(self):
             super().__init__()
-            self.x = torch.nn.Parameter(
-                torch.tensor([8.0, -3.0], dtype=torch.float64)
-            )
+            self.x = torch.nn.Parameter(torch.tensor([8.0, -3.0], dtype=torch.float64))
             self.segment_ids = torch.arange(2, dtype=torch.int64)
             self.grad_modes = []
 
