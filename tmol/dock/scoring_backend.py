@@ -11,6 +11,7 @@ import attrs
 import torch
 
 from tmol.database import ParameterDatabase
+from tmol.dock._batched_lbfgs import BatchedLBFGS
 from tmol.dock.ligand_dofs import (
     GeneIndex,
     LigandDockingDOFs,
@@ -28,10 +29,9 @@ from tmol.kinematics.compiled import (
 )
 from tmol.kinematics import MinimizerMap
 from tmol.kinematics import PoseStackKinematicsModule
-from tmol.optimization import LBFGS_Armijo, build_kinforest_network, run_min
-from tmol.pose import PoseStack
+from tmol.optimization import build_kinforest_network, run_min
+from tmol.pose import PoseStack, repeat_pose_stack
 from tmol.score import beta2016_score_function
-from tmol.score.common._cuda_graph import CapturedFunction
 from tmol.score.gridscore import GridScorer, GridSet, build_grid
 from tmol.score.gridscore.live_hbond import LiveHBondData, build_live_hbond_data
 from tmol.score.gridscore.live_ligand_intra import (
@@ -243,7 +243,7 @@ class ContinuousBackend(ScoringBackend):
 
 
 class _LightweightGridObjective:
-    """Graph-free ligand-grid energy and docking-DOF derivative evaluator."""
+    """Ligand-grid energy and analytic docking-DOF gradient of a population."""
 
     def __init__(
         self,
@@ -252,7 +252,6 @@ class _LightweightGridObjective:
         docking_dofs: LigandDockingDOFs,
         kin_dtype: torch.dtype,
         initial_raw_dofs: Optional[torch.Tensor],
-        cuda_graph: bool = False,
     ) -> None:
         self.backend = backend
         self.pose_stack = pose_stack
@@ -351,11 +350,6 @@ class _LightweightGridObjective:
         self.segment_ids = pose_for_dof[self.dof_flat_idx].to(torch.int64)
         if bool(torch.any(self.segment_ids < 0)):
             raise ValueError("root node DOFs cannot be minimized")
-        self._captured = (
-            CapturedFunction(self._energy_and_gradient, self.initial_masked_dofs)
-            if cuda_graph and pose_stack.device.type == "cuda"
-            else None
-        )
 
     def _set_masked_dofs(self, masked_dofs: torch.Tensor) -> None:
         if masked_dofs.shape != self.initial_masked_dofs.shape:
@@ -378,26 +372,7 @@ class _LightweightGridObjective:
             self.kintree,
         )
 
-    def energy(self, masked_dofs: torch.Tensor) -> torch.Tensor:
-        """Evaluate per-pose energy without constructing an autograd graph."""
-
-        with torch.no_grad():
-            kin_coords = self._forward_only(masked_dofs)
-            movable_coords = kin_coords[self.movable_nodes]
-            return self.backend._score_ligand_coordinates(movable_coords)
-
     def energy_and_gradient(
-        self, masked_dofs: torch.Tensor
-    ) -> tuple[torch.Tensor, torch.Tensor]:
-        """Evaluate energy and analytic dE/d(freed raw DOFs), graph-free.
-
-        On CUDA the evaluation is a replay of one captured graph."""
-
-        if self._captured is not None:
-            return self._captured(masked_dofs)
-        return self._energy_and_gradient(masked_dofs)
-
-    def _energy_and_gradient(
         self, masked_dofs: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor]:
         with torch.no_grad():
@@ -463,6 +438,56 @@ class _LightweightGridObjective:
         )
 
 
+class _PopulationMinimizer:
+    """Batched L-BFGS over ``n_trials`` line-search candidates of every pose.
+
+    One candidate objective holds ``n_trials`` copies of the population, so a
+    single (graph) evaluation scores every trial step of every pose.
+    """
+
+    def __init__(
+        self,
+        backend: "GridBackend",
+        pose_stack: PoseStack,
+        docking_dofs: LigandDockingDOFs,
+        kin_dtype: torch.dtype,
+    ) -> None:
+        cuda = pose_stack.device.type == "cuda"
+        n_trials, n_poses = (6 if cuda else 2), pose_stack.n_poses
+        candidates = repeat_pose_stack(pose_stack.split(0), n_trials * n_poses)
+        candidate_dofs = build_ligand_docking_dofs(
+            candidates,
+            docking_dofs.ligand_block,
+            sidechain_blocks=docking_dofs.sidechain_blocks,
+        )
+        self.objective = _LightweightGridObjective(
+            backend, candidates, candidate_dofs, kin_dtype, None
+        )
+        self.n_trials = n_trials
+        shape = (n_trials, n_poses, -1)
+
+        def evaluate(x):
+            energy, gradient = self.objective.energy_and_gradient(x.reshape(-1))
+            return energy.reshape(n_trials, n_poses).to(x.dtype), gradient.reshape(shape)
+
+        x0 = self.objective.initial_masked_dofs.reshape(n_trials, n_poses, -1)[0]
+        self.lbfgs = BatchedLBFGS(
+            evaluate,
+            x0.clone(),
+            n_trials=n_trials,
+            graph=backend.cuda_graph and cuda,
+        )
+
+    def minimize(
+        self, fixed_dofs: torch.Tensor, x0: torch.Tensor, max_iter: int
+    ) -> torch.Tensor:
+        """Minimize ``x0`` (freed DOFs); ``fixed_dofs`` are the population's raw DOFs."""
+        self.objective.full_dofs.copy_(
+            torch.cat((fixed_dofs[:1], fixed_dofs[1:].repeat(self.n_trials, 1)))
+        )
+        return self.lbfgs.minimize(x0, max_iter)
+
+
 class GridBackend(ScoringBackend):
     """Rigid-receptor grid plus live hbond, intra, and LK-ball scoring.
 
@@ -475,8 +500,9 @@ class GridBackend(ScoringBackend):
     implementation. Ligand-intra search weights match Rosetta GridScorer's
     softened ``oneb_wtd_`` objective.
 
-    ``value_only_line_search=True`` evaluates Armijo trials with energy only
-    and refreshes analytic gradients at accepted points (default: False).
+    Minimization is a batched L-BFGS whose line search evaluates ``n_trials``
+    step sizes of every pose at once; with ``cuda_graph`` each iteration is one
+    CUDA-graph replay.
     """
 
     def __init__(
@@ -496,7 +522,6 @@ class GridBackend(ScoringBackend):
         context_blocks: tuple[int, ...] = (),
         grid_atom_indices: Optional[torch.Tensor] = None,
         movable_n_atoms: Optional[int] = None,
-        value_only_line_search: bool = False,
         cuda_graph: bool = True,
     ) -> None:
         self.grids = grids
@@ -513,8 +538,8 @@ class GridBackend(ScoringBackend):
         self.context_blocks = tuple(context_blocks)
         self.grid_atom_indices = grid_atom_indices
         self.movable_n_atoms = movable_n_atoms or len(ligand_atom_types)
-        self.value_only_line_search = value_only_line_search
         self.cuda_graph = cuda_graph
+        self._minimizers: dict = {}  # shared with ``for_ligand_block`` views
         self._scorers: dict[tuple[torch.device, torch.dtype], GridScorer] = {}
         self._atom_index_cache: dict[tuple, torch.Tensor] = {}
 
@@ -605,7 +630,6 @@ class GridBackend(ScoringBackend):
         kin_dtype: Optional[torch.dtype] = None,
         lk_ball_grid: bool = True,
         include_ligand_intra: bool = True,
-        value_only_line_search: bool = False,
         cuda_graph: bool = True,
         ligand_intra_weight_profile: str = "search",
     ) -> "GridBackend":
@@ -629,9 +653,8 @@ class GridBackend(ScoringBackend):
         ``lk_ball_grid=True`` selects Rosetta's weighted gridded approximation;
         ``False`` retains the exact live LK-ball path. Ligand-intra scoring is
         enabled by default with Rosetta's softened search profile.
-        ``value_only_line_search`` opts into energy-only Armijo trials.
-        ``cuda_graph`` replays each minimization's energy/gradient evaluation
-        from a captured CUDA graph (ignored on CPU).
+        ``cuda_graph`` captures each optimizer iteration as one CUDA graph
+        (ignored on CPU).
         """
 
         if reference_pose_stack.n_poses != 1:
@@ -755,7 +778,6 @@ class GridBackend(ScoringBackend):
             context_blocks=context_blocks,
             grid_atom_indices=grid_atom_indices,
             movable_n_atoms=moving.n_atoms,
-            value_only_line_search=value_only_line_search,
             cuda_graph=cuda_graph,
         )
 
@@ -900,39 +922,33 @@ class GridBackend(ScoringBackend):
             raise ValueError("docking DOFs target a different ligand block")
         kin_dtype = self.kin_dtype or pose_stack.coords.dtype
         objective = _LightweightGridObjective(
-            self,
-            pose_stack,
-            docking_dofs,
-            kin_dtype,
-            initial_raw_dofs,
-            cuda_graph=self.cuda_graph,
+            self, pose_stack, docking_dofs, kin_dtype, initial_raw_dofs
         )
-        masked_dofs = torch.nn.Parameter(
-            objective.initial_masked_dofs, requires_grad=True
-        )
+        minimizer = self._minimizer_for(pose_stack, docking_dofs, kin_dtype)
+        x0 = objective.initial_masked_dofs.reshape(pose_stack.n_poses, -1)
         max_iterations = 200 if maxiter is None else maxiter
-        optimizer = LBFGS_Armijo(
-            [masked_dofs],
-            max_iter=max_iterations,
-            # Ten pairs are ample for the 6+chi ligand system and bound the
-            # per-pose optimizer state independently of the iteration budget.
-            history_size=min(10, max_iterations),
-            segment_ids=objective.segment_ids,
-            value_only_line_search=self.value_only_line_search,
+        x = minimizer.minimize(objective.full_dofs, x0, max_iterations)
+        return objective.final_result(x.reshape(-1))
+
+    def _minimizer_for(
+        self,
+        pose_stack: PoseStack,
+        docking_dofs: LigandDockingDOFs,
+        kin_dtype: torch.dtype,
+    ) -> "_PopulationMinimizer":
+        """The (cached) candidate-batched minimizer of this population layout."""
+        # Poses of one backend share a topology, so the candidate objective (and
+        # its captured graph) depends only on the layout, not on the coordinates.
+        key = (
+            docking_dofs.ligand_block,
+            docking_dofs.sidechain_blocks,
+            pose_stack.n_poses,
+            kin_dtype,
+            id(pose_stack.packed_block_types),
         )
-
-        def closure():
-            energies, gradients = objective.energy_and_gradient(masked_dofs)
-            if masked_dofs.grad is None:
-                masked_dofs.grad = torch.empty_like(masked_dofs)
-            masked_dofs.grad.copy_(gradients)
-            return energies
-
-        def value_only_closure():
-            return objective.energy(masked_dofs)
-
-        if self.value_only_line_search:
-            optimizer.step(closure, value_only_closure)
-        else:
-            optimizer.step(closure)
-        return objective.final_result(masked_dofs.detach())
+        if key not in self._minimizers:
+            self._minimizers.clear()
+            self._minimizers[key] = _PopulationMinimizer(
+                self, pose_stack, docking_dofs, kin_dtype
+            )
+        return self._minimizers[key]

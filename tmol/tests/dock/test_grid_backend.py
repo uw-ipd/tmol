@@ -269,62 +269,6 @@ def test_ligand_only_grid_ga_matches_full_complex_cdk2_fp32(cpu_grid_case):
         )
 
 
-@pytest.mark.parametrize("value_only_line_search", [False, True])
-def test_grid_minimize_returns_direct_optimizer_gene(
-    grid_pose_case, monkeypatch, value_only_line_search
-):
-    case = grid_pose_case
-    genes = case.layout.genes_from_pose_stack(case.population)
-    genes[:, :6] += torch.tensor(
-        [0.2, -0.1, 0.15, 0.08, -0.06, 0.04], dtype=genes.dtype
-    )
-    genes[:, 6:] += 0.2
-    raw_dofs = case.layout.raw_dofs_from_genes(genes)
-    proposed = case.layout.pose_stack_from_genes(genes)
-    captured = {}
-
-    monkeypatch.setattr(case.backend, "value_only_line_search", value_only_line_search)
-
-    def capture_noop_step(optimizer, closure, value_only_closure=None):
-        energies = closure()
-        captured["parameter"] = optimizer._params[0]
-        captured["energies"] = energies
-        captured["gradient"] = optimizer._params[0].grad
-        assert optimizer.value_only_line_search is value_only_line_search
-        if value_only_line_search:
-            gradient = optimizer._params[0].grad.clone()
-            values = value_only_closure()
-            assert not values.requires_grad
-            torch.testing.assert_close(values, energies, rtol=1.0e-7, atol=1.0e-7)
-            torch.testing.assert_close(
-                optimizer._params[0].grad, gradient, rtol=0.0, atol=0.0
-            )
-        else:
-            assert value_only_closure is None
-        return energies.sum()
-
-    monkeypatch.setattr(scoring_backend_module.LBFGS_Armijo, "step", capture_noop_step)
-    result = case.backend.minimize(
-        proposed,
-        case.docking_dofs,
-        maxiter=1,
-        initial_raw_dofs=raw_dofs,
-    )
-    torch.testing.assert_close(
-        result.masked_dofs,
-        captured["parameter"].detach(),
-        rtol=0.0,
-        atol=0.0,
-    )
-    torch.testing.assert_close(result.genes, genes, rtol=0.0, atol=1.0e-12)
-    assert captured["energies"].grad_fn is None
-    assert captured["gradient"].grad_fn is None
-    rebuilt = case.layout.pose_stack_from_genes(result.genes)
-    torch.testing.assert_close(
-        rebuilt.coords, result.pose_stack.coords, rtol=0.0, atol=1.0e-9
-    )
-
-
 def test_lightweight_grid_dof_gradient_matches_finite_difference(grid_pose_case):
     case = grid_pose_case
     genes = case.layout.genes_from_pose_stack(case.population)
@@ -361,7 +305,8 @@ def test_lightweight_grid_dof_gradient_matches_finite_difference(grid_pose_case)
         minus[column] -= step
         segment = int(objective.segment_ids[column])
         finite[column] = (
-            objective.energy(plus)[segment] - objective.energy(minus)[segment]
+            objective.energy_and_gradient(plus)[0][segment]
+            - objective.energy_and_gradient(minus)[0][segment]
         ) / (2.0 * step)
 
     max_error = torch.max(torch.abs(analytic - finite))
@@ -391,71 +336,6 @@ class _GridPoseObjective(torch.nn.Module):
     def forward(self, coordinates: torch.Tensor) -> torch.Tensor:
         ligand_coordinates = coordinates[self.pose_indices[:, None], self.atom_indices]
         return self.backend._score_ligand_coordinates(ligand_coordinates)
-
-
-@pytest.mark.slow
-@pytest.mark.parametrize("value_only_line_search", [False, True])
-def test_lightweight_grid_minimize_matches_autograd_reference(
-    grid_pose_case, monkeypatch, value_only_line_search
-):
-    case = grid_pose_case
-    monkeypatch.setattr(case.backend, "value_only_line_search", value_only_line_search)
-    genes = case.layout.genes_from_pose_stack(case.population)
-    genes[:, :6] += torch.tensor(
-        [0.2, -0.1, 0.15, 0.08, -0.06, 0.04], dtype=genes.dtype
-    )
-    genes[:, 6:] += 0.2
-    raw_dofs = case.layout.raw_dofs_from_genes(genes)
-    proposed = case.layout.pose_stack_from_genes(genes)
-
-    reference_objective = _GridPoseObjective(case.backend, proposed, case.ligand_block)
-    reference_network = build_kinforest_network(
-        proposed,
-        None,
-        case.docking_dofs.fold_forest,
-        case.docking_dofs.move_map,
-        kin_dtype=torch.float64,
-        whole_pose_scoring_module=reference_objective,
-    )
-    reference_network.full_dofs = raw_dofs.detach().clone()
-    with torch.no_grad():
-        reference_network.masked_dofs.copy_(
-            reference_network.full_dofs[reference_network.dof_mask]
-        )
-    reference = run_min(
-        reference_network,
-        optimizer_kwargs={
-            "max_iter": 5,
-            "value_only_line_search": value_only_line_search,
-        },
-    )
-    lightweight = case.backend.minimize(
-        proposed,
-        case.docking_dofs,
-        maxiter=5,
-        initial_raw_dofs=raw_dofs,
-    )
-
-    reference_energy = case.backend.score(reference)
-    lightweight_energy = case.backend.score(lightweight.pose_stack)
-    atom_indices = case.backend._ligand_atom_indices(proposed, case.ligand_block)
-    pose_indices = torch.arange(proposed.n_poses, dtype=torch.int64)
-    delta = (
-        reference.coords[pose_indices[:, None], atom_indices]
-        - lightweight.pose_stack.coords[pose_indices[:, None], atom_indices]
-    )
-    ligand_rms = torch.sqrt(torch.mean(torch.sum(delta * delta, dim=2), dim=1))
-    print(
-        "lightweight-vs-autograd grid minimize: max |dE|="
-        f"{float(torch.max(torch.abs(reference_energy - lightweight_energy))):.3e} "
-        f"max ligand-RMS={float(torch.max(ligand_rms)):.3e} A"
-    )
-    torch.testing.assert_close(
-        lightweight_energy, reference_energy, rtol=1.0e-7, atol=1.0e-7
-    )
-    torch.testing.assert_close(
-        ligand_rms, torch.zeros_like(ligand_rms), rtol=0.0, atol=1.0e-7
-    )
 
 
 @pytest.mark.slow
@@ -701,3 +581,27 @@ def test_shared_pocket_grids_match_per_ligand_grids():
     narrow = GridBackend.pocket_grids(reference, block, param_db, atom_types=("CH1",))
     with pytest.raises(ValueError, match="lack the ligand atom types"):
         GridBackend.from_pose_stack(reference, block, param_db, grids=narrow)
+
+
+def test_grid_minimize_lowers_every_energy_and_returns_consistent_genes(
+    grid_pose_case,
+):
+    case = grid_pose_case
+    genes = case.layout.genes_from_pose_stack(case.population)
+    genes[:, :6] += torch.tensor(
+        [0.2, -0.1, 0.15, 0.08, -0.06, 0.04], dtype=genes.dtype
+    )
+    genes[:, 6:] += 0.2
+    raw_dofs = case.layout.raw_dofs_from_genes(genes)
+    proposed = case.layout.pose_stack_from_genes(genes)
+
+    result = case.backend.minimize(
+        proposed, case.docking_dofs, maxiter=30, initial_raw_dofs=raw_dofs
+    )
+
+    before, after = case.backend.score(proposed), case.backend.score(result.pose_stack)
+    assert torch.all(after <= before + 1.0e-6) and torch.any(after < before - 1.0e-3)
+    rebuilt = case.layout.pose_stack_from_genes(result.genes)
+    torch.testing.assert_close(
+        rebuilt.coords, result.pose_stack.coords, rtol=0.0, atol=1.0e-9
+    )

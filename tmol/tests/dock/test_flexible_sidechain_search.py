@@ -311,7 +311,10 @@ def test_flexible_grid_atom_partition_and_score_decomposition_fp64(
     minus = masked.clone()
     plus[sidechain_column] += step
     minus[sidechain_column] -= step
-    finite = (objective.energy(plus)[0] - objective.energy(minus)[0]) / (2.0 * step)
+    finite = (
+        objective.energy_and_gradient(plus)[0][0]
+        - objective.energy_and_gradient(minus)[0][0]
+    ) / (2.0 * step)
     error = torch.abs(dof_gradient[sidechain_column] - finite)
     print(
         "flexible grid sidechain-DOF analytic/finite/error:",

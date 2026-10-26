@@ -353,6 +353,9 @@ endfunction()
 
 set(_C_SOURCES
   tmol/native.cpp
+  # dock
+  tmol/dock/lbfgs_compiled.ops.cpp
+  tmol/dock/lbfgs_compiled.cpu.cpp
   # optimization
   tmol/optimization/armijo_compiled.ops.cpp
   tmol/optimization/armijo_compiled.cpu.cpp
@@ -420,6 +423,7 @@ if(TMOL_HAS_CUDA)
   list(APPEND _C_SOURCES
     tmol/score/common/whole_pose_scoring.cuda.cu
     tmol/optimization/armijo_compiled.cuda.cu
+    tmol/dock/lbfgs_compiled.cuda.cu
     tmol/io/details/compiled/gen_pose_leaf_atoms.cuda.cu
     tmol/io/details/compiled/resolve_his_taut.cuda.cu
     tmol/kinematics/compiled/compiled.cuda.cu
