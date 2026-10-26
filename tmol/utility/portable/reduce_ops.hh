@@ -29,6 +29,11 @@ struct minimum_t {
   TMOL_HD T operator()(T a, T b) const { return a < b ? a : b; }
 };
 
+template <typename T>
+struct less_t {
+  TMOL_HD bool operator()(T a, T b) const { return a < b; }
+};
+
 enum class scan_type { exclusive, inclusive };
 
 }  // namespace portable

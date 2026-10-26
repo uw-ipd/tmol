@@ -549,7 +549,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_children(
       n_kfo_atoms,
       child_list_span.data(),
       n_kfo_atoms + 1,
-      mgpu::less_t<Int>());
+      tmol::portable::less_t<Int>());
   return {n_children_t, child_list_span_t, child_list_t, is_atom_jump_t};
 }
 
