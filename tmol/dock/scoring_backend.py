@@ -546,6 +546,50 @@ class GridBackend(ScoringBackend):
         result.ligand_block = ligand_block
         return result
 
+    @staticmethod
+    def pocket_grids(
+        pose_stack: PoseStack,
+        ligand,
+        param_db: ParameterDatabase,
+        *,
+        atom_types: Sequence[str] | None = None,
+        flexible_residues: Sequence[int] | None = None,
+        device: str | torch.device | None = None,
+        voxel_spacing: float = 0.25,
+        bbox_padding: float = 4.0,
+        lk_ball_grid: bool = True,
+    ) -> GridSet:
+        """Receptor grids of the box around ``ligand``, to share across ligands.
+
+        The grids depend on the receptor, the box and the probe atom types, not
+        on the ligand: build them once for the union of the ligands' atom types
+        and pass them to every :meth:`from_pose_stack` of a screen
+        (``atom_types`` defaults to the ligand's own types).
+        """
+        block = resolve_ligand_block(pose_stack, ligand)
+        flexible = validated_sidechain_blocks(
+            pose_stack, block, flexible_residues or ()
+        )
+        if atom_types is None:
+            block_type = pose_stack.block_type(0, block)
+            atom_types = [
+                atom.atom_type for atom in block_type.atoms[: block_type.n_atoms]
+            ]
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        return build_grid(
+            pose_stack,
+            tuple(sorted(set(atom_types))),
+            param_db,
+            ligand_name3=pose_stack.block_type(0, block).name3,
+            voxel_spacing=voxel_spacing,
+            bbox_padding=bbox_padding,
+            build_lk_ball=lk_ball_grid,
+            excluded_receptor_blocks=flexible
+            + sidechain_context_blocks(pose_stack, block, flexible),
+            device=device,
+        )
+
     @classmethod
     def from_pose_stack(
         cls,
@@ -554,6 +598,8 @@ class GridBackend(ScoringBackend):
         param_db: ParameterDatabase,
         *,
         flexible_residues: Sequence[int] | None = None,
+        grids: GridSet | None = None,
+        grid_device: str | torch.device | None = None,
         voxel_spacing: float = 0.25,
         bbox_padding: float = 4.0,
         kin_dtype: Optional[torch.dtype] = None,
@@ -573,6 +619,12 @@ class GridBackend(ScoringBackend):
             param_db: Scoring database including the ligand's parameters.
             flexible_residues: Receptor residues (block indices, e.g. from
                 :func:`select_pocket_residues`) whose sidechains move.
+            grids: Receptor grids to reuse instead of building them, e.g. one
+                set shared by every ligand of a screen (see
+                :meth:`pocket_grids`); must cover this ligand's atom types and
+                have been built for the same flexible residues.
+            grid_device: Device the grids are built on (default: CUDA if
+                available, else CPU).
 
         ``lk_ball_grid=True`` selects Rosetta's weighted gridded approximation;
         ``False`` retains the exact live LK-ball path. Ligand-intra scoring is
@@ -641,17 +693,22 @@ class GridBackend(ScoringBackend):
         ]
         ligand_atom_types = tuple(atom_types[i] for i in query.tolist())
 
-        grids = build_grid(
-            reference_pose_stack,
-            tuple(sorted(set(ligand_atom_types))),
-            param_db,
-            ligand_name3=block_type.name3,
-            voxel_spacing=voxel_spacing,
-            bbox_padding=bbox_padding,
-            build_lk_ball=lk_ball_grid,
-            excluded_receptor_blocks=sidechain_blocks + context_blocks,
-        )
-        # build_grid initializes the packed ljlk/elec parameters, incl. charges.
+        if grids is None:
+            grids = cls.pocket_grids(
+                reference_pose_stack,
+                ligand_block,
+                param_db,
+                atom_types=ligand_atom_types,
+                flexible_residues=sidechain_blocks,
+                device=grid_device,
+                voxel_spacing=voxel_spacing,
+                bbox_padding=bbox_padding,
+                lk_ball_grid=lk_ball_grid,
+            )
+        missing = set(ligand_atom_types) - set(grids.atom_type_names)
+        if missing:
+            raise ValueError(f"grids lack the ligand atom types {sorted(missing)}")
+        # Grid construction initializes the packed ljlk/elec parameters (charges).
         ligand_charges = torch.cat(
             [
                 pbt.elec_partial_charge[index, : pbt.active_block_types[index].n_atoms]

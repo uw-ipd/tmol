@@ -10,6 +10,7 @@ from tmol.io import pose_stack_from_biotite
 from tmol.score.elec import ElecParamResolver
 from tmol.score.gridscore import GridScorer, GridSet, build_grid
 from tmol.score.gridscore.grid import (
+    compute_receptor_grids,
     GridGeometry,
     compute_cubic_bspline_coefficients,
     compute_grid_geometry,
@@ -549,16 +550,14 @@ def _direct_grid_inputs(param_db, atom_type_name):
 def _build_single_voxel_grid(
     receptor_coords, receptor_charges, packed_type, ljlk_global, elec_global, origin
 ):
-    from tmol.score.gridscore.potentials.compiled import build_grid as build_grid_op
-
     n_receptor_atoms = receptor_coords.shape[0]
-    return build_grid_op(
+    return compute_receptor_grids(
         receptor_coords.to(dtype=torch.float64).contiguous(),
         torch.zeros(n_receptor_atoms, dtype=torch.int64),
         receptor_charges.to(dtype=torch.float64).contiguous(),
         torch.zeros(1, dtype=torch.int64),
         origin.to(dtype=torch.float64).contiguous(),
-        torch.ones(3, dtype=torch.int64),
+        (1, 1, 1),
         0.5,
         packed_type,
         ljlk_global,
@@ -661,3 +660,22 @@ def test_grid_cutoff_and_negative_bin_boundary():
         dtype=torch.float64,
     )
     torch.testing.assert_close(actual_inside, expected_inside, rtol=1e-12, atol=1e-12)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires CUDA")
+def test_grids_built_on_cuda_match_cpu():
+    pose_stack, param_db = _load_cdk2_pose()
+    probe_names = probe_atom_types_from_name3(pose_stack, LIGAND_RES_NAME)
+    kwargs = dict(ligand_name3=LIGAND_RES_NAME, build_lk_ball=True, voxel_spacing=0.5)
+    cpu = build_grid(pose_stack, probe_names, param_db, **kwargs)
+    cuda = build_grid(pose_stack, probe_names, param_db, device="cuda", **kwargs)
+    for name in ("fa_atr", "fa_rep", "fa_sol", "fa_elec", "lk_ball", "lk_bridge"):
+        torch.testing.assert_close(
+            getattr(cuda, name).cpu(), getattr(cpu, name), rtol=1e-10, atol=1e-10
+        )
+        torch.testing.assert_close(
+            getattr(cuda, f"{name}_coeffs").cpu(),
+            getattr(cpu, f"{name}_coeffs"),
+            rtol=1e-10,
+            atol=1e-10,
+        )

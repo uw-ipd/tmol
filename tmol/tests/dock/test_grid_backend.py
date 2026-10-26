@@ -488,7 +488,7 @@ def test_lightweight_grid_minimize_matches_autograd_reference(
     ligand_rms = torch.sqrt(torch.mean(torch.sum(delta * delta, dim=2), dim=1))
     print(
         "lightweight-vs-autograd grid minimize: max |dE|="
-        f"{float(torch.max(torch.abs(reference_energy-lightweight_energy))):.3e} "
+        f"{float(torch.max(torch.abs(reference_energy - lightweight_energy))):.3e} "
         f"max ligand-RMS={float(torch.max(ligand_rms)):.3e} A"
     )
     torch.testing.assert_close(
@@ -722,3 +722,23 @@ def test_ligand_is_found_by_name_block_or_atom_mask():
         resolve_ligand_block(reference, partial)
     with pytest.raises(ValueError, match="one entry per atom"):
         resolve_ligand_block(reference, torch.zeros(3, dtype=torch.bool))
+
+
+def test_shared_pocket_grids_match_per_ligand_grids():
+    reference, param_db = _load_cdk2_pose()
+    block = _ligand_block(reference)
+    alone = GridBackend.from_pose_stack(reference, block, param_db)
+    pocket = GridBackend.pocket_grids(
+        reference, block, param_db, atom_types=("CH1", "OH", *alone.ligand_atom_types)
+    )
+    shared = GridBackend.from_pose_stack(reference, block, param_db, grids=pocket)
+    assert set(alone.grids.atom_type_names) < set(pocket.atom_type_names)
+    torch.testing.assert_close(
+        shared.score(reference), alone.score(reference), rtol=1e-10, atol=1e-10
+    )
+    # Backends sharing grids share one device copy of them.
+    assert shared._scorer("cpu", torch.float64).grids is pocket.on("cpu", torch.float64)
+
+    narrow = GridBackend.pocket_grids(reference, block, param_db, atom_types=("CH1",))
+    with pytest.raises(ValueError, match="lack the ligand atom types"):
+        GridBackend.from_pose_stack(reference, block, param_db, grids=narrow)
