@@ -15,7 +15,7 @@ from tmol.kinematics import (
     JumpDOFTypes,
     PoseStackKinematicsModule,
 )
-from tmol.kinematics.compiled._compiled_ops import inverse_kin
+from tmol.kinematics.compiled._compiled_ops import _inverse_kin
 
 
 class CartesianSfxnNetwork(torch.nn.Module):
@@ -332,7 +332,7 @@ class KinForestSfxnNetwork(torch.nn.Module):
             (kmd.forest.id.shape[0], 3), dtype=self.kin_dtype, device=coords.device
         )
         kincoords[1:] = coords.view(-1, 3)[self._atom_idx].to(self.kin_dtype)
-        return inverse_kin(
+        return _inverse_kin(
             kincoords,
             kmd.forest.parent,
             kmd.forest.frame_x,

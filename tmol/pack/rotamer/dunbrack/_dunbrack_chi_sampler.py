@@ -820,9 +820,9 @@ class DunbrackChiSampler(ChiSampler):
         nchi_for_buildable_restype,
         max_samples_per_restype=0,
     ):
-        from ._compiled import dun_sample_chi
+        from ._compiled import _dun_sample_chi
 
-        return dun_sample_chi(
+        return _dun_sample_chi(
             coords,
             self.dun_param_resolver.sampling_db.rotameric_prob_tables,
             self.dun_param_resolver.sampling_db.rotprob_table_sizes,

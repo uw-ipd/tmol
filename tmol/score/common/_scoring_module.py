@@ -196,10 +196,10 @@ class TermWholePoseScoringModule(TermPoseScoringModule):
 
     def build_compact_block_neighbors(self, coords, reach):
         """Build a common compact list of conservative block-neighbor pairs."""
-        from tmol.score.ljlk.potentials._compiled import build_compact_block_neighbors
+        from tmol.score.ljlk.potentials._compiled import _build_compact_block_neighbors
 
         flat = coords.detach().flatten(start_dim=0, end_dim=-2)
-        return build_compact_block_neighbors(
+        return _build_compact_block_neighbors(
             flat,
             self.common_parameters[0],
             self.common_parameters[3],

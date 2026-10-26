@@ -15,7 +15,7 @@ from tmol.kinematics._scan_ordering import (
     _annotate_block_type_with_gen_scan_path_segs,
     _annotate_packed_block_type_with_gen_scan_path_segs,
 )
-from tmol.kinematics.compiled._compiled_ops import inverse_kin, forward_kin_op
+from tmol.kinematics.compiled._compiled_ops import _inverse_kin, _forward_kin_op
 
 
 def test_gen_seg_scan_paths_block_type_annotation_smoke(fresh_default_restype_set):
@@ -26,7 +26,7 @@ def test_gen_seg_scan_paths_block_type_annotation_smoke(fresh_default_restype_se
 
 
 def test_calculate_ff_edge_delays_for_two_res_ubq(ubq_pdb, torch_device):
-    from tmol.kinematics.compiled._compiled_ops import calculate_ff_edge_delays
+    from tmol.kinematics.compiled._compiled_ops import _calculate_ff_edge_delays
 
     co = _default_canonical_ordering()
     pbt = _default_packed_block_types(torch_device)
@@ -55,7 +55,7 @@ def test_calculate_ff_edge_delays_for_two_res_ubq(ubq_pdb, torch_device):
     ff_edges[0, 1, 0] = EdgeType.root_jump
     ff_edges[0, 1, 1] = -1
     ff_edges[0, 1, 2] = 0
-    result = calculate_ff_edge_delays(
+    result = _calculate_ff_edge_delays(
         pose_stack.block_coord_offset,
         pose_stack.block_type_ind,
         ff_edges,
@@ -72,7 +72,7 @@ def test_calculate_ff_edge_delays_for_two_res_ubq(ubq_pdb, torch_device):
 
 
 def test_calculate_ff_edge_delays_for_6_res_ubq(ubq_pdb):
-    from tmol.kinematics.compiled._compiled_ops import calculate_ff_edge_delays
+    from tmol.kinematics.compiled._compiled_ops import _calculate_ff_edge_delays
 
     torch_device = torch.device("cpu")
     # device = torch_device
@@ -124,7 +124,7 @@ def test_calculate_ff_edge_delays_for_6_res_ubq(ubq_pdb):
     ff_edges[0, 5, 1] = -1
     ff_edges[0, 5, 2] = 1
 
-    result = calculate_ff_edge_delays(
+    result = _calculate_ff_edge_delays(
         pose_stack.block_coord_offset,
         pose_stack.block_type_ind,
         ff_edges,
@@ -164,7 +164,7 @@ def test_calculate_ff_edge_delays_for_6_res_ubq(ubq_pdb):
 def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_H(
     stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_H
 ):
-    from tmol.kinematics.compiled._compiled_ops import calculate_ff_edge_delays
+    from tmol.kinematics.compiled._compiled_ops import _calculate_ff_edge_delays
 
     pose_stack = stack_of_two_six_res_ubqs_no_term
     pbt = pose_stack.packed_block_types
@@ -173,7 +173,7 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_H(
 
     ff_edges = torch.tensor(ff_2ubq_6res_H)
 
-    result = calculate_ff_edge_delays(
+    result = _calculate_ff_edge_delays(
         pose_stack.block_coord_offset,
         pose_stack.block_type_ind,
         ff_edges,
@@ -240,7 +240,7 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_H(
 def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_U(
     stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_U
 ):
-    from tmol.kinematics.compiled._compiled_ops import calculate_ff_edge_delays
+    from tmol.kinematics.compiled._compiled_ops import _calculate_ff_edge_delays
 
     pose_stack = stack_of_two_six_res_ubqs_no_term
     pbt = pose_stack.packed_block_types
@@ -248,7 +248,7 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_U(
     pbt_gssps = pbt.gen_seg_scan_path_segs
     ff_2ubq_6res_U = torch.tensor(ff_2ubq_6res_U)
 
-    result = calculate_ff_edge_delays(
+    result = _calculate_ff_edge_delays(
         pose_stack.block_coord_offset,
         pose_stack.block_type_ind,
         ff_2ubq_6res_U,
@@ -313,7 +313,7 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_U(
 def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_K(
     stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_K
 ):
-    from tmol.kinematics.compiled._compiled_ops import calculate_ff_edge_delays
+    from tmol.kinematics.compiled._compiled_ops import _calculate_ff_edge_delays
 
     pose_stack = stack_of_two_six_res_ubqs_no_term
     pbt = pose_stack.packed_block_types
@@ -321,7 +321,7 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_K(
     pbt_gssps = pbt.gen_seg_scan_path_segs
     ff_2ubq_6res_K = torch.tensor(ff_2ubq_6res_K)
 
-    result = calculate_ff_edge_delays(
+    result = _calculate_ff_edge_delays(
         pose_stack.block_coord_offset,
         pose_stack.block_type_ind,
         ff_2ubq_6res_K,
@@ -391,8 +391,8 @@ def test_calculate_parent_block_conn_in_and_out_for_two_copies_of_6_res_ubq(
     stack_of_two_six_res_ubqs_no_term, torch_device, ff_2ubq_6res_H
 ):
     from tmol.kinematics.compiled._compiled_ops import (
-        calculate_ff_edge_delays,
-        get_block_parent_connectivity_from_toposort,
+        _calculate_ff_edge_delays,
+        _get_block_parent_connectivity_from_toposort,
     )
 
     pose_stack = stack_of_two_six_res_ubqs_no_term
@@ -401,7 +401,7 @@ def test_calculate_parent_block_conn_in_and_out_for_two_copies_of_6_res_ubq(
     pbt_gssps = pbt.gen_seg_scan_path_segs
     ff_2ubq_6res_H = torch.tensor(ff_2ubq_6res_H)
 
-    result = calculate_ff_edge_delays(
+    result = _calculate_ff_edge_delays(
         pose_stack.block_coord_offset,
         pose_stack.block_type_ind,
         ff_2ubq_6res_H,
@@ -425,7 +425,7 @@ def test_calculate_parent_block_conn_in_and_out_for_two_copies_of_6_res_ubq(
         delay_for_edge,
         toposort_index_for_edge,
     ) = tuple(x.to(device=torch_device) for x in result)
-    pose_stack_block_in_and_first_out = get_block_parent_connectivity_from_toposort(
+    pose_stack_block_in_and_first_out = _get_block_parent_connectivity_from_toposort(
         pose_stack.block_type_ind,
         pose_stack.inter_residue_connections,
         pose_stack_ff_parent,
@@ -453,10 +453,10 @@ def test_calculate_parent_block_conn_in_and_out_for_two_copies_of_6_res_ubq(
 
 def test_get_kfo_indices_for_atoms(ubq_pdb):
     from tmol.kinematics.compiled._compiled_ops import (
-        get_kfo_indices_for_atoms,
-        get_kfo_atom_parents,
-        get_children,
-        get_id_and_frame_xyz,
+        _get_kfo_indices_for_atoms,
+        _get_kfo_atom_parents,
+        _get_children_op,
+        _get_id_and_frame_xyz,
     )
 
     torch_device = torch.device("cpu")
@@ -477,7 +477,7 @@ def test_get_kfo_indices_for_atoms(ubq_pdb):
     _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
     pbt_gssps = pbt.gen_seg_scan_path_segs
 
-    block_kfo_offset, kfo_2_orig_mapping, atom_kfo_index = get_kfo_indices_for_atoms(
+    block_kfo_offset, kfo_2_orig_mapping, atom_kfo_index = _get_kfo_indices_for_atoms(
         pose_stack.block_coord_offset,
         pose_stack.block_type_ind,
         pbt.n_atoms,
@@ -511,7 +511,7 @@ def test_get_kfo_indices_for_atoms(ubq_pdb):
     block_in_out[0, 1, 0] = 0  # input from lower connection
     block_in_out[0, 1, 1] = 1  # output through upper connection
 
-    kfo_atom_parents, kfo_atom_grandparents = get_kfo_atom_parents(
+    kfo_atom_parents, kfo_atom_grandparents = _get_kfo_atom_parents(
         pose_stack.block_type_ind,
         pose_stack.inter_residue_connections,
         fold_forest_parent,
@@ -525,7 +525,7 @@ def test_get_kfo_indices_for_atoms(ubq_pdb):
         pbt.conn_atom,
     )
 
-    n_children, child_list_span, child_list, is_atom_jump = get_children(
+    n_children, child_list_span, child_list, is_atom_jump = _get_children_op(
         pose_stack.block_type_ind,
         block_in_out,
         kfo_2_orig_mapping,
@@ -533,7 +533,7 @@ def test_get_kfo_indices_for_atoms(ubq_pdb):
         pbt.n_conn,
     )
 
-    id, frame_x, frame_y, frame_z, keep_atom_fixed = get_id_and_frame_xyz(
+    id, frame_x, frame_y, frame_z, keep_atom_fixed = _get_id_and_frame_xyz(
         pose_stack.coords.shape[1],
         pose_stack.block_coord_offset,
         kfo_2_orig_mapping,
@@ -557,7 +557,7 @@ def test_get_scans_for_two_copies_of_6_res_ubq_H(
     )
     kincoords[1:] = pose_stack.coords.view(-1, 3)[kmd.forest.id[1:]]
 
-    raw_dofs = inverse_kin(
+    raw_dofs = _inverse_kin(
         kincoords,
         kmd.forest.parent,
         kmd.forest.frame_x,
@@ -590,7 +590,7 @@ def test_get_scans_for_two_copies_of_6_res_ubq_H(
         )
     )
 
-    new_coords = forward_kin_op(
+    new_coords = _forward_kin_op(
         raw_dofs,
         kmd.scan_data_fw.nodes,
         kmd.scan_data_fw.scans,
@@ -625,7 +625,7 @@ def test_get_scans_for_two_copies_of_6_res_ubq_U(
     # c1 c2 126 111
     # get_c1_and_c2_atoms: jump atom 182, 181, 167
 
-    raw_dofs = inverse_kin(
+    raw_dofs = _inverse_kin(
         kincoords,
         kmd.forest.parent,
         kmd.forest.frame_x,
@@ -658,7 +658,7 @@ def test_get_scans_for_two_copies_of_6_res_ubq_U(
         )
     )
 
-    new_coords = forward_kin_op(
+    new_coords = _forward_kin_op(
         raw_dofs,
         kmd.scan_data_fw.nodes,
         kmd.scan_data_fw.scans,
@@ -693,7 +693,7 @@ def test_get_scans_for_two_copies_of_6_res_ubq_K(
     # c1 c2 126 111
     # get_c1_and_c2_atoms: jump atom 182, 181, 167
 
-    raw_dofs = inverse_kin(
+    raw_dofs = _inverse_kin(
         kincoords,
         kmd.forest.parent,
         kmd.forest.frame_x,
@@ -726,7 +726,7 @@ def test_get_scans_for_two_copies_of_6_res_ubq_K(
         )
     )
 
-    new_coords = forward_kin_op(
+    new_coords = _forward_kin_op(
         raw_dofs,
         kmd.scan_data_fw.nodes,
         kmd.scan_data_fw.scans,
@@ -753,7 +753,7 @@ def test_kinmodule_construction_for_jagged_stack_H(
     )
     kincoords[1:] = pose_stack.coords.view(-1, 3)[kmd.forest.id[1:]]
 
-    raw_dofs = inverse_kin(
+    raw_dofs = _inverse_kin(
         kincoords,
         kmd.forest.parent,
         kmd.forest.frame_x,
@@ -786,7 +786,7 @@ def test_kinmodule_construction_for_jagged_stack_H(
         )
     )
 
-    new_coords = forward_kin_op(
+    new_coords = _forward_kin_op(
         raw_dofs,
         kmd.scan_data_fw.nodes,
         kmd.scan_data_fw.scans,
@@ -813,7 +813,7 @@ def test_kinmodule_construction_for_jagged_stack_star(
     )
     kincoords[1:] = pose_stack.coords.view(-1, 3)[kmd.forest.id[1:]]
 
-    raw_dofs = inverse_kin(
+    raw_dofs = _inverse_kin(
         kincoords,
         kmd.forest.parent,
         kmd.forest.frame_x,
@@ -846,7 +846,7 @@ def test_kinmodule_construction_for_jagged_stack_star(
         )
     )
 
-    new_coords = forward_kin_op(
+    new_coords = _forward_kin_op(
         raw_dofs,
         kmd.scan_data_fw.nodes,
         kmd.scan_data_fw.scans,
@@ -863,7 +863,7 @@ def test_kinmodule_construction_for_jagged_stack_star(
 def _refold(kmd, kincoords):
     """Coordinates after inverse then forward kinematics over kmd's forest."""
     forest = kmd.forest
-    raw_dofs = inverse_kin(
+    raw_dofs = _inverse_kin(
         kincoords,
         forest.parent,
         forest.frame_x,
@@ -888,7 +888,7 @@ def _refold(kmd, kincoords):
         ),
         requires_grad=False,
     )
-    return forward_kin_op(
+    return _forward_kin_op(
         raw_dofs,
         kmd.scan_data_fw.nodes,
         kmd.scan_data_fw.scans,
@@ -1002,7 +1002,7 @@ def test_roundtrip_without_jump_stub(parent_list, jump_list, torch_device):
 
     from tmol.kinematics._datatypes import KinForest
     from tmol.kinematics._scan_ordering import KinForestScanOrdering
-    from tmol.kinematics.compiled._compiled_ops import get_id_and_frame_xyz
+    from tmol.kinematics.compiled._compiled_ops import _get_id_and_frame_xyz
 
     def ints(values):
         return torch.tensor(values, dtype=torch.int32, device=torch_device)
@@ -1015,7 +1015,7 @@ def test_roundtrip_without_jump_stub(parent_list, jump_list, torch_device):
         children[parent].append(child)
     child_span = ints([0] + [len(row) for row in children]).cumsum(0).int()
     mapping = ints([[0, 0, atom - 1] for atom in range(n_atoms)])
-    ids, x, y, z, _ = get_id_and_frame_xyz(
+    ids, x, y, z, _ = _get_id_and_frame_xyz(
         n_atoms - 1,
         ints([[0]]),
         mapping,

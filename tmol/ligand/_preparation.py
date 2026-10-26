@@ -420,7 +420,7 @@ def prepare_single_ligand(
     protonation state and authoritative per-atom partial charges (the OpenBabel
     MMFF94 charges produced by the SMILES -> mol2 step). Protonation and charge
     generation are *not* done here -- they happen upstream in
-    ``tmol.ligand._detect.nonstandard_residue_info_from_smiles_via_mol2``.
+    ``tmol.ligand.nonstandard_residue_info_from_smiles_via_mol2``.
 
     Charges are mapped onto atoms by stable RDKit index (source atom order),
     so they are independent of the atom renaming below and never recomputed.

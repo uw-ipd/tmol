@@ -84,11 +84,11 @@ class BSplineInterpolation:
         assert coords.device == torch.device("cpu")
         coeffs = coords.clone(memory_format=torch.contiguous_format)
         if coords.ndim == 2:
-            compiled.computeCoeffs2(coeffs)
+            compiled._computeCoeffs2(coeffs)
         elif coords.ndim == 3:
-            compiled.computeCoeffs3(coeffs)
+            compiled._computeCoeffs3(coeffs)
         elif coords.ndim == 4:
-            compiled.computeCoeffs4(coeffs)
+            compiled._computeCoeffs4(coeffs)
         else:
             raise ValueError("Unsupported dimensionality in BSplineInterpolation!")
 
@@ -107,11 +107,11 @@ class BSplineInterpolation:
         if any(table.ndim != ndim for table in coeffs):
             raise ValueError("B-spline coordinate tables must have the same rank")
         if ndim == 2:
-            compiled.computeCoeffs2Batch(coeffs)
+            compiled._computeCoeffs2Batch(coeffs)
         elif ndim == 3:
-            compiled.computeCoeffs3Batch(coeffs)
+            compiled._computeCoeffs3Batch(coeffs)
         elif ndim == 4:
-            compiled.computeCoeffs4Batch(coeffs)
+            compiled._computeCoeffs4Batch(coeffs)
         else:
             raise ValueError("Unsupported dimensionality in BSplineInterpolation!")
         return coeffs
@@ -139,10 +139,10 @@ class BSplineInterpolation:
 
         input_shape = self.coeffs.shape
         if len(input_shape) == 2:
-            retval, _ = compiled.interpolate2(self.coeffs, X)
+            retval, _ = compiled._interpolate2(self.coeffs, X)
         elif len(input_shape) == 3:
-            retval, _ = compiled.interpolate3(self.coeffs, X)
+            retval, _ = compiled._interpolate3(self.coeffs, X)
         elif len(input_shape) == 4:
-            retval, _ = compiled.interpolate4(self.coeffs, X)
+            retval, _ = compiled._interpolate4(self.coeffs, X)
 
         return retval

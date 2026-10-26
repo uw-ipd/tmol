@@ -6,7 +6,7 @@ import pytest
 from tmol import PoseStackBuilder, pose_stack_from_file
 from tmol.pack._datatypes import PackerEnergyTables
 from tmol.pack._simulated_annealing import _run_simulated_annealing
-from tmol.pack.compiled._compiled import build_interaction_graph
+from tmol.pack.compiled._compiled import _build_interaction_graph
 from tmol.pack import RotamerSet
 from tmol.utility._cumsum import _exclusive_cumsum1d
 
@@ -408,7 +408,7 @@ def test_csr_interaction_graph_exact_reference(torch_device, interacting_blocks)
                 sparse_values.append(value)
                 expected[(block1, block2, local1, local2)] = value
 
-    result = build_interaction_graph(
+    result = _build_interaction_graph(
         False,
         2,
         1,
@@ -515,7 +515,7 @@ def test_build_interaction_graph(ubq_ig, torch_device):
         neighbor_chunk_offset_offsets,
         chunk_pair_offset,
         energy2b,
-    ) = build_interaction_graph(
+    ) = _build_interaction_graph(
         True,
         chunk_size,
         torch.max(rotamer_set.block_type_ind_for_rot) + 1,
@@ -673,7 +673,7 @@ def test_build_multi_pose_interaction_graph(ubq_ig, torch_device):
         neighbor_chunk_offset_offsets,
         chunk_pair_offset,
         energy2b,
-    ) = build_interaction_graph(
+    ) = _build_interaction_graph(
         True,
         chunk_size,
         torch.max(rotamer_set.block_type_ind_for_rot) + 1,
@@ -831,7 +831,7 @@ def test_run_single_pose_simA(ubq_ig, torch_device):
         neighbor_chunk_offset_offsets,
         chunk_pair_offset,
         energy2b,
-    ) = build_interaction_graph(
+    ) = _build_interaction_graph(
         False,
         chunk_size,
         torch.max(rotamer_set.block_type_ind_for_rot) + 1,
@@ -908,7 +908,7 @@ def test_run_two_poses_simA(ubq_ig, torch_device):
         neighbor_chunk_offset_offsets,
         chunk_pair_offset,
         energy2b,
-    ) = build_interaction_graph(
+    ) = _build_interaction_graph(
         False,
         chunk_size,
         torch.max(rotamer_set.block_type_ind_for_rot) + 1,
@@ -971,7 +971,7 @@ def test_no_bump_graph_takes_more_blocks_than_a_block_pair_table_indexes(
     assert n_blocks * n_blocks > 2**31 - 1
 
     def build(bump_check):
-        return build_interaction_graph(
+        return _build_interaction_graph(
             bump_check,
             16,
             1,

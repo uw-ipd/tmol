@@ -41,7 +41,7 @@ def _resolve_his_tautomerization(
 ]:
     if not canonical_ordering.his_inds.his_co_aa_inds:
         return (torch.zeros_like(res_types), res_type_variants, coords, atom_is_present)
-    from tmol.io.details.compiled._compiled import resolve_his_taut
+    from tmol.io.details.compiled._compiled import _resolve_his_taut
 
     his_inds = canonical_ordering.his_inds
 
@@ -66,7 +66,7 @@ def _resolve_his_tautomerization(
         (res_types.shape[0], res_types.shape[1], 1),
     )
 
-    his_taut = resolve_his_taut(
+    his_taut = _resolve_his_taut(
         coords,
         res_types,
         res_type_variants,

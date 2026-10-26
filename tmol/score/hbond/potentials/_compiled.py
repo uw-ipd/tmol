@@ -14,9 +14,9 @@ _ops = _load_ops(
     "tmol_hbond",
 )
 
-hbond_pose_scores = _ops.hbond_pose_scores
-hbond_rotamer_scores = _ops.hbond_rotamer_scores
-hbond_rotamer_scores_shared = _ops.hbond_rotamer_scores_shared
-hbond_rotamer_spheres = _ops.hbond_rotamer_spheres
-hbond_rotamer_dispatch_page = _ops.hbond_rotamer_dispatch_page
-gen_hbond_bases = _ops.gen_hbond_bases
+_hbond_pose_scores = _ops.hbond_pose_scores
+_hbond_rotamer_scores = _ops.hbond_rotamer_scores
+_hbond_rotamer_scores_shared = _ops.hbond_rotamer_scores_shared
+_hbond_rotamer_spheres = _ops.hbond_rotamer_spheres
+_hbond_rotamer_dispatch_page = _ops.hbond_rotamer_dispatch_page
+_gen_hbond_bases = _ops.gen_hbond_bases

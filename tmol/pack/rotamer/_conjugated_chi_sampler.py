@@ -87,7 +87,7 @@ def _repeated_kinforest(rot_kf, count, device):
 
 def _fold_group_conformers(rot_kf, dofs):
     """Fold conformers in bounded scans; return original atom order."""
-    from tmol.kinematics.compiled._compiled_ops import forward_only_op
+    from tmol.kinematics.compiled._compiled_ops import _forward_only_op
 
     count, n_nodes = dofs.shape[:2]
     n_atoms = n_nodes - 1
@@ -110,7 +110,7 @@ def _fold_group_conformers(rot_kf, dofs):
             (rot_kf.scans[s0:s1] + numpy.arange(count)[:, None] * (n1 - n0)).ravel()
         )
     stack = _repeated_kinforest(rot_kf, count, dofs.device)
-    coords = forward_only_op(
+    coords = _forward_only_op(
         torch.cat([dofs[0, :1], dofs[:, 1:].reshape(-1, 9)]),
         torch.tensor(
             numpy.concatenate(node_parts), dtype=torch.int32, device=dofs.device
@@ -127,7 +127,7 @@ def _fold_group_conformers(rot_kf, dofs):
 
 def _measure_member_dofs(rot_kf, coords):
     """Measure copies of one member in bounded inverse-kinematics batches."""
-    from tmol.kinematics.compiled._compiled_ops import inverse_kin
+    from tmol.kinematics.compiled._compiled_ops import _inverse_kin
 
     count, n_atoms = coords.shape[:2]
     if count == 0:
@@ -145,7 +145,7 @@ def _measure_member_dofs(rot_kf, coords):
     ordered = torch.cat(
         [coords.new_zeros((1, 3)), coords[:, atom_order].reshape(-1, 3)]
     )
-    dofs = inverse_kin(
+    dofs = _inverse_kin(
         ordered, stack[:, 2], stack[:, 3], stack[:, 4], stack[:, 5], stack[:, 1]
     )
     return dofs[1:].reshape(count, n_atoms, 9)
@@ -363,7 +363,7 @@ class ConjugatedChiSampler(ChiSampler):
         beyond it: that is the whole point of building here rather than a block
         at a time. Returns conformers x group-atoms x 3.
         """
-        from tmol.kinematics.compiled._compiled_ops import inverse_kin
+        from tmol.kinematics.compiled._compiled_ops import _inverse_kin
         from tmol.kinematics._datatypes import KinForest
 
         rot_kf, offsets = self._group_kinforest(pose_stack, group)
@@ -394,7 +394,7 @@ class ConjugatedChiSampler(ChiSampler):
             [torch.zeros((1, 3), dtype=torch.float32, device=device), group_coords]
         )[kinforest.id.to(torch.int64) + 1]
         kf_coords[0, :] = 0
-        dofs = inverse_kin(
+        dofs = _inverse_kin(
             kf_coords,
             kinforest.parent,
             kinforest.frame_x,

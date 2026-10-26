@@ -483,12 +483,12 @@ def _construct_kinforest_for_conformers(
 def _measure_dofs_from_orig_coords(
     coords: Tensor[torch.float32][:, :, :], kinforest: KinForest
 ) -> Tensor[torch.float32][:, 9]:
-    from tmol.kinematics.compiled._compiled_ops import inverse_kin
+    from tmol.kinematics.compiled._compiled_ops import _inverse_kin
 
     kinforest_coords = coords.view(-1, 3)[kinforest.id.to(torch.int64)]
     kinforest_coords[0, :] = 0  # reset root
 
-    dofs_orig = inverse_kin(
+    dofs_orig = _inverse_kin(
         kinforest_coords,
         kinforest.parent,
         kinforest.frame_x,
@@ -668,7 +668,7 @@ def _calculate_rotamer_coords(
     Returns:
         Rotamer coordinates shaped ``[n_atoms_total, 3]`` in residue-type order.
     """
-    from tmol.kinematics.compiled._compiled_ops import forward_only_op
+    from tmol.kinematics.compiled._compiled_ops import _forward_only_op
 
     def _p(t):
         return torch.nn.Parameter(t, requires_grad=False)
@@ -693,7 +693,7 @@ def _calculate_rotamer_coords(
         ).to(pbt.device)
     )
 
-    new_coords_kto = forward_only_op(
+    new_coords_kto = _forward_only_op(
         rot_dofs_kto, _p(_t(nodes)), _p(_t(scans)), _p(_tcpu(gens)), kinforest_stack
     )
 

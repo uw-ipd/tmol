@@ -12,7 +12,7 @@ import attr
 import numpy as np
 import torch
 
-from tmol.kinematics.compiled._compiled_ops import inverse_kin
+from tmol.kinematics.compiled._compiled_ops import _inverse_kin
 from tmol.kinematics._datatypes import BondDOFTypes, NodeType
 from tmol.kinematics._fold_forest import FoldForest
 from tmol.kinematics._script_modules import PoseStackKinematicsModule
@@ -71,7 +71,7 @@ def _apply_torsion_deltas(pose_stack, requests, deltas, fold_forest=None):
         (kmd.forest.id.shape[0], 3), dtype=torch.float32, device=pose_stack.device
     )
     kincoords[1:] = pose_stack.coords.view(-1, 3)[kmd.forest.id[1:].to(torch.int64)]
-    dofs = inverse_kin(
+    dofs = _inverse_kin(
         kincoords,
         kmd.forest.parent,
         kmd.forest.frame_x,

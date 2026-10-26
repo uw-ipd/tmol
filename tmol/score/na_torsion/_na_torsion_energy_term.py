@@ -366,9 +366,9 @@ def _eval_na_torsion_for_pose(
         return _finish((zero, zero), output_block_pair_energies)
 
     if rot_coords.is_cuda and not output_block_pair_energies:
-        from .potentials._compiled import na_torsion_pose_score
+        from .potentials._compiled import _na_torsion_pose_score
 
-        return na_torsion_pose_score(
+        return _na_torsion_pose_score(
             rot_coords,
             pose_base,
             pose_is_na,
@@ -918,9 +918,9 @@ def _eval_na_torsion_for_rotamers(
         base = rotamer_base
         is_na = rotamer_is_na
         if rot_coords.is_cuda and not rot_coords.requires_grad:
-            from .potentials._compiled import na_torsion_pose_score
+            from .potentials._compiled import _na_torsion_pose_score
 
-            score = na_torsion_pose_score(
+            score = _na_torsion_pose_score(
                 rot_coords,
                 base.unsqueeze(1),
                 is_na.unsqueeze(1),

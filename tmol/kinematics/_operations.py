@@ -12,9 +12,9 @@ def inverseKin(kinforest: KinForest, coords: CoordArray, requires_grad=False) ->
     """xyzs -> HTs, dofs
     - "backward" kinematics
     """
-    from tmol.kinematics.compiled._compiled_ops import inverse_kin
+    from tmol.kinematics.compiled._compiled_ops import _inverse_kin
 
-    raw_dofs = inverse_kin(
+    raw_dofs = _inverse_kin(
         coords,
         kinforest.parent,
         kinforest.frame_x,

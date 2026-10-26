@@ -12,8 +12,8 @@ _ops = _load_ops(
     "tmol_bb_torsion",
 )
 
-backbone_torsion_pose_score = _ops.backbone_torsion_pose_score
-backbone_torsion_rotamer_score = _ops.backbone_torsion_rotamer_score
+_backbone_torsion_pose_score = _ops.backbone_torsion_pose_score
+_backbone_torsion_rotamer_score = _ops.backbone_torsion_rotamer_score
 
 
 def _iter_packing_rotamer_scores(*args):
@@ -21,6 +21,6 @@ def _iter_packing_rotamer_scores(*args):
     op = (
         _ops.backbone_torsion_rotamer_score_topology
         if topology_only
-        else backbone_torsion_rotamer_score
+        else _backbone_torsion_rotamer_score
     )
     yield op(*score_args)

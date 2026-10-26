@@ -359,11 +359,14 @@ def test_pose_stack_kinematics_op_device(pose_stack_system1, torch_device):
 def test_forward_with_ht_and_kin_deriv_match_autograd(
     pose_stack_gradcheck_test_system1,
 ):
-    from tmol.kinematics.compiled._compiled_ops import forward_with_ht_op, kin_deriv_op
+    from tmol.kinematics.compiled._compiled_ops import (
+        _forward_with_ht_op,
+        _kin_deriv_op,
+    )
 
     _, module, _, kin_dofs = pose_stack_gradcheck_test_system1
     dofs = kin_dofs.raw
-    coords, hts = forward_with_ht_op(
+    coords, hts = _forward_with_ht_op(
         dofs, module.nodes_f, module.scans_f, module.gens_f, module.kinforest
     )
     torch.testing.assert_close(coords, module(dofs))
@@ -373,7 +376,7 @@ def test_forward_with_ht_and_kin_deriv_match_autograd(
     ).to(coords.device)
     tracked = dofs.clone().requires_grad_(True)
     (expected,) = torch.autograd.grad((module(tracked) * weights).sum(), tracked)
-    actual = kin_deriv_op(
+    actual = _kin_deriv_op(
         weights,
         hts,
         dofs,

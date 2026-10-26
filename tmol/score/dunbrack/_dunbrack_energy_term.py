@@ -252,16 +252,16 @@ class DunbrackEnergyTerm(EnergyTerm):
         super(DunbrackEnergyTerm, self).setup_poses(poses)
 
     def get_pose_score_term_function(self):
-        from tmol.score.dunbrack.potentials._compiled import dunbrack_pose_scores
+        from tmol.score.dunbrack.potentials._compiled import _dunbrack_pose_scores
 
-        return dunbrack_pose_scores
+        return _dunbrack_pose_scores
 
     score_only_in_no_grad = True
 
     def get_rotamer_score_term_function(self):
-        from tmol.score.dunbrack.potentials._compiled import dunbrack_rotamer_scores
+        from tmol.score.dunbrack.potentials._compiled import _dunbrack_rotamer_scores
 
-        return dunbrack_rotamer_scores
+        return _dunbrack_rotamer_scores
 
     def get_score_term_attributes(self, pose_stack):
         pbt = pose_stack.packed_block_types

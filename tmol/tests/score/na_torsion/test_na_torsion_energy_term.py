@@ -119,10 +119,10 @@ def _subterms(term, ps):
 
 
 def _native_pose_scores(term, ps, coords):
-    from tmol.score.na_torsion.potentials._compiled import na_torsion_pose_score
+    from tmol.score.na_torsion.potentials._compiled import _na_torsion_pose_score
 
     p = term.params
-    return na_torsion_pose_score(
+    return _na_torsion_pose_score(
         coords.flatten(0, -2),
         *ps.na_torsion_pose_params,
         p.backbone_means,

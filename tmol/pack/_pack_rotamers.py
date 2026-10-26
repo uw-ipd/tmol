@@ -313,7 +313,7 @@ def _should_stream_interaction_graph(pose_stack, rotamer_set, task) -> bool:
 
 
 def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=False):
-    from tmol.pack.compiled._compiled import build_interaction_graph
+    from tmol.pack.compiled._compiled import _build_interaction_graph
     from tmol.pack.rotamer._conjugated_groups import (
         _collapse_group_energies,
         _collapse_group_rotamers,
@@ -397,7 +397,7 @@ def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=Fals
             verbose,
         )
     else:
-        graph_result = build_interaction_graph(
+        graph_result = _build_interaction_graph(
             task.bump_check,
             chunk_size,
             *graph_inputs,
@@ -483,13 +483,13 @@ def _build_streaming_interaction_graph(
     set, which otherwise accumulates across FastRelax packing stages.
     """
     from tmol.pack.compiled._compiled import (
-        accumulate_interaction_graph_entries,
-        build_interaction_graph,
-        finalize_interaction_graph_chunk_topology,
-        finalize_interaction_graph_topology,
-        initialize_interaction_graph_topology,
-        note_interaction_graph_chunk_topology,
-        note_interaction_graph_topology,
+        _accumulate_interaction_graph_entries,
+        _build_interaction_graph,
+        _finalize_interaction_graph_chunk_topology,
+        _finalize_interaction_graph_topology,
+        _initialize_interaction_graph_topology,
+        _note_interaction_graph_chunk_topology,
+        _note_interaction_graph_topology,
     )
 
     (
@@ -508,7 +508,7 @@ def _build_streaming_interaction_graph(
     # Empty no-bump construction establishes the canonical kept/fixed rotamer
     # numbering without retaining any score layout.
     base = list(
-        build_interaction_graph(
+        _build_interaction_graph(
             False,
             chunk_size,
             max_n_block_types,
@@ -524,7 +524,7 @@ def _build_streaming_interaction_graph(
             verbose,
         )
     )
-    block_adjacency, orig_block_to_molten = initialize_interaction_graph_topology(
+    block_adjacency, orig_block_to_molten = _initialize_interaction_graph_topology(
         n_rots_for_block,
         base[4],
         empty_values,
@@ -535,7 +535,7 @@ def _build_streaming_interaction_graph(
     for _, indices, values in rotamer_scoring_module._iter_weighted_sparse_entries(
         coords, retain_shared_dispatch=False, topology_only=True
     ):
-        (block_adjacency,) = note_interaction_graph_topology(
+        (block_adjacency,) = _note_interaction_graph_topology(
             block_ind_for_rot,
             orig_block_to_molten,
             block_adjacency,
@@ -545,7 +545,7 @@ def _build_streaming_interaction_graph(
         del indices, values
 
     chunk_topology = list(
-        finalize_interaction_graph_topology(
+        _finalize_interaction_graph_topology(
             chunk_size,
             base[4],
             block_adjacency,
@@ -558,7 +558,7 @@ def _build_streaming_interaction_graph(
     for _, indices, values in rotamer_scoring_module._iter_weighted_sparse_entries(
         coords, retain_shared_dispatch=False, topology_only=True
     ):
-        (chunk_topology[4],) = note_interaction_graph_chunk_topology(
+        (chunk_topology[4],) = _note_interaction_graph_chunk_topology(
             chunk_size,
             n_rots_for_block,
             rot_offset_for_block,
@@ -575,7 +575,7 @@ def _build_streaming_interaction_graph(
         del indices, values
 
     base[11], base[12], base[13] = chunk_topology[:3]
-    base[14], base[15] = finalize_interaction_graph_chunk_topology(
+    base[14], base[15] = _finalize_interaction_graph_chunk_topology(
         chunk_size,
         base[4],
         chunk_topology[0],
@@ -592,7 +592,7 @@ def _build_streaming_interaction_graph(
     for _, indices, values in rotamer_scoring_module._iter_weighted_sparse_entries(
         coords, retain_shared_dispatch=False
     ):
-        base[9], base[10], base[15] = accumulate_interaction_graph_entries(
+        base[9], base[10], base[15] = _accumulate_interaction_graph_entries(
             chunk_size,
             n_rots_for_block,
             rot_offset_for_block,

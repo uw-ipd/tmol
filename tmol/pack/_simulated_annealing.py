@@ -21,9 +21,9 @@ def _run_simulated_annealing(
         seed ten low-temperature trajectories each, and the best 25% of those
         are fully quenched, leaving 312 ranked assignments per pose.
     """
-    from tmol.pack.compiled._compiled import pack_anneal
+    from tmol.pack.compiled._compiled import _pack_anneal
 
-    return pack_anneal(
+    return _pack_anneal(
         energy_tables.max_n_rotamers_per_pose,
         energy_tables.pose_n_res,
         energy_tables.pose_n_rotamers,

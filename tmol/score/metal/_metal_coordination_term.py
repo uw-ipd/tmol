@@ -205,16 +205,18 @@ class MetalCoordinationEnergyTerm(EnergyTerm):
         return not bool((is_metal & (bt >= 0)).any())
 
     def get_pose_score_term_function(self):
-        from tmol.score.metal.potentials._compiled import metal_coordination_pose_scores
+        from tmol.score.metal.potentials._compiled import (
+            _metal_coordination_pose_scores,
+        )
 
-        return metal_coordination_pose_scores
+        return _metal_coordination_pose_scores
 
     def get_rotamer_score_term_function(self):
         from tmol.score.metal.potentials._compiled import (
-            metal_coordination_rotamer_scores,
+            _metal_coordination_rotamer_scores,
         )
 
-        return metal_coordination_rotamer_scores
+        return _metal_coordination_rotamer_scores
 
     def get_score_term_attributes(self, pose_stack: PoseStack):
         pbt = pose_stack.packed_block_types

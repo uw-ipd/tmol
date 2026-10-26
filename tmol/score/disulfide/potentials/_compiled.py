@@ -12,5 +12,5 @@ _ops = _load_ops(
     "tmol_disulfide",
 )
 
-disulfide_pose_scores = _ops.disulfide_pose_scores
-disulfide_rotamer_scores = _ops.disulfide_rotamer_scores
+_disulfide_pose_scores = _ops.disulfide_pose_scores
+_disulfide_rotamer_scores = _ops.disulfide_rotamer_scores

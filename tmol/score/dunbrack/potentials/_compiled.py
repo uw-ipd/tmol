@@ -12,5 +12,5 @@ _ops = _load_ops(
     "tmol_dunbrack",
 )
 
-dunbrack_pose_scores = _ops.dunbrack_pose_scores
-dunbrack_rotamer_scores = _ops.dunbrack_rotamer_scores
+_dunbrack_pose_scores = _ops.dunbrack_pose_scores
+_dunbrack_rotamer_scores = _ops.dunbrack_rotamer_scores

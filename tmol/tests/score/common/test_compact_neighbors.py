@@ -1,6 +1,6 @@
 import pytest
 import torch
-from tmol.score.ljlk.potentials._compiled import build_compact_block_neighbors
+from tmol.score.ljlk.potentials._compiled import _build_compact_block_neighbors
 
 
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
@@ -29,7 +29,7 @@ def test_cpu_compact_neighbors_preserve_chunk_and_pose_boundaries(dtype, shape):
     try:
         for threads in (1, 4):
             torch.set_num_threads(threads)
-            (neighbors,) = build_compact_block_neighbors(
+            (neighbors,) = _build_compact_block_neighbors(
                 coords.reshape(-1, 3),
                 offsets,
                 types,

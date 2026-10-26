@@ -12,8 +12,8 @@ _ops = _load_ops(
     "tmol_cartbonded",
 )
 
-cartbonded_pose_scores = _ops.cartbonded_pose_scores
-cartbonded_rotamer_scores = _ops.cartbonded_rotamer_scores
+_cartbonded_pose_scores = _ops.cartbonded_pose_scores
+_cartbonded_rotamer_scores = _ops.cartbonded_rotamer_scores
 
 
 def _iter_packing_rotamer_scores(*args):
@@ -21,6 +21,6 @@ def _iter_packing_rotamer_scores(*args):
     op = (
         _ops.cartbonded_rotamer_scores_topology
         if topology_only
-        else cartbonded_rotamer_scores
+        else _cartbonded_rotamer_scores
     )
     yield op(*score_args)

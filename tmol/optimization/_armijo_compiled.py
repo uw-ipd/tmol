@@ -20,8 +20,8 @@ _ops = _load_ops(
     "tmol_optimization",
 )
 
-armijo_start = _ops.armijo_start
-armijo_classify = _ops.armijo_classify
-armijo_trial = _ops.armijo_trial
-armijo_update = _ops.armijo_update
-armijo_finalize = _ops.armijo_finalize
+_armijo_start = _ops.armijo_start
+_armijo_classify = _ops.armijo_classify
+_armijo_trial = _ops.armijo_trial
+_armijo_update = _ops.armijo_update
+_armijo_finalize = _ops.armijo_finalize

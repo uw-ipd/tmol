@@ -292,9 +292,9 @@ def _build_coords_from_icoors(
     block_types,
     connections,
 ):
-    from tmol.io.details.compiled._compiled import gen_pose_leaf_atoms
+    from tmol.io.details.compiled._compiled import _gen_pose_leaf_atoms
 
-    return gen_pose_leaf_atoms(
+    return _gen_pose_leaf_atoms(
         coords,
         targets,
         missing,

@@ -19,7 +19,7 @@ from tmol import (
     ParameterDatabase,
     beta2016_score_function,
 )
-from tmol.pack.compiled._compiled import build_interaction_graph
+from tmol.pack.compiled._compiled import _build_interaction_graph
 from tmol.pack import (
     SetPackerTask,
     build_rotamers,
@@ -93,7 +93,7 @@ def build_packer_energy_tables(
         neighbor_chunk_offset_offsets,
         chunk_pair_offset,
         energy2b,
-    ) = build_interaction_graph(
+    ) = _build_interaction_graph(
         bump_check,
         chunk_size,
         pbt.n_types,
@@ -894,7 +894,7 @@ def test_fused_ljlk_elec_empty_table_gradient(monkeypatch):
         )
         return coords.new_empty((1, 0)), indices, coord_gradients
 
-    monkeypatch.setattr(potentials, "ljlk_elec_weighted_rotamer_scores", empty_scores)
+    monkeypatch.setattr(potentials, "_ljlk_elec_weighted_rotamer_scores", empty_scores)
     coords = torch.empty((0, 3), requires_grad=True)
     weights = torch.ones(4)
     empty_dispatch = torch.empty((0, 0), dtype=torch.int32)

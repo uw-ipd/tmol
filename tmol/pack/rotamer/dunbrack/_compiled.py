@@ -11,4 +11,4 @@ _ops = _load_ops(
     "tmol_dun_sampler",
 )
 
-dun_sample_chi = _ops.dun_sample_chi
+_dun_sample_chi = _ops.dun_sample_chi

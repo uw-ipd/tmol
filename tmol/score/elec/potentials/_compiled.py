@@ -12,6 +12,6 @@ _ops = _load_ops(
     "tmol_elec",
 )
 
-elec_pose_scores = _ops.elec_pose_scores
-elec_rotamer_scores = _ops.elec_rotamer_scores
-elec_rotamer_scores_shared = _ops.elec_rotamer_scores_shared
+_elec_pose_scores = _ops.elec_pose_scores
+_elec_rotamer_scores = _ops.elec_rotamer_scores
+_elec_rotamer_scores_shared = _ops.elec_rotamer_scores_shared

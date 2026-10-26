@@ -69,7 +69,7 @@ def _rotamer_kinforest_from_data(rkd, n_atoms, atom_names, mainchain_atoms, idea
     preferred as reference-frame atoms (they hold still across rotamers); for a
     group it is the anchor block's.
     """
-    from tmol.kinematics.compiled._compiled_ops import inverse_kin
+    from tmol.kinematics.compiled._compiled_ops import _inverse_kin
     from tmol.utility.ndarray._common_operations import _invert_mapping
 
     kfo_2_to = rkd.bfto_2_orig.astype(numpy.int64)  # KFO → TO (0-indexed)
@@ -190,7 +190,7 @@ def _rotamer_kinforest_from_data(rkd, n_atoms, atom_names, mainchain_atoms, idea
         )
     )
 
-    dofs_ideal = inverse_kin(
+    dofs_ideal = _inverse_kin(
         ideal_coords,
         kinforest.parent,
         kinforest.frame_x,

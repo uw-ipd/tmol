@@ -640,9 +640,9 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         super(CartBondedEnergyTerm, self).setup_poses(poses)
 
     def get_pose_score_term_function(self):
-        from tmol.score.cartbonded.potentials._compiled import cartbonded_pose_scores
+        from tmol.score.cartbonded.potentials._compiled import _cartbonded_pose_scores
 
-        return cartbonded_pose_scores
+        return _cartbonded_pose_scores
 
     def get_packing_rotamer_score_term_function(self):
         from tmol.score.cartbonded.potentials._compiled import (
@@ -652,9 +652,11 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         return _iter_packing_rotamer_scores
 
     def get_rotamer_score_term_function(self):
-        from tmol.score.cartbonded.potentials._compiled import cartbonded_rotamer_scores
+        from tmol.score.cartbonded.potentials._compiled import (
+            _cartbonded_rotamer_scores,
+        )
 
-        return cartbonded_rotamer_scores
+        return _cartbonded_rotamer_scores
 
     def get_score_term_attributes(self, pose_stack):
         pbt = pose_stack.packed_block_types

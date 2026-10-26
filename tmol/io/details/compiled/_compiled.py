@@ -13,5 +13,5 @@ _ops = _load_ops(
     "tmol_io",
 )
 
-gen_pose_leaf_atoms = _ops.gen_pose_leaf_atoms
-resolve_his_taut = _ops.resolve_his_taut
+_gen_pose_leaf_atoms = _ops.gen_pose_leaf_atoms
+_resolve_his_taut = _ops.resolve_his_taut

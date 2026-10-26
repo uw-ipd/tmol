@@ -8,11 +8,11 @@ import torch
 from torch.optim import Optimizer
 
 from tmol.optimization._armijo_compiled import (
-    armijo_classify,
-    armijo_finalize,
-    armijo_start,
-    armijo_trial,
-    armijo_update,
+    _armijo_classify,
+    _armijo_finalize,
+    _armijo_start,
+    _armijo_trial,
+    _armijo_update,
 )
 
 
@@ -186,14 +186,14 @@ def _armijo_linesearch_segmented(
               * 'factor' corresponds roughly to 'beta' in the text (see point 1)
     """
     phi0 = old_fval
-    alpha = armijo_start(searching, alpha0)
+    alpha = _armijo_start(searching, alpha0)
 
     phi = func(alpha)
     n_evals = 1
 
     # sigma_increase > sigma_decrease, so a linear-looking step also has
     # sufficient decrease; it is the one case where a longer step is tried
-    accepted, phi_accepted, status, active = armijo_classify(
+    accepted, phi_accepted, status, active = _armijo_classify(
         searching,
         alpha,
         phi,
@@ -206,11 +206,11 @@ def _armijo_linesearch_segmented(
     combine_cuda_checks = searching.is_cuda and searching.numel() > 1
     any_active = _any_true(active)
     while any_active:
-        trial = armijo_trial(status, alpha, accepted, factor)
+        trial = _armijo_trial(status, alpha, accepted, factor)
         phi_trial = func(trial)
         n_evals += 1
 
-        accepted, phi_accepted, status, failed, active = armijo_update(
+        accepted, phi_accepted, status, failed, active = _armijo_update(
             status,
             trial,
             accepted,
@@ -918,7 +918,7 @@ class LBFGS_Armijo(Optimizer):
 
         # a failed search gets one steepest-descent restart, applied on the next
         # iteration so the other segments are not held up; then it is retired
-        ctx.t, failed = armijo_finalize(
+        ctx.t, failed = _armijo_finalize(
             status,
             ctx.gtd_seg,
             accepted,

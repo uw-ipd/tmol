@@ -179,14 +179,14 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         super(LJLKEnergyTerm, self).setup_poses(poses)
 
     def get_pose_score_term_function(self):
-        from tmol.score.ljlk.potentials._compiled import ljlk_pose_scores
+        from tmol.score.ljlk.potentials._compiled import _ljlk_pose_scores
 
-        return ljlk_pose_scores
+        return _ljlk_pose_scores
 
     def get_rotamer_score_term_function(self):
-        from tmol.score.ljlk.potentials._compiled import ljlk_rotamer_scores
+        from tmol.score.ljlk.potentials._compiled import _ljlk_rotamer_scores
 
-        return ljlk_rotamer_scores
+        return _ljlk_rotamer_scores
 
     def get_block_neighbor_cutoff(self):
         return self._max_dis

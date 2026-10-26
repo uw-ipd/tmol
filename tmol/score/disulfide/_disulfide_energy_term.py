@@ -172,14 +172,14 @@ class DisulfideEnergyTerm(EnergyTerm):
         return self.device.type == "cuda"
 
     def get_pose_score_term_function(self):
-        from tmol.score.disulfide.potentials._compiled import disulfide_pose_scores
+        from tmol.score.disulfide.potentials._compiled import _disulfide_pose_scores
 
-        return disulfide_pose_scores
+        return _disulfide_pose_scores
 
     def get_rotamer_score_term_function(self):
-        from tmol.score.disulfide.potentials._compiled import disulfide_rotamer_scores
+        from tmol.score.disulfide.potentials._compiled import _disulfide_rotamer_scores
 
-        return disulfide_rotamer_scores
+        return _disulfide_rotamer_scores
 
     def pose_score_term_is_invariant_zero(self, pose_stack):
         """Disulfide scoring is zero unless the pose has a connected dslf edge."""

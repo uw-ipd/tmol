@@ -7,4 +7,4 @@ _ops = _load_ops(
     "tmol_na_torsion",
 )
 
-na_torsion_pose_score = _ops.na_torsion_pose_score
+_na_torsion_pose_score = _ops.na_torsion_pose_score

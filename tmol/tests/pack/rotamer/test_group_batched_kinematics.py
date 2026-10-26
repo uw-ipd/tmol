@@ -4,7 +4,7 @@ import numpy
 import pytest
 import torch
 
-from tmol.kinematics.compiled._compiled_ops import forward_only_op, inverse_kin
+from tmol.kinematics.compiled._compiled_ops import _forward_only_op, _inverse_kin
 from tmol.pack.rotamer._conjugated_chi_sampler import (
     ConjugatedChiSampler,
     _fold_group_conformers,
@@ -58,7 +58,7 @@ def test_group_and_member_batches_match_scalar_calls(fixture, dtype, torch_devic
                 continue
             expected = torch.stack(
                 [
-                    forward_only_op(d, nodes, scans, gens, tree)[1:][original_order]
+                    _forward_only_op(d, nodes, scans, gens, tree)[1:][original_order]
                     for d in dofs
                 ]
             )
@@ -77,7 +77,7 @@ def test_group_and_member_batches_match_scalar_calls(fixture, dtype, torch_devic
                 for coordinates in member:
                     kco = torch.cat([coordinates.new_zeros((1, 3)), coordinates[order]])
                     expected_dofs.append(
-                        inverse_kin(
+                        _inverse_kin(
                             kco,
                             member_tree[:, 2],
                             member_tree[:, 3],

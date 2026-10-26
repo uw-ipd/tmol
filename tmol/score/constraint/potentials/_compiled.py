@@ -11,4 +11,4 @@ _ops = _load_ops(
     "tmol_constraint",
 )
 
-get_torsion_angle = _ops.get_torsion_angle
+_get_torsion_angle = _ops.get_torsion_angle

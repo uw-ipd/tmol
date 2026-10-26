@@ -12,5 +12,5 @@ _ops = _load_ops(
     "tmol_metal",
 )
 
-metal_coordination_pose_scores = _ops.metal_coordination_pose_scores
-metal_coordination_rotamer_scores = _ops.metal_coordination_rotamer_scores
+_metal_coordination_pose_scores = _ops.metal_coordination_pose_scores
+_metal_coordination_rotamer_scores = _ops.metal_coordination_rotamer_scores

@@ -285,7 +285,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         )
 
     def _gen_waters(self, common_args, pose_stack, hbond_params):
-        from tmol.score.lk_ball.potentials._compiled import gen_pose_waters
+        from tmol.score.lk_ball.potentials._compiled import _gen_pose_waters
 
         args = [
             *common_args,
@@ -313,10 +313,10 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         if common_args[0].dtype == torch.float64:
             _convert_float64(args)
 
-        return gen_pose_waters(*args)
+        return _gen_pose_waters(*args)
 
     def pose_score_lk_ball(self, *args):
-        from tmol.score.lk_ball.potentials._compiled import lk_ball_pose_score
+        from tmol.score.lk_ball.potentials._compiled import _lk_ball_pose_score
 
         common_args = args[:-5]
         (
@@ -357,10 +357,12 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         if common_args[0].dtype == torch.float64:
             _convert_float64(args)
 
-        return lk_ball_pose_score(*args)
+        return _lk_ball_pose_score(*args)
 
     def rotamer_score_lk_ball(self, *args):
-        from tmol.score.lk_ball.potentials._compiled import lk_ball_rotamer_score_shared
+        from tmol.score.lk_ball.potentials._compiled import (
+            _lk_ball_rotamer_score_shared,
+        )
 
         common_args = args[:-5]
         (
@@ -398,7 +400,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         if common_args[0].dtype == torch.float64:
             _convert_float64(args)
 
-        return lk_ball_rotamer_score_shared(*args, shared_dispatch_indices)
+        return _lk_ball_rotamer_score_shared(*args, shared_dispatch_indices)
 
     def get_pose_score_term_function(self):
         return self.pose_score_lk_ball

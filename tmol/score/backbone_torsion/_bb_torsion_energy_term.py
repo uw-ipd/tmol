@@ -259,10 +259,10 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
 
     def get_pose_score_term_function(self):
         from tmol.score.backbone_torsion.potentials._compiled import (
-            backbone_torsion_pose_score,
+            _backbone_torsion_pose_score,
         )
 
-        return backbone_torsion_pose_score
+        return _backbone_torsion_pose_score
 
     def get_packing_rotamer_score_term_function(self):
         from tmol.score.backbone_torsion.potentials._compiled import (
@@ -273,10 +273,10 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
 
     def get_rotamer_score_term_function(self):
         from tmol.score.backbone_torsion.potentials._compiled import (
-            backbone_torsion_rotamer_score,
+            _backbone_torsion_rotamer_score,
         )
 
-        return backbone_torsion_rotamer_score
+        return _backbone_torsion_rotamer_score
 
     def get_score_term_attributes(self, pose_stack):
         pbt = pose_stack.packed_block_types

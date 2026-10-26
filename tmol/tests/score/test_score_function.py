@@ -23,7 +23,7 @@ from tmol.score.common._scoring_module import (
     ZeroTermPoseScoringModule,
     _coordinate_independent_score,
 )
-from tmol.score.ljlk.potentials._compiled import build_compact_block_neighbors
+from tmol.score.ljlk.potentials._compiled import _build_compact_block_neighbors
 from tmol.pose._pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
 from tmol.io._canonical_ordering import (
     _default_canonical_ordering,
@@ -560,7 +560,7 @@ def test_compact_block_neighbor_capacity_checks(shape, message):
     first_rot_block_type = torch.empty(shape, dtype=torch.int32)
 
     with pytest.raises(RuntimeError, match=message):
-        build_compact_block_neighbors(
+        _build_compact_block_neighbors(
             empty_float,
             empty_int,
             first_rot_block_type,
@@ -2283,7 +2283,7 @@ def test_packing_releases_previous_page_before_allocating_next(
         return scores, indices, torch.empty(0)
 
     monkeypatch.setattr(fused, "iter_packing_dispatches", dispatches)
-    monkeypatch.setattr(potentials, "ljlk_elec_weighted_rotamer_scores", score)
+    monkeypatch.setattr(potentials, "_ljlk_elec_weighted_rotamer_scores", score)
     n_pages = 0
     with torch.no_grad():
         for _, indices, values in scorer._iter_weighted_sparse_entries(

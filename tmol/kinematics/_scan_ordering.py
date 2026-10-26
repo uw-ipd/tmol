@@ -342,14 +342,14 @@ def _construct_kin_module_data_for_pose(
         Immutable topology and traversal data for forward and backward scans.
     """
     from tmol.kinematics.compiled._compiled_ops import (
-        calculate_ff_edge_delays,
-        get_children,
-        get_block_parent_connectivity_from_toposort,
-        get_id_and_frame_xyz,
-        get_jump_atom_indices,
-        get_kinforest_scans_from_stencils2,
-        get_kfo_indices_for_atoms,
-        get_kfo_atom_parents,
+        _calculate_ff_edge_delays,
+        _get_children_op,
+        _get_block_parent_connectivity_from_toposort,
+        _get_id_and_frame_xyz,
+        _get_jump_atom_indices,
+        _get_kinforest_scans_from_stencils2,
+        _get_kfo_indices_for_atoms,
+        _get_kfo_atom_parents,
     )
 
     device = pose_stack.device
@@ -361,7 +361,7 @@ def _construct_kin_module_data_for_pose(
     ff_edges_device = fold_forest_edges.to(device)
 
     cpu = torch.device("cpu")
-    result = calculate_ff_edge_delays(
+    result = _calculate_ff_edge_delays(
         pose_stack.block_coord_offset,
         pose_stack.block_type_ind,
         ff_edges_cpu,
@@ -387,11 +387,11 @@ def _construct_kin_module_data_for_pose(
         toposort_index_for_edge,
     ) = tuple(x.to(device) for x in result)
 
-    pose_stack_atom_for_jump, pose_stack_atom_for_root_jump = get_jump_atom_indices(
+    pose_stack_atom_for_jump, pose_stack_atom_for_root_jump = _get_jump_atom_indices(
         ff_edges_device, pose_stack.block_type_ind, pbt_gssps.jump_atom
     )
 
-    pose_stack_block_in_and_first_out = get_block_parent_connectivity_from_toposort(
+    pose_stack_block_in_and_first_out = _get_block_parent_connectivity_from_toposort(
         pose_stack.block_type_ind,
         pose_stack.inter_residue_connections,
         pose_stack_ff_parent,
@@ -406,14 +406,14 @@ def _construct_kin_module_data_for_pose(
         pbt.polymeric_conn_inds,
     )
 
-    block_kfo_offset, kfo_2_orig_mapping, atom_kfo_index = get_kfo_indices_for_atoms(
+    block_kfo_offset, kfo_2_orig_mapping, atom_kfo_index = _get_kfo_indices_for_atoms(
         pose_stack.block_coord_offset,
         pose_stack.block_type_ind,
         pbt.n_atoms,
         pbt.atom_is_real,
     )
 
-    kfo_atom_parents, kfo_atom_grandparents = get_kfo_atom_parents(
+    kfo_atom_parents, kfo_atom_grandparents = _get_kfo_atom_parents(
         pose_stack.block_type_ind,
         pose_stack.inter_residue_connections,
         pose_stack_ff_parent,
@@ -426,7 +426,7 @@ def _construct_kin_module_data_for_pose(
         pbt.conn_atom,
     )
 
-    n_children, child_list_span, child_list, is_atom_jump = get_children(
+    n_children, child_list_span, child_list, is_atom_jump = _get_children_op(
         pose_stack.block_type_ind,
         pose_stack_block_in_and_first_out,
         kfo_2_orig_mapping,
@@ -434,7 +434,7 @@ def _construct_kin_module_data_for_pose(
         pbt.n_conn,
     )
 
-    id, frame_x, frame_y, frame_z, keep_atom_fixed = get_id_and_frame_xyz(
+    id, frame_x, frame_y, frame_z, keep_atom_fixed = _get_id_and_frame_xyz(
         pose_stack.coords.shape[1],
         pose_stack.block_coord_offset,
         kfo_2_orig_mapping,
@@ -445,7 +445,7 @@ def _construct_kin_module_data_for_pose(
     )
 
     nodes_fw, scans_fw, gens_fw, nodes_bw, scans_bw, gens_bw = (
-        get_kinforest_scans_from_stencils2(
+        _get_kinforest_scans_from_stencils2(
             pose_stack.max_n_atoms,
             pose_stack.block_coord_offset,
             pose_stack.block_type_ind,

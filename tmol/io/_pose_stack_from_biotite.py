@@ -135,9 +135,9 @@ class _PreparedAtom37PoseTopology:
         from tmol.io.details._build_missing_leaf_atoms import (
             _apply_h_geometric_completion,
         )
-        from tmol.io.details.compiled._compiled import gen_pose_leaf_atoms
+        from tmol.io.details.compiled._compiled import _gen_pose_leaf_atoms
 
-        coords = gen_pose_leaf_atoms(
+        coords = _gen_pose_leaf_atoms(
             coords,
             block_leaf_atom_is_missing,
             pose_atom_is_missing,

@@ -259,14 +259,14 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
     score_only_in_no_grad = True
 
     def get_pose_score_term_function(self):
-        from tmol.score.elec.potentials._compiled import elec_pose_scores
+        from tmol.score.elec.potentials._compiled import _elec_pose_scores
 
-        return elec_pose_scores
+        return _elec_pose_scores
 
     def get_rotamer_score_term_function(self):
-        from tmol.score.elec.potentials._compiled import elec_rotamer_scores_shared
+        from tmol.score.elec.potentials._compiled import _elec_rotamer_scores_shared
 
-        return elec_rotamer_scores_shared
+        return _elec_rotamer_scores_shared
 
     def get_block_neighbor_cutoff(self):
         return self._max_dis

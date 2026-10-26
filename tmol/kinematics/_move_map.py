@@ -448,12 +448,12 @@ class MinimizerMap:
         kmd: KinematicModuleData,
         mm: MoveMap,
     ) -> None:
-        from tmol.kinematics.compiled._compiled_ops import minimizer_map_from_movemap
+        from tmol.kinematics.compiled._compiled_ops import _minimizer_map_from_movemap
 
         pbt = pose_stack.packed_block_types
 
         # fmt: off
-        self.dof_mask = minimizer_map_from_movemap(
+        self.dof_mask = _minimizer_map_from_movemap(
             kmd.forest.id,
             pose_stack.max_n_pose_atoms,
             pose_stack.block_coord_offset,

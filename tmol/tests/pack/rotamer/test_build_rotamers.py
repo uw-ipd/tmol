@@ -28,7 +28,7 @@ from tmol import pose_stack_from_file
 from tmol import PackedBlockTypes, PoseStackBuilder, PackerTask, PackerPalette
 from tmol.pack import SetPackerTask
 
-from tmol.kinematics.compiled._compiled_ops import forward_only_op
+from tmol.kinematics.compiled._compiled_ops import _forward_only_op
 
 from tmol.utility.tensor._common_operations import _exclusive_cumsum1d, _stretch
 
@@ -430,7 +430,7 @@ def test_inv_kin_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
     met_kt_frame_y = it(0, met_rt.rotamer_kinforest.frame_y + 1)
     met_kt_frame_z = it(0, met_rt.rotamer_kinforest.frame_z + 1)
 
-    from tmol.kinematics.compiled._compiled_ops import inverse_kin
+    from tmol.kinematics.compiled._compiled_ops import _inverse_kin
 
     coords = torch.cat(
         (
@@ -439,7 +439,7 @@ def test_inv_kin_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
         )
     )
 
-    dofs_orig = inverse_kin(
+    dofs_orig = _inverse_kin(
         coords,
         met_kt_parent,
         met_kt_frame_x,
@@ -497,7 +497,7 @@ def test_inv_kin_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
         ).to(torch_device)
     )
 
-    new_coords = forward_only_op(
+    new_coords = _forward_only_op(
         dofs_new,
         _p(_t(leu_rt.rotamer_kinforest.nodes)),
         _p(_t(leu_rt.rotamer_kinforest.scans)),
@@ -839,7 +839,7 @@ def test_measure_original_dofs(default_database, ubq_pdb, torch_device, dun_samp
         pbt, block_type_ind_numpy, res_n_atoms, n_atoms_offset_for_rot
     )
 
-    new_kin_coords = forward_only_op(
+    new_kin_coords = _forward_only_op(
         dofs,
         _p(torch.tensor(nodes, dtype=torch.int32, device=torch_device)),
         _p(torch.tensor(scans, dtype=torch.int32, device=torch_device)),
@@ -948,7 +948,7 @@ def test_measure_original_dofs2(default_database, ubq_pdb, torch_device, dun_sam
         pbt, block_type_ind.cpu().numpy(), res_n_atoms, n_atoms_offset_for_rot
     )
 
-    new_kin_coords = forward_only_op(
+    new_kin_coords = _forward_only_op(
         dofs,
         _p(torch.tensor(nodes, dtype=torch.int32, device=torch_device)),
         _p(torch.tensor(scans, dtype=torch.int32, device=torch_device)),
