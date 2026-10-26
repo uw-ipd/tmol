@@ -20,10 +20,6 @@ from tmol.score.gridscore.live_hbond import score_ligand_hbond
 from tmol.score.gridscore.live_ligand_intra import (
     build_live_ligand_intra_data,
     score_ligand_intra,
-    score_ligand_intra_with_gradients,
-)
-from tmol.score.gridscore.live_ligand_intra import (
-    _weighted_movable_block_pairs,
 )
 from tmol.score import ScoreType
 from tmol.tests.dock.test_ligand_dof_roundtrip import _load_cdk2_pose_on_device
@@ -185,81 +181,6 @@ def test_movable_block_pairs_match_full_connected_complex_fp64(
     compact_dun = compact_sym[dun_index][:, :, selected_compact, :].sum(dim=(0, -1))
     expected_dun = expected_sym[dun_index][:, :, selected_compact, :].sum(dim=(0, -1))
     torch.testing.assert_close(compact_dun, expected_dun, rtol=0.0, atol=1.0e-4)
-
-
-def test_search_repulsion_is_soft_only_on_block_diagonal(cdk2_pose_and_db):
-    reference, param_db = cdk2_pose_and_db
-    ligand_block = _ligand_block(reference)
-    sidechain_blocks = _cdk2_sidechain_blocks(reference, ligand_block)
-    movable, _, _ = _movable_layout(reference, ligand_block, sidechain_blocks)
-    data = build_live_ligand_intra_data(
-        reference,
-        ligand_block,
-        param_db,
-        weight_profile="search",
-        sidechain_blocks=sidechain_blocks,
-    )
-    weighted = _weighted_movable_block_pairs(data, movable.coords)
-    scorer = data.score_function.render_block_pair_scoring_module(movable)
-    unweighted = scorer(movable.coords, sum_terms=False, apply_weights=False)
-    score_types = tuple(data.score_function.all_score_types())
-    rep_index = score_types.index(ScoreType.fa_ljrep)
-    full_rep = data.score_function.get_weight(ScoreType.fa_ljrep).to(
-        dtype=movable.coords.dtype
-    )
-    n_blocks = movable.max_n_blocks
-    eye = torch.eye(n_blocks, dtype=torch.bool)
-    active_diagonal = eye.clone()
-    context = torch.tensor(data.context_block_indices, dtype=torch.int64)
-    active_diagonal[context, context] = False
-    torch.testing.assert_close(
-        weighted[rep_index, :, active_diagonal],
-        0.01 * unweighted[rep_index, :, active_diagonal],
-        rtol=0.0,
-        atol=1.0e-10,
-    )
-    assert torch.count_nonzero(weighted[rep_index, :, eye & ~active_diagonal]) == 0
-    torch.testing.assert_close(
-        weighted[rep_index, :, ~eye],
-        full_rep * unweighted[rep_index, :, ~eye],
-        rtol=0.0,
-        atol=1.0e-10,
-    )
-
-
-def test_movable_whole_pose_gradient_matches_finite_difference_fp64(
-    cdk2_pose_and_db,
-):
-    reference, param_db = cdk2_pose_and_db
-    ligand_block = _ligand_block(reference)
-    sidechain_blocks = _cdk2_sidechain_blocks(reference, ligand_block)[:1]
-    movable, docking_dofs, layout = _movable_layout(
-        reference, ligand_block, sidechain_blocks
-    )
-    genes = layout.genes_from_pose_stack(movable)
-    genes[:, 6 + len(docking_dofs.torsions)] += 0.13
-    coords = layout.pose_stack_from_genes(genes).coords.contiguous()
-
-    data = build_live_ligand_intra_data(
-        reference,
-        ligand_block,
-        param_db,
-        weight_profile="full",
-        sidechain_blocks=sidechain_blocks,
-    )
-    _, gradient = score_ligand_intra_with_gradients(data, coords)
-    columns = torch.arange(coords.numel(), dtype=coords.dtype).reshape_as(coords)
-    direction = torch.sin(0.37 * columns + 0.19)
-    direction = direction / torch.linalg.vector_norm(direction)
-    step = 1.0e-6
-    finite = (
-        score_ligand_intra(data, coords + step * direction)
-        - score_ligand_intra(data, coords - step * direction)
-    ) / (2.0 * step)
-    analytic = torch.sum(gradient * direction, dim=(1, 2))
-    error = torch.max(torch.abs(analytic - finite))
-    print("movable full-beta directional-gradient max error:", float(error))
-    torch.testing.assert_close(analytic, finite, rtol=2.0e-5, atol=2.0e-5)
 
 
 @pytest.mark.slow

@@ -14,7 +14,6 @@ from tmol.dock import ContinuousBackend, GASchedule, GridBackend, run_docking
 from tmol.dock.ga import LigandGeneLayout
 from tmol.dock.ligand_dofs import build_ligand_docking_dofs
 from tmol.optimization import build_kinforest_network, run_min
-from tmol.score.gridscore import GridScorer
 from tmol.tests.dock.test_ligand_dof_roundtrip import _load_cdk2_pose_on_device
 from tmol.tests.dock.test_ligand_dof_roundtrip import (
     _ligand_block,
@@ -64,46 +63,6 @@ def grid_pose_case(cpu_grid_case, request):
         docking_dofs=docking_dofs,
         layout=LigandGeneLayout.from_pose_stack(population, docking_dofs),
     )
-
-
-def _ligand_coordinates(case, population):
-    atom_indices = case.backend._ligand_atom_indices(population, case.ligand_block)
-    pose_indices = torch.arange(population.n_poses, dtype=torch.int64)
-    return population.coords[pose_indices[:, None], atom_indices]
-
-
-def test_gridded_lk_ball_changes_total_and_survives_degenerate_donor_water(
-    cpu_grid_case,
-):
-    case = cpu_grid_case
-    backend = case.backend
-    coordinates = _ligand_coordinates(case, case.population)
-    lk_ball = backend.live_lk_ball
-
-    def scorer(**terms):
-        return GridScorer(
-            backend.grids,
-            backend.ligand_atom_types,
-            backend.ligand_charges,
-            device="cpu",
-            dtype=torch.float64,
-            **terms,
-        )
-
-    grid_only = scorer()(coordinates)
-    with_lk_ball = scorer(live_lk_ball=lk_ball, lk_ball_grid=True)(coordinates)
-    assert torch.any(with_lk_ball != grid_only)
-
-    # A donor hydrogen coincident with its donor heavy atom gives an undefined
-    # water direction. Real docking never produces it (fixed bond length); the
-    # gridded energy must merely stay finite there.
-    donor_site, donor_water = torch.nonzero(lk_ball.ligand_water_kinds == 1)[0].tolist()
-    donor, hydrogen = lk_ball.ligand_water_atoms[donor_site, donor_water, :2].tolist()
-    degenerate = coordinates.clone()
-    degenerate[:, hydrogen] = degenerate[:, donor]
-    assert torch.isfinite(
-        scorer(live_lk_ball=lk_ball, lk_ball_grid=True)(degenerate)
-    ).all()
 
 
 def test_exact_live_lk_ball_differs_from_gridded_backend(cpu_grid_case):

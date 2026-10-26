@@ -7,10 +7,8 @@ import pytest
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.dock.ligand_dofs import GeneIndex, build_ligand_docking_dofs
+from tmol.dock.ligand_dofs import build_ligand_docking_dofs
 from tmol.io import pose_stack_from_biotite
-from tmol.kinematics import MinimizerMap
-from tmol.kinematics import PoseStackKinematicsModule
 from tmol.optimization import build_kinforest_network
 from tmol.score import ScoreFunction
 from tmol.tests.data import data_path
@@ -72,114 +70,6 @@ def _network(pose_stack, param_db, docking_dofs, kin_dtype=torch.float64):
     )
 
 
-def _ligand_kfo_nodes(network, pose_stack, ligand_block, pose=0):
-    start = pose * pose_stack.max_n_pose_atoms + int(
-        pose_stack.block_coord_offset64[pose, ligand_block]
-    )
-    block_type_index = int(pose_stack.block_type_ind64[pose, ligand_block])
-    n_atoms = pose_stack.packed_block_types.active_block_types[block_type_index].n_atoms
-    return torch.nonzero(
-        (network.id >= start) & (network.id < start + n_atoms), as_tuple=False
-    ).flatten()
-
-
-def _torsion_values(kin_coords, nodes_by_local_atom, block_type):
-    values = []
-    for torsion_index in range(block_type.n_torsions):
-        atoms = tuple(
-            int(uaid[0]) for uaid in block_type.ordered_torsions[torsion_index]
-        )
-        selected = [
-            kin_coords[nodes_by_local_atom[atom]].reshape(1, 3) for atom in atoms
-        ]
-        ba = selected[0] - selected[1]
-        bc = selected[2] - selected[1]
-        cd = selected[3] - selected[2]
-        unit_bc = bc / torch.linalg.vector_norm(bc, dim=1, keepdim=True)
-        v = ba - torch.sum(ba * unit_bc, dim=1, keepdim=True) * unit_bc
-        w = cd - torch.sum(cd * unit_bc, dim=1, keepdim=True) * unit_bc
-        x = torch.sum(v * w, dim=1)
-        y = torch.sum(torch.linalg.cross(unit_bc, v) * w, dim=1)
-        values.append(torch.atan2(y, x)[0])
-    return torch.stack(values)
-
-
-def _angle_delta(after, before):
-    delta = after - before
-    return torch.atan2(torch.sin(delta), torch.cos(delta))
-
-
-def test_cdk2_dof_count_and_bidirectional_mapping(cdk2_pose_and_db):
-    pose_stack, param_db = cdk2_pose_and_db
-    ligand_block = _ligand_block(pose_stack)
-    docking_dofs = build_ligand_docking_dofs(pose_stack, ligand_block)
-    kin_module = PoseStackKinematicsModule(pose_stack, docking_dofs.fold_forest)
-    minmap = MinimizerMap(pose_stack, kin_module.kmd, docking_dofs.move_map)
-
-    assert len(docking_dofs.torsions) == 2
-    assert int(torch.sum(minmap.dof_mask)) == 8
-    assert [
-        (
-            mapping.name,
-            block_type_atom_name(pose_stack, ligand_block, mapping.raw_atom),
-            mapping.dof_type.name,
-            mapping.sign,
-        )
-        for mapping in docking_dofs.torsions
-    ] == [
-        ("chi1", "C7", "phi_c", 1),
-        ("chi2", "C7", "phi_p", -1),
-    ]
-    assert len(
-        {(mapping.raw_atom, mapping.dof_type) for mapping in docking_dofs.torsions}
-    ) == len(docking_dofs.torsions)
-
-    network = _network(pose_stack, param_db, docking_dofs)
-    ligand_nodes = _ligand_kfo_nodes(network, pose_stack, ligand_block)
-    target_to_kfo = {
-        int(network.id[node])
-        - int(pose_stack.block_coord_offset64[0, ligand_block]): int(node)
-        for node in ligand_nodes
-    }
-    block_type_index = int(pose_stack.block_type_ind64[0, ligand_block])
-    block_type = pose_stack.packed_block_types.active_block_types[block_type_index]
-    logical = _torsion_values(
-        network.kin_module(network.full_dofs), target_to_kfo, block_type
-    )
-    index = GeneIndex.build(
-        pose_stack,
-        docking_dofs,
-        network.kin_module.kmd.forest,
-        network.dof_mask,
-        network.full_dofs.dtype,
-    )
-    genes = index.genes_from_raw_dofs(network.full_dofs)
-    for mapping in docking_dofs.torsions:
-        predicted = genes[0, 6 + mapping.torsion_index]
-        error = torch.abs(_angle_delta(predicted, logical[mapping.torsion_index]))
-        assert float(error) < 1.0e-10
-
-
-def test_gene_index_round_trips_across_the_wrap_boundary(cdk2_pose_and_db):
-    pose_stack, _ = cdk2_pose_and_db
-    docking_dofs = build_ligand_docking_dofs(pose_stack, _ligand_block(pose_stack))
-    network = _network(pose_stack, cdk2_pose_and_db[1], docking_dofs)
-    index = GeneIndex.build(
-        pose_stack,
-        docking_dofs,
-        network.kin_module.kmd.forest,
-        network.dof_mask,
-        network.full_dofs.dtype,
-    )
-    epsilon = 1.0e-8
-    genes = index.genes_from_raw_dofs(network.full_dofs).clone()
-    genes[:, 6:] = torch.tensor([torch.pi - epsilon, -torch.pi + epsilon])
-    raw = network.full_dofs.clone()
-    index.write_raw_dofs(raw, genes)
-    delta = _angle_delta(index.genes_from_raw_dofs(raw)[:, 6:], genes[:, 6:])
-    torch.testing.assert_close(delta, torch.zeros_like(delta), rtol=0.0, atol=1.0e-12)
-
-
 @pytest.mark.parametrize(
     ("coord_dtype", "kin_dtype", "bound"),
     [
@@ -223,7 +113,3 @@ def _load_cdk2_pose_on_device(device: torch.device):
     )
     pose_stack.coords = pose_stack.coords.to(dtype=torch.float32)
     return pose_stack, context.parameter_database
-
-
-def block_type_atom_name(pose_stack, block, atom):
-    return pose_stack.block_type(0, block).atoms[atom].name

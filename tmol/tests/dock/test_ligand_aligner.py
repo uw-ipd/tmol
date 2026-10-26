@@ -109,31 +109,6 @@ def test_candidate_generation_and_scoring_are_streamed():
     )
 
 
-def _assert_seeded_coordinates_match_alignment(
-    layout, backend, aligner, seed, n_seeded
-):
-    _, genes = _initialize(layout, backend, aligner, seed)
-    decoded = layout.pose_stack_from_genes(genes)
-    expected_generator = torch.Generator().manual_seed(seed)
-    ga_module._random_initial_genes(
-        layout,
-        pocket_bounds=None,
-        placement=RandomPlacement(),
-        generator=expected_generator,
-    )
-    expected_alignment = aligner.align(
-        layout,
-        backend,
-        n_placements=n_seeded,
-        pocket_bounds=None,
-        generator=expected_generator,
-    )
-    coordinate_error = torch.max(
-        torch.abs(decoded.coords[1 : n_seeded + 1] - expected_alignment.coordinates)
-    )
-    return genes, expected_alignment, coordinate_error
-
-
 @pytest.mark.parametrize("npool,seed_fraction", [(1, 1.0), (4, 0.0), (4, 1.0)])
 def test_aligner_seed_fraction_boundaries(cpu_aligner_case, npool, seed_fraction):
     case = cpu_aligner_case
