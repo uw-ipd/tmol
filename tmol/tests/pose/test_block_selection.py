@@ -51,3 +51,11 @@ def test_select_blocks_keeps_selected_atoms_and_clears_dropped_links(
     assert set(partners.flatten().tolist()) <= {-1, 0, 1}
     assert (partners[0] == 1).any() and (partners[1] == 0).any()
     assert (partners[2] == -1).all()
+
+    numpy.testing.assert_array_equal(
+        selected.pdb_info.residue_labels[0], single.pdb_info.residue_labels[0, blocks]
+    )
+    torch.testing.assert_close(
+        selected.inter_block_bondsep.to_dense(),
+        single.inter_block_bondsep.to_dense()[:, blocks][:, :, blocks],
+    )

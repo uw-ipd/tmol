@@ -64,8 +64,9 @@ def select_blocks(pose_stack: PoseStack, blocks: Sequence[int]) -> PoseStack:
     if not bool(torch.all(selected_types == selected_types[0:1])):
         raise ValueError("selecting blocks requires a homogeneous block layout")
 
-    old_to_new = torch.full((pose_stack.max_n_blocks,), -1, dtype=torch.int64)
-    old_to_new = old_to_new.to(device)
+    old_to_new = torch.full(
+        (pose_stack.max_n_blocks,), -1, dtype=torch.int64, device=device
+    )
     old_to_new[keep] = torch.arange(keep.numel(), dtype=torch.int64, device=device)
     connections = pose_stack.inter_residue_connections64[:, keep].clone()
     partners = connections[..., 0]
@@ -129,7 +130,7 @@ def repeat_pose_stack(pose_stack: PoseStack, n_poses: int) -> PoseStack:
     """A PoseStack of ``n_poses`` independent copies of a single pose.
 
     Unlike :meth:`PoseStackBuilder.from_poses` this keeps the coordinate dtype
-    and the constraint set, and is about twice as fast.
+    and the constraint set.
     """
     if pose_stack.n_poses != 1:
         raise ValueError("only a single reference pose can be replicated")
