@@ -4,7 +4,6 @@
 #pragma once
 
 #include <algorithm>
-#include <chrono>
 #include <cmath>
 #include <limits>
 #include <stdexcept>
@@ -28,25 +27,6 @@ namespace tmol {
 namespace score {
 namespace common {
 namespace sphere_overlap {
-
-// Attribute a host-side phase into the Metal kernel tally. Compiles away
-// entirely in a build without the Metal backend.
-inline bool host_phase_timing_enabled() {
-#ifdef WITH_MPS
-  return tmol::score::common::mps_timing_enabled();
-#else
-  return false;
-#endif
-}
-
-inline void record_host_phase(char const* name, double ms) {
-#ifdef WITH_MPS
-  tmol::score::common::mps_record_host_phase(name, ms);
-#else
-  (void)name;
-  (void)ms;
-#endif
-}
 
 using tmol::portable::Vec;
 
@@ -1077,7 +1057,6 @@ struct rot_neighbor_indices_from_block_neighbors {
       ContextManager& mgr, TPack<Int, 1, D>& counts_t, int n_candidates)
       -> TPack<Int, 1, D> {
     if (D == tmol::Device::MPS) {
-      auto const t0 = std::chrono::steady_clock::now();
       auto host_counts =
           counts_t.tensor.to(tmol::native::Device(tmol::native::kCPU));
       auto host_offsets_t =
@@ -1089,14 +1068,8 @@ struct rot_neighbor_indices_from_block_neighbors {
         offsets[i] = running;
         running += counts[i];
       }
-      auto result =
-          TPack<Int, 1, D>(host_offsets_t.tensor.to(counts_t.tensor.device()));
-      if (host_phase_timing_enabled()) {
-        std::chrono::duration<double, std::milli> const dt =
-            std::chrono::steady_clock::now() - t0;
-        record_host_phase("HOST rot_pair exclusive_scan", dt.count());
-      }
-      return result;
+      return TPack<Int, 1, D>(
+          host_offsets_t.tensor.to(counts_t.tensor.device()));
     }
     auto offsets_t = TPack<Int, 1, D>::zeros({n_candidates});
     DeviceDispatch<D>::template scan<tmol::portable::scan_type::exclusive>(
@@ -1184,7 +1157,6 @@ struct rot_neighbor_indices_from_block_neighbors {
 
     // Step 2: check an int64 reduction before scanning int32 offsets. This
     // preserves the signed-32-bit dispatch limit without two int64 pair arrays.
-    auto const t_sync = std::chrono::steady_clock::now();
     if (pair_count_overflow_t.tensor.template item<int64_t>() != 0) {
       throw std::overflow_error(
           "rotamer block-pair dispatch exceeds the signed 32-bit native "
@@ -1195,11 +1167,6 @@ struct rot_neighbor_indices_from_block_neighbors {
             .template item<int64_t>();
     int const total =
         common::checked_dispatch_size(total_64, "rotamer block-pair dispatch");
-    if (D == tmol::Device::MPS && host_phase_timing_enabled()) {
-      std::chrono::duration<double, std::milli> const dt =
-          std::chrono::steady_clock::now() - t_sync;
-      record_host_phase("HOST rot_pair overflow+sum sync", dt.count());
-    }
 
     auto pair_offsets_t =
         exclusive_scan_counts(mgr, pair_counts_t, n_candidates);

@@ -119,12 +119,6 @@ void mps_launch(
     int64_t n_items,
     int64_t threadgroup_size);
 
-// Attribute a host-side phase (a synchronizing copy, a scan on the host) into
-// the same tally the per-kernel timer prints, so a breakdown shows device and
-// host costs on one scale. A no-op unless TMOL_MPS_TIME_KERNELS is set.
-bool mps_timing_enabled();
-void mps_record_host_phase(char const* name, double ms);
-
 }  // namespace common
 }  // namespace score
 }  // namespace tmol

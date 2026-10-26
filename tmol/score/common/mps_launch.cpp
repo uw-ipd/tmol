@@ -3,12 +3,8 @@
 #include <torch/csrc/inductor/aoti_torch/c/shim_mps.h>
 #include <torch/csrc/stable/ops.h>
 
-#include <chrono>
-#include <cstdio>
-#include <cstdlib>
 #include <cstdint>
 #include <cstring>
-#include <map>
 #include <mutex>
 #include <stdexcept>
 #include <string>
@@ -131,60 +127,6 @@ MetaCache& meta_cache() {
   return cache;
 }
 
-// Opt-in per-kernel timing, for attributing where a scoring call's GPU time
-// goes. Off unless TMOL_MPS_TIME_KERNELS is set, and then it costs a device
-// synchronize per launch -- which perturbs the total, since the point of the
-// backend is that launches do not synchronize. Read it as a breakdown of
-// relative cost, not as a wall time.
-struct KernelTimer {
-  std::mutex mutex;
-  std::map<std::string, double> millis;
-  std::map<std::string, long> calls;
-
-  static bool enabled() {
-    static bool on = std::getenv("TMOL_MPS_TIME_KERNELS") != nullptr;
-    return on;
-  }
-
-  // Host-phase attribution is a separate switch. Per-kernel timing waits on
-  // every launch, which drains the queue and so makes any later host-side
-  // wait look free -- exactly the cost a host phase is being measured for.
-  // TMOL_MPS_TIME_HOST records host phases while leaving launches async.
-  static bool host_enabled() {
-    static bool on = std::getenv("TMOL_MPS_TIME_HOST") != nullptr
-                     || std::getenv("TMOL_MPS_TIME_KERNELS") != nullptr;
-    return on;
-  }
-
-  void record(char const* name, double ms) {
-    std::lock_guard<std::mutex> guard(mutex);
-    millis[name] += ms;
-    calls[name] += 1;
-  }
-
-  ~KernelTimer() {
-    if (millis.empty()) return;
-    double total = 0;
-    for (auto const& entry : millis) total += entry.second;
-    std::fprintf(stderr, "\ntmol MPS kernel time (synchronized per launch)\n");
-    for (auto const& entry : millis) {
-      std::fprintf(
-          stderr,
-          "  %-44s %9.1f ms  %6ld calls  %5.1f%%\n",
-          entry.first.c_str(),
-          entry.second,
-          calls[entry.first],
-          100.0 * entry.second / total);
-    }
-    std::fprintf(stderr, "  %-44s %9.1f ms\n", "TOTAL", total);
-  }
-};
-
-KernelTimer& kernel_timer() {
-  static KernelTimer timer;
-  return timer;
-}
-
 }  // namespace
 
 void mps_launch(
@@ -273,29 +215,10 @@ void mps_launch(
 
   uint64_t const total = uint64_t(n_items);
   uint64_t const group = uint64_t(threadgroup_size);
-  bool const timing = KernelTimer::enabled();
-  auto const start = std::chrono::steady_clock::now();
   check(
       aoti_torch_mps_dispatch_array_with_group_size(
           function, &total, 1, &group, 1),
       "dispatch");
-  if (timing) {
-    // Dispatch only enqueues, so the kernel has to be waited on to be timed.
-    tmol::native::Tensor probe(
-        torch::stable::to(
-            meta_mps.handle(), torch::stable::Device(tmol::native::kCPU)));
-    (void)probe;
-    std::chrono::duration<double, std::milli> const elapsed =
-        std::chrono::steady_clock::now() - start;
-    kernel_timer().record(kernel_name, elapsed.count());
-  }
-}
-
-bool mps_timing_enabled() { return KernelTimer::host_enabled(); }
-
-void mps_record_host_phase(char const* name, double ms) {
-  if (!KernelTimer::host_enabled()) return;
-  kernel_timer().record(name, ms);
 }
 
 }  // namespace common
