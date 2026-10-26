@@ -28,7 +28,10 @@
 #include <tmol/score/lk_ball/potentials/lk_ball.hh>
 #include <tmol/score/lk_ball/potentials/lk_ball_ctx_tensor.hh>
 #include <tmol/score/lk_ball/potentials/lk_ball_kernels.hh>
-#include <tmol/score/lk_ball/potentials/lk_ball_mps_launch.hh>
+#include <tmol/score/common/mps_launch.hh>
+#ifdef WITH_MPS
+#include <tmol/score/lk_ball/potentials/lk_ball_mps_kernels_source.h>
+#endif
 #include <tmol/score/lk_ball/potentials/params.hh>
 
 // Operator definitions; safe for CPU compilation
@@ -670,10 +673,12 @@ class LKBallPoseScoreDispatch {
       // This is tested ahead of the compact-block-neighbor path because that
       // launches through DeviceDispatch, which on this backend would run the
       // kernel on the CPU.
-      lk_ball_mps_launch_if<Dev>(
+      tmol::score::common::mps_launch_if<Dev>(
+          TMOL_MPS_SOURCE(kLKBallMetalShaderSource),
           "lk_ball_eval_energies_by_block_f32",
           ctx,
-          int64_t(n_poses) * int64_t(n_block_pairs));
+          int64_t(n_poses) * int64_t(n_block_pairs),
+          true);
     } else if (
         !output_block_pair_energies && use_shared_compact_block_neighbors) {
       score::common::sphere_overlap::launch_precomputed_block_neighbors<
@@ -1044,10 +1049,12 @@ class LKBallPoseScoreDispatch {
       // The derivative kernel neither reads nor writes energies.
       ctx.output_block_pair_energies = false;
       ctx.use_shared_compact_block_neighbors = false;
-      lk_ball_mps_launch_if<Dev>(
+      tmol::score::common::mps_launch_if<Dev>(
+          TMOL_MPS_SOURCE(kLKBallMetalShaderSource),
           "lk_ball_eval_derivs_f32",
           ctx,
-          int64_t(n_poses) * int64_t(n_block_pairs));
+          int64_t(n_poses) * int64_t(n_block_pairs),
+          true);
       return {dV_d_pose_coords_t, dV_d_water_coords_t};
     }
 
@@ -1368,10 +1375,12 @@ class LKBallRotamerScoreDispatch {
     if (Dev == tmol::Device::MPS) {
       // Metal has nowhere for a closure to live, so the identical body is
       // reached through a named entry point instead.
-      lk_ball_mps_launch_if<Dev>(
+      tmol::score::common::mps_launch_if<Dev>(
+          TMOL_MPS_SOURCE(kLKBallMetalShaderSource),
           "lk_ball_eval_rotamer_energies_by_block_f32",
           ctx,
-          dispatch_indices.size(1));
+          dispatch_indices.size(1),
+          true);
     } else {
       DeviceDispatch<Dev>::template foreach_independent_workgroup<launch_t>(
           mgr, dispatch_indices.size(1), eval_energies_by_block);

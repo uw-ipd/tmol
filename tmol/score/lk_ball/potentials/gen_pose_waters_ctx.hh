@@ -115,10 +115,14 @@ struct WaterGenCtxT {
   // buffer.
   enum { n_views = 30 };
 
-  enum { n_rots = 0, n_scalars = 1 };
+  // Launch scalars in the order the host writes and the shader reads.
+  template <typename F>
+  TMOL_HD void visit_scalars(F f) {
+    f(n_rots_total);
+  }
 
   // Launch-shape constant
-  int n_rots_total;
+  int n_rots_total = {};
 };
 
 // Backward pass. Its own field list rather than a reuse of WaterGenCtxT:
@@ -208,17 +212,17 @@ struct WaterGenDerivCtxT {
   // buffer.
   enum { n_views = 29 };
 
-  // Scalar slots in the metadata buffer, after the per-view shapes.
-  enum {
-    scalar_n_sp2_water_tors = 0,
-    scalar_n_sp3_water_tors = 1,
-    scalar_n_ring_water_tors = 2,
-    n_scalars = 3
-  };
+  // Launch scalars in the order the host writes and the shader reads.
+  template <typename F>
+  TMOL_HD void visit_scalars(F f) {
+    f(n_sp2_water_tors);
+    f(n_sp3_water_tors);
+    f(n_ring_water_tors);
+  }
 
-  int n_sp2_water_tors;
-  int n_sp3_water_tors;
-  int n_ring_water_tors;
+  int n_sp2_water_tors = {};
+  int n_sp3_water_tors = {};
+  int n_ring_water_tors = {};
 };
 
 }  // namespace potentials

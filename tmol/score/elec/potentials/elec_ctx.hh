@@ -114,20 +114,20 @@ struct ElecCtxT {
   // unbound.
   enum { n_views = 20 };
 
-  // Scalar slots in the metadata buffer, after the per-view shapes.
-  enum {
-    scalar_max_n_blocks = 0,
-    scalar_max_n_upper_triangle_inds = 1,
-    scalar_output_block_pair_energies = 2,
-    scalar_use_shared_compact_block_neighbors = 3,
-    n_scalars = 4
-  };
+  // Launch scalars in the order the host writes and the shader reads.
+  template <typename F>
+  TMOL_HD void visit_scalars(F f) {
+    f(max_n_blocks);
+    f(max_n_upper_triangle_inds);
+    f(output_block_pair_energies);
+    f(use_shared_compact_block_neighbors);
+  }
 
   // Launch-shape constants
-  int max_n_blocks;
-  int max_n_upper_triangle_inds;
-  bool output_block_pair_energies;
-  bool use_shared_compact_block_neighbors;
+  int max_n_blocks = {};
+  int max_n_upper_triangle_inds = {};
+  bool output_block_pair_energies = {};
+  bool use_shared_compact_block_neighbors = {};
 };
 
 }  // namespace potentials

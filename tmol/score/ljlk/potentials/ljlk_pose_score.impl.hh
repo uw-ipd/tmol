@@ -31,7 +31,10 @@
 #include <tmol/score/ljlk/potentials/ljlk.hh>
 #include <tmol/score/ljlk/potentials/ljlk_ctx_tensor.hh>
 #include <tmol/score/ljlk/potentials/ljlk_kernels.hh>
-#include <tmol/score/ljlk/potentials/ljlk_mps_launch.hh>
+#include <tmol/score/common/mps_launch.hh>
+#ifdef WITH_MPS
+#include <tmol/score/ljlk/potentials/ljlk_mps_kernels_source.h>
+#endif
 #include <tmol/score/ljlk/potentials/ljlk_pose_score.hh>
 #include <tmol/score/ljlk/potentials/lk_isotropic.hh>
 
@@ -921,12 +924,14 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
     // Entry selection depends on whether gradients are wanted, not on the
     // output shape: the cell store is independent of the derivative
     // accumulation, so a whole-pose call with gradients gets both.
-    ljlk_mps_launch_if<D>(
+    tmol::score::common::mps_launch_if<D>(
+        TMOL_MPS_SOURCE(kLJLKMetalShaderSource),
         require_gradient && !output_block_pair_energies
             ? "ljlk_eval_energies_f32"
             : "ljlk_eval_energies_by_block_f32",
         ctx,
-        int64_t(n_poses) * int64_t(max_n_upper_triangle_inds));
+        int64_t(n_poses) * int64_t(max_n_upper_triangle_inds),
+        true);
     if (mps_cell_reduction) {
       // Compensated, fixed-order reduction rather than torch's tree sum.
       // A tree sum is reproducible but still lets the total move by several
@@ -1559,10 +1564,12 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
   if (D == tmol::Device::MPS) {
     // Metal has nowhere for a closure to live, so the identical body is
     // reached through a named entry point instead.
-    ljlk_mps_launch_if<D>(
+    tmol::score::common::mps_launch_if<D>(
+        TMOL_MPS_SOURCE(kLJLKMetalShaderSource),
         "ljlk_eval_rotamer_energies_by_block_f32",
         ctx,
-        dispatch_indices.size(1));
+        dispatch_indices.size(1),
+        true);
   } else {
     DeviceOperations<D>::template foreach_independent_workgroup<launch_t>(
         mgr, dispatch_indices.size(1), eval_energies_by_block);

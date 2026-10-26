@@ -84,7 +84,7 @@ kernel void hbond_bases_gen_f32(
       b22};
   threadgroup BasesShared shared_m;
   threadgroup float reduce_scratch[TMOL_N_SIMDS];
-  BasesCtx ctx = tmol_build_bases_metal_ctx<BasesCtx>(ptrs, meta);
+  BasesCtx ctx = tmol::score::common::mps_build_ctx<BasesCtx>(ptrs, meta);
   Lane lane(tid, n_threads, reduce_scratch);
   hbond_bases_gen<DeviceOperations, tmol::Device::MPS, float, int32_t,
                   launch_t>(ctx, shared_m, int(cta), lane);

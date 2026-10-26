@@ -1,5 +1,8 @@
 #pragma once
-#include <tmol/score/elec/potentials/elec_mps_launch.hh>
+#include <tmol/score/common/mps_launch.hh>
+#ifdef WITH_MPS
+#include <tmol/score/elec/potentials/elec_mps_kernels_source.h>
+#endif
 #include <tmol/utility/portable/reduce_ops.hh>
 #include <tmol/utility/portable/math.hh>
 #include <tmol/utility/portable/matrix.hh>
@@ -320,12 +323,14 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     // Entry selection depends on whether derivatives are wanted, not on the
     // output shape: the cell store is independent of the derivative
     // accumulation, so a whole-pose call with gradients gets both.
-    elec_mps_launch_if<D>(
+    tmol::score::common::mps_launch_if<D>(
+        TMOL_MPS_SOURCE(kElecMetalShaderSource),
         compute_derivs && !output_block_pair_energies
             ? "elec_eval_energies_f32"
             : "elec_eval_energies_by_block_2_f32",
         ctx,
-        int64_t(n_poses) * int64_t(max_n_upper_triangle_inds));
+        int64_t(n_poses) * int64_t(max_n_upper_triangle_inds),
+        true);
     if (mps_cell_reduction) {
       // Fixed-order reduction over the cells. torch runs the same kernel with
       // the same traversal for a given shape on every call, so the result is
@@ -708,8 +713,12 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     // Every pair writes its own cell of `output`, so unlike the whole-pose
     // kernel there are no atomics here and no reduction to make
     // deterministic.
-    elec_mps_launch_if<D>(
-        "elec_eval_energies_by_block_f32", ctx, dispatch_indices.size(1));
+    tmol::score::common::mps_launch_if<D>(
+        TMOL_MPS_SOURCE(kElecMetalShaderSource),
+        "elec_eval_energies_by_block_f32",
+        ctx,
+        dispatch_indices.size(1),
+        true);
   } else {
     DeviceDispatch<D>::template foreach_independent_workgroup<launch_t>(
         mgr, dispatch_indices.size(1), eval_energies_by_block);

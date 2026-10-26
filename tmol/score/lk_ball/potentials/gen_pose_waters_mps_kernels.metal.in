@@ -70,7 +70,7 @@ kernel void water_gen_build_waters_f32(
       b27, b28, b29, b30};
   threadgroup WaterGenSharedData<float, TILE_SIZE> shared_m;
   threadgroup float reduce_scratch[TMOL_N_SIMDS];
-  WaterCtx ctx = water_gen_build_metal_ctx<WaterCtx>(ptrs, meta);
+  WaterCtx ctx = tmol::score::common::mps_build_ctx<WaterCtx>(ptrs, meta);
   Lane lane(tid, n_threads, reduce_scratch);
   water_gen_build_waters_for_rot<
       DeviceOperations,
@@ -122,7 +122,7 @@ kernel void water_gen_build_water_derivs_f32(
   threadgroup WaterGenSharedData<float, TILE_SIZE> shared_m;
   threadgroup float reduce_scratch[TMOL_N_SIMDS];
   WaterDerivCtx ctx =
-      water_gen_build_metal_deriv_ctx<WaterDerivCtx>(ptrs, meta);
+      tmol::score::common::mps_build_ctx<WaterDerivCtx>(ptrs, meta);
   Lane lane(tid, n_threads, reduce_scratch);
   water_gen_build_water_derivs_for_rot<
       DeviceOperations,

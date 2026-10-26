@@ -16,12 +16,14 @@
 
 #include <tmol/score/common/mps_float_scalar.hh>
 #include <tmol/score/common/mps_layout.hh>
+#include <tmol/score/common/workgroup_lane.hh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/native.hh>
 
 #include <array>
 #include <cstdint>
 #include <stdexcept>
+#include <type_traits>
 #include <vector>
 
 namespace tmol {
@@ -39,11 +41,6 @@ struct MpsBuffer {
 struct MpsArgs {
   std::vector<MpsBuffer> buffers;
   std::vector<int64_t> meta;
-
-  // Scalar slots live after the per-view metadata.
-  void set_scalar(int n_views, int slot, int64_t value) {
-    meta.at(size_t(n_views) * TMOL_VIEW_META_STRIDE + size_t(slot)) = value;
-  }
 };
 
 namespace detail {
@@ -90,6 +87,20 @@ struct MpsViewRecorder {
   }
 };
 
+// Records a context's scalars into the slots after the views, in
+// visit_scalars order. Floating-point values travel as float bit patterns.
+struct MpsScalarRecorder {
+  MpsArgs* args;
+  size_t next;
+
+  template <typename T>
+  void operator()(T const& value) {
+    args->meta.at(next++) = std::is_floating_point_v<T>
+                                ? tmol_pack_float(float(value))
+                                : int64_t(value);
+  }
+};
+
 }  // namespace detail
 
 // Collect the launch arguments for a context.
@@ -102,6 +113,9 @@ MpsArgs mps_collect(Ctx& ctx) {
 
   detail::MpsViewRecorder recorder{&args};
   ctx.visit_views(recorder);
+  ctx.visit_scalars(
+      detail::MpsScalarRecorder{
+          &args, size_t(Ctx::n_views) * TMOL_VIEW_META_STRIDE});
   return args;
 }
 
@@ -118,6 +132,44 @@ void mps_launch(
     MpsArgs const& args,
     int64_t n_items,
     int64_t threadgroup_size);
+
+// The embedded Metal source for a shader, or null in a build without the
+// Metal backend, where the generated source header does not exist.
+#ifdef WITH_MPS
+#define TMOL_MPS_SOURCE(symbol) (symbol)
+#else
+#define TMOL_MPS_SOURCE(symbol) static_cast<char const*>(nullptr)
+#endif
+
+// Launch a named entry point over a context, or do nothing unless D is MPS.
+// The generic dispatch bodies are compiled for every backend, so this is the
+// one call they make into Metal. A null source means the build has no Metal
+// backend.
+//
+// workgroups: n threadgroups. threads: n threads, rounded up to whole groups
+// (the kernel drops the tail).
+template <tmol::Device D, typename Ctx>
+void mps_launch_if(
+    char const* source,
+    char const* kernel,
+    Ctx& ctx,
+    int64_t n,
+    bool one_group_per_item,
+    int64_t group = TMOL_MPS_THREADGROUP_SIZE) {
+  if constexpr (D == tmol::Device::MPS) {
+    if (source == nullptr) {
+      throw std::runtime_error(
+          "tmol: an MPS tensor reached a Metal kernel, but this build has no "
+          "Metal backend");
+    }
+    if (n <= 0) {
+      return;
+    }
+    int64_t const n_items =
+        one_group_per_item ? n * group : ((n + group - 1) / group) * group;
+    mps_launch(source, kernel, mps_collect(ctx), n_items, group);
+  }
+}
 
 }  // namespace common
 }  // namespace score

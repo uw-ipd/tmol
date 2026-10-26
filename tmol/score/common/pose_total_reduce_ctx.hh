@@ -25,10 +25,14 @@ struct PoseTotalReduceCtxT {
   }
 
   enum { n_views = 2 };
-  enum { scalar_n_cells = 0, n_scalars = 1 };
+  // Launch scalars in the order the host writes and the shader reads.
+  template <typename F>
+  TMOL_HD void visit_scalars(F f) {
+    f(n_cells);
+  }
 
   // max_n_blocks * max_n_blocks, the number of cells per (term, pose)
-  int n_cells;
+  int n_cells = {};
 };
 
 }  // namespace common

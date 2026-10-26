@@ -11,7 +11,10 @@
 #include <tmol/score/common/device_operations.hh>
 #include <tmol/score/common/launch_box_macros.hh>
 #include <tmol/score/common/pose_total_reduce_kernels.hh>
-#include <tmol/score/common/pose_total_reduce_mps_launch.hh>
+#include <tmol/score/common/mps_launch.hh>
+#ifdef WITH_MPS
+#include <tmol/score/common/pose_total_reduce_mps_kernels_source.h>
+#endif
 #include <tmol/score/common/pose_total_reduce_ctx_tensor.hh>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/context_manager.hh>
@@ -43,7 +46,12 @@ struct pose_total_reduce {
 
     int const n_workgroups = n_terms * n_poses;
     if (D == tmol::Device::MPS) {
-      pose_total_reduce_mps_launch_if<D>(ctx, n_workgroups);
+      tmol::score::common::mps_launch_if<D>(
+          TMOL_MPS_SOURCE(kPoseTotalReduceMetalShaderSource),
+          "pose_total_reduce_f32",
+          ctx,
+          n_workgroups,
+          true);
       return;
     }
 

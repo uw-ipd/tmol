@@ -88,7 +88,8 @@ struct LJLKElecRotCtxT {
   }
 
   enum { n_views = 21 };
-  enum { n_scalars = 0 };
+  template <typename F>
+  TMOL_HD void visit_scalars(F) {}
 };
 
 }  // namespace potentials

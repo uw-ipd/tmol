@@ -18,7 +18,10 @@
 #include <tmol/score/common/sphere_overlap_ctx.hh>
 #include <tmol/score/common/sphere_overlap_kernels.hh>
 #include <tmol/score/common/tview_binder.hh>
-#include <tmol/score/common/sphere_overlap_mps_launch.hh>
+#include <tmol/score/common/mps_launch.hh>
+#ifdef WITH_MPS
+#include <tmol/score/common/sphere_overlap_mps_kernels_source.h>
+#endif
 #include <tmol/score/common/upper_triangle_indices.hh>
 
 #include <tmol/utility/tensor/context_manager.hh>
@@ -86,7 +89,12 @@ struct compute_rot_spheres {
     ctx.rot_spheres = rot_spheres;
 
     if (D == tmol::Device::MPS) {
-      rot_spheres_mps_launch_if<D>(ctx, rot_coord_offset.size(0));
+      tmol::score::common::mps_launch_if<D>(
+          TMOL_MPS_SOURCE(kSphereOverlapMetalShaderSource),
+          "compute_rot_spheres_f32",
+          ctx,
+          rot_coord_offset.size(0),
+          true);
     } else {
       auto compute_spheres = ([=] TMOL_DEVICE_FUNC(int cta) {
         compute_rot_spheres_body<DeviceDispatch, D, Real, Int, launch_t>(
@@ -225,7 +233,12 @@ struct compute_block_spheres {
       ctx.block_type_ind_for_rot = block_type_ind_for_rot;
       ctx.block_type_n_atoms = block_type_n_atoms;
       ctx.block_spheres = block_spheres;
-      block_spheres_mps_launch_if<D>(ctx, block_ind_for_rot.size(0));
+      tmol::score::common::mps_launch_if<D>(
+          TMOL_MPS_SOURCE(kSphereOverlapMetalShaderSource),
+          "compute_block_spheres_f32",
+          ctx,
+          block_ind_for_rot.size(0),
+          true);
     } else {
       DeviceDispatch<D>::template foreach_workgroup<launch_t>(
           mgr, block_ind_for_rot.size(0), compute_spheres);
@@ -426,7 +439,12 @@ struct detect_block_neighbors {
       ctx.max_n_blocks = max_n_blocks;
       ctx.block_pairs_per_pose = block_pairs_per_pose;
       ctx.reach = reach;
-      block_neighbors_mps_launch_if<D>(ctx, n_block_pairs);
+      tmol::score::common::mps_launch_if<D>(
+          TMOL_MPS_SOURCE(kSphereOverlapMetalShaderSource),
+          "detect_block_neighbors_f32",
+          ctx,
+          n_block_pairs,
+          false);
     } else {
       DeviceDispatch<D>::template forall_independent<launch_t>(
           mgr, n_block_pairs, detect_neighbors);
@@ -1024,7 +1042,12 @@ struct compute_block_spheres_from_rot_spheres {
     ctx.max_n_blocks = max_n_blocks;
 
     if (D == tmol::Device::MPS) {
-      block_spheres_from_rot_mps_launch_if<D>(ctx, n_pose_blocks);
+      tmol::score::common::mps_launch_if<D>(
+          TMOL_MPS_SOURCE(kSphereOverlapMetalShaderSource),
+          "compute_block_spheres_from_rot_f32",
+          ctx,
+          n_pose_blocks,
+          false);
     } else {
       auto compute = ([=] TMOL_DEVICE_FUNC(int ind) {
         compute_block_spheres_from_rot_body<D, Real, Int>(ctx, ind);
@@ -1146,7 +1169,12 @@ struct rot_neighbor_indices_from_block_neighbors {
     ctx.indices = indices_placeholder_t.view;
 
     if (D == tmol::Device::MPS) {
-      rot_pair_list_mps_launch_if<D>(ctx, n_candidates, "rot_pair_counts_f32");
+      tmol::score::common::mps_launch_if<D>(
+          TMOL_MPS_SOURCE(kSphereOverlapMetalShaderSource),
+          "rot_pair_counts_f32",
+          ctx,
+          n_candidates,
+          false);
     } else {
       auto compute_counts = ([=] TMOL_DEVICE_FUNC(int candidate) {
         rot_pair_counts_body<D, Real, Int>(ctx, candidate);
@@ -1180,7 +1208,12 @@ struct rot_neighbor_indices_from_block_neighbors {
     // Diagonal (b1==b2): only (r,r) self-pairs (intrares scoring).
     // Same lockstep group: matching states; otherwise overlapping spheres.
     if (D == tmol::Device::MPS) {
-      rot_pair_list_mps_launch_if<D>(ctx, n_candidates, "rot_pair_fill_f32");
+      tmol::score::common::mps_launch_if<D>(
+          TMOL_MPS_SOURCE(kSphereOverlapMetalShaderSource),
+          "rot_pair_fill_f32",
+          ctx,
+          n_candidates,
+          false);
     } else {
       auto fill = ([=] TMOL_DEVICE_FUNC(int candidate) {
         rot_pair_fill_body<D, Real, Int>(ctx, candidate);

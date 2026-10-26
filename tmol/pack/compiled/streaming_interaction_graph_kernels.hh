@@ -51,8 +51,8 @@ struct InteractionGraphEntryCtxT {
   View<Real, 1> energy1b;
   View<Real, 1> energy2b;
 
-  int chunk_size;
-  int max_n_molten_blocks;
+  int chunk_size = {};
+  int max_n_molten_blocks = {};
 
   template <typename F>
   TMOL_HD void visit_views(F f) {
@@ -77,7 +77,12 @@ struct InteractionGraphEntryCtxT {
   }
 
   enum { n_views = 18 };
-  enum { scalar_chunk_size = 0, scalar_max_n_molten_blocks = 1, n_scalars = 2 };
+  // Launch scalars in the order the host writes and the shader reads.
+  template <typename F>
+  TMOL_HD void visit_scalars(F f) {
+    f(chunk_size);
+    f(max_n_molten_blocks);
+  }
 };
 
 // The CSR position of the edge block -> neighbor; the edge must exist.

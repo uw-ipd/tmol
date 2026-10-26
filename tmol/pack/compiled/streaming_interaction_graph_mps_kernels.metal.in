@@ -43,11 +43,6 @@ typedef InteractionGraphEntryCtxT<tmol::portable::MetalView, float, int64_t>
     device void* ptrs[18] = {b1,  b2,  b3,  b4,  b5,  b6,  b7,  b8,  b9,      \
                              b10, b11, b12, b13, b14, b15, b16, b17, b18};    \
     EntryCtx ctx = tmol::score::common::mps_build_ctx<EntryCtx>(ptrs, meta);  \
-    device const int64_t* scalars =                                           \
-        tmol::score::common::mps_scalars<EntryCtx>(meta);                     \
-    ctx.chunk_size = int(scalars[EntryCtx::scalar_chunk_size]);               \
-    ctx.max_n_molten_blocks =                                                 \
-        int(scalars[EntryCtx::scalar_max_n_molten_blocks]);                   \
     /* The grid is rounded up to whole threadgroups; the tail has no entry. */ \
     if (int64_t(index) >= ctx.sparse_inds.size(1)) return;                    \
     __VA_ARGS__(ctx, int(index));                                             \

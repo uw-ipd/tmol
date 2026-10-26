@@ -12,7 +12,10 @@
 #include <tmol/score/hbond/potentials/gen_hbond_bases.hh>
 #include <tmol/score/hbond/potentials/gen_hbond_bases_ctx_tensor.hh>
 #include <tmol/score/hbond/potentials/gen_hbond_bases_kernels.hh>
-#include <tmol/score/hbond/potentials/gen_hbond_bases_mps_launch.hh>
+#include <tmol/score/common/mps_launch.hh>
+#ifdef WITH_MPS
+#include <tmol/score/hbond/potentials/gen_hbond_bases_mps_kernels_source.h>
+#endif
 
 namespace tmol {
 namespace score {
@@ -107,7 +110,12 @@ auto GenerateHBondBases<DeviceOps, Dev, Real, Int>::forward(
     // Metal cannot launch a device lambda, so the identical body is reached
     // through a named entry instead. Each rotamer writes only its own atoms'
     // rows, so there is nothing to make deterministic.
-    hbond_bases_mps_launch_if<Dev>("hbond_bases_gen_f32", ctx, int64_t(n_rots));
+    tmol::score::common::mps_launch_if<Dev>(
+        TMOL_MPS_SOURCE(kHBondBasesMetalShaderSource),
+        "hbond_bases_gen_f32",
+        ctx,
+        int64_t(n_rots),
+        true);
   } else {
     DeviceOps<Dev>::template foreach_workgroup<launch_t>(
         mgr, n_rots, f_basesgen);

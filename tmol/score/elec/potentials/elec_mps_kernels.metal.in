@@ -94,7 +94,7 @@ typedef ElecSharedMem<float, TILE_SIZE, MAX_N_CONN, launch_t> ElecShared;
         b20};                                                                \
     threadgroup ElecShared shared;                                           \
     threadgroup float reduce_scratch[TMOL_N_SIMDS];                          \
-    CTX_T ctx = tmol_build_metal_ctx<CTX_T>(ptrs, meta);                     \
+    CTX_T ctx = tmol::score::common::mps_build_ctx<CTX_T>(ptrs, meta);                     \
     Lane lane(tid, n_threads, reduce_scratch);                               \
     BODY<DeviceOperations, tmol::Device::MPS, float, int32_t, launch_t>(     \
         ctx, shared, int(cta), lane);                                        \

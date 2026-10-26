@@ -36,13 +36,6 @@ template <typename Real, typename Int>
 using RotPairListCtxMetal =
     RotPairListCtxT<tmol::portable::MetalView, Real, Int>;
 
-// Build a context from the bound buffers. These two kernels have no launch
-// scalars beyond what the shared builder handles.
-template <typename Ctx>
-Ctx build_metal_ctx(device void* const* ptrs, device const int64_t* meta) {
-  return tmol::score::common::mps_build_ctx<Ctx>(ptrs, meta);
-}
-
 }  // namespace sphere_overlap
 }  // namespace common
 }  // namespace score

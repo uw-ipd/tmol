@@ -7,6 +7,7 @@
 // the metadata buffer -- which is why neither side ever repeats the field
 // list.
 
+#include <tmol/score/common/mps_float_scalar.hh>
 #include <tmol/score/common/mps_layout.hh>
 #include <tmol/utility/portable/metal_view.hh>
 
@@ -35,20 +36,30 @@ struct MpsCtxBuilder {
   }
 };
 
-// Build a context's views from the bound buffers. Scalars are the caller's
-// business, since each kernel family names its own.
+// Reads a context's scalars from the metadata slots after the views, in
+// visit_scalars order. Floats travel as bit patterns; see mps_float_scalar.hh.
+struct MpsScalarReader {
+  device const int64_t* slots;
+  thread int* next;
+
+  void operator()(thread int& value) const { value = int(slots[(*next)++]); }
+  void operator()(thread bool& value) const { value = slots[(*next)++] != 0; }
+  void operator()(thread float& value) const {
+    value = tmol_unpack_float(slots[(*next)++]);
+  }
+};
+
+// Build a context's views and scalars from the bound buffers and metadata.
 template <typename Ctx>
 Ctx mps_build_ctx(device void* const* ptrs, device const int64_t* meta) {
   Ctx ctx;
   int next = 0;
   ctx.visit_views(MpsCtxBuilder{ptrs, meta, &next});
+  int next_scalar = 0;
+  ctx.visit_scalars(
+      MpsScalarReader{
+          meta + Ctx::n_views * TMOL_VIEW_META_STRIDE, &next_scalar});
   return ctx;
-}
-
-// Start of a context's scalar slots in the metadata buffer.
-template <typename Ctx>
-device const int64_t* mps_scalars(device const int64_t* meta) {
-  return meta + Ctx::n_views * TMOL_VIEW_META_STRIDE;
 }
 
 }  // namespace common

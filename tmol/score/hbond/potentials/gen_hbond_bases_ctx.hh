@@ -97,7 +97,8 @@ struct HBondBasesCtxT {
 
   // This kernel's launch shape is just the rotamer count, which the dispatch
   // grid already carries, so there are no scalar slots.
-  enum { n_scalars = 0 };
+  template <typename F>
+  TMOL_HD void visit_scalars(F) {}
 };
 
 }  // namespace potentials

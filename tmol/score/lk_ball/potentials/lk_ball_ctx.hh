@@ -108,23 +108,23 @@ struct LKBallCtxT {
 
   enum { n_views = 24 };
 
-  // Scalar slots in the metadata buffer, after the per-view shapes.
-  enum {
-    scalar_max_n_blocks = 0,
-    scalar_n_block_pairs = 1,
-    scalar_output_block_pair_energies = 2,
-    scalar_use_shared_compact_block_neighbors = 3,
-    scalar_block_pair_scoring = 4,
-    n_scalars = 5
-  };
+  // Launch scalars in the order the host writes and the shader reads.
+  template <typename F>
+  TMOL_HD void visit_scalars(F f) {
+    f(max_n_blocks);
+    f(n_block_pairs);
+    f(output_block_pair_energies);
+    f(use_shared_compact_block_neighbors);
+    f(block_pair_scoring);
+  }
 
   // Launch-shape constants
-  int max_n_blocks;
-  int n_block_pairs;
-  bool output_block_pair_energies;
-  bool use_shared_compact_block_neighbors;
+  int max_n_blocks = {};
+  int n_block_pairs = {};
+  bool output_block_pair_energies = {};
+  bool use_shared_compact_block_neighbors = {};
   // Backward pass only: whether dTdV is indexed per block pair or per pose.
-  bool block_pair_scoring;
+  bool block_pair_scoring = {};
 };
 
 }  // namespace potentials

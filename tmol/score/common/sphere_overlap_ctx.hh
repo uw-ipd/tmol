@@ -46,6 +46,9 @@ struct BlockSpheresCtxT {
     f(block_spheres);
   }
 
+  template <typename F>
+  TMOL_HD void visit_scalars(F) {}
+
   enum { n_views = 7 };
 };
 
@@ -57,9 +60,9 @@ struct BlockNeighborsCtxT {
   View<Int, 3> block_neighbors;
 
   // Launch shape and the reach cutoff, carried in the metadata buffer.
-  int max_n_blocks;
-  int block_pairs_per_pose;
-  Real reach;
+  int max_n_blocks = {};
+  int block_pairs_per_pose = {};
+  Real reach = {};
 
   template <typename F>
   TMOL_HD void visit_views(F f) {
@@ -70,13 +73,13 @@ struct BlockNeighborsCtxT {
 
   enum { n_views = 3 };
 
-  // Scalar slots in the metadata buffer, after the per-view shapes.
-  enum {
-    scalar_max_n_blocks = 0,
-    scalar_block_pairs_per_pose = 1,
-    scalar_reach = 2,
-    n_scalars = 3
-  };
+  // Launch scalars in the order the host writes and the shader reads.
+  template <typename F>
+  TMOL_HD void visit_scalars(F f) {
+    f(max_n_blocks);
+    f(block_pairs_per_pose);
+    f(reach);
+  }
 };
 
 // ---------------------------------------------------------------------------
@@ -105,7 +108,8 @@ struct RotSpheresCtxT {
   }
 
   enum { n_views = 5 };
-  enum { n_scalars = 0 };
+  template <typename F>
+  TMOL_HD void visit_scalars(F) {}
 };
 
 // A block's sphere from the spheres of its rotamers: one thread per block.
@@ -125,9 +129,13 @@ struct BlockSpheresFromRotCtxT {
   }
 
   enum { n_views = 4 };
-  enum { scalar_max_n_blocks = 0, n_scalars = 1 };
+  // Launch scalars in the order the host writes and the shader reads.
+  template <typename F>
+  TMOL_HD void visit_scalars(F f) {
+    f(max_n_blocks);
+  }
 
-  int max_n_blocks;
+  int max_n_blocks = {};
 };
 
 // Counting and filling the rotamer-pair list. One thread per candidate block
@@ -163,18 +171,19 @@ struct RotPairListCtxT {
   }
 
   enum { n_views = 10 };
-  enum {
-    scalar_max_n_blocks = 0,
-    scalar_block_pairs_per_pose = 1,
-    scalar_candidate_begin = 2,
-    scalar_reach = 3,
-    n_scalars = 4
-  };
+  // Launch scalars in the order the host writes and the shader reads.
+  template <typename F>
+  TMOL_HD void visit_scalars(F f) {
+    f(max_n_blocks);
+    f(block_pairs_per_pose);
+    f(candidate_begin);
+    f(reach);
+  }
 
-  int max_n_blocks;
-  int block_pairs_per_pose;
-  int candidate_begin;
-  Real reach;
+  int max_n_blocks = {};
+  int block_pairs_per_pose = {};
+  int candidate_begin = {};
+  Real reach = {};
 };
 
 }  // namespace sphere_overlap

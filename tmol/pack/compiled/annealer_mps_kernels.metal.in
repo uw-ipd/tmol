@@ -58,7 +58,7 @@ kernel void annealer_run_f32(
                            b7,  b8,  b9,  b10, b11, b12,
                            b13, b14, b15, b16, b17, b18};
   threadgroup float reduce_scratch[TMOL_N_SIMDS];
-  Ctx ctx = build_annealer_metal_ctx<Ctx>(ptrs, meta);
+  Ctx ctx = tmol::score::common::mps_build_ctx<Ctx>(ptrs, meta);
   Lane lane(tid, n_threads, reduce_scratch);
   annealer_run_trajectory<
       DeviceOperations,

@@ -29,7 +29,10 @@
 #include <tmol/score/hbond/potentials/hbond.hh>
 #include <tmol/score/hbond/potentials/hbond_ctx_tensor.hh>
 #include <tmol/score/hbond/potentials/hbond_kernels.hh>
-#include <tmol/score/hbond/potentials/hbond_mps_launch.hh>
+#include <tmol/score/common/mps_launch.hh>
+#ifdef WITH_MPS
+#include <tmol/score/hbond/potentials/hbond_mps_kernels_source.h>
+#endif
 #include <tmol/score/hbond/potentials/params.hh>
 #include <tmol/score/hbond/potentials/hbond_pose_score.hh>
 
@@ -384,11 +387,13 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
       // Tested ahead of the compact-block-neighbor path below because that one
       // launches through DeviceDispatch, which on this backend would run the
       // kernel on the CPU.
-      hbond_mps_launch_if<Dev>(
+      tmol::score::common::mps_launch_if<Dev>(
+          TMOL_MPS_SOURCE(kHBondMetalShaderSource),
           accumulate_derivs ? "hbond_pose_eval_energies_derivs_f32"
                             : "hbond_pose_eval_energies_f32",
           ctx,
-          int64_t(n_poses) * int64_t(max_n_upper_triangle_inds));
+          int64_t(n_poses) * int64_t(max_n_upper_triangle_inds),
+          true);
       if (mps_cell_reduction) {
         // Fixed-order reduction over the cells, so the pose total is
         // bit-reproducible across calls with the same shape.
@@ -642,10 +647,12 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
     // Derivative accumulation here is order-independent by construction --
     // accumulate_grad snaps each contribution to a 2^-13 grid before adding,
     // so the atomics commute. See accumulate.hh.
-    hbond_mps_launch_if<Dev>(
+    tmol::score::common::mps_launch_if<Dev>(
+        TMOL_MPS_SOURCE(kHBondMetalShaderSource),
         "hbond_pose_eval_derivs_f32",
         ctx,
-        int64_t(n_poses) * int64_t(max_n_upper_triangle_inds));
+        int64_t(n_poses) * int64_t(max_n_upper_triangle_inds),
+        true);
   } else {
     DeviceDispatch<Dev>::template foreach_pose_workgroup<launch_t>(
         mgr, n_poses, max_n_upper_triangle_inds, eval_derivs);
@@ -1046,11 +1053,13 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     // kernel there are no atomics here and no reduction to make deterministic.
     // Packing never asks for derivatives, so it gets the lean entry; the
     // other exists so a gradient-carrying call stays correct.
-    hbond_mps_launch_if<Dev>(
+    tmol::score::common::mps_launch_if<Dev>(
+        TMOL_MPS_SOURCE(kHBondMetalShaderSource),
         accumulate_derivs ? "hbond_rotamer_eval_derivs_energies_f32"
                           : "hbond_rotamer_eval_energies_f32",
         ctx,
-        dispatch_indices.size(1));
+        dispatch_indices.size(1),
+        true);
   } else if (compute_derivs) {
     DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
         mgr, dispatch_indices.size(1), eval_energies);

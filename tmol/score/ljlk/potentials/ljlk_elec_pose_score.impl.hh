@@ -21,7 +21,10 @@
 
 #include <tmol/score/common/tview_binder.hh>
 #include <tmol/score/ljlk/potentials/ljlk_elec_ctx.hh>
-#include <tmol/score/ljlk/potentials/ljlk_elec_mps_launch.hh>
+#include <tmol/score/common/mps_launch.hh>
+#ifdef WITH_MPS
+#include <tmol/score/ljlk/potentials/ljlk_elec_mps_kernels_source.h>
+#endif
 
 #include "ljlk_elec_pose_score.hh"
 
@@ -1296,7 +1299,12 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
     ctx.score_weights = score_weights;
     ctx.output = output_t.view;
     if (n_pairs > 0) {
-      ljlk_elec_mps_launch_if<D>(ctx, n_pairs);
+      tmol::score::common::mps_launch_if<D>(
+          TMOL_MPS_SOURCE(kLJLKElecMetalShaderSource),
+          "ljlk_elec_eval_weighted_rotamer_energies_f32",
+          ctx,
+          n_pairs,
+          true);
     }
     auto empty_gradients_t =
         TPack<LJLKExternalVec<Real, 3>, 2, D>::empty({1, 0});

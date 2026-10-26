@@ -17,7 +17,10 @@
 #include <tmol/pack/compiled/annealer.hh>
 #include <tmol/pack/compiled/annealer_ctx_tensor.hh>
 #include <tmol/pack/compiled/annealer_kernels.hh>
-#include <tmol/pack/compiled/annealer_mps_launch.hh>
+#include <tmol/score/common/mps_launch.hh>
+#ifdef WITH_MPS
+#include <tmol/pack/compiled/annealer_mps_kernels_source.h>
+#endif
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/native.hh>
 
@@ -245,7 +248,12 @@ inline std::tuple<tmol::native::Tensor, tmol::native::Tensor> anneal_mps(
       ranking_t.view};
 
   // Round 1: many short trajectories from random starts.
-  annealer_mps_launch_if<Dev>(ctx, int64_t(n_poses) * n_hitemp);
+  tmol::score::common::mps_launch_if<Dev>(
+      TMOL_MPS_SOURCE(kAnnealerMetalShaderSource),
+      "annealer_run_f32",
+      ctx,
+      int64_t(n_poses) * n_hitemp,
+      true);
 
   // Rank on the host. Three reads of a few thousand floats per packing call,
   // against one launch per trajectory, so the syncs do not show up.
@@ -271,7 +279,12 @@ inline std::tuple<tmol::native::Tensor, tmol::native::Tensor> anneal_mps(
   ctx.n_inner_iterations = inner_lotemp;
   ctx.high_temp = sched.high_temp_later;
   ctx.low_temp = sched.low_temp_later;
-  annealer_mps_launch_if<Dev>(ctx, int64_t(n_poses) * n_lotemp);
+  tmol::score::common::mps_launch_if<Dev>(
+      TMOL_MPS_SOURCE(kAnnealerMetalShaderSource),
+      "annealer_run_f32",
+      ctx,
+      int64_t(n_poses) * n_lotemp,
+      true);
 
   // Round 3: the best quarter of those, quenched.
   rank_and_seed(n_lotemp, n_quench, 1);
@@ -279,7 +292,12 @@ inline std::tuple<tmol::native::Tensor, tmol::native::Tensor> anneal_mps(
   ctx.n_traj = n_quench;
   ctx.n_outer_iterations = 1;
   ctx.n_inner_iterations = max_n_rotamers;
-  annealer_mps_launch_if<Dev>(ctx, int64_t(n_poses) * n_quench);
+  tmol::score::common::mps_launch_if<Dev>(
+      TMOL_MPS_SOURCE(kAnnealerMetalShaderSource),
+      "annealer_run_f32",
+      ctx,
+      int64_t(n_poses) * n_quench,
+      true);
 
   // Keep the best quenched trajectory per pose, in the shape the CPU backend
   // returns.

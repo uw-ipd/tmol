@@ -69,12 +69,12 @@ struct LJLKCtxT {
   View<Vec<Real, 3>, 2> dV_dcoords;
 
   // Launch-shape constants and the interaction cutoff
-  int max_n_blocks;
-  int max_n_upper_triangle_inds;
-  bool output_block_pair_energies;
-  bool use_shared_compact_block_neighbors;
-  bool require_gradient;
-  Real max_dis;
+  int max_n_blocks = {};
+  int max_n_upper_triangle_inds = {};
+  bool output_block_pair_energies = {};
+  bool use_shared_compact_block_neighbors = {};
+  bool require_gradient = {};
+  Real max_dis = {};
 
   // Enumerate the views in a fixed order, applying f to each.
   //
@@ -111,16 +111,16 @@ struct LJLKCtxT {
 
   enum { n_views = 23 };
 
-  // Scalar slots in the metadata buffer, after the per-view shapes.
-  enum {
-    scalar_max_n_blocks = 0,
-    scalar_max_n_upper_triangle_inds = 1,
-    scalar_output_block_pair_energies = 2,
-    scalar_use_shared_compact_block_neighbors = 3,
-    scalar_require_gradient = 4,
-    scalar_max_dis = 5,
-    n_scalars = 6
-  };
+  // Launch scalars in the order the host writes and the shader reads.
+  template <typename F>
+  TMOL_HD void visit_scalars(F f) {
+    f(max_n_blocks);
+    f(max_n_upper_triangle_inds);
+    f(output_block_pair_energies);
+    f(use_shared_compact_block_neighbors);
+    f(require_gradient);
+    f(max_dis);
+  }
 };
 
 }  // namespace potentials

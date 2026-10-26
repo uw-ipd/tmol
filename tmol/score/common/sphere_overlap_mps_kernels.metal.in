@@ -17,7 +17,6 @@
 
 using tmol::score::common::DeviceOperations;
 using tmol::score::common::TMOL_VIEW_META_STRIDE;
-using tmol::score::common::tmol_unpack_float;
 using tmol::score::common::WorkgroupLane;
 using namespace tmol::score::common::sphere_overlap;
 
@@ -50,7 +49,7 @@ kernel void compute_block_spheres_f32(
   // Unused by this kernel's reduction, which is a single simdgroup wide, but
   // the lane handle carries it for the primitives that do need scratch.
   threadgroup float reduce_scratch[1];
-  SpheresCtx ctx = build_metal_ctx<SpheresCtx>(ptrs, meta);
+  SpheresCtx ctx = tmol::score::common::mps_build_ctx<SpheresCtx>(ptrs, meta);
   Lane lane(tid, n_threads, reduce_scratch);
   compute_block_spheres_body<
       DeviceOperations,
@@ -71,14 +70,8 @@ kernel void detect_block_neighbors_f32(
       NeighborsCtx::n_views == 3,
       "buffer bindings here must cover every view visit_views enumerates");
   device void* ptrs[3] = {b1, b2, b3};
-  NeighborsCtx ctx = build_metal_ctx<NeighborsCtx>(ptrs, meta);
+  NeighborsCtx ctx = tmol::score::common::mps_build_ctx<NeighborsCtx>(ptrs, meta);
 
-  device const int64_t* scalars =
-      meta + NeighborsCtx::n_views * TMOL_VIEW_META_STRIDE;
-  ctx.max_n_blocks = int(scalars[NeighborsCtx::scalar_max_n_blocks]);
-  ctx.block_pairs_per_pose =
-      int(scalars[NeighborsCtx::scalar_block_pairs_per_pose]);
-  ctx.reach = tmol_unpack_float(scalars[NeighborsCtx::scalar_reach]);
 
   // The grid is rounded up to a whole number of threadgroups, so the tail
   // threads have no pair to test.
@@ -110,7 +103,7 @@ kernel void compute_rot_spheres_f32(
       "buffer bindings here must cover every view visit_views enumerates");
   device void* ptrs[5] = {b1, b2, b3, b4, b5};
   threadgroup float reduce_scratch[1];
-  RotSpheresCtx ctx = build_metal_ctx<RotSpheresCtx>(ptrs, meta);
+  RotSpheresCtx ctx = tmol::score::common::mps_build_ctx<RotSpheresCtx>(ptrs, meta);
   Lane lane(tid, n_threads, reduce_scratch);
   compute_rot_spheres_body<
       DeviceOperations,
@@ -132,11 +125,8 @@ kernel void compute_block_spheres_from_rot_f32(
       BlockFromRotCtx::n_views == 4,
       "buffer bindings here must cover every view visit_views enumerates");
   device void* ptrs[4] = {b1, b2, b3, b4};
-  BlockFromRotCtx ctx = build_metal_ctx<BlockFromRotCtx>(ptrs, meta);
+  BlockFromRotCtx ctx = tmol::score::common::mps_build_ctx<BlockFromRotCtx>(ptrs, meta);
 
-  device const int64_t* scalars =
-      meta + BlockFromRotCtx::n_views * TMOL_VIEW_META_STRIDE;
-  ctx.max_n_blocks = int(scalars[BlockFromRotCtx::scalar_max_n_blocks]);
 
   // The grid is rounded up to whole threadgroups; drop the tail.
   if (int(index) >= int(ctx.n_rots_for_block.size(0)) * ctx.max_n_blocks) {
@@ -149,14 +139,7 @@ kernel void compute_block_spheres_from_rot_f32(
 // The count and fill passes share a context, so they share this preamble.
 #define TMOL_ROT_PAIR_PREAMBLE()                                            \
   device void* ptrs[10] = {b1, b2, b3, b4, b5, b6, b7, b8, b9, b10};        \
-  RotPairCtx ctx = build_metal_ctx<RotPairCtx>(ptrs, meta);                 \
-  device const int64_t* scalars =                                           \
-      meta + RotPairCtx::n_views * TMOL_VIEW_META_STRIDE;                   \
-  ctx.max_n_blocks = int(scalars[RotPairCtx::scalar_max_n_blocks]);         \
-  ctx.block_pairs_per_pose =                                                \
-      int(scalars[RotPairCtx::scalar_block_pairs_per_pose]);                \
-  ctx.candidate_begin = int(scalars[RotPairCtx::scalar_candidate_begin]);   \
-  ctx.reach = tmol_unpack_float(scalars[RotPairCtx::scalar_reach]);         \
+  RotPairCtx ctx = tmol::score::common::mps_build_ctx<RotPairCtx>(ptrs, meta);                 \
   if (int(index) >= int(ctx.pair_counts.size(0))) return;
 
 #define TMOL_ROT_PAIR_BUFFERS()                                             \

@@ -37,7 +37,7 @@ kernel void pose_total_reduce_f32(
   device void* ptrs[2] = {b1, b2};
   threadgroup Shared shared;
   threadgroup float reduce_scratch[TMOL_N_SIMDS];
-  Ctx ctx = tmol::score::common::pose_total_reduce_build_metal_ctx<Ctx>(
+  Ctx ctx = tmol::score::common::mps_build_ctx<Ctx>(
       ptrs, meta);
   Lane lane(tid, n_threads, reduce_scratch);
   pose_total_reduce_body<

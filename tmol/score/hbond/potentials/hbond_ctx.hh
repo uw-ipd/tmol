@@ -146,28 +146,28 @@ struct HBondCtxT {
   // unbound.
   enum { n_views = 27 };
 
-  // Scalar slots in the metadata buffer, after the per-view shapes.
-  enum {
-    scalar_max_n_blocks = 0,
-    scalar_output_block_pair_energies = 1,
-    scalar_accumulate_derivs = 2,
-    scalar_max_n_upper_triangle_inds = 3,
-    scalar_use_shared_compact_block_neighbors = 4,
-    n_scalars = 5
-  };
+  // Launch scalars in the order the host writes and the shader reads.
+  template <typename F>
+  TMOL_HD void visit_scalars(F f) {
+    f(max_n_blocks);
+    f(output_block_pair_energies);
+    f(accumulate_derivs);
+    f(max_n_upper_triangle_inds);
+    f(use_shared_compact_block_neighbors);
+  }
 
   // Launch-shape constants
-  int max_n_blocks;
-  bool output_block_pair_energies;
+  int max_n_blocks = {};
+  bool output_block_pair_energies = {};
   // Whether the forward pass also accumulates coordinate derivatives into
   // dV_dcoords. Block-pair autograd recomputes them in backward instead, and
   // the packer never wants them at all.
-  bool accumulate_derivs;
+  bool accumulate_derivs = {};
   // Whole-pose only: the workgroup index decomposes into a pose and a position
   // in the block-pair upper triangle, and a precomputed neighbor list -- when
   // one was supplied -- replaces the per-pair neighbor test.
-  int max_n_upper_triangle_inds;
-  bool use_shared_compact_block_neighbors;
+  int max_n_upper_triangle_inds = {};
+  bool use_shared_compact_block_neighbors = {};
 };
 
 }  // namespace potentials

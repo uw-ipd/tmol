@@ -18,7 +18,10 @@
 #include "water.hh"
 #include <tmol/score/lk_ball/potentials/gen_pose_waters_ctx_tensor.hh>
 #include <tmol/score/lk_ball/potentials/gen_pose_waters_kernels.hh>
-#include <tmol/score/lk_ball/potentials/gen_pose_waters_mps_launch.hh>
+#include <tmol/score/common/mps_launch.hh>
+#ifdef WITH_MPS
+#include <tmol/score/lk_ball/potentials/gen_pose_waters_mps_kernels_source.h>
+#endif
 #include <tmol/score/lk_ball/potentials/constants.hh>
 
 namespace tmol {
@@ -165,7 +168,12 @@ struct GeneratePoseWaters {
       // closure to live, and entry points are compiled by a separate
       // toolchain -- so the same kernel body is reached through a named
       // entry. The context f_watergen closes over is the same object.
-      water_gen_mps_launch_if<Dev>(ctx, n_rots);
+      tmol::score::common::mps_launch_if<Dev>(
+          TMOL_MPS_SOURCE(kWaterGenMetalShaderSource),
+          "water_gen_build_waters_f32",
+          ctx,
+          n_rots,
+          true);
     } else {
       DeviceOps<Dev>::template foreach_workgroup<launch_t>(
           mgr, n_rots, f_watergen);
@@ -432,7 +440,12 @@ struct GeneratePoseWaters {
       ctx.n_sp2_water_tors = n_sp2;
       ctx.n_sp3_water_tors = n_sp3;
       ctx.n_ring_water_tors = n_ring;
-      water_gen_derivs_mps_launch_if<Dev>(ctx, n_rots);
+      tmol::score::common::mps_launch_if<Dev>(
+          TMOL_MPS_SOURCE(kWaterGenMetalShaderSource),
+          "water_gen_build_water_derivs_f32",
+          ctx,
+          n_rots,
+          true);
     } else {
       DeviceOps<Dev>::template foreach_workgroup<launch_t>(
           mgr, n_rots, f_watergen);

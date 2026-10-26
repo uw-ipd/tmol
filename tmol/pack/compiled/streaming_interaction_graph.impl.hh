@@ -9,7 +9,10 @@
 
 #include "streaming_interaction_graph.hh"
 #include "streaming_interaction_graph_kernels.hh"
-#include "streaming_interaction_graph_mps_launch.hh"
+#include <tmol/score/common/mps_launch.hh>
+#ifdef WITH_MPS
+#include <tmol/pack/compiled/streaming_interaction_graph_mps_kernels_source.h>
+#endif
 
 namespace tmol {
 namespace pack {
@@ -82,7 +85,13 @@ void StreamingInteractionGraph<DeviceDispatch, D, Real, Int>::note(
   ctx.max_n_molten_blocks = block_adjacency.size(1);
 
   if constexpr (D == tmol::Device::MPS) {
-    ig_mps_launch_if<D>("ig_note_block_pairs_f32", ctx, n_entries);
+    tmol::score::common::mps_launch_if<D>(
+        TMOL_MPS_SOURCE(kStreamingInteractionGraphMetalShaderSource),
+        "ig_note_block_pairs_f32",
+        ctx,
+        n_entries,
+        false,
+        256);
   } else {
     LAUNCH_BOX_32;
     auto note_entry = ([=] TMOL_DEVICE_FUNC(int index) {
@@ -256,7 +265,13 @@ void StreamingInteractionGraph<DeviceDispatch, D, Real, Int>::note_chunks(
   (void)n_rots_for_block;
 
   if constexpr (D == tmol::Device::MPS) {
-    ig_mps_launch_if<D>("ig_note_chunk_pairs_f32", ctx, n_entries);
+    tmol::score::common::mps_launch_if<D>(
+        TMOL_MPS_SOURCE(kStreamingInteractionGraphMetalShaderSource),
+        "ig_note_chunk_pairs_f32",
+        ctx,
+        n_entries,
+        false,
+        256);
   } else {
     LAUNCH_BOX_32;
     auto note_entry = ([=] TMOL_DEVICE_FUNC(int index) {
@@ -439,7 +454,13 @@ void StreamingInteractionGraph<DeviceDispatch, D, Real, Int>::accumulate(
   (void)n_rots_for_block;
 
   if constexpr (D == tmol::Device::MPS) {
-    ig_mps_launch_if<D>("ig_accumulate_entries_f32", ctx, n_entries);
+    tmol::score::common::mps_launch_if<D>(
+        TMOL_MPS_SOURCE(kStreamingInteractionGraphMetalShaderSource),
+        "ig_accumulate_entries_f32",
+        ctx,
+        n_entries,
+        false,
+        256);
   } else {
     LAUNCH_BOX_32;
     auto accumulate_entry = ([=] TMOL_DEVICE_FUNC(int index) {

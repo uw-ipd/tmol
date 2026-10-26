@@ -59,19 +59,19 @@ struct AnnealerCtxT {
   View<int32_t, 3> seed_assignments;
 
   // Launch shape and schedule, carried in the metadata buffer.
-  int chunk_size;
-  int max_n_res;
-  int n_traj;
-  int n_outer_iterations;
-  int n_inner_iterations;
-  int seed_lo;
-  int seed_hi;
-  float high_temp;
-  float low_temp;
-  float cooling_factor;
+  int chunk_size = {};
+  int max_n_res = {};
+  int n_traj = {};
+  int n_outer_iterations = {};
+  int n_inner_iterations = {};
+  int seed_lo = {};
+  int seed_hi = {};
+  float high_temp = {};
+  float low_temp = {};
+  float cooling_factor = {};
   // Phase selector: 0 = high temperature from a random start, 1 = low
   // temperature seeded from a ranked survivor, 2 = greedy quench.
-  int phase;
+  int phase = {};
   // For phase 1 and 2, the ranking that selects which trajectory each unit
   // continues from. Bound to `scores` when unused so no view is undefined.
   View<int32_t, 2> seed_ranking;
@@ -102,20 +102,21 @@ struct AnnealerCtxT {
 
   // Named slots for the launch scalars carried in the metadata buffer, so the
   // launcher and the Metal entry never repeat a bare index.
-  enum {
-    scalar_chunk_size = 0,
-    scalar_max_n_res,
-    scalar_n_traj,
-    scalar_n_outer_iterations,
-    scalar_n_inner_iterations,
-    scalar_seed_lo,
-    scalar_seed_hi,
-    scalar_phase,
-    scalar_high_temp,
-    scalar_low_temp,
-    scalar_cooling_factor,
-    n_scalars
-  };
+  // Launch scalars in the order the host writes and the shader reads.
+  template <typename F>
+  TMOL_HD void visit_scalars(F f) {
+    f(chunk_size);
+    f(max_n_res);
+    f(n_traj);
+    f(n_outer_iterations);
+    f(n_inner_iterations);
+    f(seed_lo);
+    f(seed_hi);
+    f(phase);
+    f(high_temp);
+    f(low_temp);
+    f(cooling_factor);
+  }
 
   // ── portable interaction-graph accessors ───────────────────────────────
 
