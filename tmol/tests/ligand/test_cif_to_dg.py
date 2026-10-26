@@ -15,7 +15,7 @@ Coverage here:
 * :func:`ligand_smiles_from_atom_array` reproduces each ligand's reference
   SMILES from both CIF variants.
 * :func:`prepare_ligand_from_cif` registers the ligand from both variants.
-* ``pose_stack_from_biotite(prepare_ligands=True)`` yields a finite score.
+* ``pose_stack_from_atom_array(prepare_ligands=True)`` yields a finite score.
 
 The complementary deterministic protein–ligand ddG goldens (fixture CIF +
 fixture ``.tmol`` params) live in ``test_protein_ligand_ddg.py``. The on-the-fly
@@ -108,9 +108,9 @@ _PREPARABLE = ("vww", "sah")
 
 def _load_ligand_array(stem: str, variant: str):
     """Load a fixture ligand CIF into a single biotite ``AtomArray``."""
-    from tmol.io import atom_array_from_cif
+    from tmol.io import atom_array_from_file
 
-    return atom_array_from_cif(FIXTURE_DIR / f"{stem}.{variant}.cif")
+    return atom_array_from_file(FIXTURE_DIR / f"{stem}.{variant}.cif")
 
 
 def _canonical(smiles: str) -> str | None:
@@ -204,11 +204,11 @@ def test_cif_ligand_pose_scores_finite(variant: str, torch_device) -> None:
     import torch
 
     from tmol.database import ParameterDatabase
-    from tmol.io import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_atom_array
     from tmol.score import beta2016_score_function
 
     arr = _load_ligand_array("vww", variant)
-    pose_stack, context = pose_stack_from_biotite(
+    pose_stack, context = pose_stack_from_atom_array(
         arr,
         torch_device,
         prepare_ligands=True,

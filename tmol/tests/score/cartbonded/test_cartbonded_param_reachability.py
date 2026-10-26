@@ -11,7 +11,7 @@ import attr
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.io import atom_array_from_cif, pose_stack_from_biotite
+from tmol.io import atom_array_from_file, pose_stack_from_atom_array
 from tmol.optimization import run_cart_min
 from tmol.score import beta2016_score_function
 from tmol.score.cartbonded import CROSS_RES_PREFIX, CartBondedEnergyTerm
@@ -148,11 +148,11 @@ def test_real_pose_bonds_and_angles_are_parameterized():
     parameter; an unparameterized one leaves its atoms free to fly apart in min.
     The 9CF0 sample starts a DNA and an RNA chain with a 5'-phosphate."""
     device = torch.device("cpu")
-    structure = atom_array_from_cif(
+    structure = atom_array_from_file(
         data_path("sweep_regressions", "five_prime_phosphate_9cf0.cif.zst")
     )
-    pose_stack, context = pose_stack_from_biotite(
-        structure, device, return_context=True
+    pose_stack, context = pose_stack_from_atom_array(
+        structure, device, return_context=True, no_optH=True
     )
     term = CartBondedEnergyTerm(param_db=context.parameter_database, device=device)
     pbt = pose_stack.packed_block_types
@@ -199,11 +199,11 @@ def test_his_pos_keeps_its_bonds_in_minimization(torch_device):
     """2LNY (NMR) HIS 16 carries both ring protons, so it is read as HIS_POS.
     Without cart_bonded parameters for HIS_POS nothing held its bonds, and
     minimization stretched its ring by 4 A."""
-    structure = atom_array_from_cif(
+    structure = atom_array_from_file(
         data_path("sweep_regressions", "his_pos_nmr_2lny.cif.zst")
     )
-    pose_stack, context = pose_stack_from_biotite(
-        structure, torch_device, return_context=True
+    pose_stack, context = pose_stack_from_atom_array(
+        structure, torch_device, return_context=True, no_optH=True
     )
     before = _bond_lengths(pose_stack, "HIS_POS")
     assert len(before) == 18
@@ -221,11 +221,11 @@ def test_a_residue_type_without_parameters_is_reported(caplog, monkeypatch):
     """A residue type whose own bonds have no cart_bonded rows goes unrestrained
     in minimization, as HIS_POS did; setting it up logs a warning naming it."""
     device = torch.device("cpu")
-    structure = atom_array_from_cif(
+    structure = atom_array_from_file(
         data_path("sweep_regressions", "his_pos_nmr_2lny.cif.zst")
     )
-    pose_stack, context = pose_stack_from_biotite(
-        structure, device, return_context=True
+    pose_stack, context = pose_stack_from_atom_array(
+        structure, device, return_context=True, no_optH=True
     )
     database = context.parameter_database
     cartbonded = database.scoring.cartbonded

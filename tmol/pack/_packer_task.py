@@ -68,8 +68,9 @@ class PackerPalette:
 
     Args:
         noncanonical_design: Also offer noncanonical residue types (such as AIB)
-            as replacements for other residues. Off by default, so a
-            noncanonical type is considered only where the input already has it.
+            and opposite-chirality amino acids (L <-> D) as replacements for
+            other residues. Off by default, so a noncanonical type is considered
+            only where the input already has it.
     """
 
     def __init__(self, noncanonical_design: bool = False):
@@ -312,6 +313,16 @@ def _annotate_packed_block_types_for_default_packer_palette(
                     # dangerous because this packer pallete will allow
                     # your d-caa to become glycine, and then later
                     # to an l-caa, but not the other way around
+                    allowed_block_types_for_block_type[i].append(j)
+                    allowed_block_is_orig[i].append(j == i)
+                    restrict_to_repacking_masks[i].append(
+                        j_allowed_for_restrict_to_repack
+                    )
+                elif (
+                    noncanonical_design
+                    and orig_bt.properties.polymer.polymer_type == "amino_acid"
+                ):
+                    # noncanonical design also crosses between l and d amino acids
                     allowed_block_types_for_block_type[i].append(j)
                     allowed_block_is_orig[i].append(j == i)
                     restrict_to_repacking_masks[i].append(

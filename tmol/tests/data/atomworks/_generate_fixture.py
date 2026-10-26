@@ -29,7 +29,12 @@ def main():
         pdb_string = f.read()
 
     print("Loading 1UBQ...")
-    pose_stack = tmol.pose_stack_from_pdb(pdb_string, torch.device("cpu"))
+    pose_stack = tmol.pose_stack_from_file(
+        pdb_string,
+        torch.device("cpu"),
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     print(f"  PoseStack: {pose_stack.n_poses} poses, {pose_stack.max_n_blocks} blocks")
 
     print("Converting to atomworks format...")

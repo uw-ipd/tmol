@@ -2,11 +2,8 @@ import numpy
 import torch
 import attr
 
-from tmol.io import (
-    default_canonical_ordering,
-    CanonicalOrdering,
-    canonical_form_from_pdb,
-)
+from tmol.io import default_canonical_ordering, CanonicalOrdering
+from tmol.io._canonical_ordering import _canonical_form_from_pdb
 from tmol.io.details import (
     HisTautomerResolution,
     resolve_his_tautomerization,
@@ -568,7 +565,7 @@ def test_resolve_his_taut_no_his_in_canonical_ordering(
     small_patched_chem_db = PatchedChemicalDatabase.from_chem_db(small_chem_db)
 
     small_co = CanonicalOrdering.from_chemdb(small_patched_chem_db)
-    cf = canonical_form_from_pdb(small_co, ubq_pdb, torch_device, residue_end=1)
+    cf = _canonical_form_from_pdb(small_co, ubq_pdb, torch_device, residue_end=1)
 
     res_types = cf.res_types
     coords = cf.coords

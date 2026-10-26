@@ -121,7 +121,7 @@ def _rebuild(canonical_ordering, pose_stack, cf, rows):
         canonical_ordering,
         pose_stack.packed_block_types,
         *cf,
-        trust_hydrogen_names=True,
+        ligand_hydrogens="input",
         find_additional_disulfides=False,
         find_additional_cyclic_closures=False,
         find_additional_metal_coordination=False,

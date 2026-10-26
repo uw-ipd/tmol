@@ -2,7 +2,7 @@ import numpy
 import pytest
 import torch
 import attrs
-from tmol.io import pose_stack_from_pdb
+from tmol.io import pose_stack_from_file
 from tmol.pose import PoseStackBuilder
 
 
@@ -106,7 +106,14 @@ def test_round_trip_irregular_pose_stack_and_split(
 ):
     n_poses = 4
     poses = [
-        pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=20 + i)
+        pose_stack_from_file(
+            ubq_pdb,
+            torch_device,
+            residue_start=0,
+            residue_end=20 + i,
+            no_optH=True,
+            missing_density_distance_threshold=0.0,
+        )
         for i in range(n_poses)
     ]
     pose_stack = PoseStackBuilder.from_poses(poses, torch_device)
@@ -165,8 +172,13 @@ def test_clone_sharing_topology_aliases_only_immutable_tensors(
     default_database, ubq_pdb, torch_device
 ):
     """Coordinates are independently owned; bond topology is shared."""
-    pose_stack = pose_stack_from_pdb(
-        ubq_pdb, torch_device, residue_start=0, residue_end=20
+    pose_stack = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=20,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
     )
     shared = pose_stack.clone_sharing_topology()
 

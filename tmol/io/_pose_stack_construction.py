@@ -40,7 +40,7 @@ def pose_stack_from_canonical_form(  # noqa: C901
     residue_annotations: Optional[numpy.ndarray] = None,
     protonation_variants: Optional[Tensor[torch.int64][:, :]] = None,
     *,
-    trust_hydrogen_names: bool = False,
+    ligand_hydrogens: str = "names",
     find_additional_disulfides: Optional[bool] = True,
     find_additional_cyclic_closures: Optional[bool] = True,
     find_additional_metal_coordination: bool = True,
@@ -93,8 +93,9 @@ def pose_stack_from_canonical_form(  # noqa: C901
         find_additional_metal_coordination: Detect the geometry and donors of
             metals absent from metal_sites; otherwise they take their default
             geometry with every site open.
-        trust_hydrogen_names: Preserve generated-residue hydrogens whose names
-            match the prepared database, for example in canonical roundtrips.
+        ligand_hydrogens: "input" keeps a generated ligand's input hydrogens
+            that sit on the parent their name gives them; "names" and "rebuild"
+            rebuild them all.
         return_chain_ind: Include the left-justified ``chain_ind`` tensor.
         return_atom_mapping: Include ``can_atom_mapping`` and
             ``ps_atom_mapping`` tensors between canonical and pose atom order.
@@ -352,7 +353,7 @@ def pose_stack_from_canonical_form(  # noqa: C901
         atom_is_present,
         atom_occupancy,
         atom_b_factor,
-        trust_hydrogen_names=trust_hydrogen_names,
+        ligand_hydrogens=ligand_hydrogens,
     )
 
     # 6a: a free ion's site virtuals have no frame to build from; orient them

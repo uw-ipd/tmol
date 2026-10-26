@@ -4,9 +4,9 @@ import torch
 from tmol.io import (
     default_canonical_ordering,
     default_packed_block_types,
-    canonical_form_from_pdb,
     pose_stack_from_canonical_form,
 )
+from tmol.io._canonical_ordering import _canonical_form_from_pdb
 
 from tmol.kinematics import (
     EdgeType,
@@ -30,7 +30,7 @@ def test_calculate_ff_edge_delays_for_two_res_ubq(ubq_pdb, torch_device):
 
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(
+    canonical_form = _canonical_form_from_pdb(
         co, ubq_pdb, torch_device, residue_start=1, residue_end=3
     )
 
@@ -79,7 +79,7 @@ def test_calculate_ff_edge_delays_for_6_res_ubq(ubq_pdb):
 
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(
+    canonical_form = _canonical_form_from_pdb(
         co, ubq_pdb, torch_device, residue_start=1, residue_end=7
     )
 
@@ -464,7 +464,7 @@ def test_get_kfo_indices_for_atoms(ubq_pdb):
 
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(
+    canonical_form = _canonical_form_from_pdb(
         co, ubq_pdb, torch_device, residue_start=1, residue_end=3
     )
 
@@ -954,7 +954,7 @@ def test_kin_module_for_lone_ion_chain(torch_device):
     climbed to the parent until frame atoms were found; at the root, its own
     parent, it asserted, or looped forever with asserts compiled out.
     """
-    from tmol.io import pose_stack_from_pdb
+    from tmol.io import pose_stack_from_file
     from tmol.kinematics import FoldForest, PoseStackKinematicsModule
     from tmol.tests.data import data_path
 
@@ -967,7 +967,12 @@ def test_kin_module_for_lone_ion_chain(torch_device):
         "HETATM 9999 CA    CA B 101      60.000  60.000  60.000  1.00  0.00"
         "          CA"
     )
-    pose_stack = pose_stack_from_pdb("\n".join(lines + ["END"]) + "\n", torch_device)
+    pose_stack = pose_stack_from_file(
+        "\n".join(lines + ["END"]) + "\n",
+        torch_device,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     kmd = PoseStackKinematicsModule(
         pose_stack, FoldForest.reasonable_fold_forest(pose_stack)
     ).kmd

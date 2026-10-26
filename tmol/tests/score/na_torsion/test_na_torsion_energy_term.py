@@ -3,7 +3,7 @@ import pytest
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.io import pose_stack_from_pdb
+from tmol.io import pose_stack_from_file
 from tmol.score.na_torsion import (
     NaTorsionEnergyTerm,
     na_torsion_subterms,
@@ -15,7 +15,9 @@ from tmol.score.common import ZeroTermPoseScoringModule
 
 
 def _term_and_pose(pdb, torch_device):
-    ps = pose_stack_from_pdb(pdb, torch_device)
+    ps = pose_stack_from_file(
+        pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
     term = NaTorsionEnergyTerm(ParameterDatabase.get_default(), torch_device)
     for bt in ps.packed_block_types.active_block_types:
         term.setup_block_type(bt)
@@ -265,7 +267,12 @@ def test_native_cuda_pose_scoring_is_graph_capture_safe(
     from tmol.pose import PoseStackBuilder
     from tmol.score import ScoreFunction
 
-    ps1 = pose_stack_from_pdb(request.getfixturevalue(fixture), torch_device)
+    ps1 = pose_stack_from_file(
+        request.getfixturevalue(fixture),
+        torch_device,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     ps = PoseStackBuilder.from_poses([ps1] * 3, torch_device)
     sfxn = ScoreFunction(default_database, torch_device)
     for score_type in NaTorsionEnergyTerm.score_types():
@@ -315,7 +322,12 @@ def test_rotamer_energies_match_the_pose_energies(protein_dna_pdb, torch_device)
     from tmol.score import ScoreFunction
     from tmol.score import ScoreType
 
-    ps = pose_stack_from_pdb(protein_dna_pdb, torch_device)
+    ps = pose_stack_from_file(
+        protein_dna_pdb,
+        torch_device,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     sfxn = ScoreFunction(ParameterDatabase.get_default(), torch_device)
     sfxn.set_weight(ScoreType.na_torsion, 1.0)
     sfxn.set_weight(ScoreType.na_torsion_well, 1.0)

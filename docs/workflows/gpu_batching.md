@@ -74,4 +74,4 @@ separate from the {doc}`developer benchmark harness </user_guide/benchmarking>`.
 
 ## Examples and reference
 
-{doc}`Batching tutorial </tutorial/02_gpu_batching>` · {doc}`Pose API </api/pose>` · {doc}`CPU threading </user_guide/cpu_threading>`
+{ref}`Batching tutorial </tutorial/01_tmol_tutorial.ipynb#1.-basics>` · {doc}`Pose API </api/pose>` · {doc}`CPU threading </user_guide/cpu_threading>`

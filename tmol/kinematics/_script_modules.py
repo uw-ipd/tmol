@@ -31,6 +31,9 @@ class PoseStackKinematicsModule(torch.nn.Module):
     or is redundant but this is not known by the kinematic module.
 
     See KinDOF for a description of the internal coordinate representation.
+
+    This class should not be altered after construction. Build it and use it and
+    throw it away. Do not update.
     """
 
     def __init__(self, pose_stack: PoseStack, fold_forest: FoldForest):

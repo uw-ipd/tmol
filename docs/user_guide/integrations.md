@@ -27,16 +27,15 @@ sfxn = beta2016_score_function(device, param_db=context.parameter_database)
 ```
 
 Use `atom_array_from_file()` to inspect or select the parsed topology before
-passing it to `pose_stack_from_biotite()`. An existing AtomWorks or Biotite array
-uses that same constructor. Preserve its bond table and chemical annotations
-when selecting atoms. `pose_stack_from_pdb()` retains the PDB filename/lines,
-residue-slicing and supplied-hydrogen compatibility policy.
+passing it to `pose_stack_from_atom_array()`. An existing AtomWorks or Biotite
+array uses that same constructor. Preserve its bond table and chemical
+annotations when selecting atoms.
 
 Parsing marks unresolved atoms; TMol reconstructs supported missing coordinates
 from chemical construction frames. An unresolved backbone or an underdetermined
 ligand requires an explicit input policy or additional geometry. The score
 function must use the pose's device and prepared parameter database. See
-{doc}`07 — Ligands and Parameter Files </tutorial/07_ligand_and_params>` for
+{ref}`Ligands and NCAAs </tutorial/01_tmol_tutorial.ipynb#4.-ligands-and-ncaas>` for
 preparation, strict errors and reusable parameter bundles.
 
 ## Direct prediction tensors
@@ -106,7 +105,7 @@ steps:
 import torch
 
 from tmol.io import (
-    build_context_from_biotite,
+    build_context_from_atom_array,
     prepare_atom37_pose_builder,
 )
 from tmol.score import beta2016_score_function
@@ -115,7 +114,7 @@ from tmol.score import beta2016_score_function
 # integer array from the same unified encoding; use -1 for an unmapped atom.
 atom_array.set_annotation("atom37_slot", atom37_slots)
 
-context = build_context_from_biotite(
+context = build_context_from_atom_array(
     atom_array,
     atom37_coords.device,
     prepare_ligands=True,

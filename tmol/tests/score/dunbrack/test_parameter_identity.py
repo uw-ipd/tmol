@@ -6,7 +6,7 @@ import attr
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_pdb
+from tmol.io import pose_stack_from_file
 from tmol.pose import PackedBlockTypes, PoseStackBuilder
 from tmol.score.dunbrack import DunbrackEnergyTerm
 
@@ -80,7 +80,13 @@ def test_shared_types_preserve_each_rendered_scorer(
     pose = fresh_pose(
         PoseStackBuilder.from_poses(
             [
-                pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=end)
+                pose_stack_from_file(
+                    ubq_pdb,
+                    torch_device,
+                    residue_end=end,
+                    no_optH=True,
+                    missing_density_distance_threshold=0.0,
+                )
                 for end in (8, 5)
             ],
             device=torch_device,
@@ -116,7 +122,15 @@ def test_shared_types_preserve_each_rendered_scorer(
 def test_packed_setup_refreshes_shared_block_annotations(
     ubq_pdb, default_database, torch_device
 ):
-    pose = fresh_pose(pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=8))
+    pose = fresh_pose(
+        pose_stack_from_file(
+            ubq_pdb,
+            torch_device,
+            residue_end=8,
+            no_optH=True,
+            missing_density_distance_threshold=0.0,
+        )
+    )
     first = DunbrackEnergyTerm(default_database, torch_device)
     setup(first, pose)
     second = DunbrackEnergyTerm(
@@ -131,7 +145,15 @@ def test_packed_setup_refreshes_shared_block_annotations(
 def test_scoring_setup_does_not_read_per_residue_device_scalars(
     ubq_pdb, default_database, torch_device, monkeypatch
 ):
-    pose = fresh_pose(pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=8))
+    pose = fresh_pose(
+        pose_stack_from_file(
+            ubq_pdb,
+            torch_device,
+            residue_end=8,
+            no_optH=True,
+            missing_density_distance_threshold=0.0,
+        )
+    )
     term = DunbrackEnergyTerm(default_database, torch_device)
 
     def scalar_read(*args, **kwargs):
@@ -148,7 +170,15 @@ def test_rendered_scorer_survives_parameter_owner_expiry(
     import gc
     import weakref
 
-    pose = fresh_pose(pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=8))
+    pose = fresh_pose(
+        pose_stack_from_file(
+            ubq_pdb,
+            torch_device,
+            residue_end=8,
+            no_optH=True,
+            missing_density_distance_threshold=0.0,
+        )
+    )
     database = changed_database(default_database, "remap")
     term = DunbrackEnergyTerm(database, torch_device)
     setup(term, pose)

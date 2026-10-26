@@ -4,7 +4,7 @@ import attr
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_pdb
+from tmol.io import pose_stack_from_file
 from tmol.score.dunbrack import DunbrackEnergyTerm, DunbrackParamResolver
 from tmol.tests.score.dunbrack.test_parameter_identity import setup, render, evaluate
 
@@ -38,7 +38,14 @@ def test_empty_families_preserve_scores_and_gradients(
     full = default_database.scoring.dun
     selected = select_libraries(full, kind)
     reference = attr.evolve(full, dun_lookup=selected.dun_lookup)
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=12)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=12,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     results = []
     for library in (reference, selected):
         database = attr.evolve(

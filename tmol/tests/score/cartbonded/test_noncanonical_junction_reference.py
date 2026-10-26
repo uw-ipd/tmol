@@ -4,7 +4,7 @@ import attr
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_cif
+from tmol.io import pose_stack_from_file
 from tmol.tests.data import data_path
 from tmol.tests.score.cartbonded.test_explicit_connection_parameters import scoring_term
 
@@ -24,7 +24,7 @@ def test_gamma_junction_length_angle_energy_and_gradient(
     from tmol.tests.ligand.test_nonstandard_backbones import _residue
 
     if junction == "fixture":
-        pose, context = pose_stack_from_cif(
+        pose, context = pose_stack_from_file(
             data_path("ncaa_fixtures") / "gamma_peptide_1gac.cif",
             torch_device,
             prepare_ligands=True,
@@ -282,7 +282,7 @@ def test_cap_junction_forces(torch_device, tmp_path, cap, connection, sequence):
     coords = coords.to(device=torch_device, dtype=torch.float64).requires_grad_(True)
     module = scoring_term(pose, database).render_block_pair_scoring_module(pose)
     terms = module(coords)[:, 0, 0, 1]
-    assert float(terms[2].detach()) > 1e-6  # Cross-junction planarity stays active.
+    assert float(terms[3].detach()) > 1e-6  # Cross-junction planarity stays active.
     actual = terms[:2]
     expected = harmonic_reference(pose, coords, record)
     assert bool((expected > 0.01).all())

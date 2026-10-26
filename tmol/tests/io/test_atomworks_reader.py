@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 import torch
 
-from tmol.io import atom_array_from_cif, pose_stack_from_cif
+from tmol.io import atom_array_from_file, pose_stack_from_file
 from tmol.score import beta2016_score_function
 
 pytest.importorskip("atomworks")
@@ -77,17 +77,21 @@ HETATM {element} {atom_name} . {res_name} A 1 . ? 1 {res_name} A {atom_name} 1 1
 
 def test_file_hydrogen_policy_through_scoring(tmp_path, ubq_pdb):
     from biotite.structure.io import pdbx
-    from tmol.io import biotite_from_pose_stack, pose_stack_from_pdb
+    from tmol.io import atom_array_from_pose_stack, pose_stack_from_file
 
     device = torch.device("cpu")
-    source = biotite_from_pose_stack(pose_stack_from_pdb(ubq_pdb, device))
+    source = atom_array_from_pose_stack(
+        pose_stack_from_file(
+            ubq_pdb, device, no_optH=True, missing_density_distance_threshold=0.0
+        )
+    )
     index = np.flatnonzero((source.res_name == "ALA") & (source.element == "H"))[0]
     source.coord[index] += [0.2, 0.1, -0.1]
     file = pdbx.CIFFile()
     pdbx.set_structure(file, source)
     path = tmp_path / "hydrogens.cif"
     file.write(path)
-    array = atom_array_from_cif(path)
+    array = atom_array_from_file(path)
     selected = (
         (array.res_id == source.res_id[index])
         & (array.atom_name == source.atom_name[index])
@@ -96,8 +100,8 @@ def test_file_hydrogen_policy_through_scoring(tmp_path, ubq_pdb):
     np.testing.assert_allclose(
         array.coord[selected], source.coord[index][None], atol=0.001
     )
-    pose = pose_stack_from_cif(path, device, no_optH=True)
-    restored = biotite_from_pose_stack(pose)
+    pose = pose_stack_from_file(path, device, no_optH=True)
+    restored = atom_array_from_pose_stack(pose)
     selected = (
         (restored.res_id == source.res_id[index])
         & (restored.atom_name == source.atom_name[index])
@@ -119,13 +123,15 @@ def test_coincident_input_hydrogens_rebuilt_without_changing_state(
     ubq_pdb, torch_device
 ):
     from tmol.io import (
-        biotite_from_pose_stack,
-        pose_stack_from_biotite,
-        pose_stack_from_pdb,
+        atom_array_from_pose_stack,
+        pose_stack_from_atom_array,
+        pose_stack_from_file,
     )
 
-    baseline = pose_stack_from_pdb(ubq_pdb, torch_device, no_optH=True)
-    source = biotite_from_pose_stack(baseline)
+    baseline = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
+    source = atom_array_from_pose_stack(baseline)
     original = source.coord.copy()
     first, second = source.bonds.as_array()[:, :2].T
     hydrogen = source.element == "H"
@@ -145,9 +151,9 @@ def test_coincident_input_hydrogens_rebuilt_without_changing_state(
     source.coord[damaged] = source.coord[parents[selected]]
     corrupted = source.coord.copy()
     with pytest.warns(UserWarning, match="Rebuilding hydrogens coincident"):
-        repaired = pose_stack_from_biotite(source, torch_device, no_optH=True)
+        repaired = pose_stack_from_atom_array(source, torch_device, no_optH=True)
     torch.testing.assert_close(repaired.block_type_ind, baseline.block_type_ind)
-    exported = biotite_from_pose_stack(repaired)
+    exported = atom_array_from_pose_stack(repaired)
     np.testing.assert_array_equal(exported.atom_name, source.atom_name)
     retained = ~np.isin(np.arange(len(source)), damaged)
     np.testing.assert_array_equal(exported.coord[retained], original[retained])
@@ -169,13 +175,15 @@ def test_coincident_bonded_heavy_atoms_rejected_with_identity(
     ubq_pdb, torch_device, inter_residue
 ):
     from tmol.io import (
-        biotite_from_pose_stack,
-        pose_stack_from_biotite,
-        pose_stack_from_pdb,
+        atom_array_from_pose_stack,
+        pose_stack_from_atom_array,
+        pose_stack_from_file,
     )
 
-    source = biotite_from_pose_stack(
-        pose_stack_from_pdb(ubq_pdb, torch_device, no_optH=True)
+    source = atom_array_from_pose_stack(
+        pose_stack_from_file(
+            ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+        )
     )
     carbon = np.flatnonzero(source.atom_name == "C")[0]
     partner_name = "N" if inter_residue else "O"
@@ -185,7 +193,7 @@ def test_coincident_bonded_heavy_atoms_rejected_with_identity(
         ValueError,
         match=rf"Coincident bonded heavy atoms.*atom C.*chain A.*atom {partner_name}",
     ):
-        pose_stack_from_biotite(source, torch_device, no_optH=True)
+        pose_stack_from_atom_array(source, torch_device, no_optH=True)
 
 
 @pytest.mark.parametrize(
@@ -195,12 +203,12 @@ def test_isolated_halogen_charge_provenance(
     tmp_path, source_charge: str, should_fail: bool
 ) -> None:
     """Reject authored neutral halogen without overriding source or CCD charge."""
-    from tmol.io import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_atom_array
     from tmol.ligand._preparation import LigandPreparationError
     from tmol.tests.ligand.test_local_conjugate_params import _charges
 
     path = _write_halogen_cif(tmp_path, source_charge)
-    source = atom_array_from_cif(path)
+    source = atom_array_from_file(path)
     expected_charge = 0 if source_charge == "0" else -1
     assert source.charge.tolist() == [expected_charge]
     assert source.tmol_source_formal_charge.tolist() == [source_charge]
@@ -219,11 +227,15 @@ def test_isolated_halogen_charge_provenance(
                 r"Correct the source.*params_files.*strict_ligands=False"
             ),
         ):
-            pose_stack_from_biotite(
-                source, torch.device("cpu"), prepare_ligands=True, ligand_seed=17
+            pose_stack_from_atom_array(
+                source,
+                torch.device("cpu"),
+                prepare_ligands=True,
+                ligand_seed=17,
+                no_optH=True,
             )
     else:
-        pose, context = pose_stack_from_biotite(
+        pose, context = pose_stack_from_atom_array(
             source,
             torch.device("cpu"),
             prepare_ligands=True,
@@ -260,7 +272,7 @@ def test_author_renumbering_preserves_component_chemistry(tmp_path, source_charg
     file.write(path)
 
     with pytest.warns(UserWarning, match="Renumbering chain"):
-        source = atom_array_from_cif(path)
+        source = atom_array_from_file(path)
     ions = source[source.res_name == "CL"]
     assert len(ions) == 4
     assert ions.charge.tolist() == ([0] * 4 if source_charge == "0" else [-1] * 4)
@@ -281,7 +293,7 @@ def test_ccd_isolated_atom_charge_provenance(
     expected_charge: int,
 ) -> None:
     """Treat neutral and charged CCD formal-charge fields as authoritative."""
-    source = atom_array_from_cif(
+    source = atom_array_from_file(
         _write_halogen_cif(
             tmp_path,
             "?",
@@ -311,19 +323,19 @@ def test_deposited_charge_its_bonded_atom_cannot_carry_is_ignored(
     """1MHK states a bromide's -1 on a Br bonded to a uridine C5, 3ZLP a
     carboxylate's -1 as +1 and 7TJM +7 on a carboxylate O; the pH decides them."""
     path = DATA / "sweep_regressions" / f"{fixture}.cif.zst"
-    array = atom_array_from_cif(path)
+    array = atom_array_from_file(path)
     site = (array.res_name == atom[0]) & (array.atom_name == atom[1])
 
     assert array.charge[site].tolist() == [0]
     assert array.tmol_formal_charge_specified[site].tolist() == [False]
-    pose = pose_stack_from_cif(path, torch_device, prepare_ligands=True, no_optH=True)
+    pose = pose_stack_from_file(path, torch_device, prepare_ligands=True, no_optH=True)
     assert torch.isfinite(pose.coords).all()
 
 
 def test_declared_disulfides_sharing_a_sulfur_keep_the_nearest(torch_device, recwarn):
     """6CNB declares CYS L:51 in disulfides to L:34 (2.90 A) and L:48 (2.48 A)."""
     path = DATA / "sweep_regressions" / "shared_disulfide_sulfur_6cnb.cif.zst"
-    array = atom_array_from_cif(path)
+    array = atom_array_from_file(path)
     sulfur = np.flatnonzero(array.atom_name == "SG")
     pairs = {
         tuple(sorted(int(array.res_id[a]) for a in bond[:2]))
@@ -333,7 +345,7 @@ def test_declared_disulfides_sharing_a_sulfur_keep_the_nearest(torch_device, rec
 
     assert pairs == {(48, 51)}
     assert any("L:34-L:51" in str(w.message) for w in recwarn)
-    pose = pose_stack_from_cif(path, torch_device, no_optH=True)
+    pose = pose_stack_from_file(path, torch_device, no_optH=True)
     assert torch.isfinite(pose.coords).all()
 
 
@@ -353,11 +365,11 @@ def test_residues_occupying_one_site_keep_one(
     3F7L writes the conformers of a Cu (0.8 and 0.2) in two chains."""
     path = DATA / "sweep_regressions" / f"{fixture}.cif.zst"
     with pytest.warns(UserWarning, match="one residue per site"):
-        array = atom_array_from_cif(path)
+        array = atom_array_from_file(path)
     read = set(array.res_id[np.isin(array.res_name, names)].tolist())
 
     assert kept <= read and not dropped & read
-    pose = pose_stack_from_cif(path, torch_device, prepare_ligands=True, no_optH=True)
+    pose = pose_stack_from_file(path, torch_device, prepare_ligands=True, no_optH=True)
     assert torch.isfinite(pose.coords).all()
 
 
@@ -365,12 +377,12 @@ def test_coincident_alternate_chains_require_an_assembly_choice(torch_device):
     from tmol.tests.io.test_atomworks_corpus_regressions import _score_and_minimize
 
     path = DATA / "sweep_regressions" / "alternate_polymer_chains_1gtv.cif.zst"
-    array = atom_array_from_cif(path)
+    array = atom_array_from_file(path)
     assert set(array.chain_id[array.is_polymer]) == {"A", "B"}
     with pytest.raises(ValueError, match="Coincident bonded heavy atoms"):
-        pose_stack_from_cif(path, torch_device, prepare_ligands=True, no_optH=True)
+        pose_stack_from_file(path, torch_device, prepare_ligands=True, no_optH=True)
     for assembly_id in ("1", "2"):
-        pose, context = pose_stack_from_cif(
+        pose, context = pose_stack_from_file(
             path,
             torch_device,
             assembly_id=assembly_id,
@@ -384,13 +396,13 @@ def test_coincident_alternate_chains_require_an_assembly_choice(torch_device):
 def test_label_chains_sharing_an_author_site_keep_one_residue(torch_device):
     path = DATA / "sweep_regressions" / "shared_author_site_3bln.cif.zst"
     with pytest.warns(UserWarning, match="one residue per site"):
-        array = atom_array_from_cif(path)
+        array = atom_array_from_file(path)
     site = (array.chain_id == "A") & (array.res_id == 147)
     assert set(array.res_name[site]) == {"MPD"}
     assert len(set(array.atom_name[site])) == site.sum() == 8
     assert set(array.res_id[array.res_name == "MRD"]) == {145, 146}
 
-    pose, context = pose_stack_from_cif(
+    pose, context = pose_stack_from_file(
         path, torch_device, prepare_ligands=True, no_optH=True, return_context=True
     )
     coords = pose.coords.detach().clone().requires_grad_()
@@ -427,7 +439,7 @@ def test_shared_parser_builds_and_scores_general_chemistry(fixture, torch_device
         _score_and_minimize,
     )
 
-    pose, context = pose_stack_from_cif(
+    pose, context = pose_stack_from_file(
         DATA / fixture,
         torch_device,
         prepare_ligands=True,
@@ -435,7 +447,7 @@ def test_shared_parser_builds_and_scores_general_chemistry(fixture, torch_device
         no_optH=True,
         return_context=True,
     )
-    array = atom_array_from_cif(DATA / fixture)
+    array = atom_array_from_file(DATA / fixture)
     array = array[array.res_name != "HOH"]
     if "1tqh" in fixture or "4hbt" in fixture:
         residues = list(struc.residue_iter(array))
@@ -610,7 +622,7 @@ def test_reader_preserves_observed_histidine_tautomer_evidence(tmp_path, state):
     pdbx.set_structure(file, source)
     path = tmp_path / "histidine.cif"
     file.write(path)
-    parsed = atom_array_from_cif(path)
+    parsed = atom_array_from_file(path)
     for name in ("HD1", "HE2"):
         observed = source.atom_name == name
         retained = parsed.atom_name == name
@@ -623,7 +635,7 @@ def test_reader_preserves_observed_histidine_tautomer_evidence(tmp_path, state):
 
 def test_pdb_modified_polymer_preserves_chain_and_scores(tmp_path, torch_device):
     from biotite.structure.io import pdb
-    from tmol.io import atom_array_from_file, pose_stack_from_pdb
+    from tmol.io import atom_array_from_file, pose_stack_from_file
     from tmol.tests.io.test_atomworks_corpus_regressions import (
         _assert_all_source_connections,
         _score_and_minimize,
@@ -645,8 +657,15 @@ def test_pdb_modified_polymer_preserves_chain_and_scores(tmp_path, torch_device)
     assert set(array.chain_id) == set(source.chain_id)
     assert np.all(array.tmol_polymer_entity)
     assert set(array.res_name) == set(source.res_name)
-    pose, context = pose_stack_from_pdb(
-        path, torch_device, prepare_ligands=True, return_context=True, ligand_seed=17
+    pose, context = pose_stack_from_file(
+        path,
+        torch_device,
+        prepare_ligands=True,
+        return_context=True,
+        ligand_seed=17,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+        ligand_hydrogens="input",
     )
     charges = context.parameter_database.scoring.elec.atom_charge_parameters
     # Database partial charges are rounded; their sum retains phosphate's -2 state.
@@ -681,7 +700,7 @@ def test_known_and_unknown_chemistry_share_file_contract(
     from tmol.io import (
         atom_array_from_file,
         pose_stack_from_file,
-        pose_stack_from_biotite,
+        pose_stack_from_atom_array,
     )
     from tmol.ligand import prepare_ligand_from_mol2, write_params_from_mol2
     from tmol.ligand._detect import nonstandard_residue_info_from_mol2
@@ -723,7 +742,9 @@ def test_known_and_unknown_chemistry_share_file_contract(
             with pytest.raises(
                 LigandPreparationError, match="ZZQ.*chemical bond orders"
             ):
-                pose_stack_from_biotite(untyped, torch_device, prepare_ligands=True)
+                pose_stack_from_atom_array(
+                    untyped, torch_device, prepare_ligands=True, no_optH=True
+                )
         with monkeypatch.context() as patch:
             patch.setattr(preparation, "_prepare_ligand_via_smiles", unexpected)
             array = atom_array_from_file(path)
@@ -747,7 +768,9 @@ def test_known_and_unknown_chemistry_share_file_contract(
             )
             _score_and_minimize(reloaded, reloaded_context, max_iter=1)
         with pytest.raises(LigandPreparationError, match="ZZQ.*chemical bond orders"):
-            pose_stack_from_biotite(array, torch_device, prepare_ligands=True)
+            pose_stack_from_atom_array(
+                array, torch_device, prepare_ligands=True, no_optH=True
+            )
 
 
 def test_pdb_link_records_reach_the_pose(tmp_path, torch_device):

@@ -51,9 +51,9 @@ _FIXTURES: dict[str, dict[str, tuple[str, str | None]]] = {
 
 
 def _structure(stem: str):
-    from tmol.io import atom_array_from_cif
+    from tmol.io import atom_array_from_file
 
-    return atom_array_from_cif(FIXTURE_DIR / f"{stem}.cif")
+    return atom_array_from_file(FIXTURE_DIR / f"{stem}.cif")
 
 
 def _prepared(structure):
@@ -327,12 +327,14 @@ def test_a_nucleotide_seen_only_at_a_terminus_gets_its_phosphate_back() -> None:
 @pytest.mark.parametrize("stem", sorted(_FIXTURES))
 def test_a_nucleotide_scores(stem: str, torch_device) -> None:
     """Smoke test: preparation has to survive into a pose and a number."""
-    from tmol.io import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_atom_array
     from tmol.score import beta2016_score_function
 
     structure = _structure(stem)
     prepared, _known, _co = _prepared(structure)
-    pose_stack = pose_stack_from_biotite(structure, torch_device, param_db=prepared)
+    pose_stack = pose_stack_from_atom_array(
+        structure, torch_device, param_db=prepared, no_optH=True
+    )
     sfxn = beta2016_score_function(torch_device, param_db=prepared)
     module = sfxn.render_whole_pose_scoring_module(pose_stack)
     total = float(module(pose_stack.coords).sum())
@@ -392,15 +394,15 @@ def test_every_variant_builds_finite_ideal_coordinates(stem: str) -> None:
 
 
 def _sweep_structure(stem: str):
-    from tmol.io import atom_array_from_cif
+    from tmol.io import atom_array_from_file
 
-    return atom_array_from_cif(data_path("sweep_regressions", f"{stem}.cif.zst"))
+    return atom_array_from_file(data_path("sweep_regressions", f"{stem}.cif.zst"))
 
 
 def _block_type_names(structure, device):
-    from tmol.io import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_atom_array
 
-    pose = pose_stack_from_biotite(
+    pose = pose_stack_from_atom_array(
         structure, device, prepare_ligands=True, ligand_seed=0, no_optH=True
     )
     types = pose.packed_block_types.active_block_types

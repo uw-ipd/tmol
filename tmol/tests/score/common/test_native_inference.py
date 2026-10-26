@@ -5,7 +5,7 @@ import gc
 import pytest
 import torch
 
-from tmol import pose_stack_from_pdb
+from tmol import pose_stack_from_file
 from tmol.pose import PoseStackBuilder
 from tmol.score.disulfide import DisulfideEnergyTerm
 from tmol.score.dunbrack import DunbrackEnergyTerm
@@ -25,8 +25,19 @@ TERMS = [
 def make_scorer(term_class, ubq_pdb, disulfide_pdb, database, device):
     pose = PoseStackBuilder.from_poses(
         [
-            pose_stack_from_pdb(disulfide_pdb, device),
-            pose_stack_from_pdb(ubq_pdb, device, residue_end=15),
+            pose_stack_from_file(
+                disulfide_pdb,
+                device,
+                no_optH=True,
+                missing_density_distance_threshold=0.0,
+            ),
+            pose_stack_from_file(
+                ubq_pdb,
+                device,
+                residue_end=15,
+                no_optH=True,
+                missing_density_distance_threshold=0.0,
+            ),
         ],
         device,
     )

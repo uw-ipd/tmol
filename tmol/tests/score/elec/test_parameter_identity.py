@@ -341,13 +341,13 @@ def test_terminal_conjugate_charge_bundle_energy_gradient(tmp_path, torch_device
     import biotite.structure as struc
     import networkx as nx
     from tmol.database import ParameterDatabase
-    from tmol.io import atom_array_from_cif, pose_stack_from_biotite
+    from tmol.io import atom_array_from_file, pose_stack_from_atom_array
     from tmol.ligand import prepare_ligands, load_params_file, write_params_file
     from tmol.ligand._registry import inject_ligand_preparations
     from tmol.tests.data import data_path
     from tmol.tests.pack.rotamer.test_group_constraints import pose_bonds
 
-    array = atom_array_from_cif(data_path("covalent_fixtures", "lys_biotin_1bdo.cif"))
+    array = atom_array_from_file(data_path("covalent_fixtures", "lys_biotin_1bdo.cif"))
     a, b = next(
         (int(a), int(b))
         for a, b, _ in array.bonds.as_array()
@@ -356,7 +356,9 @@ def test_terminal_conjugate_charge_bundle_energy_gradient(tmp_path, torch_device
     array = array[struc.get_residue_masks(array, [a, b]).any(axis=0)]
     path = tmp_path / "terminal-conjugate.tmol"
     prepared, _ = prepare_ligands(array, seed=20250828, params_output=str(path))
-    pose = pose_stack_from_biotite(array, torch_device, param_db=prepared, no_optH=True)
+    pose = pose_stack_from_atom_array(
+        array, torch_device, param_db=prepared, no_optH=True
+    )
     types = [
         pose.packed_block_types.active_block_types[t]
         for t in pose.block_type_ind[0].tolist()

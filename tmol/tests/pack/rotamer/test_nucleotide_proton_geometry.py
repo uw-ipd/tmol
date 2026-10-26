@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_cif
+from tmol.io import pose_stack_from_file
 from tmol.pack import PackerPalette, PackerTask, SetPackerTask, pack_rotamers
 from tmol.pack.rotamer import OptHSampler, build_rotamers
 from tmol.score import beta2016_score_function
@@ -21,7 +21,7 @@ from tmol.tests.data import data_path
     ],
 )
 def test_proton_rotamers_and_packing_preserve_heavy_atoms(fixture, torch_device):
-    pose, context = pose_stack_from_cif(
+    pose, context = pose_stack_from_file(
         data_path("ncaa_fixtures") / f"{fixture}.cif",
         torch_device,
         prepare_ligands=True,

@@ -205,13 +205,20 @@ def test_fingerprint_chemical_identity_and_source_expiry(
 def test_sampler_without_any_buildable_types_needs_no_copy_plan(
     ubq_pdb, default_database, torch_device
 ):
-    from tmol.io import pose_stack_from_pdb
+    from tmol.io import pose_stack_from_file
     from tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity import (
         fresh_pose,
     )
 
     pose = fresh_pose(
-        pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=12)
+        pose_stack_from_file(
+            ubq_pdb,
+            torch_device,
+            residue_start=0,
+            residue_end=12,
+            no_optH=True,
+            missing_density_distance_threshold=0.0,
+        )
     )
     resolver = DunbrackParamResolver.from_database(
         default_database.scoring.dun, torch_device

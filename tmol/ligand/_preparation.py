@@ -411,6 +411,7 @@ def prepare_single_ligand(
     name_source: Optional[NonStandardResidueInfo] = None,
     assign_ring_chis: bool = False,
     generate_heavy_chi_samples: bool = False,
+    input_hydrogen_names: bool = True,
 ) -> LigandPreparation:
     """Build a :class:`LigandPreparation` from a SMILES-derived ligand.
 
@@ -438,6 +439,8 @@ def prepare_single_ligand(
             adopt (mapped to the prepared heavy atoms via the atom-order map). On
             the unified CIF path this is the original CIF ligand. Defaults to
             ``ligand_info``.
+        input_hydrogen_names: Name hydrogens after name_source's where they pair
+            up parent by parent; otherwise name them by parent.
 
     Raises:
         ValueError: If ``ligand_info`` lacks explicit hydrogens / authoritative
@@ -488,7 +491,7 @@ def prepare_single_ligand(
     source = name_source if name_source is not None else ligand_info
     from_source = (
         _name_hydrogens_from_source(protonated, atom_types, name_source)
-        if name_source is not None
+        if name_source is not None and input_hydrogen_names
         else None
     )
     atom_types = (
@@ -959,6 +962,7 @@ def _prepare_ligand_via_smiles(
     seed: int | None = None,
     assign_ring_chis: bool = False,
     generate_heavy_chi_samples: bool = False,
+    input_hydrogen_names: bool = True,
 ) -> LigandPreparation:
     """Prepare one ligand through the unified CIF -> SMILES -> params path.
 
@@ -975,6 +979,7 @@ def _prepare_ligand_via_smiles(
         seed: Fixed RNG seed for reproducible 3D coordinates; ``None`` is
             random, which makes the measured bonded parameters differ between
             runs of the same input.
+        input_hydrogen_names: See :func:`prepare_single_ligand`.
 
     Returns:
         The :class:`LigandPreparation`.
@@ -1012,6 +1017,7 @@ def _prepare_ligand_via_smiles(
             name_source=ligand_info,
             assign_ring_chis=assign_ring_chis,
             generate_heavy_chi_samples=generate_heavy_chi_samples,
+            input_hydrogen_names=input_hydrogen_names,
         )
     except Exception as err:
         raise ValueError(
@@ -1773,7 +1779,9 @@ def _same_state(a: dict, b: dict) -> bool:
     return all(b[n] == got for n, got in a.items() if n in b and b[n][1] == got[1])
 
 
-def _state_variants(lig, base, atom_array, ph, seed, generate_heavy_chi_samples):
+def _state_variants(
+    lig, base, atom_array, ph, seed, generate_heavy_chi_samples, input_hydrogen_names
+):
     """A type for each hydrogen state a free copy of ``lig`` presents that ``base`` lacks.
 
     A copy's state is AtomWorks' in its own context: a metal donor may lose a
@@ -1817,6 +1825,7 @@ def _state_variants(lig, base, atom_array, ph, seed, generate_heavy_chi_samples)
                 protonate=False,
                 seed=seed,
                 generate_heavy_chi_samples=generate_heavy_chi_samples,
+                input_hydrogen_names=input_hydrogen_names,
             )
         except Exception as err:  # noqa: BLE001  the copy keeps the base type
             logger.warning(
@@ -1851,6 +1860,7 @@ def prepare_ligands(  # noqa: C901
     chem_comp_types: dict[str, str] | None = None,
     seed: int | None = None,
     coordinating_atoms: dict[str, frozenset[str]] | None = None,
+    input_hydrogen_names: bool = True,
 ) -> tuple:
     """Detect, prepare, and register all non-standard residues.
 
@@ -1903,6 +1913,8 @@ def prepare_ligands(  # noqa: C901
         coordinating_atoms: {residue name: atoms bonded to a metal}, which a
             residue's charges cannot account for. Each hydrogen state the copies
             of a ligand present gets a type (see ``_state_variants``).
+        input_hydrogen_names: Name a ligand's hydrogens after the input's where
+            they pair up parent by parent; otherwise name them by parent.
 
     Returns:
         A (ParameterDatabase, CanonicalOrdering) tuple. When
@@ -2147,9 +2159,16 @@ def prepare_ligands(  # noqa: C901
                     protonate=False,
                     seed=seed,
                     generate_heavy_chi_samples=bool(conjugations),
+                    input_hydrogen_names=input_hydrogen_names,
                 )
                 variants = _state_variants(
-                    source, prep, atom_array, ph, seed, bool(conjugations)
+                    source,
+                    prep,
+                    atom_array,
+                    ph,
+                    seed,
+                    bool(conjugations),
+                    input_hydrogen_names,
                 )
         except LigandPreparationError as err:
             # strict_ligands=False means "drop what you cannot prepare". That has
@@ -2347,9 +2366,9 @@ def _ligand_info_from_cif(
     cif_path: str, res_name: str | None
 ) -> NonStandardResidueInfo:
     """Read one ligand through the shared format, identity and completion path."""
-    from tmol.io import atom_array_from_cif
+    from tmol.io import atom_array_from_file
 
-    arr = atom_array_from_cif(cif_path)
+    arr = atom_array_from_file(cif_path)
     if struc.get_residue_count(arr) != 1:
         raise ValueError("Single-ligand preparation requires exactly one residue")
     resolved = (res_name or str(arr.res_name[0])).strip()

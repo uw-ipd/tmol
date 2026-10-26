@@ -12,7 +12,7 @@ import pytest
 import torch
 import yaml
 
-from tmol.io import atom_array_from_cif, pose_stack_from_biotite
+from tmol.io import atom_array_from_file, pose_stack_from_atom_array
 from tmol.ligand import prepare_ligands
 from tmol.score import beta2016_score_function
 from tmol.tests.data import data_path
@@ -32,7 +32,7 @@ SCORE_GOLDEN_ATOL = 5e-4
 def test_noncanonical_parameter_replay_and_minimization(
     backbone_class, torch_device, tmp_path
 ):
-    array = atom_array_from_cif(
+    array = atom_array_from_file(
         data_path("ncaa_fixtures", FIXTURES[backbone_class] + ".cif")
     )
     supplied = array.coord.copy()
@@ -54,7 +54,7 @@ def test_noncanonical_parameter_replay_and_minimization(
     )
     poses, scores, gradients = [], [], []
     for database in (prepared, restored, pinned):
-        pose, context = pose_stack_from_biotite(
+        pose, context = pose_stack_from_atom_array(
             array, torch_device, param_db=database, no_optH=True, return_context=True
         )
         poses.append(pose)

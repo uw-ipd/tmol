@@ -5,10 +5,11 @@ from __future__ import annotations
 import ast
 import importlib.util
 import json
-import tomllib
+import re
 import sys
-from types import SimpleNamespace
+import tomllib
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import yaml
@@ -18,8 +19,8 @@ ROOT = Path(__file__).parents[2]
 
 
 def _load_colab_setup():
-    path = ROOT / "docs/tutorial/colab_setup.py"
-    spec = importlib.util.spec_from_file_location("_test_colab_setup", path)
+    path = ROOT / "docs/tutorial/notebook_setup.py"
+    spec = importlib.util.spec_from_file_location("_test_notebook_setup", path)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -32,7 +33,7 @@ def _workflow(path: str) -> dict:
 
 def test_colab_uses_a_released_version_and_current_tutorials():
     module = _load_colab_setup()
-    source = (ROOT / "docs/tutorial/colab_setup.py").read_text(encoding="utf-8")
+    source = (ROOT / "docs/tutorial/notebook_setup.py").read_text(encoding="utf-8")
 
     assert module.TUTORIAL_REF == "master"
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
@@ -122,33 +123,57 @@ def test_colab_rejects_unsupported_runtime_before_install(
         module.setup_colab([])
 
 
+def _tutorial_notebooks() -> list[Path]:
+    notebooks = sorted((ROOT / "docs/tutorial").glob("[0-9][0-9]_*.ipynb"))
+    assert notebooks, "no tutorial notebooks found in docs/tutorial"
+    return notebooks
+
+
+def _notebook_code(path: Path) -> str:
+    notebook = json.loads(path.read_text(encoding="utf-8"))
+    return "\n".join(
+        "".join(cell["source"])
+        for cell in notebook["cells"]
+        if cell["cell_type"] == "code"
+    )
+
+
 def test_colab_declares_the_repository_files_used_by_each_tutorial():
-    for path in sorted((ROOT / "docs/tutorial").glob("[0-9][0-9]_*.ipynb")):
-        notebook = json.loads(path.read_text(encoding="utf-8"))
-        code = "\n".join(
-            "".join(cell["source"])
-            for cell in notebook["cells"]
-            if cell["cell_type"] == "code"
-        )
-        nodes = list(ast.walk(ast.parse(code)))
-        declared = set()
-        for node in nodes:
+    module = _load_colab_setup()
+    declared = set(module.FIXTURES)
+    assert all((ROOT / "tmol/tests/data" / fixture).is_file() for fixture in declared)
+
+    for path in _tutorial_notebooks():
+        referenced = set()
+        for node in ast.walk(ast.parse(_notebook_code(path))):
             if (
                 isinstance(node, ast.Call)
                 and isinstance(node.func, ast.Name)
-                and node.func.id == "setup_colab"
+                and node.func.id == "data_path"
             ):
-                declared.update(ast.literal_eval(node.args[0]))
-        referenced = {
-            node.value
-            for node in nodes
-            if isinstance(node, ast.Constant)
-            and isinstance(node.value, str)
-            and node.value.startswith("tmol/tests/data/")
-            and (ROOT / node.value).is_file()
-        }
+                parts = [ast.literal_eval(arg) for arg in node.args]
+                referenced.add("/".join(parts))
         assert referenced <= declared, (path.name, referenced - declared)
-        assert all((ROOT / fixture).is_file() for fixture in declared)
+
+
+def test_notebook_setup_exports_resolve_to_real_tmol_names():
+    module = _load_colab_setup()
+    for name in module.__all__:
+        if name in module._SOURCES:
+            package = module._SOURCES[name].replace(".", "/")
+            init = (ROOT / package / "__init__.py").read_text(encoding="utf-8")
+            assert re.search(rf"\b{name}\b", init), (name, module._SOURCES[name])
+        else:
+            assert name in module._ALIASES or hasattr(module, name), name
+
+
+def test_tutorials_use_the_shared_setup_and_do_not_import_test_data():
+    for path in _tutorial_notebooks():
+        code = _notebook_code(path)
+        assert "from notebook_setup import *" in code, path.name
+        assert "device, param_db = setup()" in code, path.name
+        assert "tmol.tests" not in code, path.name
+        ast.parse(code)
 
 
 def test_docs_workflow_uses_hosted_cpu_and_gpu_ci_executes_gpu_cells():
@@ -163,6 +188,14 @@ def test_docs_workflow_uses_hosted_cpu_and_gpu_ci_executes_gpu_cells():
     assert execution_step["run"] == ".github/ci/run_docs_cpu_work.sh"
 
     gpu_script = (ROOT / ".github/ci/run_ci_gpu_work.sh").read_text(encoding="utf-8")
-    assert "02_gpu_batching.ipynb" in gpu_script
-    assert "06_fast_relax.ipynb" in gpu_script
+    assert "--gpu-smoke" in gpu_script
     assert "--execution-device cuda" in gpu_script
+    flagged = [
+        path.name
+        for path in _tutorial_notebooks()
+        if json.loads(path.read_text(encoding="utf-8"))["metadata"]
+        .get("tmol", {})
+        .get("gpu_smoke")
+    ]
+    # Every tutorial must run on CUDA: CPU-only runs hide device-mismatch bugs.
+    assert flagged == [path.name for path in _tutorial_notebooks()]

@@ -1,21 +1,30 @@
 from __future__ import annotations
 
+import numpy
 import torch
 import attr
 
 from typing import Tuple
 
-from tmol.types import (
-    Tensor,
-    validate_args,
-)
-from tmol.chemical import RefinedResidueType, l_base_name
+from tmol.types import Tensor
+from tmol.chemical import RefinedResidueType
 from tmol.pose import (
     PackedBlockTypes,
     PoseStack,
 )
 
 from tmol.pack.rotamer import ChiSampler
+
+
+def _is_fixed_aa(rt: RefinedResidueType) -> bool:
+    """Alpha amino acid whose only chi, if any, are proton chi: one conformer."""
+    polymer = rt.properties.polymer
+    if not polymer.is_polymer or polymer.polymer_type != "amino_acid":
+        return False
+    if polymer.backbone_type != "alpha_aa":
+        return False
+    proton_chis = {cs.chi_dihedral for cs in rt.chi_samples if cs.is_proton}
+    return all(t.name in proton_chis for t in rt.torsions if t.name.startswith("chi"))
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -26,46 +35,36 @@ class FixedAAChiSampler(ChiSampler):
     def sampler_name(cls):
         return "FixedAAChiSampler"
 
-    @validate_args
     def defines_rotamers_for_rt(self, rt: RefinedResidueType):
-        # ugly hack for now:
-        if not rt.properties.polymer.is_polymer:
-            return False
-        if rt.properties.polymer.polymer_type != "amino_acid":
-            return False
-        if rt.properties.polymer.backbone_type != "alpha_aa":
-            return False
-
-        if l_base_name(rt) in ("GLY", "ALA"):
-            return True
-
-        return False
+        return _is_fixed_aa(rt)
 
     def defines_rotamers_for_bts(
         self, pbt: PackedBlockTypes, bt_inds: Tensor[torch.int64]
     ) -> Tensor[torch.bool]:
         return pbt.fixed_aa_chi_sampler_builds_bt[bt_inds]
 
-    @validate_args
     def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
-        base = l_base_name(rt)
-        if base == "GLY":
-            # Glycine's alpha hydrogens exchange under reflection. Rebuilding
-            # only one can place it on top of the retained hydrogen, and a
-            # glycine-to-amino-acid design must not inherit an arbitrary one.
-            ca, mainchain = rt.atom_to_idx["CA"], rt.properties.polymer.mainchain_atoms
-            names = (rt.atoms[j].name for i, j in rt.bond_indices if i == ca)
-            return tuple(name for name in names if name not in mainchain)
-        elif base == "ALA":
-            return ("CB",)
+        """CA's sidechain branches: the substituents that carry further atoms.
+
+        With none (glycine), every non-mainchain CA substituent is rebuilt:
+        glycine's alpha hydrogens exchange under reflection, so rebuilding only
+        one can place it on top of the retained one, and a glycine-to-amino-acid
+        design must not inherit an arbitrary one.
+        """
+        ca, mainchain = rt.atom_to_idx["CA"], rt.properties.polymer.mainchain_atoms
+        n_bonds = numpy.bincount(rt.bond_indices[:, 0], minlength=len(rt.atoms))
+        substituents = [
+            j
+            for i, j in rt.bond_indices
+            if i == ca and rt.atoms[j].name not in mainchain
+        ]
+        branches = [j for j in substituents if n_bonds[j] > 1]
+        return tuple(rt.atoms[j].name for j in (branches or substituents))
 
     def annotate_residue_type(self, block_type):
         if hasattr(block_type, "fixed_aa_chi_sampler_builds_bt"):
             return
-        builds_bt = False
-        if l_base_name(block_type) in ("GLY", "ALA"):
-            builds_bt = True
-        setattr(block_type, "fixed_aa_chi_sampler_builds_bt", builds_bt)
+        setattr(block_type, "fixed_aa_chi_sampler_builds_bt", _is_fixed_aa(block_type))
 
     def annotate_packed_block_types(self, packed_block_types):
         if hasattr(packed_block_types, "fixed_aa_chi_sampler_builds_bt"):
@@ -80,7 +79,6 @@ class FixedAAChiSampler(ChiSampler):
         )
         setattr(packed_block_types, "fixed_aa_chi_sampler_builds_bt", builds_bt)
 
-    @validate_args
     def sample_chi_for_poses(
         self, poses: PoseStack, task
     ) -> Tuple[

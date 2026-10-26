@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from tmol.io import atom_array_from_cif, pose_stack_from_biotite
+from tmol.io import atom_array_from_file, pose_stack_from_atom_array
 from tmol.tests.data import data_path
 
 
@@ -15,10 +15,10 @@ from tmol.tests.data import data_path
 )
 def test_sweep_entry_builds_with_opth(fixture, torch_device):
     """A trimmed sweep entry builds and runs opt-H to finite coordinates."""
-    structure = atom_array_from_cif(
+    structure = atom_array_from_file(
         data_path("sweep_regressions", f"{fixture}.cif.zst")
     )
-    pose_stack = pose_stack_from_biotite(
+    pose_stack = pose_stack_from_atom_array(
         structure, torch_device, prepare_ligands=True, no_optH=False
     )
     assert torch.isfinite(pose_stack.coords).all()

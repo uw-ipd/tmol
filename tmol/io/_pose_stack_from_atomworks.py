@@ -65,7 +65,8 @@ def pose_stack_from_canonical_aa_atom37(
     coords : Tensor, shape [batch, n_res, 37, 3]
         Atom coordinates in the atomworks atom37 layout.
     residue_type : Tensor[int64], shape [batch, n_res]
-        Atomworks token indices. Must be in 1..20 (standard protein only).
+        Atomworks token indices in 1..20 (standard protein only), or 0 for
+        padding.
     chain_iid : Tensor[int64], shape [batch, n_res]
         Chain identifiers (integer IDs, not string labels).
     **kwargs
@@ -78,7 +79,8 @@ def pose_stack_from_canonical_aa_atom37(
     Raises
     ------
     ValueError
-        If any ``residue_type`` value is outside 1..20 (protein-only).
+        If any ``residue_type`` value is outside 1..20 (protein-only) and not
+        0 (padding).
     """
     from tmol.io import pose_stack_from_canonical_form
 
@@ -118,7 +120,7 @@ def pose_stack_from_atom37_and_topology(
     over atomized inputs, where the same fixed topology is scored repeatedly as
     coordinates move.
 
-    Build ``context`` once with :func:`build_context_from_biotite` (with
+    Build ``context`` once with :func:`build_context_from_atom_array` (with
     ``prepare_ligands=True`` when ligands are present). For repeated diffusion
     or search steps, bind the topology once with
     :func:`prepare_atom37_pose_builder` and call the returned builder with
@@ -141,22 +143,22 @@ def pose_stack_from_atom37_and_topology(
     biotite_structure : biotite AtomArray
         Reference topology carrying ``token_id`` and ``atom37_slot`` annotations.
     context : PoseBuildContext
-        Structure-independent context from :func:`build_context_from_biotite`.
+        Structure-independent context from :func:`build_context_from_atom_array`.
     no_optH : bool
         Preserve finite input hydrogens and leave newly built hydrogens at ideal
         positions when True (default). Pass False to run TMol's hydrogen
         optimization pipeline.
     **kwargs
-        Additional arguments forwarded to ``pose_stack_from_biotite``.
+        Additional arguments forwarded to ``pose_stack_from_atom_array``.
 
     Returns
     -------
     PoseStack
         Whose ``coords`` carry gradients back to ``atom37_coords``.
     """
-    from tmol.io import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_atom_array
 
-    return pose_stack_from_biotite(
+    return pose_stack_from_atom_array(
         biotite_structure,
         atom37_coords.device,
         context=context,
@@ -180,7 +182,8 @@ def canonical_form_from_atomworks(
     coords : Tensor, shape [batch, n_res, 37, 3]
         Atom coordinates in the atomworks atom37 layout.
     residue_type : Tensor[int64], shape [batch, n_res]
-        Atomworks token indices. Must be in 1..20 (standard protein only).
+        Atomworks token indices in 1..20 (standard protein only), or 0 for
+        padding, as atomworks_from_pose_stack writes it.
     chain_iid : Tensor[int64], shape [batch, n_res]
         Chain identifiers.
 
@@ -189,17 +192,16 @@ def canonical_form_from_atomworks(
     CanonicalForm
     """
 
-    # Validate protein-only
-    if (residue_type < _ATOMWORKS_MIN_PROTEIN_IDX).any() or (
-        residue_type > _ATOMWORKS_MAX_PROTEIN_IDX
-    ).any():
-        bad = residue_type[
-            (residue_type < _ATOMWORKS_MIN_PROTEIN_IDX)
-            | (residue_type > _ATOMWORKS_MAX_PROTEIN_IDX)
-        ]
+    # Validate protein-only; 0 is padding and maps to no residue type
+    out_of_range = (residue_type != 0) & (
+        (residue_type < _ATOMWORKS_MIN_PROTEIN_IDX)
+        | (residue_type > _ATOMWORKS_MAX_PROTEIN_IDX)
+    )
+    if out_of_range.any():
+        bad = residue_type[out_of_range]
         raise ValueError(
             f"residue_type must be in range [{_ATOMWORKS_MIN_PROTEIN_IDX}, "
-            f"{_ATOMWORKS_MAX_PROTEIN_IDX}] (protein only). "
+            f"{_ATOMWORKS_MAX_PROTEIN_IDX}] (protein only) or 0 (padding). "
             f"Got out-of-range values: {bad.unique().tolist()}"
         )
 

@@ -8,7 +8,7 @@ import pytest
 from atomworks.constants import STANDARD_AA
 from atomworks.experimental.protonation import add_hydrogens, assign_hydrogens
 
-from tmol.io import biotite_from_pose_stack, pose_stack_from_biotite
+from tmol.io import atom_array_from_pose_stack, pose_stack_from_atom_array
 
 
 def _tripeptide(middle):
@@ -66,8 +66,10 @@ def test_tmol_keeps_the_hydrogens_atomworks_placed(res_name, torch_device):
     placed = _hydrogens(protonated, 2)
     assert len(placed) > 0, f"AtomWorks placed no hydrogen on {res_name}"
 
-    pose_stack = pose_stack_from_biotite(protonated, torch_device=torch_device)
-    kept = _hydrogens(biotite_from_pose_stack(pose_stack), 2)
+    pose_stack = pose_stack_from_atom_array(
+        protonated, torch_device=torch_device, no_optH=True
+    )
+    kept = _hydrogens(atom_array_from_pose_stack(pose_stack), 2)
 
     # Each hydrogen AtomWorks placed has one of tmol's on top of it.
     for position in placed:

@@ -9,7 +9,6 @@ from __future__ import annotations
 import json
 import warnings
 from html import escape
-from io import StringIO
 from os import PathLike
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, Mapping
@@ -25,14 +24,6 @@ else:
     AtomArrayStack = Any
     PoseStack = Any
     StructureInput = Any
-
-
-def pose_stack_to_pdb_string(pose_stack: PoseStack) -> str:
-    """Convert a ``PoseStack`` into PDB text suitable for molecular viewers."""
-    from tmol.io import to_pdb
-    from tmol.io import atom_records_from_pose_stack
-
-    return to_pdb(atom_records_from_pose_stack(pose_stack))
 
 
 def _is_biotite_structure(model: object) -> bool:
@@ -52,25 +43,21 @@ def _is_atom_array(model: object) -> bool:
 
 
 def _biotite_to_pdb_string(model: AtomArray | AtomArrayStack) -> str:
-    """Serialize a Biotite structure with Biotite's PDB writer."""
-    try:
-        from biotite.structure.io.pdb import PDBFile
-    except ImportError as exc:
-        raise ImportError("Viewing a Biotite structure requires biotite.") from exc
+    """Serialize a Biotite structure as PDB text."""
+    from tmol.io._structure_io import file_from_atom_array
 
-    pdb_file = PDBFile()
-    # Biotite warns when PDB's fixed-width compatibility format cannot carry
-    # every annotation. The viewer only consumes coordinates and connectivity,
-    # so these warnings are expected and would otherwise become alarming red
-    # stderr boxes in rendered notebooks.
+    # PDB's fixed columns cannot carry every annotation; the viewer only needs
+    # coordinates and connectivity, so the writer's warnings are noise here.
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)
-        pdb_file.set_structure(model)
-    output = StringIO()
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", UserWarning)
-        pdb_file.write(output)
-    return output.getvalue()
+        return file_from_atom_array(model, format="pdb")
+
+
+def _pose_stack_to_pdb_string(pose_stack: PoseStack) -> str:
+    """Serialize a PoseStack as PDB text."""
+    from tmol.io._structure_io import atom_array_from_pose_stack
+
+    return _biotite_to_pdb_string(atom_array_from_pose_stack(pose_stack))
 
 
 def _pdb_text(model: StructureInput) -> str:
@@ -91,7 +78,7 @@ def _pdb_text(model: StructureInput) -> str:
     from tmol.pose import PoseStack
 
     if isinstance(model, PoseStack):
-        return pose_stack_to_pdb_string(model)
+        return _pose_stack_to_pdb_string(model)
 
     raise TypeError(
         "Expected a PoseStack, Biotite AtomArray/AtomArrayStack, PDB text, "
@@ -325,6 +312,137 @@ def switchable_view(
     }});
     window.dispatchEvent(new Event('resize'));
   }});
+}})();
+</script>
+"""
+    return _display_html(html)
+
+
+def overlay_view(
+    structures: Mapping[str, StructureInput],
+    *,
+    notes: Mapping[str, str] | None = None,
+    colors: Mapping[str, str] | None = None,
+    default: str = "both",
+    width: int = 720,
+    height: int = 420,
+):
+    """Compare two or more structures, with the option to overlay them all.
+
+    A selector shows any one structure alone (as :func:`view` would render
+    it), or all of them at once in a single shared viewer, each colored
+    distinctly.
+
+    Args:
+        structures: Two or more labeled structures, each accepted by :func:`view`.
+        notes: Optional mapping of structure labels to short explanatory text,
+            shown under each individual (non-overlay) panel.
+        colors: Optional mapping of structure labels to a color used for that
+            structure in the overlay panel. Unlisted labels draw from a
+            default categorical palette, cycling if there are more structures
+            than colors in it.
+        default: Which panel is visible initially: ``"both"`` (the overlay,
+            the default) or one of the structure labels.
+        width: Viewer width in pixels.
+        height: Viewer height in pixels.
+    """
+    try:
+        import py3Dmol
+    except ImportError as exc:
+        raise ImportError(
+            "tmol.overlay_view() requires py3Dmol. Install it with "
+            "`python -m pip install py3Dmol` or `python -m pip install -e '.[docs]'`."
+        ) from exc
+
+    labels = list(structures)
+    if len(labels) < 2:
+        raise ValueError("overlay_view compares two or more structures")
+
+    notes = notes or {}
+    default_palette = ["#2563eb", "#f97316", "#16a34a", "#9333ea", "#dc2626", "#0891b2"]
+    colors = {
+        label: (colors or {}).get(label, default_palette[i % len(default_palette)])
+        for i, label in enumerate(labels)
+    }
+
+    root_id = f"tmol-overlay-{uuid4().hex}"
+    select_id = f"{root_id}-select"
+
+    panels = []
+    options = []
+    for index, label in enumerate(labels):
+        viewer = view(structures[label], width=width, height=height)
+        note = str(notes.get(label, ""))
+        options.append((index, label))
+        panels.append(f"""
+<section class="tmol-switch-panel" style="position:absolute;inset:0;visibility:hidden">
+  <div class="tmol-viewer-note">{escape(note)}</div>
+  {_viewer_html(viewer)}
+</section>""")
+
+    overlay_viewer = py3Dmol.view(width=width, height=height)
+    overlay_viewer.setBackgroundColor("white")
+    for index, label in enumerate(labels):
+        pdb_text = _pdb_text(structures[label])
+        color = colors[label]
+        overlay_viewer.addModel(pdb_text, "pdb")
+        overlay_viewer.setStyle({"model": index}, {"cartoon": {"color": color}})
+        overlay_viewer.addStyle(
+            {"model": index, "not": {"hetflag": True}},
+            {"stick": {"color": color, "radius": 0.08, "opacity": 0.6}},
+        )
+        overlay_viewer.setStyle(
+            {"model": index, "hetflag": True},
+            {"stick": {"color": color, "radius": 0.22}},
+        )
+    _add_hover_labels(overlay_viewer)
+    overlay_viewer.zoomTo()
+
+    overlay_index = len(labels)
+    overlay_note = " vs. ".join(
+        f'<span style="color:{colors[label]}">{escape(str(label))}</span>'
+        for label in labels
+    )
+    panels.append(f"""
+<section class="tmol-switch-panel" style="position:absolute;inset:0;visibility:hidden">
+  <div class="tmol-viewer-note">{overlay_note}</div>
+  {_viewer_html(overlay_viewer)}
+</section>""")
+    options.append((overlay_index, "Both" if len(labels) == 2 else "All"))
+
+    if default == "both":
+        default_index = overlay_index
+    elif default in labels:
+        default_index = labels.index(default)
+    else:
+        raise ValueError(f"default must be 'both' or one of {labels!r}")
+
+    option_html = "".join(
+        f'<option value="{index}"'
+        f'{" selected" if index == default_index else ""}>'
+        f"{escape(str(label))}</option>"
+        for index, label in options
+    )
+    html = f"""
+<div class="tmol-switchable-view" id="{root_id}" style="max-width:{width}px">
+  <label>Show: <select id="{select_id}">{option_html}</select></label>
+  <div style="position:relative;width:100%;height:{height + 32}px">
+    {''.join(panels)}
+  </div>
+</div>
+<script>
+(() => {{
+  const root = document.getElementById({json.dumps(root_id)});
+  const select = document.getElementById({json.dumps(select_id)});
+  const panels = root.querySelectorAll('.tmol-switch-panel');
+  const show = (index) => {{
+    panels.forEach((panel, i) => {{
+      panel.style.visibility = i === index ? 'visible' : 'hidden';
+    }});
+    window.dispatchEvent(new Event('resize'));
+  }};
+  select.addEventListener('change', () => show(Number(select.value)));
+  show({default_index});
 }})();
 </script>
 """

@@ -16,9 +16,9 @@ from tmol.score import ScoreType
 from tmol.io import (
     default_canonical_ordering,
     default_packed_block_types,
-    canonical_form_from_pdb,
     pose_stack_from_canonical_form,
 )
+from tmol.io._canonical_ordering import _canonical_form_from_pdb
 
 # terms that must be non-zero on a nucleic-acid-only pose
 NA_ACTIVE_TERMS = (
@@ -52,7 +52,7 @@ NA_INACTIVE_TERMS = (
 def _pose_stack(pdb_lines, torch_device):
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(co, pdb_lines, torch_device)
+    canonical_form = _canonical_form_from_pdb(co, pdb_lines, torch_device)
     return pose_stack_from_canonical_form(co, pbt, *canonical_form)
 
 
@@ -108,7 +108,7 @@ def test_beta2016_protein_dna_is_more_than_parts(protein_dna_pdb, torch_device):
     sfxn = beta2016_score_function(torch_device)
 
     def total(lines):
-        cf = canonical_form_from_pdb(co, lines, torch_device)
+        cf = _canonical_form_from_pdb(co, lines, torch_device)
         ps = pose_stack_from_canonical_form(co, pbt, *cf)
         return sfxn.render_whole_pose_scoring_module(ps)(ps.coords).sum().item()
 

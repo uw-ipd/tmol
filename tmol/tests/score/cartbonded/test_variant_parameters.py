@@ -205,16 +205,16 @@ def test_contradictory_bonded_bundle_rejected(
 def test_biotin_variant_params_survive_bundle_reload(tmp_path, torch_device):
     from dataclasses import replace
     from tmol.database import ParameterDatabase
-    from tmol.io import atom_array_from_cif, pose_stack_from_biotite
+    from tmol.io import atom_array_from_file, pose_stack_from_atom_array
     from tmol.ligand import prepare_ligands, load_params_file, write_params_file
     from tmol.ligand._registry import inject_ligand_preparations
     from tmol.ligand._parameter_replacements import _local_identity
     from tmol.tests.data import data_path
 
-    aa = atom_array_from_cif(data_path("covalent_fixtures", "lys_biotin_1bdo.cif"))
+    aa = atom_array_from_file(data_path("covalent_fixtures", "lys_biotin_1bdo.cif"))
     path = tmp_path / "biotin.tmol"
     prepared, _ = prepare_ligands(aa, seed=20250828, params_output=str(path))
-    pose = pose_stack_from_biotite(aa, torch_device, param_db=prepared, no_optH=True)
+    pose = pose_stack_from_atom_array(aa, torch_device, param_db=prepared, no_optH=True)
     pbt = pose.packed_block_types
     bi, bt = next(
         (bi, pbt.active_block_types[ti])

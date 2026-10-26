@@ -241,7 +241,7 @@ def pose_stack_from_atom37(
       A pose whose coordinates carry gradients back to ``atom37_coords``.
 
     Examples:
-      >>> context = build_context_from_biotite(array, device)
+      >>> context = build_context_from_atom_array(array, device)
       >>> pose = pose_stack_from_atom37(coords, res_types, chain_id, context)
       >>> pose.coords.requires_grad
       True

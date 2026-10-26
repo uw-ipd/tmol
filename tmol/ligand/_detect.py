@@ -1097,7 +1097,7 @@ def polymer_entity_residues(atom_array: struc.AtomArray) -> Optional[frozenset[s
     An mmCIF says which of its entities are polymers, and that is what
     separates a chain from a ligand, a glycan or solvent -- including for a
     terminal cap, which is typed NON-POLYMER despite being part of the chain.
-    :func:`tmol.io.atom_array_from_cif` records it per atom.
+    :func:`tmol.io.atom_array_from_file` records it per atom.
 
     Failing that, ``label_seq_id`` is read as a proxy: a polymer entity numbers
     its residues along its sequence. It is only a proxy -- a generated file may

@@ -38,24 +38,24 @@ param_db, co = prepare_ligand_from_smiles("c1ccccc1C(=O)O", res_name="L_1")
 
 To detect and prepare **every** non-standard residue in a structure at once
 (the path used by IO), pass a biotite `AtomArray` to `prepare_ligands`, or let
-`pose_stack_from_biotite(..., prepare_ligands=True)` call it for you. The
+`pose_stack_from_atom_array(..., prepare_ligands=True)` call it for you. The
 `AtomArray` is a biotite structure loaded from a CIF or PDB file:
 
 ```python
-from tmol.io import atom_array_from_cif
+from tmol.io import atom_array_from_file
 from tmol.ligand import prepare_ligands
 
-atom_array = atom_array_from_cif("complex.cif", model=1)
+atom_array = atom_array_from_file("complex.cif", model=1)
 param_db, co = prepare_ligands(atom_array, ph=7.4)
 ```
 
 File reading retains unresolved atoms at NaN. To select a biological assembly,
-pass its ID, for example `assembly_id="1"`, to `atom_array_from_cif` or
-`pose_stack_from_cif`. The default is the asymmetric unit, which can contain
+pass its ID, for example `assembly_id="1"`, to `atom_array_from_file` or
+`pose_stack_from_file`. The default is the asymmetric unit, which can contain
 overlapping alternative assemblies (145D is one example). AtomWorks applies the
 declared transforms; the reader uses distinct chain-instance IDs for assembly
 copies. Direct AtomWorks arrays carrying `chain_iid` use the same identities
-in `build_context_from_biotite` and `pose_stack_from_biotite` without mutating
+in `build_context_from_atom_array` and `pose_stack_from_atom_array` without mutating
 the supplied array.
 
 **On PDB inputs:** tmol accepts PDB for structures generally, but PDB does not
@@ -90,7 +90,7 @@ import numpy as np
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.io import pose_stack_from_biotite
+from tmol.io import pose_stack_from_atom_array
 from tmol.score import beta2016_score_function
 from tmol.score import calculate_fragment_interactions
 
@@ -116,7 +116,7 @@ for atom_name, fragment_id in xyz_fragments.items():
 assert np.all(fragment_ids[is_xyz] > 0), "assign every XYZ atom to a fragment"
 structure.set_annotation("tmol_fragment_id", fragment_ids)
 
-pose, context = pose_stack_from_biotite(
+pose, context = pose_stack_from_atom_array(
     structure,
     device,
     param_db=ParameterDatabase.get_default(),
@@ -189,15 +189,15 @@ Additional requirements:
 ### Recombining and dumping fragments
 
 Fragmentation only changes the in-memory block layout used for scoring.
-`write_pose_stack_pdb()` and `biotite_from_pose_stack()` restore each
+`file_from_pose_stack()` and `atom_array_from_pose_stack()` restore each
 fragmented ligand's original residue name, number, chain, and insertion code by
 default, so dumped coordinates contain the original ligand residue:
 
 ```python
-from tmol.io import biotite_from_pose_stack, write_pose_stack_pdb
+from tmol.io import atom_array_from_pose_stack, file_from_pose_stack
 
-write_pose_stack_pdb(pose, "scored_complex.pdb")
-restored = biotite_from_pose_stack(pose, context.canonical_ordering)
+file_from_pose_stack(pose, "scored_complex.pdb")
+restored = atom_array_from_pose_stack(pose, context.canonical_ordering)
 ```
 
 Pass `merge_fragments=False` to either function to inspect the separate
@@ -218,20 +218,23 @@ ordering, and packed block types on every structure.
 
 ```python
 from tmol.io import (
-    build_context_from_biotite,
-    pose_stack_from_biotite,
+    build_context_from_atom_array,
+    pose_stack_from_atom_array,
 )
 
-context = build_context_from_biotite(struct0, device, prepare_ligands=True)
+context = build_context_from_atom_array(struct0, device, prepare_ligands=True)
 for struct in structures:
-    pose_stack = pose_stack_from_biotite(struct, device, context=context)
+    pose_stack = pose_stack_from_atom_array(struct, device, context=context)
 ```
 
-Coordinate ingestion preserves finite hydrogens by default. For generated residue
-types whose source hydrogen names are known to match the prepared context, also
-pass `trust_hydrogen_names=True`; otherwise those hydrogens are rebuilt because
-raw input names may change during protonation. Direct canonical tensor inputs can
-use `trust_hydrogen_names=True` to preserve those coordinates and their gradients.
+Coordinate ingestion optimizes hydrogens with OptH by default; pass
+`no_optH=True` to preserve finite input hydrogens. Hydrogens of generated
+residue types follow `ligand_hydrogens` instead. The default, `"names"`, keeps
+their input names but rebuilds their coordinates. Pass `ligand_hydrogens="input"` to also
+keep the coordinates of hydrogens that sit at bond length from the parent their
+name gives them, or `"rebuild"` to generate names and rebuild coordinates.
+Direct canonical tensor inputs can use `ligand_hydrogens="input"` to preserve
+those coordinates and their gradients.
 AtomArray export detaches coordinates onto the CPU; keep canonical tensors or the
 PoseStack for guidance.
 
@@ -260,7 +263,7 @@ param_db, co = prepare_ligands(
 ```
 
 The same files can be passed through IO:
-`pose_stack_from_biotite(..., prepare_ligands=True, ligand_params_files=[...])`.
+`pose_stack_from_atom_array(..., prepare_ligands=True, ligand_params_files=[...])`.
 For a `.tmol` you already have, `inject_params_file(param_db, "my_ligand.tmol")`
 extends a database directly. Prefer context reuse over file round-trips when the
 ligand topology is fixed within a run; use `.tmol` when you need persistence

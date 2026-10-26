@@ -12,6 +12,7 @@ from ._simulated_annealing import run_simulated_annealing  # noqa: F401
 from ._impose_rotamers import impose_top_rotamer_assignments  # noqa: F401
 from ._pack_rotamers import pack_rotamers  # noqa: F401
 from ._build_missing_sidechains import build_missing_sidechains  # noqa: F401
+from ._mutate import mutate_residue, mutate_to_sequence  # noqa: F401
 
 __all__ = [
     "PackerEnergyTables",
@@ -21,6 +22,8 @@ __all__ = [
     "SetPackerTask",
     "build_missing_sidechains",
     "impose_top_rotamer_assignments",
+    "mutate_residue",
+    "mutate_to_sequence",
     "pack_rotamers",
     "set_compare",
 ]

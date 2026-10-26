@@ -14,7 +14,6 @@ through the usual sidechain path rather than through anything new.
 """
 
 import logging
-from pathlib import Path
 
 import biotite.structure as struc
 import numpy as np
@@ -116,13 +115,13 @@ def _component_dictionary_template(res_name: str):
     return component if component.bonds is not None else None
 
 
-def atom_array_from_cif(
+def _atom_array_from_pdbx(
     cif_path,
     *,
     model: int = 1,
     assembly_id: str | None = None,
 ):
-    """Read a PDB, CIF, compressed CIF, binary CIF, MOL2 or SDF into an AtomArray.
+    """Read a PDB, CIF, compressed CIF or binary CIF into an AtomArray.
 
     Preserve supplied names, coordinates, hydrogens and covalent connections.
     Declared unresolved heavy atoms have NaN coordinates. Chemistry the file
@@ -135,14 +134,6 @@ def atom_array_from_cif(
     """
     from tmol.io._atomworks_reader import read_structure
 
-    if isinstance(cif_path, (str, Path)) and Path(cif_path).suffix.lower() in (
-        ".mol2",
-        ".sdf",
-        ".mol",
-    ):
-        from tmol.io._assemble import atom_array_from_mol2
-
-        return atom_array_from_mol2(cif_path)
     if assembly_id is not None and (
         not isinstance(assembly_id, str) or not assembly_id
     ):
@@ -576,34 +567,3 @@ def _placeholder_atoms(atom_array, begin, missing, template):
             value = np.array([source[begin]] * len(missing), dtype=source.dtype)
         extra.set_annotation(field, value)
     return extra
-
-
-def pose_stack_from_cif(
-    cif_path,
-    device,
-    *,
-    model: int = 1,
-    assembly_id: str | None = None,
-    residue_start: int | None = None,
-    residue_end: int | None = None,
-    **kwargs,
-):
-    """Construct a PoseStack from a PDB, CIF or binary/compressed CIF structure.
-
-    Reads the structure with :func:`atom_array_from_cif`, so the residues carry
-    every atom their chemistry declares and the unresolved ones arrive at NaN
-    for pose construction to rebuild. Further keyword arguments are passed to
-    :func:`tmol.io.pose_stack_from_biotite`.
-    """
-    from tmol.io._pose_stack_from_biotite import pose_stack_from_biotite
-
-    array = atom_array_from_cif(cif_path, model=model, assembly_id=assembly_id)
-    if residue_start is not None or residue_end is not None:
-        boundaries = struc.get_residue_starts(array, add_exclusive_stop=True)
-        start, stop, _ = slice(residue_start, residue_end).indices(len(boundaries) - 1)
-        array = array[boundaries[start] : boundaries[stop]]
-    return pose_stack_from_biotite(array, device, **kwargs)
-
-
-atom_array_from_file = atom_array_from_cif
-pose_stack_from_file = pose_stack_from_cif

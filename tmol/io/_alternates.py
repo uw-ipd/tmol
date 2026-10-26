@@ -151,7 +151,7 @@ def pdb_lines_with_one_alternate(lines, model):
 
 
 def records_with_one_alternate(atom_records):
-    """``parse_pdb`` records keeping one alternate per linked group in each model.
+    """``_parse_pdb`` records keeping one alternate per linked group in each model.
 
     Otherwise a later alternate overwrites an earlier one atom by atom (1EJG A:22).
     """

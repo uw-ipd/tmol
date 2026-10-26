@@ -1,6 +1,6 @@
 import torch
 
-from tmol.io import pose_stack_from_pdb
+from tmol.io import pose_stack_from_file
 from tmol.score import BondDependentTerm
 
 
@@ -14,7 +14,13 @@ def test_bonded_atom_two_iterations(ubq_pdb, default_database, torch_device):
         "tmol.tests.score.bonded_atom._ext",
     )
 
-    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=1)
+    p1 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=1,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     pbt = p1.packed_block_types
     dbt = BondDependentTerm(default_database, torch_device)
     for bt in pbt.active_block_types:

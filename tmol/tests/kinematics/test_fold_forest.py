@@ -1,7 +1,7 @@
 import numpy
 import torch
 
-from tmol.io import pose_stack_from_pdb
+from tmol.io import pose_stack_from_file
 from tmol.pose import PoseStackBuilder
 from tmol.kinematics import (
     validate_fold_forest,
@@ -44,7 +44,12 @@ def _check_jump_indices(fold_forest, pose_idx):
 
 def test_reasonable_fold_forest_smoke(default_database, erbb2_and_pertuzumab_pdb):
     torch_device = torch.device("cpu")
-    p = pose_stack_from_pdb(erbb2_and_pertuzumab_pdb, torch_device)
+    p = pose_stack_from_file(
+        erbb2_and_pertuzumab_pdb,
+        torch_device,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
 
     pose_stack = PoseStackBuilder.from_poses([p], torch_device)
 
@@ -57,8 +62,15 @@ def test_reasonable_fold_forest_smoke(default_database, erbb2_and_pertuzumab_pdb
 def test_jagged_reasonable_fold_forest(
     ubq_pdb, erbb2_and_pertuzumab_pdb, default_database, dun_sampler, torch_device
 ):
-    p1 = pose_stack_from_pdb(ubq_pdb, torch_device)
-    p2 = pose_stack_from_pdb(erbb2_and_pertuzumab_pdb, torch_device)
+    p1 = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
+    p2 = pose_stack_from_file(
+        erbb2_and_pertuzumab_pdb,
+        torch_device,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
 
     pose_stack = PoseStackBuilder.from_poses([p1, p2], torch_device)
     fold_forest = FoldForest.reasonable_fold_forest(pose_stack)
