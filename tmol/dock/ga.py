@@ -807,12 +807,7 @@ def optimize_generation(
 
     proposed = layout.pose_stack_from_genes(genes)
     proposed_raw_dofs = layout.raw_dofs_from_genes(genes)
-    premin = backend.score(proposed)
     expected = (genes.shape[0],)
-    if premin.shape != expected:
-        raise ValueError(
-            f"backend.score returned {tuple(premin.shape)}; expected {expected}"
-        )
     minimize_result = backend.minimize(
         proposed,
         layout.docking_dofs,
@@ -836,7 +831,9 @@ def optimize_generation(
         raise ValueError("minimized genes moved to a different device")
     if minimized_genes.dtype != genes.dtype:
         raise ValueError("minimized genes changed dtype")
-    energies = backend.score(minimized)
+    energies = minimize_result.energies
+    if energies is None:
+        energies = backend.score(minimized)
     if energies.shape != expected:
         raise ValueError(
             f"backend.score returned {tuple(energies.shape)}; expected {expected}"

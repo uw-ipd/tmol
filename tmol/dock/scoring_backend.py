@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 import copy
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Optional, Sequence
 
 import attrs
@@ -62,6 +62,9 @@ class MinimizationResult:
     pose_stack: PoseStack
     genes: Optional[torch.Tensor]
     masked_dofs: Optional[torch.Tensor] = None
+    # Final objective values, when the optimizer already has them (else the GA
+    # rescores ``pose_stack``).
+    energies: Optional[torch.Tensor] = None
 
 
 def _genes_from_kinforest_dofs(
@@ -215,15 +218,16 @@ class ContinuousBackend(ScoringBackend):
             kin_dtype=kin_dtype,
         )
         if initial_raw_dofs is not None:
-            if initial_raw_dofs.shape != kf_network.full_dofs.shape:
+            base_dofs = kf_network._kinematic_scoring.base_dofs
+            if initial_raw_dofs.shape != base_dofs.shape:
                 raise ValueError(
                     "initial raw DOF shape does not match the minimizer: "
-                    f"{tuple(initial_raw_dofs.shape)} != "
-                    f"{tuple(kf_network.full_dofs.shape)}"
+                    f"{tuple(initial_raw_dofs.shape)} != {tuple(base_dofs.shape)}"
                 )
-            kf_network.full_dofs = initial_raw_dofs.to(dtype=kin_dtype).detach().clone()
+            initial = initial_raw_dofs.to(dtype=kin_dtype).detach()
             with torch.no_grad():
-                kf_network.masked_dofs.copy_(kf_network.full_dofs[kf_network.dof_mask])
+                base_dofs.copy_(initial)
+                kf_network.masked_dofs.copy_(initial[kf_network.dof_mask])
         optimizer_kwargs = {"value_only_line_search": self.value_only_line_search}
         if maxiter is not None:
             optimizer_kwargs["max_iter"] = maxiter
@@ -480,12 +484,16 @@ class _PopulationMinimizer:
 
     def minimize(
         self, fixed_dofs: torch.Tensor, x0: torch.Tensor, max_iter: int
-    ) -> torch.Tensor:
-        """Minimize ``x0`` (freed DOFs); ``fixed_dofs`` are the population's raw DOFs."""
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Minimize ``x0`` (freed DOFs); ``fixed_dofs`` are the population's raw DOFs.
+
+        Returns the final freed DOFs and the objective values there.
+        """
         self.objective.full_dofs.copy_(
             torch.cat((fixed_dofs[:1], fixed_dofs[1:].repeat(self.n_trials, 1)))
         )
-        return self.lbfgs.minimize(x0, max_iter)
+        x = self.lbfgs.minimize(x0, max_iter)
+        return x, self.lbfgs.f.clone()
 
 
 class GridBackend(ScoringBackend):
@@ -927,8 +935,9 @@ class GridBackend(ScoringBackend):
         minimizer = self._minimizer_for(pose_stack, docking_dofs, kin_dtype)
         x0 = objective.initial_masked_dofs.reshape(pose_stack.n_poses, -1)
         max_iterations = 200 if maxiter is None else maxiter
-        x = minimizer.minimize(objective.full_dofs, x0, max_iterations)
-        return objective.final_result(x.reshape(-1))
+        x, energies = minimizer.minimize(objective.full_dofs, x0, max_iterations)
+        result = objective.final_result(x.reshape(-1))
+        return replace(result, energies=energies.to(pose_stack.coords.dtype))
 
     def _minimizer_for(
         self,
