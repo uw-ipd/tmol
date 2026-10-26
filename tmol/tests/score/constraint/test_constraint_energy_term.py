@@ -149,7 +149,7 @@ def _circularharmonic_from_angles(monkeypatch, angles, x0, sd=0.5, offset=1.25):
     def get_torsion_angle(atoms):
         return atoms[:, 0, 0]
 
-    compiled.get_torsion_angle = get_torsion_angle
+    compiled._get_torsion_angle = get_torsion_angle
     monkeypatch.setitem(sys.modules, module_name, compiled)
 
     atoms = torch.zeros((len(angles), 4, 3), dtype=torch.float64)

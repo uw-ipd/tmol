@@ -54,7 +54,7 @@ def test_strided_coefficients_preserve_values_and_derivatives(ndim, layout):
     points = torch.tensor([[0.125, -0.75, 3.25, 5.9], [4.875, 6.25, 7.5, -1.2]])[
         :, :ndim
     ].contiguous()
-    evaluate = getattr(_compiled, f"interpolate{ndim}")
+    evaluate = getattr(_compiled, f"_interpolate{ndim}")
     expected = evaluate(fitted.coeffs, points)
     actual = evaluate(view, points)
     for left, right in zip(expected, actual):
@@ -75,7 +75,7 @@ def test_cuda_strided_coefficients_match_cpu_reference(_cuda_bspline, ndim, layo
         dtype=torch.float32,
     )[:, :ndim].contiguous()
 
-    expected = getattr(_compiled, f"interpolate{ndim}")(fitted.coeffs, points)
+    expected = getattr(_compiled, f"_interpolate{ndim}")(fitted.coeffs, points)
     coeffs = _strided_copy(fitted.coeffs.cuda(), layout)
     actual = getattr(_cuda_bspline, f"interpolate{ndim}")(coeffs, points.cuda())
 
