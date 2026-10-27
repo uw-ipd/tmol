@@ -1,0 +1,51 @@
+# Single-Gaussian scattering factors for the fit-to-density term, per element.
+# rho(d) = weight * k^1.5 * exp(-k d^2), with k = pi^2 / (sigma + B/4).
+# Single Gaussians fit over 20-2 A to the International Tables X-ray (4-Gaussian)
+# and electron (5-Gaussian, Vol C 4.3.2.2) form factors. X-ray weight is Z;
+# electron weight is f(0) relative to carbon at 6.
+# Elements missing from a table score as carbon.
+scatterers:
+  xray:
+    C:  {weight: 6.0, sigma: 4.88398}
+    N:  {weight: 7.0, sigma: 5.08400}
+    O:  {weight: 8.0, sigma: 4.92866}
+    F:  {weight: 9.0, sigma: 4.58837}
+    Na: {weight: 11.0, sigma: 3.53009}
+    Mg: {weight: 12.0, sigma: 3.11369}
+    P:  {weight: 15.0, sigma: 2.89121}
+    S:  {weight: 16.0, sigma: 3.03431}
+    Cl: {weight: 17.0, sigma: 3.19733}
+    K:  {weight: 19.0, sigma: 3.32509}
+    Ca: {weight: 20.0, sigma: 3.25370}
+    Mn: {weight: 25.0, sigma: 3.16813}
+    Fe: {weight: 26.0, sigma: 3.10464}
+    Co: {weight: 27.0, sigma: 3.03310}
+    Ni: {weight: 28.0, sigma: 2.95223}
+    Cu: {weight: 29.0, sigma: 2.92230}
+    Zn: {weight: 30.0, sigma: 2.78552}
+    Br: {weight: 35.0, sigma: 2.44859}
+    Cd: {weight: 48.0, sigma: 2.56142}
+    I:  {weight: 53.0, sigma: 2.38577}
+    Hg: {weight: 80.0, sigma: 2.01621}
+  electron:
+    C:  {weight: 6.00000, sigma: 7.10668}
+    N:  {weight: 5.28737, sigma: 6.03448}
+    O:  {weight: 4.74213, sigma: 5.17616}
+    F:  {weight: 4.30770, sigma: 4.49101}
+    Na: {weight: 11.42607, sigma: 6.58734}
+    Mg: {weight: 12.45197, sigma: 7.34364}
+    P:  {weight: 13.12395, sigma: 7.48955}
+    S:  {weight: 12.34197, sigma: 7.05366}
+    Cl: {weight: 11.61760, sigma: 6.56770}
+    K:  {weight: 21.48425, sigma: 7.09360}
+    Ca: {weight: 23.70586, sigma: 7.47775}
+    Mn: {weight: 17.95170, sigma: 6.18953}
+    Fe: {weight: 17.13431, sigma: 5.96932}
+    Co: {weight: 16.39000, sigma: 5.75939}
+    Ni: {weight: 15.70905, sigma: 5.56662}
+    Cu: {weight: 13.39070, sigma: 4.90950}
+    Zn: {weight: 14.50110, sigma: 5.21131}
+    Br: {weight: 16.88380, sigma: 5.81822}
+    Cd: {weight: 22.06760, sigma: 5.32291}
+    I:  {weight: 26.08120, sigma: 5.87094}
+    Hg: {weight: 26.21800, sigma: 4.83926}
