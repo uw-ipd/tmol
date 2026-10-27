@@ -777,6 +777,12 @@
         <span class="k">return</span> <span class="n">n_total</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">internal_satisfiers</span><span class="p">)</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_no_patch_separator</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="n">attribute</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Type names split on ':' into base and patches, so a base cannot contain one."""</span>
+    <span class="k">if</span> <span class="s2">":"</span> <span class="ow">in</span> <span class="n">value</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"residue base_name </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2"> contains ':'"</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="RawResidueType">
 <a class="viewcode-back" href="../../../api/database.html#tmol.database.RawResidueType">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -784,7 +790,7 @@
 <span class="w">    </span><span class="sd">"""Unpatched residue definition loaded from the chemical database."""</span>
 
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">base_name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">base_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">validator</span><span class="o">=</span><span class="n">_no_patch_separator</span><span class="p">)</span>
     <span class="n">name3</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">io_equiv_class</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">atoms</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Atom</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
