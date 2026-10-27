@@ -342,12 +342,18 @@ class MetalSite:
         return n_total - len(self.internal_satisfiers)
 
 
+def _no_patch_separator(instance, attribute, value):
+    """Type names split on ':' into base and patches, so a base cannot contain one."""
+    if ":" in value:
+        raise ValueError(f"residue base_name {value!r} contains ':'")
+
+
 @attr.s(auto_attribs=True)
 class RawResidueType:
     """Unpatched residue definition loaded from the chemical database."""
 
     name: str
-    base_name: str
+    base_name: str = attr.ib(validator=_no_patch_separator)
     name3: str
     io_equiv_class: str
     atoms: Tuple[Atom, ...]
