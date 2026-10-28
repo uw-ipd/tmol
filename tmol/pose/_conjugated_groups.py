@@ -22,7 +22,7 @@ from typing import List, Tuple
 
 from tmol.pose._pose_stack import PoseStack
 from tmol.pose._packed_block_types import (
-    annotate_packed_block_types_w_conjugation_conns,
+    _annotate_packed_block_types_w_conjugation_conns,
 )
 
 
@@ -53,10 +53,10 @@ class ConjugatedGroup:
         return len(self.blocks)
 
 
-def find_conjugated_groups(pose_stack: PoseStack) -> List[ConjugatedGroup]:
+def _find_conjugated_groups(pose_stack: PoseStack) -> List[ConjugatedGroup]:
     """Every anchor-plus-attachments group in the stack."""
     pbt = pose_stack.packed_block_types
-    annotate_packed_block_types_w_conjugation_conns(pbt)
+    _annotate_packed_block_types_w_conjugation_conns(pbt)
 
     # most structures have no conjugations at all; answer them without walking
     #    the pose, since this runs on every pack
@@ -149,7 +149,7 @@ def find_conjugated_groups(pose_stack: PoseStack) -> List[ConjugatedGroup]:
     return groups
 
 
-def lockstep_group_for_block(pose_stack, rotamer_set) -> torch.Tensor:
+def _lockstep_group_for_block(pose_stack, rotamer_set) -> torch.Tensor:
     """Per-block id shared by the blocks a group samples in lockstep.
 
     Rotamer k of every block carrying the same id is group conformer k, so a
@@ -160,8 +160,8 @@ def lockstep_group_for_block(pose_stack, rotamer_set) -> torch.Tensor:
     """
     if hasattr(rotamer_set, "group_for_block"):
         return rotamer_set.group_for_block
-    from tmol.pack.rotamer._rotamer_set import correlation_indices
+    from tmol.pack.rotamer._rotamer_set import _correlation_indices
 
-    return correlation_indices(
+    return _correlation_indices(
         rotamer_set.n_rots_for_block, getattr(rotamer_set, "correlated_groups", ())
     )

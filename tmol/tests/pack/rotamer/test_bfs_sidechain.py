@@ -1,9 +1,9 @@
 import numpy
 
 from tmol.chemical import ResidueTypeSet
-from tmol.pack.rotamer import (
-    bfs_sidechain_atoms,
-    construct_single_residue_kinforest,
+from tmol.pack.rotamer._bfs_sidechain import _bfs_sidechain_atoms
+from tmol.pack.rotamer._single_residue_kinforest import (
+    _construct_single_residue_kinforest,
 )
 
 
@@ -11,12 +11,12 @@ def test_identify_sidechain_atoms_from_roots(default_database):
     rts = ResidueTypeSet.from_database(default_database.chemical)
     leu_rt = rts.restype_map["LEU"][0]
 
-    construct_single_residue_kinforest(leu_rt)
+    _construct_single_residue_kinforest(leu_rt)
 
-    sc_ats = bfs_sidechain_atoms(leu_rt, [leu_rt.atom_to_idx["CB"]])
+    sc_ats = _bfs_sidechain_atoms(leu_rt, [leu_rt.atom_to_idx["CB"]])
     for roots in (("CB", "CG", "CB"), ("CG", "CB", "CD1")):
         numpy.testing.assert_array_equal(
-            bfs_sidechain_atoms(leu_rt, [leu_rt.atom_to_idx[r] for r in roots]),
+            _bfs_sidechain_atoms(leu_rt, [leu_rt.atom_to_idx[r] for r in roots]),
             sc_ats,
         )
     atom_names = numpy.array([at.name for at in leu_rt.atoms], dtype=str)

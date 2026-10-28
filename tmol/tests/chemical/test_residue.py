@@ -3,12 +3,8 @@ import cattr
 import numpy
 import pytest
 
-from tmol.chemical import (
-    normalize,
-    build_ideal_coords,
-    RefinedResidueType,
-    ResidueTypeSet,
-)
+from tmol.chemical._ideal_coords import _normalize, _build_ideal_coords
+from tmol.chemical import RefinedResidueType, ResidueTypeSet
 from tmol.database.chemical import RawResidueType
 
 
@@ -52,8 +48,8 @@ def test_refined_residue_ideal_coords(default_database):
 
     cb_ang = numpy.arccos(
         numpy.dot(
-            normalize(leu_rt.ideal_coords[n_ind, :] - leu_rt.ideal_coords[ca_ind, :]),
-            normalize(leu_rt.ideal_coords[cb_ind, :] - leu_rt.ideal_coords[ca_ind, :]),
+            _normalize(leu_rt.ideal_coords[n_ind, :] - leu_rt.ideal_coords[ca_ind, :]),
+            _normalize(leu_rt.ideal_coords[cb_ind, :] - leu_rt.ideal_coords[ca_ind, :]),
         )
     )
 
@@ -140,7 +136,7 @@ def test_from_database_caching(default_database):
 def test_build_ideal_coords_smoke(default_database):
     restype_set = ResidueTypeSet.from_database(default_database.chemical)
     for res in restype_set.residue_types:
-        build_ideal_coords(res)
+        _build_ideal_coords(res)
 
 
 def test_all_bonds_construction(fresh_default_restype_set):

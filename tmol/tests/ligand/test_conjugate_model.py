@@ -6,14 +6,13 @@ import pytest
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
-from tmol.io import atom_array_from_file
-from tmol.ligand import prepare_ligands
+from tmol import atom_array_from_file
+from tmol.ligand import prepare_ligands, ligand_smiles_from_atom_array
 from tmol.ligand._conjugate_model import (
-    capped_conjugate_models,
-    without_cross_bonds_to,
+    _capped_conjugate_models,
+    _without_cross_bonds_to,
 )
 from tmol.ligand._detect import _dimorphite_protonate_smiles
-from tmol.ligand._structure_to_smiles import ligand_smiles_from_atom_array
 from tmol.tests.data import data_path
 from tmol.tests.pack.test_conjugated_group_packing import FIXTURES
 
@@ -48,7 +47,7 @@ def test_capped_group_identity_and_mmff_coverage(conjugate_input, duplicate):
         second = original.copy()
         second.chain_id[:] = "ZZ"
         array = array + second
-    models = capped_conjugate_models(array, db.chemical)
+    models = _capped_conjugate_models(array, db.chemical)
     # The source N-glycan fixture also contains an unanchored disaccharide.
     expected_links = {"biotin": 1, "nglycan": 8, "oglycan": 6}[fixture]
     assert sum(len(m.connections) for m in models) == expected_links * (
@@ -123,7 +122,7 @@ def test_two_lysine_anchors_keep_distinct_chemical_contexts(conjugate_input):
     if fixture != "biotin":
         pytest.skip("This constructed two-anchor case extends the biotin fixture")
     array = original.copy()
-    (first_model,) = capped_conjugate_models(array, db.chemical)
+    (first_model,) = _capped_conjugate_models(array, db.chemical)
     first_nz = next(
         i
         for link in first_model.connections
@@ -137,7 +136,7 @@ def test_two_lysine_anchors_keep_distinct_chemical_contexts(conjugate_input):
         np.flatnonzero((array.res_name == "BTN") & (array.atom_name == "C10"))[0]
     )
     array.bonds.add_bond(second_nz, carbon, struc.BondType.SINGLE)
-    (model,) = capped_conjugate_models(array, db.chemical)
+    (model,) = _capped_conjugate_models(array, db.chemical)
     assert len(model.connections) == 2
     assert len(set(model.source_residue_indices)) == 3
     smi = _dimorphite_protonate_smiles(
@@ -169,13 +168,13 @@ def test_two_lysine_anchors_keep_distinct_chemical_contexts(conjugate_input):
 
 def test_group_topology_is_independent_of_coordinates(conjugate_input):
     _, original, db = conjugate_input
-    reference = capped_conjugate_models(original, db.chemical)
+    reference = _capped_conjugate_models(original, db.chemical)
     changed = original.copy()
     changed.coord[:] = np.random.default_rng(37).normal(size=changed.coord.shape) * 100
     for coordinates_missing in (False, True):
         if coordinates_missing:
             changed.coord[:] = np.nan
-        models = capped_conjugate_models(changed, db.chemical)
+        models = _capped_conjugate_models(changed, db.chemical)
         assert len(models) == len(reference)
         for actual, expected in zip(models, reference):
             np.testing.assert_array_equal(
@@ -197,10 +196,10 @@ def test_capped_generation_preserves_observed_stereochemistry(conjugate_input):
     from tmol.ligand._connection_params import (
         _parameterized_model,
         _model_identity,
-        generate_conjugate_connection_params,
+        _generate_conjugate_connection_params,
     )
-    from tmol.ligand._detect import nonstandard_residue_info_from_smiles_via_mol2
-    from tmol.ligand._rdkit_mol import ligand_atom_array_to_rdkit_mol
+    from tmol.ligand import nonstandard_residue_info_from_smiles_via_mol2
+    from tmol.ligand._rdkit_mol import _ligand_atom_array_to_rdkit_mol
 
     _, array, database = conjugate_input
     identities = []
@@ -208,7 +207,7 @@ def test_capped_generation_preserves_observed_stereochemistry(conjugate_input):
         source = array.copy()
         if reflected:
             source.coord *= -1
-        models = capped_conjugate_models(source, database.chemical)
+        models = _capped_conjugate_models(source, database.chemical)
         identities.append([_model_identity(model) for model in models])
         checked = 0
         for model in models:
@@ -223,7 +222,7 @@ def test_capped_generation_preserves_observed_stereochemistry(conjugate_input):
             info = nonstandard_residue_info_from_smiles_via_mol2(
                 smiles, res_name="CONJ", protonate=False, seed=20250828
             )
-            generated = ligand_atom_array_to_rdkit_mol(info, keep_hydrogens=True)
+            generated = _ligand_atom_array_to_rdkit_mol(info, keep_hydrogens=True)
             heavy = [a.GetIdx() for a in generated.GetAtoms() if a.GetAtomicNum() > 1]
             generated_indices = dict(zip(info.source_atom_order, heavy, strict=True))
             local_indices = {index: local for local, index in mapping.items()}
@@ -253,14 +252,14 @@ def test_capped_generation_preserves_observed_stereochemistry(conjugate_input):
         assert checked > 0
     assert identities[0] != identities[1]
     with pytest.raises(ValueError, match="Incompatible conjugate chemistry"):
-        generate_conjugate_connection_params(array + source, database)
+        _generate_conjugate_connection_params(array + source, database)
 
 
 @pytest.mark.parametrize(
     "fixture", ["6dmz_mod_d", "gamma_peptide_1gac", "na_rna_psu_1bzt"]
 )
 def test_declared_input_classes_resolve_prepared_polymer_types(fixture):
-    from tmol.ligand._connection_params import generate_conjugate_connection_params
+    from tmol.ligand._connection_params import _generate_conjugate_connection_params
 
     array = atom_array_from_file(data_path("ncaa_fixtures", fixture + ".cif"))
     database, ordering = prepare_ligands(array, seed=20250828)
@@ -272,7 +271,7 @@ def test_declared_input_classes_resolve_prepared_polymer_types(fixture):
     assert set(array.res_name) <= set(ordering.restype_io_equiv_classes)
     # Ordinary polymer and curated disulfide links need no generated attachment
     # records, regardless of internal names such as DARG versus input DAR.
-    assert generate_conjugate_connection_params(array, database) == ()
+    assert _generate_conjugate_connection_params(array, database) == ()
 
 
 def _serine_bonded_to_boronate():
@@ -311,11 +310,9 @@ def test_unprepared_covalent_partner_is_refused_or_cut_but_never_a_crash():
     strict preparation has to own that refusal and ``strict_ligands=False`` has
     to honour its own contract and drop the link.
     """
-    from tmol.database import ParameterDatabase
-    from tmol.ligand._preparation import (
-        LigandPreparationError,
-        _prepare_conjugate_params,
-    )
+    from tmol import ParameterDatabase
+    from tmol.ligand import LigandPreparationError
+    from tmol.ligand._preparation import _prepare_conjugate_params
 
     array = _serine_bonded_to_boronate()
     param_db = ParameterDatabase.get_default()
@@ -332,7 +329,7 @@ def test_unprepared_covalent_partner_is_refused_or_cut_but_never_a_crash():
 def test_cutting_an_unprepared_partner_keeps_its_own_bonds():
     """Only the bond across residues goes; the ligand's own chemistry is intact."""
     array = _serine_bonded_to_boronate()
-    trimmed = without_cross_bonds_to(array, {"BXX"})
+    trimmed = _without_cross_bonds_to(array, {"BXX"})
 
     def pairs(structure):
         return {frozenset(bond[:2]) for bond in structure.bonds.as_array().tolist()}
@@ -366,7 +363,7 @@ def test_a_polymer_port_links_only_to_the_complementary_port(
     A bond links two residues only from one's up port to the other's down port;
     anywhere else both ends are conjugation sites, in every copy.
     """
-    from tmol.io import pose_stack_from_atom_array
+    from tmol import pose_stack_from_atom_array
 
     array = atom_array_from_file(data_path("sweep_regressions", stem + ".cif.zst"))
     pose = pose_stack_from_atom_array(
@@ -395,8 +392,8 @@ def test_a_ligand_holding_mercury_is_refused_as_a_metal_ligand():
     import torch
     from atomworks.io.utils.ccd import atom_array_from_ccd_code
 
-    from tmol.io import pose_stack_from_atom_array
-    from tmol.ligand._preparation import LigandPreparationError
+    from tmol import pose_stack_from_atom_array
+    from tmol.ligand import LigandPreparationError
 
     ligand = atom_array_from_ccd_code("EMC")
     with pytest.raises(LigandPreparationError, match="metal atoms"):

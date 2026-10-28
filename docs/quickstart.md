@@ -16,8 +16,7 @@ This installs CPU-only TMol. For CUDA, follow {doc}`installation` and use
 
 ```python
 import torch
-from tmol.io import file_from_pose_stack, pose_stack_from_file
-from tmol.score import beta2016_score_function
+from tmol import file_from_pose_stack, pose_stack_from_file, beta2016_score_function
 
 device = torch.device("cpu")
 pose = pose_stack_from_file("1ubq.pdb", device)
@@ -53,7 +52,7 @@ print(coords.grad.shape)  # [n_poses, n_atoms, 3]
 ## Minimize coordinates
 
 ```python
-from tmol.optimization import run_cart_min
+from tmol import run_cart_min
 
 minimized = run_cart_min(pose, sfxn)
 print("Before:", scorer(pose.coords).tolist())
@@ -70,10 +69,12 @@ movement to selected atoms; see {doc}`masks and constraints <user_guide/optimiza
 keeping the amino-acid sequence fixed.
 
 ```python
-from tmol.pack import PackerPalette, PackerTask, pack_rotamers
-from tmol.pack.rotamer import FixedAAChiSampler, IncludeCurrentSampler
-from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
-from tmol.database import ParameterDatabase
+from tmol import PackerPalette, PackerTask, pack_rotamers, ParameterDatabase
+from tmol.pack import (
+    FixedAAChiSampler,
+    IncludeCurrentSampler,
+    create_dunbrack_sampler_from_database,
+)
 
 task = PackerTask(pose, PackerPalette())
 task.restrict_to_repacking()
@@ -98,8 +99,7 @@ fixed residues, mutation scans, and residue-level results.
 ramping steric repulsion back to its full weight.
 
 ```python
-from tmol.kinematics import CartesianMoveMap, FoldForest
-from tmol.relax import fast_relax
+from tmol import CartesianMoveMap, FoldForest, fast_relax
 
 relaxed = fast_relax(
     pose,
@@ -120,7 +120,7 @@ or jump control, use a configured `MoveMap` and kinematic minimizer as shown in
 ## Score a batch
 
 ```python
-from tmol.pose import PoseStackBuilder
+from tmol import PoseStackBuilder
 
 batch = PoseStackBuilder.from_poses([pose, minimized], device)
 batch_scorer = sfxn.render_whole_pose_scoring_module(batch)
@@ -139,7 +139,7 @@ Use mmCIF to retain ligand bond information, and score with the extended
 parameter database returned during preparation:
 
 ```python
-from tmol.io import atom_array_from_file, pose_stack_from_atom_array
+from tmol import atom_array_from_file, pose_stack_from_atom_array
 
 structure = atom_array_from_file("complex.cif")
 complex_pose, context = pose_stack_from_atom_array(

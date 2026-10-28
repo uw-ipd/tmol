@@ -23,7 +23,7 @@ from tmol.io._pose_stack_from_biotite import (
     atom_array_from_pose_stack,
     pose_stack_from_atom_array,
 )
-from tmol.pose import PoseStack
+from tmol.pose._pose_stack import PoseStack
 
 StructureFormat = Literal["pdb", "cif", "mol2", "sdf"]
 READ_FORMATS = ("pdb", "cif", "mol2", "sdf")

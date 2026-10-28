@@ -5,24 +5,22 @@ import logging
 
 from collections import defaultdict
 from typing import Optional, Tuple
-from tmol.types import (
-    Tensor,
-    NDArray,
-    validate_args,
-)
+from tmol.types._torch import Tensor
+from tmol.types._array import NDArray
+from tmol.types._functional import _validate_args
 from tmol.database.chemical import (
     N_VARIANT_INDICES,
     NEUTRAL_TERMINUS_VAR_BASE,
-    site_connections,
-    special_case_variant_index,
+    _site_connections,
+    _special_case_variant_index,
 )
-from tmol.io import CanonicalOrdering
-from tmol.pose import (
-    InterBlockBondsep,
+from tmol.io._canonical_ordering import CanonicalOrdering
+from tmol.pose._inter_block_bondsep import InterBlockBondsep
+from tmol.pose._packed_block_types import (
     PackedBlockTypes,
-    PoseStackBuilder,
-    annotate_packed_block_types_w_dslf_conn_inds,
+    _annotate_packed_block_types_w_dslf_conn_inds,
 )
+from tmol.pose._pose_stack_builder import PoseStackBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +33,7 @@ LIGAND_HYDROGEN_MODES = ("input", "names", "rebuild")
 _BONDED_H_TOLERANCE = 0.4
 
 
-def validate_ligand_hydrogens(mode: str):
+def _validate_ligand_hydrogens(mode: str):
     """Raise unless mode is one of LIGAND_HYDROGEN_MODES."""
     if mode not in LIGAND_HYDROGEN_MODES:
         raise ValueError(
@@ -43,8 +41,8 @@ def validate_ligand_hydrogens(mode: str):
         )
 
 
-@validate_args
-def assign_block_types(
+@_validate_args
+def _assign_block_types(
     canonical_ordering: CanonicalOrdering,
     packed_block_types: PackedBlockTypes,
     atom_is_present: Tensor[torch.bool][:, :, :],
@@ -68,7 +66,7 @@ def assign_block_types(
     """
     pbt = packed_block_types
     _annotate_packed_block_types_w_canonical_res_order(canonical_ordering, pbt)
-    annotate_packed_block_types_w_dslf_conn_inds(pbt)
+    _annotate_packed_block_types_w_dslf_conn_inds(pbt)
 
     device = pbt.device
     n_poses = chain_id.shape[0]
@@ -105,7 +103,7 @@ def assign_block_types(
         is_actual_first_chain_res,
         is_actual_last_chain_res,
         is_polymeric,
-    ) = determine_chain_ending_status(
+    ) = _determine_chain_ending_status(
         pbt,
         chain_id,
         res_types64,
@@ -136,7 +134,7 @@ def assign_block_types(
             res_type_variants64 - NEUTRAL_TERMINUS_VAR_BASE,
             res_type_variants64,
         )
-    block_type_ind64 = select_best_block_type_candidate(
+    block_type_ind64 = _select_best_block_type_candidate(
         canonical_ordering,
         pbt,
         atom_is_present,
@@ -315,8 +313,8 @@ def _assert_connections_are_well_formed(
         )
 
 
-@validate_args
-def determine_chain_ending_status(
+@_validate_args
+def _determine_chain_ending_status(
     pbt: PackedBlockTypes,
     chain_id: Tensor[torch.int32][:, :],
     res_types64: Tensor[torch.int64][:, :],
@@ -525,8 +523,8 @@ def _termini_the_atoms_state(pbt, present, restypes, variants, termini, broken, 
     return torch.where(switch, alt, termini)
 
 
-@validate_args
-def select_best_block_type_candidate(  # noqa: C901
+@_validate_args
+def _select_best_block_type_candidate(  # noqa: C901
     canonical_ordering: CanonicalOrdering,
     pbt: PackedBlockTypes,
     atom_is_present: Tensor[torch.bool][:, :, :],
@@ -789,8 +787,8 @@ def select_best_block_type_candidate(  # noqa: C901
     return block_type_ind64_2
 
 
-@validate_args
-def take_block_type_atoms_from_canonical(
+@_validate_args
+def _take_block_type_atoms_from_canonical(
     packed_block_types: PackedBlockTypes,
     block_types64: Tensor[torch.int64][:, :],
     coords: Tensor[torch.float32][:, :, :, 3],
@@ -850,7 +848,7 @@ def take_block_type_atoms_from_canonical(
 
     # A generated ligand keeps an input hydrogen only in "input" mode, and only
     # where it sits on the parent its name gives it.
-    validate_ligand_hydrogens(ligand_hydrogens)
+    _validate_ligand_hydrogens(ligand_hydrogens)
     regenerate = torch.tensor(
         [bool(bt.hydrogens_regenerated) for bt in pbt.active_block_types],
         dtype=torch.bool,
@@ -990,7 +988,7 @@ def _assign_var_inds_for_bt(co, bt):
             if var_name != co.restypes_default_termini_mapping[bt.io_equiv_class][1]:
                 bt_is_non_default_term = True
     term_ind = _map_term_to_int(bt_is_down_term, bt_is_up_term)
-    spcase_var_ind = special_case_variant_index(bt)
+    spcase_var_ind = _special_case_variant_index(bt)
     return term_ind, spcase_var_ind, bt_is_non_default_term
 
 
@@ -1120,7 +1118,7 @@ def _create_bt_to_canonical_atom_mapping(co, pbt: PackedBlockTypes):
     return bt_ind_to_canonical_ind, bt_canonical_atom_ind
 
 
-@validate_args
+@_validate_args
 def _annotate_packed_block_types_w_canonical_res_order(
     canonical_ordering, pbt: PackedBlockTypes
 ):
@@ -1235,7 +1233,7 @@ def _annotate_packed_block_types_w_canonical_res_order(
     setattr(pbt, "canonical_ordering_annotation", ann)
 
 
-@validate_args
+@_validate_args
 def _apply_conjugated_variants(  # noqa: C901
     canonical_ordering, pbt, block_type_ind64, covalent_bonds64
 ):
@@ -1246,7 +1244,7 @@ def _apply_conjugated_variants(  # noqa: C901
     Which form a residue takes depends on the sites *that instance* is attached
     at, so two copies of one sugar in a glycan can differ.
     """
-    from tmol.ligand._conjugate_model import is_polymer_link
+    from tmol.ligand._conjugate_model import _is_polymer_link
 
     if covalent_bonds64 is None or covalent_bonds64.shape[0] == 0:
         return []
@@ -1273,7 +1271,7 @@ def _apply_conjugated_variants(  # noqa: C901
                 }
             )
         return any(
-            is_polymer_link(first, second)
+            _is_polymer_link(first, second)
             for first in endpoints[0]
             for second in endpoints[1]
         )
@@ -1466,7 +1464,7 @@ def _apply_metal_connections(
     for pose, metal, site, res, atom in rows:
         metal_bt = pbt.active_block_types[block_types[pose][metal]]
         donor_bt = pbt.active_block_types[block_types[pose][res]]
-        sites = site_connections(metal_bt)
+        sites = _site_connections(metal_bt)
         name = atom_name(pose, res, atom)
         if site >= len(sites):
             logger.warning(
@@ -1498,7 +1496,7 @@ def _annotate_packed_block_types_w_conjugations(pbt: PackedBlockTypes):
     metal sites) as (is_metal, atom), its name without them, and the reverse lookup."""
     if hasattr(pbt, "conjugation_atoms_for_bt"):
         return
-    annotate_packed_block_types_w_dslf_conn_inds(pbt)
+    _annotate_packed_block_types_w_dslf_conn_inds(pbt)
     dslf = pbt.canonical_dslf_conn_ind.cpu().numpy()
 
     atoms_for_bt, base_for_bt = [], []

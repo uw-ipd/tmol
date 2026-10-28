@@ -8,18 +8,16 @@ from .._atom_type_dependent_term import AtomTypeDependentTerm
 from .._bond_dependent_term import BondDependentTerm
 from .._annotation_cache import (
     AnnotationKey,
-    cached_annotation,
-    latest_annotation,
-    store_annotation,
+    _cached_annotation,
+    _latest_annotation,
+    _store_annotation,
 )
 
 from tmol.database import ParameterDatabase
-from tmol.score.elec import ElecParamResolver, ElecGlobalParams
+from tmol.score.elec._params import ElecParamResolver, ElecGlobalParams
 from tmol.chemical import RefinedResidueType
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
 
 
 @dataclass(frozen=True)
@@ -95,12 +93,12 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(ElecEnergyTerm, self).setup_block_type(block_type)
-        cached = cached_annotation(
+        cached = _cached_annotation(
             block_type, "_elec_annotation", self._block_annotation_key
         )
         if cached is not None:
             return cached
-        previous = latest_annotation(block_type, "_elec_annotation")
+        previous = _latest_annotation(block_type, "_elec_annotation")
         partial_charge = self.param_resolver.get_partial_charges_for_block(block_type)
         representative_mapping = (
             self.param_resolver.get_bonded_path_length_mapping_for_block(block_type)
@@ -140,7 +138,7 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         setattr(block_type, "elec_inter_repr_path_distance", geometry.inter)
         setattr(block_type, "elec_intra_repr_path_distance", geometry.intra)
         annotation = _BlockParameters(partial_charge, geometry, self.rosetta_typed)
-        return store_annotation(
+        return _store_annotation(
             block_type,
             "_elec_annotation",
             self._block_annotation_key,
@@ -155,10 +153,12 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(ElecEnergyTerm, self).setup_packed_block_types(packed_block_types)
         pbt = packed_block_types
-        cached = cached_annotation(pbt, "_elec_annotation", self._packed_annotation_key)
+        cached = _cached_annotation(
+            pbt, "_elec_annotation", self._packed_annotation_key
+        )
         if cached is not None:
             return cached
-        previous = latest_annotation(pbt, "_elec_annotation")
+        previous = _latest_annotation(pbt, "_elec_annotation")
         if previous is not None and (
             previous.all_ligand_typed.device != self.device
             or previous.rosetta_typed != self.rosetta_typed
@@ -231,7 +231,7 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
             all_ligand_typed,
             geometry,
         )
-        return store_annotation(
+        return _store_annotation(
             pbt,
             "_elec_annotation",
             self._packed_annotation_key,
@@ -259,14 +259,14 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
     score_only_in_no_grad = True
 
     def get_pose_score_term_function(self):
-        from tmol.score.elec.potentials import elec_pose_scores
+        from tmol.score.elec.potentials._compiled import _elec_pose_scores
 
-        return elec_pose_scores
+        return _elec_pose_scores
 
     def get_rotamer_score_term_function(self):
-        from tmol.score.elec.potentials import elec_rotamer_scores_shared
+        from tmol.score.elec.potentials._compiled import _elec_rotamer_scores_shared
 
-        return elec_rotamer_scores_shared
+        return _elec_rotamer_scores_shared
 
     def get_block_neighbor_cutoff(self):
         return self._max_dis

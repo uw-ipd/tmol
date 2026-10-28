@@ -2,11 +2,11 @@ import numpy
 
 from typing import List
 
-from tmol.types import validate_args
+from tmol.types._functional import _validate_args
 from tmol.chemical import RefinedResidueType
 
 
-def bfs_sidechain_atoms_jit(parents, sc_roots):
+def _bfs_sidechain_atoms_jit(parents, sc_roots):
     n_atoms = parents.shape[0]
     n_children = numpy.zeros(n_atoms, dtype=numpy.int32)
     for i in range(n_atoms):
@@ -47,11 +47,11 @@ def bfs_sidechain_atoms_jit(parents, sc_roots):
     return visited
 
 
-@validate_args
-def bfs_sidechain_atoms(restype: RefinedResidueType, sc_roots: List[int]):
+@_validate_args
+def _bfs_sidechain_atoms(restype: RefinedResidueType, sc_roots: List[int]):
     # first descend through the sidechain
     id = restype.rotamer_kinforest.id
     parents = restype.rotamer_kinforest.parent.copy()
     parents[parents < 0] = 0
     parents[id] = id[parents]
-    return bfs_sidechain_atoms_jit(parents, numpy.array(sc_roots, dtype=numpy.int32))
+    return _bfs_sidechain_atoms_jit(parents, numpy.array(sc_roots, dtype=numpy.int32))

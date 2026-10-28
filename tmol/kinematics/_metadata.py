@@ -6,15 +6,13 @@ import attr
 import torch
 import pandas
 
-from tmol.types import (
-    ConvertAttrs,
-    TensorGroup,
-    Tensor,
-)
+from tmol.types._attrs import ConvertAttrs
+from tmol.types._tensor import TensorGroup
+from tmol.types._torch import Tensor
 
-from tmol.utility import vals_to_name_cat, names_to_val_cat
+from tmol.utility._categorical import _vals_to_name_cat, _names_to_val_cat
 
-from tmol.kinematics import NodeType, KinDOF, KinForest
+from tmol.kinematics._datatypes import NodeType, KinDOF, KinForest
 
 
 class DOFTypes(enum.IntEnum):
@@ -125,7 +123,7 @@ class DOFMetadata(TensorGroup, ConvertAttrs):
         columns = attr.asdict(self)
         # NOTE vals_to_name_cat and other functions from
         # tmol.utility._categorical will silently fail if passed torch.Tensor
-        columns["dof_type"] = vals_to_name_cat(DOFTypes, columns["dof_type"].numpy())
+        columns["dof_type"] = _vals_to_name_cat(DOFTypes, columns["dof_type"].numpy())
         return pandas.DataFrame(columns)
 
     @classmethod
@@ -134,7 +132,7 @@ class DOFMetadata(TensorGroup, ConvertAttrs):
         cols = {n: c.values for n, c in dict(frame).items()}
 
         if isinstance(cols["dof_type"], pandas.Categorical):
-            cols["dof_type"] = names_to_val_cat(
+            cols["dof_type"] = _names_to_val_cat(
                 DOFTypes, cols["dof_type"]
             ).codes.astype(int)
 

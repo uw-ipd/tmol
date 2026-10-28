@@ -2,16 +2,14 @@ import numpy
 import torch
 
 from typing import Optional
-from tmol.types import (
-    NDArray,
-    Tensor,
-    validate_args,
-)
-from tmol.io import CanonicalOrdering
+from tmol.types._array import NDArray
+from tmol.types._torch import Tensor
+from tmol.types._functional import _validate_args
+from tmol.io._canonical_ordering import CanonicalOrdering
 
 
-@validate_args
-def find_disulfides(
+@_validate_args
+def _find_disulfides(
     canonical_ordering: CanonicalOrdering,
     res_types: Tensor[torch.int32][:, :],
     coords: Tensor[torch.float32][:, :, :, 3],
@@ -83,7 +81,7 @@ def find_disulfides(
         n_input_dslf = disulfides.shape[0]
         found_disulfides[:n_input_dslf] = disulfides.cpu().numpy()
 
-    found_disulfides = find_disulf_numba(
+    found_disulfides = _find_disulf_numba(
         coords_n,
         n_input_dslf,
         found_disulfides,
@@ -100,7 +98,7 @@ def find_disulfides(
     )
 
 
-def find_disulf_numba(
+def _find_disulf_numba(
     coords: NDArray[numpy.float32][:, :, :, 3],
     n_input_dslf: int,
     found_dslf: NDArray[numpy.int64][:, 3],

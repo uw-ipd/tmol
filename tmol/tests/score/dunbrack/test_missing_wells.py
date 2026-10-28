@@ -4,10 +4,10 @@ import attr
 import pytest
 import torch
 
-from tmol.database.scoring._mirrored_dunbrack import mirror_rotameric_library
-from tmol.io import extended_pose_stack_from_sequences
+from tmol.database.scoring._mirrored_dunbrack import _mirror_rotameric_library
+from tmol import extended_pose_stack_from_sequences
 from tmol.kinematics import set_named_torsions
-from tmol.score.dunbrack import DunbrackEnergyTerm
+from tmol.score import DunbrackEnergyTerm
 from tmol.score.dunbrack._params import DunbrackParamResolver
 from tmol.tests.score.dunbrack.test_parameter_identity import setup, render
 
@@ -19,7 +19,7 @@ def test_missing_well_lookup_preserves_mirrors_and_defined_rows(
     for library in database.rotameric_libraries:
         data = library.rotameric_data
         # Names are deliberately uninformative; reflection follows metadata.
-        mirrored = attr.evolve(mirror_rotameric_library(library), table_name="mirror")
+        mirrored = attr.evolve(_mirror_rotameric_library(library), table_name="mirror")
         subset = attr.evolve(
             database,
             rotameric_libraries=(library, mirrored),

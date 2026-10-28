@@ -6,15 +6,15 @@ import json
 
 import attr
 
-from tmol.database import inject_residue_params
-from tmol.ligand._conjugate_model import iter_capped_conjugate_models
+from tmol.database import _inject_residue_params
+from tmol.ligand._conjugate_model import _iter_capped_conjugate_models
 from tmol.ligand._conjugation_patches import CONNECTION_PREFIX
 from tmol.ligand._parameter_replacements import _baseline_charges
 
 CONTEXT_PREFIX = "context_"
 
 
-def model_attachment_contexts(model):
+def _model_attachment_contexts(model):
     """Named partners per source residue, independent of coordinates and IDs."""
     local = {int(s): i for i, s in enumerate(model.source_atom_indices) if s >= 0}
     contexts = defaultdict(list)
@@ -31,17 +31,19 @@ def model_attachment_contexts(model):
     return {res: tuple(sorted(context)) for res, context in contexts.items()}
 
 
-def contextual_conjugate_types(atom_array, parameter_database, residue_name):
+def _contextual_conjugate_types(atom_array, parameter_database, residue_name):
     """Split ambiguous parameter identities without renaming the source atoms.
 
     Called only after this residue's generated local parameters conflict.
     Its complete chemical inventory must already agree; incompatible source
     identities still fail the normal chemistry checks.
     """
-    models = list(iter_capped_conjugate_models(atom_array, parameter_database.chemical))
+    models = list(
+        _iter_capped_conjugate_models(atom_array, parameter_database.chemical)
+    )
     contexts = defaultdict(set)
     for model in models:
-        local_contexts = model_attachment_contexts(model)
+        local_contexts = _model_attachment_contexts(model)
         sites, names = defaultdict(set), {}
         local = {int(s): i for i, s in enumerate(model.source_atom_indices) if s >= 0}
         for bond, connections in zip(model.connections, model.connection_names):
@@ -88,7 +90,7 @@ def contextual_conjugate_types(atom_array, parameter_database, residue_name):
             existing.add(name)
     if not added:
         return parameter_database, models
-    extended = inject_residue_params(
+    extended = _inject_residue_params(
         parameter_database, [], partial_charges=charges, cartbonded_params=bonded
     )
     return (

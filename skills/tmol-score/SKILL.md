@@ -24,8 +24,7 @@ construction.
 
 ```python
 import torch
-from tmol.io import pose_stack_from_file
-from tmol.score import beta2016_score_function
+from tmol import pose_stack_from_file, beta2016_score_function
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 pose = pose_stack_from_file("input.pdb", device)

@@ -1,18 +1,14 @@
 import numpy
 import torch
 
-from ._annotation_cache import AnnotationKey, cached_annotation, store_annotation
+from ._annotation_cache import AnnotationKey, _cached_annotation, _store_annotation
 
 from tmol.database import ParameterDatabase
-from tmol.chemical import (
-    MAX_SIG_BOND_SEPARATION,
-    RefinedResidueType,
-)
-from tmol.pose import PackedBlockTypes
-from tmol.score import (
-    EnergyTerm,
-    IndexedBonds,
-)
+from tmol.chemical._constants import MAX_SIG_BOND_SEPARATION
+from tmol.chemical import RefinedResidueType
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.score._energy_term import EnergyTerm
+from tmol.score._bonded_atom import IndexedBonds
 
 
 # @attr.s(auto_attribs=True)
@@ -27,7 +23,7 @@ class BondDependentTerm(EnergyTerm):
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(BondDependentTerm, self).setup_block_type(block_type)
-        cached = cached_annotation(
+        cached = _cached_annotation(
             block_type, "_bond_dependent_annotation", self._bond_block_key
         )
         if cached is not None:
@@ -37,7 +33,7 @@ class BondDependentTerm(EnergyTerm):
         bonds[:, 1:] = block_type.bond_indices.astype(numpy.int32)
         ib = IndexedBonds.from_bonds(bonds, minlength=block_type.n_atoms)
         setattr(block_type, "intrares_indexed_bonds", ib)
-        return store_annotation(
+        return _store_annotation(
             block_type,
             "_bond_dependent_annotation",
             self._bond_block_key,
@@ -48,7 +44,7 @@ class BondDependentTerm(EnergyTerm):
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(BondDependentTerm, self).setup_packed_block_types(packed_block_types)
 
-        cached = cached_annotation(
+        cached = _cached_annotation(
             packed_block_types,
             "_bond_dependent_annotation",
             self._bond_packed_key,
@@ -111,7 +107,7 @@ class BondDependentTerm(EnergyTerm):
             "atom_all_bond_ranges",
             torch.as_tensor(atom_all_bond_ranges, device=self.device),
         )
-        return store_annotation(
+        return _store_annotation(
             packed_block_types,
             "_bond_dependent_annotation",
             self._bond_packed_key,

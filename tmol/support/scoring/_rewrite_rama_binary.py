@@ -8,8 +8,9 @@ import attr
 import cattr
 
 
-from tmol.numeric import BSplineInterpolation
-from tmol.database.scoring import RamaDatabase, RamaTables
+from tmol.numeric._bspline import BSplineInterpolation
+from tmol.database.scoring import RamaDatabase
+from tmol.database.scoring._rama import RamaTables
 
 # A conversion script from rosetta BB probability tables to
 # tmol probability tables.  tmol stores tables which contain
@@ -30,7 +31,7 @@ from tmol.database.scoring import RamaDatabase, RamaTables
 # low-probability reagions of ramachandran space
 
 
-def parse_paa(lines):
+def _parse_paa(lines):
     prob_tables = {}
     for line in lines:
         cols = line.split()
@@ -40,7 +41,7 @@ def parse_paa(lines):
     return prob_tables
 
 
-def parse_lines_as_ndarrays(lines, aacol=0, phipsicol=1, probcol=3):
+def _parse_lines_as_ndarrays(lines, aacol=0, phipsicol=1, probcol=3):
     prob_tables = {}
     for line in lines:
         cols = line.split()
@@ -56,12 +57,12 @@ def parse_lines_as_ndarrays(lines, aacol=0, phipsicol=1, probcol=3):
     return prob_tables
 
 
-def parse_all_tables(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir):
+def _parse_all_tables(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir):
     # load tables
-    general = parse_lines_as_ndarrays(open(r3_rama_dir + "all.ramaProb").readlines())
-    prepro = parse_lines_as_ndarrays(open(r3_rama_dir + "prepro.ramaProb").readlines())
-    paapp = parse_lines_as_ndarrays(open(r3_paapp_dir + "a20.prop").readlines(), 2, 0)
-    paa = parse_paa(open(r3_paa_dir + "P_AA").readlines())
+    general = _parse_lines_as_ndarrays(open(r3_rama_dir + "all.ramaProb").readlines())
+    prepro = _parse_lines_as_ndarrays(open(r3_rama_dir + "prepro.ramaProb").readlines())
+    paapp = _parse_lines_as_ndarrays(open(r3_paapp_dir + "a20.prop").readlines(), 2, 0)
+    paa = _parse_paa(open(r3_paa_dir + "P_AA").readlines())
 
     for aa, prob in paapp.items():
         # convert p_aa_pp to energies
@@ -99,8 +100,8 @@ def parse_all_tables(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir):
     return (general, prepro)
 
 
-def create_rama_database(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir):
-    general, prepro = parse_all_tables(
+def _create_rama_database(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir):
+    general, prepro = _parse_all_tables(
         rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir
     )
 
@@ -172,7 +173,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     torch.save(
-        create_rama_database(
+        _create_rama_database(
             0.5, args.r3_rama_dir, 0.61, args.r3_paapp_dir, args.r3_paa_dir
         ),
         args.output,

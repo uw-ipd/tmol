@@ -3,14 +3,11 @@ import numpy
 import yaml
 from attrs import evolve
 
-from tmol.io import pose_stack_from_file
-from tmol.chemical import (
-    normalize,
-    RefinedResidueType,
-)
-from tmol.database import PatchedChemicalDatabase
+from tmol import pose_stack_from_file, PatchedChemicalDatabase
+from tmol.chemical._ideal_coords import _normalize
+from tmol.chemical import RefinedResidueType
 
-from tmol.database.chemical import VariantType, RawResidueType, normalize_bond_tuples
+from tmol.database.chemical import VariantType, RawResidueType, _normalize_bond_tuples
 
 
 def test_patched_residue_construction_smoke(default_database):
@@ -58,8 +55,8 @@ def test_patched_residue_ideal_coords(default_database):
 
     oco_ang = numpy.arccos(
         numpy.dot(
-            normalize(leu_rt.ideal_coords[oxt_ind, :] - leu_rt.ideal_coords[c_ind, :]),
-            normalize(leu_rt.ideal_coords[o_ind, :] - leu_rt.ideal_coords[c_ind, :]),
+            _normalize(leu_rt.ideal_coords[oxt_ind, :] - leu_rt.ideal_coords[c_ind, :]),
+            _normalize(leu_rt.ideal_coords[o_ind, :] - leu_rt.ideal_coords[c_ind, :]),
         )
     )
 
@@ -83,13 +80,13 @@ def test_patched_pdb(ubq_pdb, torch_device):
 
 def variant_from_yaml(yml_string):
     raw = yaml.safe_load(yml_string)
-    raw = normalize_bond_tuples(raw)
+    raw = _normalize_bond_tuples(raw)
     return tuple(cattr.structure(x, VariantType) for x in raw)
 
 
 def residues_from_yaml(yml_string):
     raw = yaml.safe_load(yml_string)
-    raw = normalize_bond_tuples(raw)
+    raw = _normalize_bond_tuples(raw)
     return tuple(cattr.structure(x, RawResidueType) for x in raw)
 
 
@@ -768,18 +765,18 @@ def test_validate_restype_bad_icoor(default_unpatched_chemical_database):
 
 def test_terminal_and_conjugation_patches_preserve_torsion_support_in_either_order():
     from pathlib import Path
-    from tmol.database import ParameterDatabase
+    from tmol import ParameterDatabase
     from tmol.database.chemical import ChemicalDatabase
-    from tmol.database._patched_chemdb import validate_raw_residue
-    from tmol.ligand._conjugation_patches import conjugation_patch
+    from tmol.database._patched_chemdb import _validate_raw_residue
+    from tmol.ligand._conjugation_patches import _conjugation_patch
     from tmol.ligand._params_file import _load_params_files
-    from tmol.ligand._registry import inject_ligand_preparations
+    from tmol.ligand._registry import _inject_ligand_preparations
 
     path = Path(__file__).parents[1] / "data/ligand_params/5cm_patch_composition.tmol"
     (prep,) = _load_params_files([str(path)])
-    db = inject_ligand_preparations(ParameterDatabase.get_default(), [prep])
+    db = _inject_ligand_preparations(ParameterDatabase.get_default(), [prep])
     base = next(r for r in db.chemical.residues if r.name == "5CM")
-    conjugation = conjugation_patch(base, "C5'", db.chemical, chi_name="chi20")
+    conjugation = _conjugation_patch(base, "C5'", db.chemical, chi_name="chi20")
     assert conjugation.add_torsions[0].a.atom == "P"
     termini = tuple(v for v in db.chemical.variants if v.applies_to.matches(base))
     inventories = []
@@ -796,7 +793,7 @@ def test_terminal_and_conjugation_patches_preserve_torsion_support_in_either_ord
         assert frozenset(("5CM", "na5prime")) in forms
         assert not any({"na5prime", "conj_C5'"} <= names for names in forms)
         for residue in patched.residues:
-            validate_raw_residue(residue)
+            _validate_raw_residue(residue)
             if "conj_C5'" in residue.name:
                 assert "chi20" in {t.name for t in residue.torsions}
                 assert "chi20" in {c.chi_dihedral for c in residue.chi_samples}

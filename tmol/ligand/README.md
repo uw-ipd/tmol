@@ -42,7 +42,7 @@ To detect and prepare **every** non-standard residue in a structure at once
 `AtomArray` is a biotite structure loaded from a CIF or PDB file:
 
 ```python
-from tmol.io import atom_array_from_file
+from tmol import atom_array_from_file
 from tmol.ligand import prepare_ligands
 
 atom_array = atom_array_from_file("complex.cif", model=1)
@@ -89,10 +89,12 @@ import biotite.structure.io
 import numpy as np
 import torch
 
-from tmol.database import ParameterDatabase
-from tmol.io import pose_stack_from_atom_array
-from tmol.score import beta2016_score_function
-from tmol.score import calculate_fragment_interactions
+from tmol import (
+    ParameterDatabase,
+    pose_stack_from_atom_array,
+    beta2016_score_function,
+    calculate_fragment_interactions,
+)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 structure = biotite.structure.io.load_structure("complex.cif")
@@ -194,7 +196,7 @@ fragmented ligand's original residue name, number, chain, and insertion code by
 default, so dumped coordinates contain the original ligand residue:
 
 ```python
-from tmol.io import atom_array_from_pose_stack, file_from_pose_stack
+from tmol import atom_array_from_pose_stack, file_from_pose_stack
 
 file_from_pose_stack(pose, "scored_complex.pdb")
 restored = atom_array_from_pose_stack(pose, context.canonical_ordering)
@@ -217,10 +219,8 @@ the preferred reuse path: it skips rebuilding the parameter database, canonical
 ordering, and packed block types on every structure.
 
 ```python
-from tmol.io import (
-    build_context_from_atom_array,
-    pose_stack_from_atom_array,
-)
+from tmol.io import build_context_from_atom_array
+from tmol import pose_stack_from_atom_array
 
 context = build_context_from_atom_array(struct0, device, prepare_ligands=True)
 for struct in structures:
@@ -246,7 +246,7 @@ hand-edit if needed, then inject that file instead of re-preparing. This is the
 path to take when you want to inspect or manually correct a ligand definition.
 
 ```python
-from tmol.database import ParameterDatabase
+from tmol import ParameterDatabase
 from tmol.ligand import prepare_ligands
 
 # Write once

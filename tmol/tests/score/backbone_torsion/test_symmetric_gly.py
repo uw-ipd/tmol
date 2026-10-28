@@ -9,7 +9,7 @@ why a structure and its mirror image do not score alike by default.
 import numpy
 import pytest
 
-from tmol.database import ParameterDatabase
+from tmol import ParameterDatabase
 
 GLY_TABLES = {"GLY": "GLY_symm", "GLY_prepro": "GLY_prepro_symm"}
 

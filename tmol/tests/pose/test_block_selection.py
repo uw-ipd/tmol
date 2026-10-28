@@ -1,7 +1,8 @@
 import numpy
 import torch
 
-from tmol.pose import PoseStackBuilder, repeat_pose_stack, select_blocks
+from tmol import PoseStackBuilder
+from tmol.pose import repeat_pose_stack, select_blocks
 
 
 def _single_pose(ubq_40_60_pose_stack):

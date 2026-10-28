@@ -5,10 +5,8 @@ import torch
 from tmol.database.scoring import NaTorsionDatabase
 from tmol.utility import resolve_device
 from tmol.utility.weak_identity_cache import WeakIdentityLRU
-from tmol.types import (
-    Tensor,
-    ValidateAttrs,
-)
+from tmol.types._torch import Tensor
+from tmol.types._attrs import ValidateAttrs
 
 # torsions this term reads, by chemical-layer name; order fixes tensor layout
 BACKBONE_TORSIONS = ("alpha", "beta", "gamma", "delta", "epsilon", "zeta")
@@ -81,7 +79,7 @@ def sugar_ring_atoms(block_type, element_for_atom_type):
     return cycle[k + 1 :] + cycle[: k + 1]
 
 
-def block_type_params(block_type, element_for_atom_type):
+def _block_type_params(block_type, element_for_atom_type):
     """Per-block-type indices this term needs, shared by scoring and packing.
 
     base is -1 for anything this term does not handle. A nucleotide whose sugar
@@ -112,13 +110,13 @@ def block_type_params(block_type, element_for_atom_type):
     return dict(base=base, uaids=uaids, ring=ring, down=down)
 
 
-def scored_torsion_bonds(block_type, element_for_atom_type):
+def _scored_torsion_bonds(block_type, element_for_atom_type):
     """Central bonds, as index pairs, of the torsions this term scores.
 
     Empty for anything the term does not handle. Another term that would
     otherwise constrain the same rotation reads this to stay off it.
     """
-    params = block_type_params(block_type, element_for_atom_type)
+    params = _block_type_params(block_type, element_for_atom_type)
     if params["base"] < 0:
         return frozenset()
     bonds = set()
@@ -143,7 +141,7 @@ def _circular_mean(degrees):
     return (mean * (180.0 / torch.pi)) % 360.0
 
 
-def polymer_index(base):
+def _polymer_index(base):
     """0 for DNA, 1 for RNA. Non-nucleotides (base < 0) fall to 0 and are masked."""
     return base.clamp_min(0) // N_BASE_PER_POLYMER
 

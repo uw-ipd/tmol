@@ -2,21 +2,19 @@ import numpy
 import torch
 
 from typing import Union, Tuple
-from tmol.types import (
-    validate_args,
-    NDArray,
-    Tensor,
-)
+from tmol.types._functional import _validate_args
+from tmol.types._array import NDArray
+from tmol.types._torch import Tensor
 
 
-@validate_args
-def exclusive_cumsum(inds: NDArray[int][:]) -> NDArray[int][:]:
+@_validate_args
+def _exclusive_cumsum(inds: NDArray[int][:]) -> NDArray[int][:]:
     """Calculate exclusive cumulative sum over input array"""
     return numpy.concatenate((numpy.zeros((1,), dtype=int), numpy.cumsum(inds)[:-1]))
 
 
-@validate_args
-def exclusive_cumsum1d(
+@_validate_args
+def _exclusive_cumsum1d(
     inds: Union[Tensor[torch.int32][:], Tensor[torch.int64][:]],
 ) -> Union[Tensor[torch.int32][:], Tensor[torch.int64][:]]:
     """Compute a one-dimensional exclusive cumulative sum."""
@@ -28,8 +26,8 @@ def exclusive_cumsum1d(
     )
 
 
-@validate_args
-def exclusive_cumsum2d(
+@_validate_args
+def _exclusive_cumsum2d(
     inds: Union[Tensor[torch.int32][:, :], Tensor[torch.int64][:, :]],
 ) -> Union[Tensor[torch.int32][:, :], Tensor[torch.int64][:, :]]:
     """Compute an exclusive cumulative sum along the second dimension."""
@@ -42,8 +40,8 @@ def exclusive_cumsum2d(
     )
 
 
-@validate_args
-def exclusive_cumsum2d_w_totals(
+@_validate_args
+def _exclusive_cumsum2d_w_totals(
     inds: Union[Tensor[torch.int32][:, :], Tensor[torch.int64][:, :]],
 ) -> Union[
     Tuple[Tensor[torch.int32][:, :], Tensor[torch.int32][:]],

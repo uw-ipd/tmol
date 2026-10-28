@@ -1,13 +1,13 @@
 import torch
 import attrs
 
-from tmol.types import Tensor
+from tmol.types._torch import Tensor
 from tmol.pose._packed_block_types import PackedBlockTypes
 from tmol.pose._pose_stack import PoseStack
 from tmol.score._annotation_cache import (
     AnnotationKey,
-    cached_annotation,
-    store_annotation,
+    _cached_annotation,
+    _store_annotation,
 )
 
 
@@ -157,7 +157,7 @@ def _annotate_mainchain_atom_indices(
 ) -> MCAtomIndices:
     """Get the list of mainchain atoms for each block type and annotate their indices."""
     key = AnnotationKey.from_sources(settings=(packed_block_types.device,))
-    cached = cached_annotation(
+    cached = _cached_annotation(
         packed_block_types, "_mainchain_atom_indices_annotation", key
     )
     if cached is not None:
@@ -203,7 +203,7 @@ def _annotate_mainchain_atom_indices(
         is_real_mainchain_atom=is_real_mainchain_atom,
     )
     setattr(packed_block_types, "mainchain_atom_indices", mcatominds)
-    return store_annotation(
+    return _store_annotation(
         packed_block_types,
         "_mainchain_atom_indices_annotation",
         key,

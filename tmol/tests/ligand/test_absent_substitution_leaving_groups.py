@@ -4,7 +4,7 @@ import biotite.structure as struc
 import numpy as np
 import pytest
 
-from tmol.ligand._input_repair import get_absent_substitution_leaving_groups
+from tmol.ligand._input_repair import _get_absent_substitution_leaving_groups
 
 
 @pytest.mark.parametrize(
@@ -38,5 +38,7 @@ def test_absent_substitution_leaving_groups(
     )
     residue = template.copy()
     residue.coord[np.isin(residue.atom_name, list(absent))] = np.nan
-    groups = get_absent_substitution_leaving_groups(template, residue, connection_atoms)
+    groups = _get_absent_substitution_leaving_groups(
+        template, residue, connection_atoms
+    )
     assert groups == expected

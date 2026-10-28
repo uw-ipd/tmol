@@ -1,7 +1,7 @@
 import pytest
 
 import attr
-from tmol.utility import AttrMapping, AttrMutableMapping
+from tmol.utility._attr import AttrMapping, AttrMutableMapping
 
 
 def test_attr_mapping():

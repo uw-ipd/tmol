@@ -19,12 +19,12 @@ import torch
 
 from tmol.pose._conjugated_groups import (  # noqa: F401
     ConjugatedGroup,
-    find_conjugated_groups,
-    lockstep_group_for_block,
+    _find_conjugated_groups,
+    _lockstep_group_for_block,
 )
 
 
-def group_atom_context(group, pose_stack):
+def _group_atom_context(group, pose_stack):
     """Local residue types, group atom offsets and connection partners."""
     pbt = pose_stack.packed_block_types
     indices = pose_stack.block_type_ind[group.pose, list(group.blocks)].tolist()
@@ -37,7 +37,7 @@ def group_atom_context(group, pose_stack):
     return types, offsets, partners
 
 
-def resolve_group_atom(uaid, owner, block_types, offsets, partners):
+def _resolve_group_atom(uaid, owner, block_types, offsets, partners):
     """Resolve a torsion atom into the group's concatenated atom numbering."""
     atom, conn, sep = (int(v) for v in uaid)
     if conn != -1:
@@ -69,7 +69,7 @@ class GroupSamplingPlan:
     owners: tuple
 
 
-def group_sampling_topology(group, pose_stack, fixed_owners=()):
+def _group_sampling_topology(group, pose_stack, fixed_owners=()):
     """Independent axes that preserve cycles and fixed external attachments.
 
     Cycle edges cannot turn independently. A bridge can turn only if its
@@ -92,18 +92,18 @@ def group_sampling_topology(group, pose_stack, fixed_owners=()):
         cache = OrderedDict()
         pbt.conjugated_sampling_topology_cache = cache
     if key not in cache:
-        cache[key] = _group_sampling_topology(group, pose_stack, fixed_owners)
+        cache[key] = _group_sampling_topology_impl(group, pose_stack, fixed_owners)
         if len(cache) > 32:
             cache.popitem(last=False)
     cache.move_to_end(key)
     return cache[key]
 
 
-def _group_sampling_topology(group, pose_stack, fixed_owners=()):
-    from tmol.kinematics import block_group_kinforest_data
+def _group_sampling_topology_impl(group, pose_stack, fixed_owners=()):
+    from tmol.kinematics._scan_ordering import _block_group_kinforest_data
 
-    types, offsets, partners = group_atom_context(group, pose_stack)
-    rkd, offsets = block_group_kinforest_data(types, group.links, anchor=0)
+    types, offsets, partners = _group_atom_context(group, pose_stack)
+    rkd, offsets = _block_group_kinforest_data(types, group.links, anchor=0)
     graph = networkx.Graph()
     graph.add_nodes_from(range(int(offsets[-1])))
     for i, bt in enumerate(types):
@@ -142,7 +142,7 @@ def _group_sampling_topology(group, pose_stack, fixed_owners=()):
     return GroupSamplingTopology(types, offsets, partners, rkd, axes)
 
 
-def group_sampled_chi(
+def _group_sampled_chi(
     group,
     pose_stack,
     expanded_limit,
@@ -169,9 +169,9 @@ def group_sampled_chi(
 
     Returns a list of (index within the group, ChiSamples) for the survivors.
     """
-    from tmol.pack.rotamer._chi_budget import _budgeted_chi_samples, chi_depths
+    from tmol.pack.rotamer._chi_budget import _budgeted_chi_samples, _chi_depths
 
-    topology = topology or group_sampling_topology(group, pose_stack)
+    topology = topology or _group_sampling_topology(group, pose_stack)
     block_types, offsets, partners = (
         topology.block_types,
         topology.offsets,
@@ -188,7 +188,7 @@ def group_sampled_chi(
             if cs.is_proton:
                 continue
             atoms = [
-                resolve_group_atom(u, i, block_types, offsets, partners)
+                _resolve_group_atom(u, i, block_types, offsets, partners)
                 for u in bt.torsion_to_uaids[cs.chi_dihedral][1:3]
             ]
             if min(atoms) < 0:
@@ -201,7 +201,7 @@ def group_sampled_chi(
     selected.sort(key=lambda item: item[:2])
     entries = [item[2] for item in selected]
     owners = [item[0] for item in selected]
-    depths = chi_depths(topology.kinforest, [item[3] for item in selected])
+    depths = _chi_depths(topology.kinforest, [item[3] for item in selected])
     # Only active members carry a copy of each conformer.
     n_blocks = len(group.blocks) if sampled_members is None else sampled_members
     fixed_members = len(group.blocks) - n_blocks
@@ -228,7 +228,7 @@ def group_sampled_chi(
     return [(owners[index], cs) for index, cs in kept]
 
 
-def add_conjugated_group_sampler(task, pose_stack, sampler=None, exclude=()):
+def _add_conjugated_group_sampler(task, pose_stack, sampler=None, exclude=()):
     """Attach the group sampler and keep independent samplers off its members.
 
     A group is sampled as one unit. When a rotamer library is available the
@@ -241,7 +241,7 @@ def add_conjugated_group_sampler(task, pose_stack, sampler=None, exclude=()):
     from tmol.pack.rotamer._fallback_sampler import FallbackSampler
     from tmol.pack.rotamer._include_current_sampler import IncludeCurrentSampler
 
-    groups = find_conjugated_groups(pose_stack)
+    groups = _find_conjugated_groups(pose_stack)
     if not groups:
         return None
 
@@ -317,7 +317,7 @@ class GroupCollapse:
     members: tuple
 
 
-def collapse_group_rotamers(pose_stack, rotamer_set, groups):
+def _collapse_group_rotamers(pose_stack, rotamer_set, groups):
     """Fold each group's members into a single block for the packer.
 
     Returns the replacement bookkeeping, or None when there is nothing to fold.
@@ -428,7 +428,7 @@ def collapse_group_rotamers(pose_stack, rotamer_set, groups):
     )
 
 
-def collapse_group_energies(energies, collapse, group_of_rot, conformer_of_rot):
+def _collapse_group_energies(energies, collapse, group_of_rot, conformer_of_rot):
     """Remap a group's rotamer pair energies onto its representative.
 
     A pair that puts two members in DIFFERENT conformers describes a structure
@@ -470,7 +470,7 @@ def collapse_group_energies(energies, collapse, group_of_rot, conformer_of_rot):
     ).coalesce()
 
 
-def write_group_members(new_pose_stack, rotamer_set, collapse, assignment):
+def _write_group_members(new_pose_stack, rotamer_set, collapse, assignment):
     """Give every member of a group the conformer chosen for its representative.
 
     The packer decided once per group, on the representative's block; the other

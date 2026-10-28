@@ -4,9 +4,9 @@ import torch
 
 @pytest.fixture
 def ext():
-    from tmol._load_ext import load_module
+    from tmol._load_ext import _load_module
 
-    return load_module(
+    return _load_module(
         __name__,
         __file__,
         ["test_cpu.cpp", "test.pybind.cpp", "test_cuda.cu"],

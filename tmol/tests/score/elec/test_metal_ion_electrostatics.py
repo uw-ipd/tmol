@@ -4,13 +4,9 @@ import attr
 import pytest
 import torch
 
-from tmol.io import (
-    atom_array_from_file,
-    default_canonical_ordering,
-    pose_stack_from_atom_array,
-    pose_stack_from_file,
-    remove_metal_coordination,
-)
+from tmol import atom_array_from_file, pose_stack_from_atom_array, pose_stack_from_file
+from tmol.io._canonical_ordering import _default_canonical_ordering
+from tmol.io._metal_coordination import _remove_metal_coordination
 from tmol.tests.data import data_path
 from tmol.tests.score.elec.test_parameter_identity import coulomb_reference, setup_term
 
@@ -76,7 +72,7 @@ def test_coordinated_donor_exclusion_changes_when_link_is_removed(
     ]
     bound = pose_stack_from_atom_array(structure, torch_device, no_optH=True)
     assert bound.max_n_blocks == 2
-    unbound = remove_metal_coordination(default_canonical_ordering(), bound, 0, 1, 0)
+    unbound = _remove_metal_coordination(_default_canonical_ordering(), bound, 0, 1, 0)
     # Isolate the calcium/donor pair without changing either charge. All other
     # atoms remain present; their electrostatic contributions are set to zero.
     selected = {("CA_irregular", "CA"), ("ASP", "OD1")}

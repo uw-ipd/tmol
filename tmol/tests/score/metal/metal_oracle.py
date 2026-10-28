@@ -5,7 +5,7 @@ from itertools import combinations
 import numpy
 import torch
 
-from tmol.database.chemical import ideal_distances, metal_table
+from tmol.database.chemical import _ideal_distances, _metal_table
 
 
 def restraints(param_db, pose_stack):
@@ -13,7 +13,7 @@ def restraints(param_db, pose_stack):
     (d0, depth, radial sd, lateral sd); fan rows (pose, block, atom, atom), (l0, sd).
     """
     params = param_db.scoring.metal_coordination
-    table = metal_table()
+    table = _metal_table()
     ion_for_atom_type = {ion["atom_type"]: ion for ion in table["ions"]}
     donor_radii = table["donor_radii"]
     vertices_for = {g["name"]: g["vertices"] for g in table["geometries"]}
@@ -33,7 +33,7 @@ def restraints(param_db, pose_stack):
         for site in bt.metal_sites:
             metal = bt.atom_to_idx[site.metal_atom]
             metal_type = bt.atoms[metal].atom_type
-            dist = ideal_distances(ion_for_atom_type[metal_type], donor_radii)
+            dist = _ideal_distances(ion_for_atom_type[metal_type], donor_radii)
             radial_sd, lateral_sd = params.widths(metal_type)
             virts = [bt.atom_to_idx[v] for v in site.site_virts]
 
@@ -121,7 +121,7 @@ def bridges(param_db, pose_stack):
     different blocks sharing a donor through a filled site or an internal satisfier.
     """
     params = param_db.scoring.metal_coordination
-    donor_radii = metal_table()["donor_radii"]
+    donor_radii = _metal_table()["donor_radii"]
     atom_types = {at.name: at for at in param_db.chemical.atom_types}
     pbt = pose_stack.packed_block_types
     atom_types.update({at.name: at for at in pbt.chem_db.atom_types})

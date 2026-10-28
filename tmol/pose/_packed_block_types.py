@@ -6,15 +6,12 @@ import pandas
 
 from typing import Sequence
 
-from tmol.types import Tensor
+from tmol.types._torch import Tensor
 
-from tmol.chemical import (
-    MAX_PATHS_FROM_CONNECTION,
-    RefinedResidueType,
-    ResidueTypeSet,
-)
-from tmol.database import PatchedChemicalDatabase
-from tmol.utility._device import resolve_device
+from tmol.chemical._constants import MAX_PATHS_FROM_CONNECTION
+from tmol.chemical import RefinedResidueType, ResidueTypeSet
+from tmol.database._patched_chemdb import PatchedChemicalDatabase
+from tmol.utility import resolve_device
 
 # The per-block connection capacity of the ljlk, elec, hbond and lk_ball
 # kernels' shared-memory tiles (MAX_N_CONN in their .hh files).
@@ -450,7 +447,7 @@ class PackedBlockTypes:
         return new_inst
 
 
-def annotate_packed_block_types_w_dslf_conn_inds(pbt: PackedBlockTypes):
+def _annotate_packed_block_types_w_dslf_conn_inds(pbt: PackedBlockTypes):
     """Annotate each block type with its disulfide connection index, or -1."""
     if hasattr(pbt, "canonical_dslf_conn_ind"):
         return
@@ -464,7 +461,7 @@ def annotate_packed_block_types_w_dslf_conn_inds(pbt: PackedBlockTypes):
     setattr(pbt, "canonical_dslf_conn_ind", canonical_dslf_conn_ind)
 
 
-def annotate_packed_block_types_w_kinematic_conns(pbt: PackedBlockTypes):
+def _annotate_packed_block_types_w_kinematic_conns(pbt: PackedBlockTypes):
     """Mark, per block type, which connections carry motion between blocks."""
     if hasattr(pbt, "kinematic_conn"):
         return
@@ -479,7 +476,7 @@ def annotate_packed_block_types_w_kinematic_conns(pbt: PackedBlockTypes):
     )
 
 
-def annotate_packed_block_types_w_conjugation_conns(pbt: PackedBlockTypes):
+def _annotate_packed_block_types_w_conjugation_conns(pbt: PackedBlockTypes):
     """Mark, per block type, which connections are conjugations.
 
     A kinematic connection other than the polymer up or down joins a residue to
@@ -489,7 +486,7 @@ def annotate_packed_block_types_w_conjugation_conns(pbt: PackedBlockTypes):
     """
     if hasattr(pbt, "conjugation_conn"):
         return
-    annotate_packed_block_types_w_kinematic_conns(pbt)
+    _annotate_packed_block_types_w_kinematic_conns(pbt)
     kinematic = pbt.kinematic_conn.cpu().numpy()
 
     conjugation_conn = numpy.zeros((pbt.n_types, pbt.max_n_conn), dtype=bool)

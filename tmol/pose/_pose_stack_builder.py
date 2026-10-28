@@ -9,31 +9,23 @@ import pandas
 
 from typing import List, Tuple, Optional
 
-from tmol.types import (
-    NDArray,
-    Tensor,
-    validate_args,
-)
-from tmol.chemical import (
-    RefinedResidueType,
-    three2one,
-)
+from tmol.types._array import NDArray
+from tmol.types._torch import Tensor
+from tmol.types._functional import _validate_args
+from tmol.chemical import RefinedResidueType
+from tmol.chemical._restypes import _three2one
 
-from tmol.pose import (
-    InterBlockBondsep,
-    PackedBlockTypes,
-    PDBInfo,
-    DEFAULT_ATOM_B_FACTOR,
-    DEFAULT_ATOM_OCCUPANCY,
-    PoseStack,
-    ConstraintSet,
-    SplitBlockMapping,
+from tmol.pose._inter_block_bondsep import InterBlockBondsep
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pdb_info import PDBInfo, DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
+from tmol.pose._pose_stack import PoseStack
+from tmol.pose._constraint_set import ConstraintSet
+from tmol.pose._split_block_mapping import SplitBlockMapping
+from tmol.utility.tensor._common_operations import (
+    _exclusive_cumsum1d,
+    _exclusive_cumsum2d,
 )
-from tmol.utility.tensor import (
-    exclusive_cumsum1d,
-    exclusive_cumsum2d,
-)
-from tmol.utility._device import resolve_device
+from tmol.utility import resolve_device
 
 
 def _is_leading_run(items, of) -> bool:
@@ -64,7 +56,7 @@ class PoseStackBuilder:
         return widest
 
     @classmethod
-    @validate_args
+    @_validate_args
     def from_poses(
         cls, pose_stacks: List[PoseStack], device: torch.device
     ) -> PoseStack:
@@ -111,7 +103,7 @@ class PoseStackBuilder:
         )
 
         n_poses = sum(len(ps) for ps in pose_stacks)
-        ps_offset = exclusive_cumsum1d(
+        ps_offset = _exclusive_cumsum1d(
             torch.tensor([len(ps) for ps in pose_stacks], dtype=torch.int64)
         )
 
@@ -207,7 +199,7 @@ class PoseStackBuilder:
         return SplitBlockMapping(entries=tuple(combined_entries))
 
     @classmethod
-    @validate_args
+    @_validate_args
     def from_block_type_names(
         cls,
         packed_block_types: PackedBlockTypes,
@@ -288,7 +280,7 @@ class PoseStackBuilder:
 
         n_atoms = torch.zeros((n_poses, max_n_res), dtype=torch.int32, device=device)
         n_atoms[real_res] = pbt.n_atoms[block_type_ind64[real_res]]
-        block_coord_offset = exclusive_cumsum2d(n_atoms)
+        block_coord_offset = _exclusive_cumsum2d(n_atoms)
 
         max_n_atoms = torch.max(torch.sum(n_atoms, dim=1)).item()
 
@@ -344,7 +336,7 @@ class PoseStackBuilder:
     ################# HELPER FUNCTIONS FOR CONSTRUCTION ###############
 
     @classmethod
-    @validate_args
+    @_validate_args
     def _find_connection_pairs_for_residue_subset(
         cls,
         pbt: PackedBlockTypes,
@@ -409,7 +401,7 @@ class PoseStackBuilder:
         return ps_conn_inds
 
     @classmethod
-    @validate_args
+    @_validate_args
     def _pack_pose_stack_coords(
         cls,
         packed_block_types: PackedBlockTypes,
@@ -436,7 +428,7 @@ class PoseStackBuilder:
         return coords, block_coord_offset
 
     @classmethod
-    @validate_args
+    @_validate_args
     def _inter_residue_connections_from_pose_stacks(
         cls,
         packed_block_types: PackedBlockTypes,
@@ -462,7 +454,7 @@ class PoseStackBuilder:
         return inter_residue_connections
 
     @classmethod
-    @validate_args
+    @_validate_args
     def _resolve_block_type_ind(
         cls,
         packed_block_types: PackedBlockTypes,
@@ -498,7 +490,7 @@ class PoseStackBuilder:
         return block_type_ind
 
     @classmethod
-    @validate_args
+    @_validate_args
     def _chain_id_from_pose_stacks(
         cls,
         pose_stacks,  # : List["PoseStack"],
@@ -589,7 +581,7 @@ class PoseStackBuilder:
         )
 
     @classmethod
-    @validate_args
+    @_validate_args
     def _annotate_pbt_w_canonical_aa1lc_lookup(cls, pbt: PackedBlockTypes):
         """Annotate the PBT with a pandas dictionary mapping the (unique!) names
         of each of the block types to their index in the active_block_types list,
@@ -609,7 +601,7 @@ class PoseStackBuilder:
 
         lcaa_ind = {}
         for i, res in enumerate(pbt.active_block_types):
-            one = three2one(res.name)
+            one = _three2one(res.name)
             if one:
                 assert one not in lcaa_ind
                 lcaa_ind[one] = i
@@ -626,7 +618,7 @@ class PoseStackBuilder:
         setattr(pbt, "bt_mapping_w_lcaa_1lc_ind", ind)
 
     @classmethod
-    @validate_args
+    @_validate_args
     def _annotate_bt_w_intraresidue_connection_atom_distances(
         cls, bt: RefinedResidueType
     ):
@@ -644,7 +636,7 @@ class PoseStackBuilder:
         setattr(bt, "conn_at_intrablock_bond_sep", conn_at_intrablock_bond_sep)
 
     @classmethod
-    @validate_args
+    @_validate_args
     def _annotate_pbt_w_intraresidue_connection_atom_distances(
         cls, pbt: PackedBlockTypes
     ):
@@ -671,7 +663,7 @@ class PoseStackBuilder:
         )
 
     @classmethod
-    @validate_args
+    @_validate_args
     def _find_connections_in_sequences(
         cls,
         pbt: PackedBlockTypes,
@@ -735,7 +727,7 @@ class PoseStackBuilder:
         return trimmed_seqs, ps_conns
 
     @classmethod
-    @validate_args
+    @_validate_args
     def _block_type_indices_from_sequences(
         cls,
         pbt: PackedBlockTypes,
@@ -801,7 +793,7 @@ class PoseStackBuilder:
         return real_res, n_res, block_type_ind, block_type_ind64
 
     @classmethod
-    @validate_args
+    @_validate_args
     def _inter_residue_connections_for_polymeric_monomers(
         cls,
         pbt: PackedBlockTypes,
@@ -935,7 +927,7 @@ class PoseStackBuilder:
         return inter_residue_connections64, chain_id
 
     @classmethod
-    @validate_args
+    @_validate_args
     def _incorporate_extra_connections_into_inter_res_conn_set(
         cls,
         expoly_connections: List[List[Tuple[int, int, int, int]]],

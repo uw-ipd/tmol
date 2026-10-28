@@ -17,7 +17,7 @@ import attr
 from copy import copy
 
 
-def sampler_for_task(sampler, task):
+def _sampler_for_task(sampler, task):
     """Apply an explicit task budget to a private sampler/task view."""
     budget = getattr(task, "chi_sample_budget", None)
     if budget is None or budget == (
@@ -36,7 +36,7 @@ def sampler_for_task(sampler, task):
     return configured, private_task
 
 
-def checked_sample_count(counts, expanded_limit, limit):
+def _checked_sample_count(counts, expanded_limit, limit):
     """Check index capacity and budget before narrowing counts or allocating rows."""
     import torch
 
@@ -64,7 +64,7 @@ def checked_sample_count(counts, expanded_limit, limit):
     return total
 
 
-def check_task_sample_budget(task, samples):
+def _check_task_sample_budget(task, samples):
     """Bound each physical residue's combined sampler/type rows before merging."""
     budget = getattr(task, "chi_sample_budget", None)
     if budget is None:
@@ -88,7 +88,7 @@ def check_task_sample_budget(task, samples):
         )
 
 
-def n_conformers(samples, expanded: bool) -> int:
+def _n_conformers(samples, expanded: bool) -> int:
     """How many conformers a set of sampled chi enumerates."""
     total = 1
     for cs in samples:
@@ -98,7 +98,7 @@ def n_conformers(samples, expanded: bool) -> int:
     return total
 
 
-def apply_chi_sample_budget(
+def _apply_chi_sample_budget(
     samples,
     depths,
     expanded_limit,
@@ -146,7 +146,7 @@ def _budgeted_chi_samples(
     samples = [cs for _, cs, _ in kept]
     depths = [d for _, _, d in kept]
     library = library_size
-    if library * n_conformers(samples, True) <= expanded_limit:
+    if library * _n_conformers(samples, True) <= expanded_limit:
         return tuple(zip(indices, samples))
 
     samples = [attr.evolve(cs, expansions=()) for cs in samples]
@@ -155,7 +155,7 @@ def _budgeted_chi_samples(
         key=lambda i: (depths[i], int(samples[i].chi_dihedral[3:])),
         reverse=True,
     )
-    total = library * n_conformers(samples, False)
+    total = library * _n_conformers(samples, False)
     for index in order:
         if total <= limit:
             break
@@ -178,7 +178,7 @@ def _budgeted_chi_samples(
     return tuple((i, cs) for i, cs in zip(indices, samples) if cs is not None)
 
 
-def chi_depths(rkd, chi_atoms):
+def _chi_depths(rkd, chi_atoms):
     """Depth in a kinforest of the atom each chi turns about.
 
     The freeze order: a chi deep in the tree moves few atoms, one near the root

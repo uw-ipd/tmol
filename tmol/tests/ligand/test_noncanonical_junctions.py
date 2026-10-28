@@ -7,7 +7,7 @@ import numpy
 import pytest
 
 from tmol.ligand._polymer_profile import (
-    noncanonical_junction_substitutions,
+    _noncanonical_junction_substitutions,
 )
 
 
@@ -32,7 +32,7 @@ def _substitutions(array, profile, connections, present=None):
         properties=SimpleNamespace(polymer=profile),
     )
     types = {element: SimpleNamespace(element=element) for element in array.element}
-    return noncanonical_junction_substitutions(residue, types)
+    return _noncanonical_junction_substitutions(residue, types)
 
 
 def _chain(names=("N", "CA", "CG", "CD", "OE2", "OE1", "H")):
@@ -93,10 +93,10 @@ def test_canonical_frame_requires_no_copied_rows():
 @pytest.mark.parametrize("code", ["5CM", "8OG", "PSU"])
 def test_nucleotide_profiles_do_not_acquire_peptide_junction_rows(code):
     import biotite.structure.info as info
-    from tmol.ligand._polymer_profile import profile_for_atom_array
+    from tmol.ligand._polymer_profile import _profile_for_atom_array
 
     array = info.residue(code)
     connections = {"P", "O3'"}
-    profile = profile_for_atom_array(array, connections)
+    profile = _profile_for_atom_array(array, connections)
     assert profile is not None
     assert _substitutions(array, profile, connections) == []

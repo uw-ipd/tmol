@@ -2,7 +2,7 @@ from pathlib import Path
 
 import tmol.database
 
-from tmol.database import ParameterDatabase
+from tmol import ParameterDatabase
 from tmol.database.scoring import ScoringDatabase
 
 

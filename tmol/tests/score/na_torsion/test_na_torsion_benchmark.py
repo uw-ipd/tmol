@@ -3,13 +3,13 @@ import torch
 
 from tmol.tests import zero_padded_counts
 
-from tmol.io import pose_stack_from_file
-from tmol.pose import PoseStackBuilder
-from tmol.score import (
+from tmol import (
+    pose_stack_from_file,
+    PoseStackBuilder,
     beta2016_score_function,
     ScoreFunction,
 )
-from tmol.score.na_torsion import NaTorsionEnergyTerm
+from tmol.score import NaTorsionEnergyTerm
 
 
 def _sfxn(variant, default_database, device):

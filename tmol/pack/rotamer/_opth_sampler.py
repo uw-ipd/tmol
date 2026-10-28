@@ -5,29 +5,25 @@ import attr
 
 from typing import Tuple
 
-from tmol.types import (
-    Tensor,
-    NDArray,
-    validate_args,
-)
-from tmol.chemical import RefinedResidueType, l_base_name
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
-from tmol.kinematics import KinForest
-from tmol.pack.rotamer import (
-    ConformerSampler,
-    construct_single_residue_kinforest,
-    sc_roots_for_chis,
+from tmol.types._torch import Tensor
+from tmol.types._array import NDArray
+from tmol.types._functional import _validate_args
+from tmol.chemical import RefinedResidueType
+from tmol.database.chemical import _l_base_name
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
+from tmol.kinematics._datatypes import KinForest
+from tmol.pack.rotamer._conformer_sampler import ConformerSampler, _sc_roots_for_chis
+from tmol.pack.rotamer._single_residue_kinforest import (
+    _construct_single_residue_kinforest,
 )
 from tmol.pack._packer_task import (
     DEFAULT_CHI_SAMPLE_EXPANDED_LIMIT,
     DEFAULT_CHI_SAMPLE_LIMIT,
 )
-from tmol.pack.rotamer._chi_budget import apply_chi_sample_budget, chi_depths
+from tmol.pack.rotamer._chi_budget import _apply_chi_sample_budget, _chi_depths
 from tmol.numeric import coord_dihedrals
-from tmol.utility.tensor import exclusive_cumsum1d
+from tmol.utility.tensor._common_operations import _exclusive_cumsum1d
 
 # Residue categories that get NHQ flip treatment (requires flip_NHQ=True)
 _HIS_FLIP_BASES = frozenset(("HIS", "HIS_D"))
@@ -160,7 +156,7 @@ def _opth_fill_dofs(
         .view(-1)
         .to(torch.int64)
     )
-    orig_at_off_base = exclusive_cumsum1d(pbt.n_atoms[orig_bt_ind]).to(torch.int64)
+    orig_at_off_base = _exclusive_cumsum1d(pbt.n_atoms[orig_bt_ind]).to(torch.int64)
     flat_block_for_gbt = task.global_block_ind_for_considered_block_types
     real_idx_for_flat = torch.full(
         (pose_stack.block_type_ind.shape[0] * pose_stack.block_type_ind.shape[1],),
@@ -237,6 +233,7 @@ class OptHSampler(ConformerSampler):
     atoms at their input-conformation positions.
 
     When flip_NHQ is True (default), also builds flip rotamers for:
+
     - ASN/GLN: current conformation + 180-degree rotation of the last chi.
     - HIS/HIS_D: {HIS, HIS_D} x {current chi2, chi2+180} = 4 rotamers.
       All atoms through CG are taken from the input; ring atoms are rebuilt
@@ -258,7 +255,7 @@ class OptHSampler(ConformerSampler):
     def sampler_name(cls):
         return "OptHSampler"
 
-    @validate_args
+    @_validate_args
     def _annotate_residue_type(self, rt: RefinedResidueType):
         key = (self.chi_sample_expanded_limit, self.chi_sample_limit)
         if getattr(rt, "_opth_sampler_key", None) == key:
@@ -267,7 +264,7 @@ class OptHSampler(ConformerSampler):
         # A D residue flips on the same axis as the L form it mirrors, so read
         # the L base name; DASN and friends match nothing otherwise and emit no
         # rotamers at all. _fixed_aa_chi_sampler does the same.
-        base = l_base_name(rt)
+        base = _l_base_name(rt)
 
         # NHQ flip annotation
         nhq_chi_col = -1
@@ -283,7 +280,7 @@ class OptHSampler(ConformerSampler):
             # retains its own named axis, and cannot move a connection atom
             # independently of the block bonded to it.
             nhq_chi_atom = int(uaids[2][0])
-            construct_single_residue_kinforest(rt)
+            _construct_single_residue_kinforest(rt)
             nhq_downstream_kfo = _compute_nhq_downstream_kfo(rt, nhq_chi_atom)
             connection_nodes = {
                 int(rt.rotamer_kinforest.kinforest_idx[rt.atom_to_idx[c.atom]])
@@ -308,13 +305,13 @@ class OptHSampler(ConformerSampler):
             # chi_samples are stored unbudgeted so that what optH enumerates and
             #    what the packer enumerates are each bounded on their own terms;
             #    a hydroxyl-rich sugar is otherwise thousands of rotamers here
-            construct_single_residue_kinforest(rt)
-            depths = chi_depths(
+            _construct_single_residue_kinforest(rt)
+            depths = _chi_depths(
                 rt.residue_kinforest_data,
                 [rt.torsion_to_uaids[cs.chi_dihedral][2][0] for cs in proton_chi],
             )
             proton_chi = list(
-                apply_chi_sample_budget(
+                _apply_chi_sample_budget(
                     proton_chi,
                     depths,
                     self.chi_sample_expanded_limit,
@@ -396,7 +393,7 @@ class OptHSampler(ConformerSampler):
 
         setattr(rt, "_opth_sampler_key", key)
 
-    @validate_args
+    @_validate_args
     def _annotate_packed_block_types(self, packed_block_types: PackedBlockTypes):
         key = (self.chi_sample_expanded_limit, self.chi_sample_limit, self.flip_NHQ)
         if getattr(packed_block_types, "_opth_sampler_key", None) == key:
@@ -493,7 +490,7 @@ class OptHSampler(ConformerSampler):
         setattr(packed_block_types, "opth_sample_cache", cache)
         setattr(packed_block_types, "_opth_sampler_key", key)
 
-    @validate_args
+    @_validate_args
     def defines_rotamers_for_rt(self, rt: RefinedResidueType):
         self._annotate_residue_type(rt)
         cache = rt.opth_sampler_cache
@@ -505,14 +502,14 @@ class OptHSampler(ConformerSampler):
         self._annotate_packed_block_types(pbt)
         return pbt.opth_sample_cache.opth_sample_for_bt[bt_inds]
 
-    @validate_args
+    @_validate_args
     def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
         """Roots for the chis optH turns: every proton chi, plus the flipped chi."""
         self._annotate_residue_type(rt)
         chis = [cs.chi_dihedral for cs in rt.chi_samples if cs.is_proton]
         if self.flip_NHQ and rt.opth_sampler_cache.nhq_chi_col >= 0:
             chis.append(f"chi{rt.opth_sampler_cache.nhq_chi_col + 1}")
-        return sc_roots_for_chis(rt, chis)
+        return _sc_roots_for_chis(rt, chis)
 
     def _assert_no_dun_opth_conflict(self, task: "SetPackerTask"):  # noqa: F821
         self_index_in_task = task.conformer_sampler_index[id(self)]
@@ -821,9 +818,9 @@ class OptHSampler(ConformerSampler):
         Tensor[torch.int32][:],
         dict[str, torch.Tensor],
     ]:
-        from tmol.pack.rotamer._chi_budget import sampler_for_task
+        from tmol.pack.rotamer._chi_budget import _sampler_for_task
 
-        configured, task = sampler_for_task(self, task)
+        configured, task = _sampler_for_task(self, task)
         if configured is not self:
             return configured.create_samples_for_poses(pose_stack, task)
         self._annotate_packed_block_types(pose_stack.packed_block_types)
@@ -840,9 +837,9 @@ class OptHSampler(ConformerSampler):
             self._count_rots_and_measure_all_flips(pose_stack, task)
         )
 
-        from tmol.pack.rotamer._chi_budget import checked_sample_count
+        from tmol.pack.rotamer._chi_budget import _checked_sample_count
 
-        n_rots_total = checked_sample_count(
+        n_rots_total = _checked_sample_count(
             n_rots_for_gbt, self.chi_sample_expanded_limit, self.chi_sample_limit
         )
 
@@ -858,7 +855,7 @@ class OptHSampler(ConformerSampler):
                     chi_for_rotamers=empty_chi.float(),
                 ),
             )
-        rot_offset_for_gbt = exclusive_cumsum1d(n_rots_for_gbt)
+        rot_offset_for_gbt = _exclusive_cumsum1d(n_rots_for_gbt)
         # Reuse the synchronized total and keep the existing int32 indices.
         gbt_for_rotamer = torch.repeat_interleave(
             torch.arange(

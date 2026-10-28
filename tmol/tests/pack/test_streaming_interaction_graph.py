@@ -3,15 +3,15 @@ import itertools
 import pytest
 import torch
 
-from tmol.pack.compiled import (
-    accumulate_interaction_graph_entries,
-    build_interaction_graph,
-    finalize_interaction_graph_chunk_topology,
-    finalize_interaction_graph_topology,
-    initialize_interaction_graph_topology,
-    note_interaction_graph_chunk_topology,
-    note_interaction_graph_topology,
-    pack_anneal,
+from tmol.pack.compiled._compiled import (
+    _accumulate_interaction_graph_entries,
+    _build_interaction_graph,
+    _finalize_interaction_graph_chunk_topology,
+    _finalize_interaction_graph_topology,
+    _initialize_interaction_graph_topology,
+    _note_interaction_graph_chunk_topology,
+    _note_interaction_graph_topology,
+    _pack_anneal,
 )
 from tmol.pack._pack_rotamers import _build_streaming_interaction_graph
 from tmol.tests import requires_cuda
@@ -115,7 +115,7 @@ def test_interaction_graph_empty_pose_offsets(
     torch_device, counts, expected_counts, expected_offsets
 ):
     metadata = graph_metadata(counts, torch_device)
-    graph = build_interaction_graph(
+    graph = _build_interaction_graph(
         False,
         32,
         1,
@@ -134,7 +134,7 @@ def staged_graph(metadata, term_entries, chunk_size):
     empty_indices = torch.empty((3, 0), dtype=torch.int32, device=device)
     empty_values = torch.empty(0, dtype=torch.float32, device=device)
     base = list(
-        build_interaction_graph(
+        _build_interaction_graph(
             False,
             chunk_size,
             1,
@@ -145,10 +145,10 @@ def staged_graph(metadata, term_entries, chunk_size):
         )
     )
     topology = list(
-        initialize_interaction_graph_topology(metadata[2], base[4], empty_values)
+        _initialize_interaction_graph_topology(metadata[2], base[4], empty_values)
     )
     for indices, values in term_entries:
-        (topology[0],) = note_interaction_graph_topology(
+        (topology[0],) = _note_interaction_graph_topology(
             metadata[6],
             topology[1],
             topology[0],
@@ -156,7 +156,7 @@ def staged_graph(metadata, term_entries, chunk_size):
             values,
         )
     chunk_topology = list(
-        finalize_interaction_graph_topology(
+        _finalize_interaction_graph_topology(
             chunk_size,
             base[4],
             topology[0],
@@ -164,7 +164,7 @@ def staged_graph(metadata, term_entries, chunk_size):
         )
     )
     for indices, values in term_entries:
-        (chunk_topology[4],) = note_interaction_graph_chunk_topology(
+        (chunk_topology[4],) = _note_interaction_graph_chunk_topology(
             chunk_size,
             metadata[2],
             metadata[3],
@@ -179,7 +179,7 @@ def staged_graph(metadata, term_entries, chunk_size):
             values,
         )
     base[11:14] = chunk_topology[:3]
-    base[14:16] = finalize_interaction_graph_chunk_topology(
+    base[14:16] = _finalize_interaction_graph_chunk_topology(
         chunk_size,
         base[4],
         chunk_topology[0],
@@ -190,7 +190,7 @@ def staged_graph(metadata, term_entries, chunk_size):
         empty_values,
     )
     for indices, values in term_entries:
-        base[9], base[10], base[15] = accumulate_interaction_graph_entries(
+        base[9], base[10], base[15] = _accumulate_interaction_graph_entries(
             chunk_size,
             metadata[2],
             metadata[3],
@@ -252,7 +252,7 @@ def test_streaming_graph_matches_existing(torch_device, counts, edges, duplicate
             int(metadata[0].sum()),
         ),
     ).coalesce()
-    existing = build_interaction_graph(
+    existing = _build_interaction_graph(
         False,
         2,
         1,
@@ -323,7 +323,7 @@ def test_streaming_graph_on_cuda_preserves_assignments_and_rng_advancement():
         values,
         size=(1, int(metadata[0].sum()), int(metadata[0].sum())),
     ).coalesce()
-    existing = build_interaction_graph(
+    existing = _build_interaction_graph(
         False,
         2,
         1,
@@ -334,10 +334,10 @@ def test_streaming_graph_on_cuda_preserves_assignments_and_rng_advancement():
     )
 
     torch.manual_seed(520)
-    expected_scores, expected_assignments = pack_anneal(*annealer_inputs(existing, 2))
+    expected_scores, expected_assignments = _pack_anneal(*annealer_inputs(existing, 2))
     expected_rng_state = torch.cuda.get_rng_state()
     torch.manual_seed(520)
-    actual_scores, actual_assignments = pack_anneal(*annealer_inputs(streamed, 2))
+    actual_scores, actual_assignments = _pack_anneal(*annealer_inputs(streamed, 2))
     actual_rng_state = torch.cuda.get_rng_state()
 
     assert torch.equal(actual_scores, expected_scores)
@@ -351,7 +351,7 @@ def test_chunk_topology_scales_with_observed_block_edges(torch_device):
     metadata = graph_metadata(counts, torch_device)
     indices, values = score_entries(metadata, [(0, 0, 128)])
     empty_values = torch.empty(0, dtype=torch.float32, device=torch_device)
-    base = build_interaction_graph(
+    base = _build_interaction_graph(
         False,
         32,
         1,
@@ -360,17 +360,17 @@ def test_chunk_topology_scales_with_observed_block_edges(torch_device):
         empty_values,
         False,
     )
-    block_adjacency, orig_block_to_molten = initialize_interaction_graph_topology(
+    block_adjacency, orig_block_to_molten = _initialize_interaction_graph_topology(
         metadata[2], base[4], empty_values
     )
-    (block_adjacency,) = note_interaction_graph_topology(
+    (block_adjacency,) = _note_interaction_graph_topology(
         metadata[6],
         orig_block_to_molten,
         block_adjacency,
         indices,
         values,
     )
-    chunk_topology = finalize_interaction_graph_topology(
+    chunk_topology = _finalize_interaction_graph_topology(
         32, base[4], block_adjacency, empty_values
     )
 
@@ -452,11 +452,11 @@ def test_cuda_annealer_reuses_order_workspace():
     # of thousands of rotamer proposals: annealing work uses per-pose counts.
     max_rotamers = 32768
     inputs[0] = max_rotamers
-    pack_anneal(*inputs)
+    _pack_anneal(*inputs)
     torch.cuda.synchronize()
     torch.cuda.reset_peak_memory_stats()
     allocated_before = torch.cuda.memory_allocated()
-    scores, assignments = pack_anneal(*inputs)
+    scores, assignments = _pack_anneal(*inputs)
     torch.cuda.synchronize()
     peak_delta = torch.cuda.max_memory_allocated() - allocated_before
 
@@ -501,7 +501,7 @@ def test_cuda_annealer_sparse_transposes_have_exact_minimum(
     # Metadata and converted inputs were produced on the current stream.
     stream.wait_stream(current_stream)
     with torch.cuda.stream(stream):
-        scores, assignments = pack_anneal(*inputs)
+        scores, assignments = _pack_anneal(*inputs)
     # Assertions consume outputs only after every annealing phase finishes.
     current_stream.wait_stream(stream)
 

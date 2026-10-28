@@ -1,10 +1,10 @@
-from tmol.score.terms import TermCreator, score_term_creator
-from tmol.score import ScoreType
+from tmol.score.terms._term_creator import TermCreator, _score_term_creator
+from tmol.score._score_types import ScoreType
 from tmol.database import ParameterDatabase
 import torch
 
 
-@score_term_creator
+@_score_term_creator
 class GenBondedTermCreator(TermCreator):
     """Create the general bonded-torsion energy term."""
 

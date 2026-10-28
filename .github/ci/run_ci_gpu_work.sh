@@ -21,10 +21,10 @@ echo "=== build ==="
 echo "=== representative CUDA JIT compile ==="
 TMOL_USE_JIT=1 python - <<'PY'
 import torch
-from tmol.kinematics.compiled import forward_kin_op
+from tmol.kinematics.compiled._compiled_ops import _forward_kin_op
 
 assert torch.cuda.is_available()
-print("loaded", forward_kin_op, "with torch", torch.__version__)
+print("loaded", _forward_kin_op, "with torch", torch.__version__)
 PY
 
 # The tutorial smokes run one kernel at a time and mostly wait on the host, so

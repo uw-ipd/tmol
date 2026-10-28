@@ -1,8 +1,8 @@
 import numpy
 
-from tmol._load_ext import load_module
+from tmol._load_ext import _load_module
 
-_polynomial = load_module(
+_polynomial = _load_module(
     __name__,
     __file__,
     "polynomial.pybind.cpp",

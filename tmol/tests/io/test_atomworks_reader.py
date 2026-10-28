@@ -7,8 +7,7 @@ import numpy as np
 import pytest
 import torch
 
-from tmol.io import atom_array_from_file, pose_stack_from_file
-from tmol.score import beta2016_score_function
+from tmol import atom_array_from_file, pose_stack_from_file, beta2016_score_function
 
 pytest.importorskip("atomworks")
 
@@ -77,7 +76,7 @@ HETATM {element} {atom_name} . {res_name} A 1 . ? 1 {res_name} A {atom_name} 1 1
 
 def test_file_hydrogen_policy_through_scoring(tmp_path, ubq_pdb):
     from biotite.structure.io import pdbx
-    from tmol.io import atom_array_from_pose_stack, pose_stack_from_file
+    from tmol import atom_array_from_pose_stack, pose_stack_from_file
 
     device = torch.device("cpu")
     source = atom_array_from_pose_stack(
@@ -122,7 +121,7 @@ def test_file_hydrogen_policy_through_scoring(tmp_path, ubq_pdb):
 def test_coincident_input_hydrogens_rebuilt_without_changing_state(
     ubq_pdb, torch_device
 ):
-    from tmol.io import (
+    from tmol import (
         atom_array_from_pose_stack,
         pose_stack_from_atom_array,
         pose_stack_from_file,
@@ -174,7 +173,7 @@ def test_coincident_input_hydrogens_rebuilt_without_changing_state(
 def test_coincident_bonded_heavy_atoms_rejected_with_identity(
     ubq_pdb, torch_device, inter_residue
 ):
-    from tmol.io import (
+    from tmol import (
         atom_array_from_pose_stack,
         pose_stack_from_atom_array,
         pose_stack_from_file,
@@ -203,8 +202,8 @@ def test_isolated_halogen_charge_provenance(
     tmp_path, source_charge: str, should_fail: bool
 ) -> None:
     """Reject authored neutral halogen without overriding source or CCD charge."""
-    from tmol.io import pose_stack_from_atom_array
-    from tmol.ligand._preparation import LigandPreparationError
+    from tmol import pose_stack_from_atom_array
+    from tmol.ligand import LigandPreparationError
     from tmol.tests.ligand.test_local_conjugate_params import _charges
 
     path = _write_halogen_cif(tmp_path, source_charge)
@@ -635,7 +634,7 @@ def test_reader_preserves_observed_histidine_tautomer_evidence(tmp_path, state):
 
 def test_pdb_modified_polymer_preserves_chain_and_scores(tmp_path, torch_device):
     from biotite.structure.io import pdb
-    from tmol.io import atom_array_from_file, pose_stack_from_file
+    from tmol import atom_array_from_file, pose_stack_from_file
     from tmol.tests.io.test_atomworks_corpus_regressions import (
         _assert_all_source_connections,
         _score_and_minimize,
@@ -697,14 +696,15 @@ def test_known_and_unknown_chemistry_share_file_contract(
 ):
     """MOL2 preparation makes atom-only PDB/CIF sufficient for scoring."""
     from biotite.structure.io import pdb, pdbx
-    from tmol.io import (
+    from tmol import (
         atom_array_from_file,
         pose_stack_from_file,
         pose_stack_from_atom_array,
     )
-    from tmol.ligand import prepare_ligand_from_mol2, write_params_from_mol2
-    from tmol.ligand._detect import nonstandard_residue_info_from_mol2
-    from tmol.ligand._preparation import LigandPreparationError
+    from tmol.ligand import prepare_ligand_from_mol2
+    from tmol.ligand import write_params_from_mol2
+    from tmol.ligand import nonstandard_residue_info_from_mol2
+    from tmol.ligand import LigandPreparationError
     from tmol.tests.io.test_atomworks_corpus_regressions import _score_and_minimize
     import tmol.ligand._preparation as preparation
 
@@ -783,7 +783,7 @@ def test_pdb_link_records_reach_the_pose(tmp_path, torch_device):
 
     import biotite.structure as struc
     import zstandard
-    from tmol.io import atom_array_from_file, pose_stack_from_file
+    from tmol import atom_array_from_file, pose_stack_from_file
 
     fixture = DATA / "sweep_regressions" / "zn_link_records_1hzy.pdb.zst"
     coordination, single = struc.BondType.COORDINATION, struc.BondType.SINGLE
@@ -880,7 +880,7 @@ def test_pdb_keeps_one_alternate_per_linked_group(
     two residues overlap."""
     from scipy.spatial import cKDTree
 
-    from tmol.io import atom_array_from_file, pose_stack_from_file
+    from tmol import atom_array_from_file, pose_stack_from_file
 
     path = DATA / "sweep_regressions" / f"{fixture}.pdb.zst"
     array = atom_array_from_file(path)
@@ -899,7 +899,7 @@ def test_pdb_keeps_one_alternate_per_linked_group(
 def test_coordinate_only_pdb_keeps_its_caps_in_the_chain(torch_device):
     """1COI with its coordinates only, no LINK or CONECT records: the HETATM caps
     ACE A:0 and NH2 A:30 bond to GLU A:1 N and GLY A:29 C, so they stay in chain A."""
-    from tmol.io import pose_stack_from_file
+    from tmol import pose_stack_from_file
 
     fixture = DATA / "sweep_regressions" / "capped_peptide_1coi.pdb.zst"
     pose = pose_stack_from_file(

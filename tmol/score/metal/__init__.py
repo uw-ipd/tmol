@@ -1,3 +1,3 @@
 """Metal coordination scoring."""
 
-from ._metal_coordination_term import MetalCoordinationEnergyTerm  # noqa: F401
+from . import _metal_coordination_term  # noqa: F401

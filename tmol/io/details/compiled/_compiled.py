@@ -1,6 +1,6 @@
-from tmol._load_ext import load_ops
+from tmol._load_ext import _load_ops
 
-_ops = load_ops(
+_ops = _load_ops(
     __name__,
     __file__,
     [
@@ -13,5 +13,5 @@ _ops = load_ops(
     "tmol_io",
 )
 
-gen_pose_leaf_atoms = _ops.gen_pose_leaf_atoms
-resolve_his_taut = _ops.resolve_his_taut
+_gen_pose_leaf_atoms = _ops.gen_pose_leaf_atoms
+_resolve_his_taut = _ops.resolve_his_taut

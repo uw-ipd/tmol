@@ -21,5 +21,4 @@ data model and :doc:`api/score_terms` for score-type definitions.
    api/score
    api/analysis
    api/score_terms
-   api/types
    api/utility

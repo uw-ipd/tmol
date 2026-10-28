@@ -5,24 +5,23 @@ import torch
 
 import tmol.pack.rotamer.dunbrack._compiled  # noqa F401
 from tmol.chemical import RefinedResidueType, ResidueTypeSet
-from tmol.io import pose_stack_from_file
-from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-from tmol.pose import (
+from tmol import (
+    pose_stack_from_file,
+    PackerPalette,
+    PackerTask,
     PackedBlockTypes,
     PoseStackBuilder,
 )
-from tmol.score.dunbrack import DunbrackParamResolver
-from tmol.pack.rotamer.dunbrack import (
-    create_dunbrack_sampler_from_database,
-)
+from tmol.pack import SetPackerTask, create_dunbrack_sampler_from_database
+from tmol.score.dunbrack._params import DunbrackParamResolver
 from tmol.tests.data import no_termini_pose_stack_from_pdb
-from tmol.utility.tensor import exclusive_cumsum1d
+from tmol.utility.tensor._common_operations import _exclusive_cumsum1d
 
 
 def get_compiled():
-    from tmol._load_ext import load_module
+    from tmol._load_ext import _load_module
 
-    return load_module(
+    return _load_module(
         __name__,
         __file__,
         ["compiled.pybind.cpp", "test_cpu.cpp", "test_cuda.cu"],
@@ -876,7 +875,7 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
     ) = results
 
     all_considered_restypes = task.cons_bt_block_type.cpu().numpy()
-    offsets_for_gbt = exclusive_cumsum1d(n_rots_for_gbt)
+    offsets_for_gbt = _exclusive_cumsum1d(n_rots_for_gbt)
 
     n_rots_for_gbt_gold = numpy.zeros(
         all_considered_restypes.shape[0], dtype=numpy.int32

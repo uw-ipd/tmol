@@ -4,7 +4,7 @@ import torch
 import yaml
 from typing import Tuple, Optional
 
-from tmol.types import Tensor
+from tmol.types._torch import Tensor
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)

@@ -12,27 +12,14 @@ from tmol.utility import resolve_device
 from typing import Optional, TYPE_CHECKING
 
 # Import in topological order: dependencies before dependents.
-from ._score_types import ScoreType  # noqa: F401
-from ._bonded_atom import IndexedBonds  # noqa: F401
-from ._chemical_database import (  # noqa: F401
-    AcceptorHybridization,
-    AtomTypeParamResolver,
-    AtomTypeParams,
-)  # noqa: F401
-from ._energy_term import EnergyTerm  # noqa: F401
-from ._atom_type_dependent_term import AtomTypeDependentTerm  # noqa: F401
-from ._bond_dependent_term import BondDependentTerm  # noqa: F401
-from ._fragment_interactions import (  # noqa: F401
-    FragmentInteractionScores,
-    calculate_fragment_interactions,
-)
-from ._score_function import (  # noqa: F401
-    BlockPairScoringModule,
-    RotamerScoringModule,
-    SFXN_FORMAT_VERSION,
-    ScoreFunction,
-    WholePoseScoringModule,
-)
+from . import _score_types  # noqa: F401
+from . import _bonded_atom  # noqa: F401
+from . import _chemical_database  # noqa: F401
+from . import _energy_term  # noqa: F401
+from . import _atom_type_dependent_term  # noqa: F401
+from . import _bond_dependent_term  # noqa: F401
+from . import _fragment_interactions  # noqa: F401
+from ._score_function import ScoreFunction  # noqa: F401
 
 if TYPE_CHECKING:
     pass
@@ -94,17 +81,57 @@ def beta2016_score_function(
 
 
 __all__ = [
-    "AcceptorHybridization",
-    "AtomTypeParamResolver",
-    "AtomTypeParams",
-    "BlockPairScoringModule",
-    "FragmentInteractionScores",
-    "IndexedBonds",
-    "RotamerScoringModule",
-    "SFXN_FORMAT_VERSION",
-    "ScoreFunction",
-    "ScoreType",
-    "WholePoseScoringModule",
-    "beta2016_score_function",
-    "calculate_fragment_interactions",
+    "BackboneTorsionEnergyTerm",
+    "CartBondedEnergyTerm",
+    "ConstraintEnergyTerm",
+    "DisulfideEnergyTerm",
+    "DunbrackEnergyTerm",
+    "ElecEnergyTerm",
+    "GenBondedEnergyTerm",
+    "HBondEnergyTerm",
+    "LJLKEnergyTerm",
+    "LKBallEnergyTerm",
+    "NaTorsionEnergyTerm",
+    "RefEnergyTerm",
+    "ScoreTermFactory",
+    "constrain_all_ca",
+    "constrain_closest_interchain_ca_pair",
+    "create_mainchain_coordinate_constraints",
 ]
+
+
+# API names defined in modules this package does not otherwise import; they
+# load on first access so importing the package stays cheap and acyclic.
+_LAZY_ATTRS = {
+    "BackboneTorsionEnergyTerm": "tmol.score.backbone_torsion._bb_torsion_energy_term",
+    "CartBondedEnergyTerm": "tmol.score.cartbonded._cartbonded_energy_term",
+    "ConstraintEnergyTerm": "tmol.score.constraint._constraint_energy_term",
+    "DisulfideEnergyTerm": "tmol.score.disulfide._disulfide_energy_term",
+    "DunbrackEnergyTerm": "tmol.score.dunbrack._dunbrack_energy_term",
+    "ElecEnergyTerm": "tmol.score.elec._elec_energy_term",
+    "GenBondedEnergyTerm": "tmol.score.genbonded._genbonded_energy_term",
+    "HBondEnergyTerm": "tmol.score.hbond._hbond_energy_term",
+    "LJLKEnergyTerm": "tmol.score.ljlk._ljlk_energy_term",
+    "LKBallEnergyTerm": "tmol.score.lk_ball._lk_ball_energy_term",
+    "NaTorsionEnergyTerm": "tmol.score.na_torsion._na_torsion_energy_term",
+    "RefEnergyTerm": "tmol.score.ref._ref_energy_term",
+    "ScoreTermFactory": "tmol.score.terms._score_term_factory",
+    "constrain_all_ca": "tmol.score.constraint._utility",
+    "constrain_closest_interchain_ca_pair": "tmol.score.constraint._utility",
+    "create_mainchain_coordinate_constraints": "tmol.score.constraint._utility",
+}
+
+
+def __getattr__(name):
+    module_name = _LAZY_ATTRS.get(name)
+    if module_name is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    from importlib import import_module
+
+    value = getattr(import_module(module_name), name)
+    globals()[name] = value
+    return value
+
+
+def __dir__():
+    return sorted(set(globals()) | set(__all__))

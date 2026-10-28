@@ -8,15 +8,15 @@ import torch
 from torch.optim import Optimizer
 
 from tmol.optimization._armijo_compiled import (
-    armijo_classify,
-    armijo_finalize,
-    armijo_start,
-    armijo_trial,
-    armijo_update,
+    _armijo_classify,
+    _armijo_finalize,
+    _armijo_start,
+    _armijo_trial,
+    _armijo_update,
 )
 
 
-def lbfgs_two_loop(grad, dirs, stps):
+def _lbfgs_two_loop(grad, dirs, stps):
     """L-BFGS search direction -H_k @ grad via the compact
     representation of Byrd, Nocedal & Schnabel, (Math. Prog. 63 (1994)):
         H_0 = I
@@ -29,10 +29,10 @@ def lbfgs_two_loop(grad, dirs, stps):
     grad is (N) or (k, N) and dirs/stps are (m, N) or (m, k, N); in the latter
     case each of the k batches gets its own inverse-Hessian estimate.
     """
-    return _lbfgs_two_loop(grad, dirs, stps)
+    return _lbfgs_two_loop_impl(grad, dirs, stps)
 
 
-def _lbfgs_two_loop(grad, dirs, stps, history_start=0):
+def _lbfgs_two_loop_impl(grad, dirs, stps, history_start=0):
     """Compact solve with histories kept in their physical circular slots."""
     unbatched = grad.dim() == 1
     if unbatched:
@@ -133,7 +133,7 @@ def _any_true(mask):
     return bool(mask) if mask.numel() == 1 else bool(mask.any())
 
 
-def armijo_linesearch_segmented(
+def _armijo_linesearch_segmented(
     func,
     derphi0,
     old_fval,
@@ -186,14 +186,14 @@ def armijo_linesearch_segmented(
               * 'factor' corresponds roughly to 'beta' in the text (see point 1)
     """
     phi0 = old_fval
-    alpha = armijo_start(searching, alpha0)
+    alpha = _armijo_start(searching, alpha0)
 
     phi = func(alpha)
     n_evals = 1
 
     # sigma_increase > sigma_decrease, so a linear-looking step also has
     # sufficient decrease; it is the one case where a longer step is tried
-    accepted, phi_accepted, status, active = armijo_classify(
+    accepted, phi_accepted, status, active = _armijo_classify(
         searching,
         alpha,
         phi,
@@ -206,11 +206,11 @@ def armijo_linesearch_segmented(
     combine_cuda_checks = searching.is_cuda and searching.numel() > 1
     any_active = _any_true(active)
     while any_active:
-        trial = armijo_trial(status, alpha, accepted, factor)
+        trial = _armijo_trial(status, alpha, accepted, factor)
         phi_trial = func(trial)
         n_evals += 1
 
-        accepted, phi_accepted, status, failed, active = armijo_update(
+        accepted, phi_accepted, status, failed, active = _armijo_update(
             status,
             trial,
             accepted,
@@ -805,7 +805,7 @@ class LBFGS_Armijo(Optimizer):
                 with torch.inference_mode() if grad_pad.is_cuda else nullcontext():
                     d.copy_(
                         self._unpad(
-                            _lbfgs_two_loop(
+                            _lbfgs_two_loop_impl(
                                 grad_pad,
                                 old_dirs_view,
                                 old_stps_view,
@@ -878,7 +878,7 @@ class LBFGS_Armijo(Optimizer):
         start_t = (ctx.t / 0.5).clamp(max=1.0)
 
         accepted, phi_accepted, ls_evals, status, trial_is_accepted = (
-            armijo_linesearch_segmented(
+            _armijo_linesearch_segmented(
                 linefn_vec,
                 ctx.gtd_seg,
                 ctx.prev_loss_vec,  # energies at x_backup
@@ -918,7 +918,7 @@ class LBFGS_Armijo(Optimizer):
 
         # a failed search gets one steepest-descent restart, applied on the next
         # iteration so the other segments are not held up; then it is retired
-        ctx.t, failed = armijo_finalize(
+        ctx.t, failed = _armijo_finalize(
             status,
             ctx.gtd_seg,
             accepted,

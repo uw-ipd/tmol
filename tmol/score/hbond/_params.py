@@ -7,16 +7,13 @@ import torch
 
 import toolz
 
-from tmol.types import (
-    Tensor,
-    TensorGroup,
-    ValidateAttrs,
-    ConvertAttrs,
-    validate_args,
-)
+from tmol.types._torch import Tensor
+from tmol.types._tensor import TensorGroup
+from tmol.types._attrs import ValidateAttrs, ConvertAttrs
+from tmol.types._functional import _validate_args
 from tmol.database.scoring import HBondDatabase
 from tmol.database.chemical import ChemicalDatabase
-from tmol.database import PatchedChemicalDatabase
+from tmol.database._patched_chemdb import PatchedChemicalDatabase
 
 from .._chemical_database import AcceptorHybridization
 from tmol.utility import resolve_device
@@ -89,7 +86,7 @@ class HBondParamResolver(ValidateAttrs):
     device: torch.device = attr.ib()
 
     @classmethod
-    @validate_args
+    @_validate_args
     def from_database(
         cls,
         chemical_database: Union[ChemicalDatabase, PatchedChemicalDatabase],
@@ -230,7 +227,7 @@ class CompactedHBondDatabase(ValidateAttrs):
     pair_poly_table: Tensor[torch.float64][:, :, :]
 
     @classmethod
-    @validate_args
+    @_validate_args
     def from_database(
         cls,
         chemical_database: Union[ChemicalDatabase, PatchedChemicalDatabase],

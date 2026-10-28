@@ -3,7 +3,7 @@ from typing import Optional, Tuple
 import attr
 import cattr
 
-from tmol.database._yaml import load_yaml
+from tmol.database._yaml import _load_yaml
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -45,7 +45,7 @@ class MetalCoordinationDatabase:
 
     @classmethod
     def from_file(cls, path):
-        return cattr.structure(load_yaml(path), cls)
+        return cattr.structure(_load_yaml(path), cls)
 
     def widths(self, atom_type: str) -> Tuple[float, float]:
         """Radial and lateral sd for a metal atom type."""

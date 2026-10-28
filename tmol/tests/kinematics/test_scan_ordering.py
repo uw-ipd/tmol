@@ -3,10 +3,8 @@ import numpy
 import scipy.sparse as sparse
 import scipy.sparse.csgraph as csgraph
 
-from tmol.kinematics import (
-    KinForest,
-    get_scans,
-)
+from tmol.kinematics._datatypes import KinForest
+from tmol.kinematics._scan_ordering import _get_scans
 
 
 def kinforest_from_roots_and_bonds(roots, bonds):
@@ -80,7 +78,7 @@ def test_get_scans_simple_path():
     roots = numpy.array([0], dtype=numpy.int32)
 
     kinforest, _ = kinforest_from_roots_and_bonds(roots, bonds)
-    nodes, scans, gens = get_scans(
+    nodes, scans, gens = _get_scans(
         kinforest.parent.cpu().numpy(), numpy.zeros((1,), dtype=numpy.int32)
     )
 
@@ -110,7 +108,7 @@ def test_get_scans_two_simple_paths():
     roots = numpy.array([0, 10], dtype=numpy.int32)
 
     kinforest, kfo_2_to_w_root = kinforest_from_roots_and_bonds(roots, bonds)
-    nodes, scans, gens = get_scans(
+    nodes, scans, gens = _get_scans(
         kinforest.parent.cpu().numpy(), numpy.zeros((1,), dtype=numpy.int32)
     )
 
@@ -151,7 +149,7 @@ def test_get_scans_three_simple_paths():
     roots = numpy.array([0, 10, 20], dtype=numpy.int32)
 
     kinforest, kfo_2_to_w_root = kinforest_from_roots_and_bonds(roots, bonds)
-    nodes, scans, gens = get_scans(
+    nodes, scans, gens = _get_scans(
         kinforest.parent.cpu().numpy(), numpy.zeros((1,), dtype=numpy.int32)
     )
 
@@ -198,7 +196,7 @@ def test_get_scans_three_simple_branches():
     roots = numpy.array([0, 10, 20], dtype=numpy.int32)
 
     kinforest, kfo_2_to_w_root = kinforest_from_roots_and_bonds(roots, bonds)
-    nodes, scans, gens = get_scans(
+    nodes, scans, gens = _get_scans(
         kinforest.parent.cpu().numpy(), numpy.zeros((1,), dtype=numpy.int32)
     )
 

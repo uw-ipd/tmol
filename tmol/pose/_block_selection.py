@@ -6,7 +6,7 @@ import attr
 import numpy
 import torch
 
-from tmol.chemical import MAX_SIG_BOND_SEPARATION
+from tmol.chemical._constants import MAX_SIG_BOND_SEPARATION
 
 from ._inter_block_bondsep import InterBlockBondsep
 from ._pdb_info import PDBInfo

@@ -9,9 +9,9 @@ import torch
 
 from tmol.score._annotation_cache import (
     AnnotationKey,
-    cached_annotation,
-    invalidate_annotation,
-    store_annotation,
+    _cached_annotation,
+    _invalidate_annotation,
+    _store_annotation,
 )
 from tmol.tests._torch import requires_cuda
 
@@ -37,16 +37,16 @@ def test_annotation_keys_match_identity_and_expire_without_retaining_sources():
     )
     owner = SimpleNamespace()
     value = object()
-    assert store_annotation(owner, "annotation", key, value) is value
-    assert cached_annotation(owner, "annotation", same) is value
+    assert _store_annotation(owner, "annotation", key, value) is value
+    assert _cached_annotation(owner, "annotation", same) is value
     reference = weakref.ref(first)
     del first
     gc.collect()
     assert reference() is None
     assert not key.matches(same)
-    assert cached_annotation(owner, "annotation", same) is None
+    assert _cached_annotation(owner, "annotation", same) is None
     # The same compiled term can still use its own snapshot after source expiry.
-    assert cached_annotation(owner, "annotation", key) is value
+    assert _cached_annotation(owner, "annotation", key) is value
 
 
 def test_equal_content_sources_do_not_claim_content_sharing():
@@ -56,11 +56,11 @@ def test_equal_content_sources_do_not_claim_content_sharing():
     first_key = AnnotationKey.from_sources(first)
     equal_key = AnnotationKey.from_sources(equal)
     value = object()
-    store_annotation(owner, "annotation", first_key, value)
+    _store_annotation(owner, "annotation", first_key, value)
 
     assert first == equal
-    assert cached_annotation(owner, "annotation", equal_key) is None
-    assert cached_annotation(owner, "annotation", first_key) is value
+    assert _cached_annotation(owner, "annotation", equal_key) is None
+    assert _cached_annotation(owner, "annotation", first_key) is value
 
 
 def test_equivalent_device_settings_match(torch_device):
@@ -81,11 +81,11 @@ def test_alternating_cuda_and_cpu_devices_retain_both_bounded_entries():
     ]
     values = [object(), object()]
     for key, value in zip(keys, values):
-        store_annotation(owner, "annotation", key, value)
+        _store_annotation(owner, "annotation", key, value)
 
     for _ in range(3):
-        assert cached_annotation(owner, "annotation", keys[0]) is values[0]
-        assert cached_annotation(owner, "annotation", keys[1]) is values[1]
+        assert _cached_annotation(owner, "annotation", keys[0]) is values[0]
+        assert _cached_annotation(owner, "annotation", keys[1]) is values[1]
     assert len(owner.annotation) == 2
 
 
@@ -95,15 +95,15 @@ def test_annotation_lru_is_bounded_and_invalidates_mutated_sources():
     keys = [AnnotationKey.from_sources(source) for source in sources]
     values = [object() for _ in sources]
     for key, value in zip(keys, values):
-        store_annotation(owner, "annotation", key, value)
+        _store_annotation(owner, "annotation", key, value)
 
     assert len(owner.annotation) == 2
-    assert cached_annotation(owner, "annotation", keys[0]) is None
-    assert cached_annotation(owner, "annotation", keys[1]) is values[1]
+    assert _cached_annotation(owner, "annotation", keys[0]) is None
+    assert _cached_annotation(owner, "annotation", keys[1]) is values[1]
     sources[1].label = "mutated"
     # Identity keys require explicit invalidation after unsupported mutation.
-    invalidate_annotation(owner, "annotation", keys[1])
-    assert cached_annotation(owner, "annotation", keys[1]) is None
+    _invalidate_annotation(owner, "annotation", keys[1])
+    assert _cached_annotation(owner, "annotation", keys[1]) is None
     assert len(owner.annotation) == 1
 
 
@@ -115,7 +115,7 @@ def test_cache_hit_restores_owner_attributes_and_does_not_retain_owner():
     child = Source("child")
     child.published = object()
     expected_child = child.published
-    store_annotation(
+    _store_annotation(
         owner,
         "annotation",
         key,
@@ -126,7 +126,7 @@ def test_cache_hit_restores_owner_attributes_and_does_not_retain_owner():
     owner.published = object()
     child.published = object()
 
-    assert cached_annotation(owner, "annotation", key) == "snapshot"
+    assert _cached_annotation(owner, "annotation", key) == "snapshot"
     assert owner.published is expected
     assert child.published is expected_child
 
@@ -134,7 +134,7 @@ def test_cache_hit_restores_owner_attributes_and_does_not_retain_owner():
         pass
 
     weak_owner = WeakOwner()
-    store_annotation(weak_owner, "annotation", key, object())
+    _store_annotation(weak_owner, "annotation", key, object())
     cache = weak_owner.annotation
     reference = weakref.ref(weak_owner)
     del weak_owner
@@ -161,10 +161,10 @@ def test_cuda_hit_waits_for_nested_annotation_producer_stream():
         torch.cuda._sleep(200_000_000)
         tensor.fill_(17)
         value = NestedTensor((tensor,))
-        store_annotation(owner, "annotation", key, value)
+        _store_annotation(owner, "annotation", key, value)
 
     with torch.cuda.stream(consumer):
-        cached = cached_annotation(owner, "annotation", key)
+        cached = _cached_annotation(owner, "annotation", key)
         observed = cached.values[0].clone()
         consumed = torch.cuda.Event()
         consumed.record(consumer)

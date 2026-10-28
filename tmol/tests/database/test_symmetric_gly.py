@@ -50,7 +50,7 @@ def test_symmetric_gly_geometry_is_private_and_idempotent(default_database):
 
 
 def test_symmetric_gly_averages_private_unequal_force_constants(default_database):
-    from tmol.database.scoring._cartbonded import CartBondedDatabase
+    from tmol.database.scoring import CartBondedDatabase
 
     original = default_database.scoring.cartbonded
     params = dict(original.residue_params)

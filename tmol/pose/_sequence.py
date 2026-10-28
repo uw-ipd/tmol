@@ -32,7 +32,7 @@ class SeqToken:
     smiles: Optional[str] = None
 
 
-def tokenize_sequences(
+def _tokenize_sequences(
     seqs: Union[str, Sequence[str]],
 ) -> Tuple[List[List[SeqToken]], List[List[int]]]:
     """Split sequence strings into per-pose tokens and chain lengths."""
@@ -47,7 +47,7 @@ def tokenize_sequences(
     return tokens, chain_lengths
 
 
-def smiles_in_tokens(tokens: List[List[SeqToken]]) -> List[str]:
+def _smiles_in_tokens(tokens: List[List[SeqToken]]) -> List[str]:
     """Unique SMILES strings appearing in the tokenized sequences."""
     seen = {}
     for seq_tokens in tokens:
@@ -57,7 +57,7 @@ def smiles_in_tokens(tokens: List[List[SeqToken]]) -> List[str]:
     return list(seen)
 
 
-def resolve_block_type_names(
+def _resolve_block_type_names(
     tokens: List[List[SeqToken]],
     chain_lengths: List[List[int]],
     restype_set,

@@ -10,22 +10,20 @@ from dataclasses import dataclass, replace
 from itertools import chain
 from typing import Optional
 
-from tmol.database import (
-    PatchedChemicalDatabase,
-    ParameterDatabase,
-)
+from tmol.database._patched_chemdb import PatchedChemicalDatabase
+from tmol.database import ParameterDatabase
 from tmol.database.chemical import (
     AtomType,
     RawResidueType,
 )
-from tmol.database.scoring import (
+from tmol.database.scoring._cartbonded import (
     AngleGroup,
     CartRes,
     ConnectionCartRes,
     LengthGroup,
 )
-from tmol.io import CanonicalOrdering
-from tmol.ligand._chemistry_tables import get_hbond_properties
+from tmol.io._canonical_ordering import CanonicalOrdering
+from tmol.ligand._chemistry_tables import _get_hbond_properties
 
 logger = logging.getLogger(__name__)
 
@@ -187,7 +185,7 @@ def _build_cartbonded_params(  # noqa: C901
     )
 
 
-def collect_new_atom_types(
+def _collect_new_atom_types(
     chem_db: PatchedChemicalDatabase,
     residue_type: RawResidueType,
     atom_type_elements: Optional[dict[str, str]] = None,
@@ -199,7 +197,7 @@ def collect_new_atom_types(
     Sets hbond properties (is_donor, is_acceptor, acceptor_hybridization)
     from the HBOND_PROPERTIES lookup in atom_typing.py.
     """
-    return _collect_new_atom_types(
+    return _collect_new_atom_types_from_sources(
         chem_db,
         ((residue_type.atoms, f"residue {residue_type.name}"),),
         atom_type_elements,
@@ -207,13 +205,13 @@ def collect_new_atom_types(
     )
 
 
-def _collect_new_atom_types(
+def _collect_new_atom_types_from_sources(
     chem_db, atom_sources, atom_type_elements=None, *, strict_atom_types=False
 ):
     """Collect types once across sources, including atoms introduced by patches."""
     existing = {at.name for at in chem_db.atom_types}
     needed: dict[str, str] = {}
-    hbond_properties = get_hbond_properties()
+    hbond_properties = _get_hbond_properties()
 
     for atoms, source in atom_sources:
         for atom in atoms:
@@ -265,11 +263,11 @@ class LigandPreparation:
       types the (already protonated, already charged) SMILES-derived molecule,
       builds the residue, and extracts cartbonded params, returning one
       ``LigandPreparation`` per ligand.
-    * **Params-file path** — :func:`tmol.ligand._params_file.load_params_file`
+    * **Params-file path** — :func:`tmol.ligand.load_params_file`
       parses a ``.tmol`` YAML and returns ``list[LigandPreparation]``
       describing the residues defined in that file.
 
-    Either list is then handed to :func:`inject_ligand_preparations`,
+    Either list is then handed to :func:`_inject_ligand_preparations`,
     the single chokepoint that extends the ``ParameterDatabase``. Tests
     can equally roundtrip ``AtomArray → LigandPreparation → .tmol →
     LigandPreparation`` and expect bit-equivalent injection.
@@ -337,7 +335,7 @@ def _patched_connection(base, variant, patch):
     return None, None
 
 
-def terminus_charge_entries(param_db, patched_chemdb, residue_type) -> dict:
+def _terminus_charge_entries(param_db, patched_chemdb, residue_type) -> dict:
     """``{variant name: {atom: charge}}`` for every variant a residue takes.
 
     A patch introduces atoms the base residue has no charge for -- the acid's
@@ -491,7 +489,7 @@ def _additional_cartbonded_params(preparations):
     return extra
 
 
-def inject_ligand_preparations(
+def _inject_ligand_preparations(
     param_db: ParameterDatabase,
     preparations: list[LigandPreparation],
     *,
@@ -504,7 +502,7 @@ def inject_ligand_preparations(
     ``.tmol`` file or an AtomArray), this function aggregates their
     residue types, atom types, charges, and cartbonded params and
     evolves the input ``ParameterDatabase`` via
-    :func:`tmol.database.inject_residue_params`.
+    :func:`tmol.database._inject_residue_params`.
 
     Base definitions whose name already exists in ``param_db`` are skipped.
     Their additional patches, variant charges and connection records are still
@@ -529,12 +527,12 @@ def inject_ligand_preparations(
         return _inject_additions(param_db, preparations, strict_atom_types)
 
     from tmol.ligand._parameter_replacements import (
-        install_replacements,
-        validate_replacements,
+        _install_replacements,
+        _validate_replacements,
     )
 
     # Check existing targets before any bundle metadata can reset their charges.
-    validate_replacements(param_db, replacements, allow_missing=True)
+    _validate_replacements(param_db, replacements, allow_missing=True)
     # Conflicting source metadata is invalid even when an installed target
     # makes that metadata unnecessary for this particular database.
     _merge_partial_charges(p.variant_partial_charges or {} for p in preparations)
@@ -562,7 +560,7 @@ def inject_ligand_preparations(
     ]
     extended = _inject_additions(param_db, additions, strict_atom_types)
     elements = _batch_atom_type_elements(preparations, extended.chemical)
-    atom_types = _collect_new_atom_types(
+    atom_types = _collect_new_atom_types_from_sources(
         extended.chemical,
         (
             (p.residue_type.atoms, f"residue {p.residue_type.name}")
@@ -571,7 +569,7 @@ def inject_ligand_preparations(
         elements,
         strict_atom_types=strict_atom_types,
     )
-    return install_replacements(
+    return _install_replacements(
         extended,
         replacements,
         tuple(dict.fromkeys(r for p in preparations for r in p.connection_params)),
@@ -580,7 +578,7 @@ def inject_ligand_preparations(
 
 
 def _inject_additions(param_db, preparations, strict_atom_types):
-    from tmol.database import inject_residue_params
+    from tmol.database import _inject_residue_params
 
     if not preparations:
         return param_db
@@ -637,7 +635,7 @@ def _inject_additions(param_db, preparations, strict_atom_types):
     ):
         return param_db
 
-    new_atom_types = _collect_new_atom_types(
+    new_atom_types = _collect_new_atom_types_from_sources(
         param_db.chemical,
         chain(
             (
@@ -668,7 +666,7 @@ def _inject_additions(param_db, preparations, strict_atom_types):
     for name, delta in extra_charges.items():
         # The initial maps may be owned by reusable frozen preparations.
         charges[name] = {**charges.get(name, {}), **delta}
-    return inject_residue_params(
+    return _inject_residue_params(
         param_db,
         residue_types=[p.residue_type for p in new_preps],
         atom_types=new_atom_types or None,
@@ -696,12 +694,12 @@ def _charges_with_termini(param_db, preps, atom_types) -> dict:
     charges = {}
     for prep in preps:
         charges[prep.residue_type.name] = prep.partial_charges
-        charges.update(terminus_charge_entries(param_db, patched, prep.residue_type))
+        charges.update(_terminus_charge_entries(param_db, patched, prep.residue_type))
         charges.update(prep.variant_partial_charges or {})
     return charges
 
 
-def rebuild_canonical_ordering(
+def _rebuild_canonical_ordering(
     param_db: ParameterDatabase,
 ) -> CanonicalOrdering:
     """Build a new CanonicalOrdering from a (possibly extended) ParameterDatabase."""

@@ -32,11 +32,11 @@ import pytest
 import biotite.structure as struc
 import biotite.structure.info as info
 
-from tmol.database import ParameterDatabase
-from tmol.ligand import LigandPreparationError, prepare_polymer_residue
-from tmol.ligand._polymer_profile import alpha_profile, profile_for_atom_array
-from tmol.ligand._preparation import _ideal_coords_by_name
-from tmol.ligand._registry import rebuild_canonical_ordering
+from tmol import ParameterDatabase
+from tmol.ligand import LigandPreparationError
+from tmol.ligand._preparation import _prepare_polymer_residue, _ideal_coords_by_name
+from tmol.ligand._polymer_profile import _alpha_profile, _profile_for_atom_array
+from tmol.ligand._registry import _rebuild_canonical_ordering
 
 # code -> (what the backbone is, whether it is an unmodified alpha backbone,
 #          the atoms that bond to the neighbouring residues)
@@ -155,9 +155,9 @@ def _heavy_only(atom_array):
 
 def _prepare(code: str):
     param_db = ParameterDatabase.get_default()
-    return prepare_polymer_residue(
+    return _prepare_polymer_residue(
         _residue(code),
-        rebuild_canonical_ordering(param_db),
+        _rebuild_canonical_ordering(param_db),
         param_db,
         connection_atoms=_connection_atoms(code),
     )
@@ -179,8 +179,8 @@ def test_only_an_unmodified_alpha_backbone_matches_the_alpha_profile(code: str) 
     cannot separate a beta amino acid, or an aromatic hydrazide, from alanine.
     """
     expected_alpha = _BACKBONE_CLASSES[code][1]
-    matched = profile_for_atom_array(_residue(code), _connection_atoms(code))
-    alpha = alpha_profile(ParameterDatabase.get_default().chemical)
+    matched = _profile_for_atom_array(_residue(code), _connection_atoms(code))
+    alpha = _alpha_profile(ParameterDatabase.get_default().chemical)
     assert (matched is alpha) == expected_alpha
 
 
@@ -309,9 +309,9 @@ def _prepare_alpha(atom_array, renames: dict | None = None):
     param_db = ParameterDatabase.get_default()
     renames = renames or {}
     connections = frozenset(renames.get(a, a) for a in _ALPHA_CONNECTIONS)
-    return prepare_polymer_residue(
+    return _prepare_polymer_residue(
         atom_array,
-        rebuild_canonical_ordering(param_db),
+        _rebuild_canonical_ordering(param_db),
         param_db,
         connection_atoms=connections,
     )
@@ -321,7 +321,7 @@ def test_a_backbone_named_otherwise_is_still_recognized() -> None:
     """The backbone is found by its bonds, so its names need not be canonical."""
     residue = _alpha_residue_spelled({"CA": "CX"})
     assert "CA" not in set(residue.atom_name)
-    assert profile_for_atom_array(residue, _ALPHA_CONNECTIONS) is alpha_profile(
+    assert _profile_for_atom_array(residue, _ALPHA_CONNECTIONS) is _alpha_profile(
         ParameterDatabase.get_default().chemical
     )
 
@@ -357,12 +357,12 @@ def test_the_input_spelling_resolves_to_the_canonical_atom() -> None:
     structure that spells the backbone its own way would otherwise drop those
     atoms and leave the residue with holes it cannot rebuild.
     """
-    from tmol.ligand._registry import inject_ligand_preparations
+    from tmol.ligand._registry import _inject_ligand_preparations
 
     param_db = ParameterDatabase.get_default()
     prep = _prepare_alpha(_alpha_residue_spelled({"CA": "CX"}))
-    canonical_ordering = rebuild_canonical_ordering(
-        inject_ligand_preparations(param_db, [prep])
+    canonical_ordering = _rebuild_canonical_ordering(
+        _inject_ligand_preparations(param_db, [prep])
     )
 
     mapping = canonical_ordering.restypes_atom_index_mapping["ALX"]
@@ -390,7 +390,7 @@ def _hyp_structure(renames: dict):
 
     from tmol.tests.data import data_path
 
-    from tmol.io import atom_array_from_file
+    from tmol import atom_array_from_file
 
     atom_array = atom_array_from_file(
         data_path("ncaa_fixtures") / "collagen_hyp_1bkv.cif"
@@ -448,21 +448,21 @@ def test_a_ring_atom_named_otherwise_scores_the_same(torch_device) -> None:
     row; called anything else, from the copy the residue carries. The two paths
     have to arrive at the same number.
     """
-    from tmol.io import pose_stack_from_atom_array
-    from tmol.ligand._registry import inject_ligand_preparations
-    from tmol.score import beta2016_score_function
+    from tmol import pose_stack_from_atom_array
+    from tmol.ligand._registry import _inject_ligand_preparations
+    from tmol import beta2016_score_function
 
     param_db = ParameterDatabase.get_default()
 
     def total(renames):
-        prep = prepare_polymer_residue(
+        prep = _prepare_polymer_residue(
             _hyp_residue(renames),
-            rebuild_canonical_ordering(param_db),
+            _rebuild_canonical_ordering(param_db),
             param_db,
             connection_atoms=_ALPHA_CONNECTIONS,
             seed=_CONFORMER_SEED,
         )
-        injected = inject_ligand_preparations(param_db, [prep])
+        injected = _inject_ligand_preparations(param_db, [prep])
         pose_stack = pose_stack_from_atom_array(
             _hyp_structure(renames), torch_device, param_db=injected, no_optH=True
         )
@@ -482,14 +482,14 @@ def test_an_injected_residue_gets_charges_for_its_termini() -> None:
     The values are backbone chemistry, borrowed from proline where the nitrogen
     is already substituted and from alanine where it is not.
     """
-    from tmol.ligand._registry import inject_ligand_preparations
+    from tmol.ligand._registry import _inject_ligand_preparations
     from tmol.tests.ligand.test_noncanonical_residues import _load, _residue
 
     param_db = ParameterDatabase.get_default()
 
     def charges_for(residue):
         prep = _prepare_alpha(residue)
-        injected = inject_ligand_preparations(param_db, [prep])
+        injected = _inject_ligand_preparations(param_db, [prep])
         by_res: dict = {}
         for entry in injected.scoring.elec.atom_charge_parameters:
             by_res.setdefault(str(entry.res), {})[str(entry.atom)] = entry.charge
@@ -548,7 +548,7 @@ def test_a_terminal_residue_finds_its_other_end(code: str) -> None:
     connection_atom, expected = _TERMINAL_CASES[code]
     residue = _residue_bonded_only_at(code, connection_atom)
 
-    profile = profile_for_atom_array(residue, frozenset({connection_atom}))
+    profile = _profile_for_atom_array(residue, frozenset({connection_atom}))
     assert profile is not None, f"{code} was refused"
     assert profile.mainchain_atoms == expected
 
@@ -557,14 +557,14 @@ def test_an_ambiguous_terminal_residue_is_reported_once(caplog) -> None:
     # an N-terminal ASN could continue through N or ND2; every load meets it
     from tmol.ligand._polymer_profile import (
         _warn_terminal_ambiguity,
-        completed_connection_atoms,
+        _completed_connection_atoms,
     )
 
     residue = _residue_bonded_only_at("ASN", "C")
     _warn_terminal_ambiguity.cache_clear()
     with caplog.at_level(logging.WARNING, logger="tmol.ligand._polymer_profile"):
         for _ in range(3):
-            ends = completed_connection_atoms(residue, frozenset({"C"}))
+            ends = _completed_connection_atoms(residue, frozenset({"C"}))
             assert ends == frozenset({"C", "N"})
     assert (
         sum("seen only at a chain terminus" in r.message for r in caplog.records) == 1
@@ -574,12 +574,12 @@ def test_an_ambiguous_terminal_residue_is_reported_once(caplog) -> None:
 def test_heavy_only_terminal_sar_is_a_polymer_but_b3k_stays_ambiguous() -> None:
     """Infer one supported amine endpoint without guessing between two."""
     sar = _heavy_only(_residue_bonded_only_at("SAR", "C"))
-    profile = profile_for_atom_array(sar, frozenset({"C"}))
+    profile = _profile_for_atom_array(sar, frozenset({"C"}))
     assert profile is not None
     assert profile.mainchain_atoms == ("N", "CA", "C")
 
     b3k = _heavy_only(_residue_bonded_only_at("B3K", "C"))
-    assert profile_for_atom_array(b3k, frozenset({"C"})) is None
+    assert _profile_for_atom_array(b3k, frozenset({"C"})) is None
 
 
 def test_unsupported_heavy_only_nitrogen_is_not_a_cap() -> None:
@@ -594,7 +594,7 @@ def test_unsupported_heavy_only_nitrogen_is_not_a_cap() -> None:
     bonds[edge, 2] = int(struc.BondType.DOUBLE)
     residue.bonds = struc.BondList(len(residue), bonds)
 
-    assert profile_for_atom_array(residue, frozenset({"C"})) is None
+    assert _profile_for_atom_array(residue, frozenset({"C"})) is None
 
 
 @pytest.mark.parametrize(
@@ -615,7 +615,7 @@ def test_a_carbon_caps_a_chain_only_as_an_acyl_carbon(
     residue.res_name[:] = code
     residue = _heavy_only(residue[~numpy.isin(residue.atom_name, leaving)])
 
-    profile = profile_for_atom_array(residue, frozenset({connection_atom}))
+    profile = _profile_for_atom_array(residue, frozenset({connection_atom}))
     assert (profile is not None) == is_cap
     if is_cap:
         assert profile.up == ("up", connection_atom)
@@ -632,7 +632,7 @@ def test_heavy_only_internal_beta_and_gamma_use_observed_endpoints(
     code: str, connections: frozenset, expected: tuple[str, ...]
 ) -> None:
     """Observed internal connections define non-alpha backbone paths."""
-    profile = profile_for_atom_array(_heavy_only(_residue(code)), connections)
+    profile = _profile_for_atom_array(_heavy_only(_residue(code)), connections)
     assert profile is not None
     assert profile.mainchain_atoms == expected
 
@@ -651,19 +651,19 @@ def test_a_free_sidechain_acid_does_not_outrank_the_backbone(code: str) -> None:
     residue.res_name[:] = code
     residue = residue[~numpy.isin(residue.atom_name, ["OXT", "HXT"])]
 
-    profile = profile_for_atom_array(residue, frozenset({"N"}))
+    profile = _profile_for_atom_array(residue, frozenset({"N"}))
     assert profile is not None, f"{code} was refused"
     assert profile.mainchain_atoms == ("N", "CA", "C")
 
 
 def test_a_terminal_residue_is_completed_under_an_unknown_name() -> None:
     """The other end comes from chemistry, so the residue code cannot matter."""
-    from tmol.ligand._polymer_profile import completed_connection_atoms
+    from tmol.ligand._polymer_profile import _completed_connection_atoms
 
     residue = _residue_bonded_only_at("SAR", "C")
     # a name no dictionary defines, so nothing is declared about it
     residue.res_name[:] = "X_"
-    assert completed_connection_atoms(residue, frozenset({"C"})) == frozenset(
+    assert _completed_connection_atoms(residue, frozenset({"C"})) == frozenset(
         {"N", "C"}
     )
 
@@ -676,11 +676,11 @@ def test_an_undeterminable_terminal_residue_is_refused() -> None:
     residue = _residue_bonded_only_at("B3K", "C")
     residue.res_name[:] = "X_"
 
-    assert profile_for_atom_array(residue, frozenset({"C"})) is None
+    assert _profile_for_atom_array(residue, frozenset({"C"})) is None
     with pytest.raises(LigandPreparationError, match="where the backbone's other"):
-        prepare_polymer_residue(
+        _prepare_polymer_residue(
             residue,
-            rebuild_canonical_ordering(param_db),
+            _rebuild_canonical_ordering(param_db),
             param_db,
             connection_atoms=frozenset({"C"}),
         )
@@ -696,9 +696,9 @@ def test_declaring_both_ends_prepares_what_could_not_be_inferred() -> None:
     residue = _residue_bonded_only_at("B3K", "C")
     residue.res_name[:] = "X_"
 
-    prep = prepare_polymer_residue(
+    prep = _prepare_polymer_residue(
         residue,
-        rebuild_canonical_ordering(param_db),
+        _rebuild_canonical_ordering(param_db),
         param_db,
         connection_atoms=frozenset({"N", "C"}),
     )
@@ -743,7 +743,7 @@ _PIPELINE_FIXTURES: dict[str, dict[str, int]] = {
 
 def _structure(stem: str):
     """A fixture as tmol reads it: bonded, and complete where the density was not."""
-    from tmol.io import atom_array_from_file
+    from tmol import atom_array_from_file
     from tmol.tests.data import data_path
 
     return atom_array_from_file(data_path("ncaa_fixtures") / f"{stem}.cif")
@@ -784,16 +784,16 @@ def test_b3k_endpoint_inference_uses_complete_template_before_restoration(
     structure.bonds.add_bond(carbonyl, len(residue), struc.BondType.SINGLE)
 
     inferred_from = []
-    completed_connection_atoms = _polymer_profile.completed_connection_atoms
+    completed_connection_atoms = _polymer_profile._completed_connection_atoms
 
     def record_inference_source(atom_array, connection_atoms):
         inferred_from.append(frozenset(atom_array.atom_name))
         return completed_connection_atoms(atom_array, connection_atoms)
 
     monkeypatch.setattr(
-        _polymer_profile, "completed_connection_atoms", record_inference_source
+        _polymer_profile, "_completed_connection_atoms", record_inference_source
     )
-    restored = _cif.with_unresolved_atoms(structure, {"B3K": template})
+    restored = _cif._with_unresolved_atoms(structure, {"B3K": template})
 
     assert inferred_from and "NZ" in inferred_from[0]
     b3k = restored[restored.res_name == "B3K"]
@@ -824,12 +824,12 @@ def test_declared_chemistry_completes_an_unresolved_sidechain() -> None:
     """The file declares the whole component, whatever the density resolved."""
     import numpy as np
 
-    from tmol.io import component_chemistry_from_cif
+    from tmol.io._cif import _component_chemistry_from_cif
     from tmol.tests.data import data_path
 
     code, n_atoms, n_chi = _TRUNCATED
     path = data_path("ncaa_fixtures") / "beta_peptide_3c3g.cif"
-    declared = component_chemistry_from_cif(path)
+    declared = _component_chemistry_from_cif(path)
     assert code in declared, "the fixture must carry its chem_comp_atom block"
 
     structure = _structure("beta_peptide_3c3g")
@@ -848,7 +848,7 @@ def test_declared_chemistry_completes_an_unresolved_sidechain() -> None:
 
 def test_declared_geometry_requires_observed_placement_anchors() -> None:
     """Complete a partial residue, but reject one with no resolved atoms."""
-    from tmol.ligand._detect import with_resolved_coordinates
+    from tmol.ligand._detect import _with_resolved_coordinates
 
     code = _TRUNCATED[0]
     template = _structure("beta_peptide_3c3g")._custom_ccd_registry[code].copy()
@@ -856,7 +856,7 @@ def test_declared_geometry_requires_observed_placement_anchors() -> None:
     partial = template.copy()
     partial._custom_ccd_registry = {code: template}
     partial.coord[-1] = numpy.nan
-    resolved = with_resolved_coordinates(partial, code)
+    resolved = _with_resolved_coordinates(partial, code)
     assert resolved is not None
     assert numpy.isfinite(resolved.coord).all()
     numpy.testing.assert_array_equal(resolved.coord[:-1], partial.coord[:-1])
@@ -864,7 +864,7 @@ def test_declared_geometry_requires_observed_placement_anchors() -> None:
     unresolved = template.copy()
     unresolved._custom_ccd_registry = {code: template}
     unresolved.coord[:] = numpy.nan
-    assert with_resolved_coordinates(unresolved, code) is None
+    assert _with_resolved_coordinates(unresolved, code) is None
 
 
 def test_the_component_dictionary_completes_what_the_file_does_not_declare(
@@ -873,7 +873,7 @@ def test_the_component_dictionary_completes_what_the_file_does_not_declare(
     """A file with no chem_comp_atom reaches the same residue via the dictionary."""
     import biotite.structure.io.pdbx as pdbx
 
-    from tmol.io import atom_array_from_file
+    from tmol import atom_array_from_file
     from tmol.tests.data import data_path
 
     code, n_atoms, n_chi = _TRUNCATED
@@ -899,13 +899,13 @@ def test_a_dictionary_entry_for_a_different_molecule_is_not_used(caplog) -> None
     say whether what was resolved is the whole residue, so the residue is taken
     as it stands and the doubt is reported.
     """
-    from tmol.io._cif import with_unresolved_atoms
+    from tmol.io._cif import _with_unresolved_atoms
 
     structure = _structure("beta_peptide_3c3g")
     structure.res_name[structure.res_name == _TRUNCATED[0]] = "X3K"
 
     with caplog.at_level(logging.WARNING, logger="tmol.io._cif"):
-        taken_as_is = with_unresolved_atoms(structure, {})
+        taken_as_is = _with_unresolved_atoms(structure, {})
 
     assert taken_as_is.array_length() == structure.array_length()
     assert any("does not account for" in r.message for r in caplog.records)
@@ -913,7 +913,7 @@ def test_a_dictionary_entry_for_a_different_molecule_is_not_used(caplog) -> None
 
 def test_a_residue_nothing_describes_is_assumed_complete() -> None:
     """Preserve supplied chemistry for preparation when CCD has no definition."""
-    from tmol.io._cif import with_unresolved_atoms
+    from tmol.io._cif import _with_unresolved_atoms
     from tmol.ligand import prepare_ligands
 
     structure = _structure("nmethyl_peptide_6mvz")
@@ -921,7 +921,7 @@ def test_a_residue_nothing_describes_is_assumed_complete() -> None:
     structure.res_name[structure.res_name == "MLE"] = "QXJ"
 
     supplied = structure.copy()
-    structure = with_unresolved_atoms(structure, {})
+    structure = _with_unresolved_atoms(structure, {})
     numpy.testing.assert_array_equal(structure.atom_name, supplied.atom_name)
     numpy.testing.assert_array_equal(structure.coord, supplied.coord)
     numpy.testing.assert_array_equal(
@@ -983,9 +983,9 @@ def test_a_nonstandard_backbone_is_found_and_prepared_from_a_structure(
 @pytest.mark.parametrize("stem", sorted(_PIPELINE_FIXTURES))
 def test_a_nonstandard_backbone_scores(stem: str, torch_device) -> None:
     """Smoke test: preparation has to survive into a pose and a number."""
-    from tmol.io import pose_stack_from_atom_array
+    from tmol import pose_stack_from_atom_array
     from tmol.ligand import prepare_ligands
-    from tmol.score import beta2016_score_function
+    from tmol import beta2016_score_function
 
     structure = _structure(stem)
     prepared, _canonical_ordering = prepare_ligands(
@@ -1107,7 +1107,7 @@ def test_every_variant_carries_charges_for_all_of_its_atoms(stem: str) -> None:
 def test_a_params_file_carries_the_patches_it_needs(tmp_path) -> None:
     """A saved residue that loses its patches cannot sit at a chain end."""
     from tmol.ligand import load_params_file, write_params_file
-    from tmol.ligand._registry import inject_ligand_preparations
+    from tmol.ligand._registry import _inject_ligand_preparations
 
     prep = _prepare("MLE")
     path = tmp_path / "mle.tmol"
@@ -1120,7 +1120,7 @@ def test_a_params_file_carries_the_patches_it_needs(tmp_path) -> None:
     assert all(p.applies_to.base_names == ("MLE",) for p in loaded[0].adds_patches)
 
     # and the round-tripped residue still takes both termini
-    injected = inject_ligand_preparations(ParameterDatabase.get_default(), loaded)
+    injected = _inject_ligand_preparations(ParameterDatabase.get_default(), loaded)
     names = {r.name for r in injected.chemical.residues}
     assert {"MLE", "MLE:nterm", "MLE:cterm"} <= names
 
@@ -1212,14 +1212,14 @@ def test_a_terminus_that_cannot_be_built_falls_back_to_the_residue() -> None:
     the database patch's, since nothing else can supply it. Asking for patches
     without a structure to build the terminal form from takes the same path.
     """
-    from tmol.ligand._terminus_patches import terminus_patches
+    from tmol.ligand._terminus_patches import _terminus_patches
 
     param_db = ParameterDatabase.get_default()
     prep = _prepare("MLE")
     residue = _residue("MLE")
-    profile = profile_for_atom_array(residue, _connection_atoms("MLE"))
+    profile = _profile_for_atom_array(residue, _connection_atoms("MLE"))
 
-    generated = terminus_patches(
+    generated = _terminus_patches(
         param_db.chemical,
         prep.residue_type,
         profile,

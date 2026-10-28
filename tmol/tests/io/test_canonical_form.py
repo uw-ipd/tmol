@@ -1,16 +1,14 @@
 import numpy
 import pandas
 import torch
-from tmol.io import (
-    default_canonical_ordering,
-    default_packed_block_types,
-    CanonicalOrdering,
-)
 from tmol.io._canonical_ordering import (
+    _default_canonical_ordering,
+    _default_packed_block_types,
     _canonical_form_from_pdb,
     _canonical_form_from_atom_records,
     _select_atom_records_res_subset,
 )
+from tmol import CanonicalOrdering
 from tmol.io._pdb_parsing import _parse_pdb
 
 
@@ -33,19 +31,19 @@ def test_create_canonical_ordering_smoke(default_database):
 
 
 def test_default_canonical_ordering():
-    co1 = default_canonical_ordering()
-    co2 = default_canonical_ordering()
+    co1 = _default_canonical_ordering()
+    co2 = _default_canonical_ordering()
     assert co2 is co1
 
 
 def test_default_packed_block_types(torch_device):
-    pbt1 = default_packed_block_types(torch_device)
-    pbt2 = default_packed_block_types(torch_device)
+    pbt1 = _default_packed_block_types(torch_device)
+    pbt2 = _default_packed_block_types(torch_device)
     assert pbt1 is pbt2
 
 
 def test_default_canonical_form_from_pdb(pertuzumab_pdb, torch_device):
-    can_ord = default_canonical_ordering()
+    can_ord = _default_canonical_ordering()
     cf = _canonical_form_from_pdb(can_ord, pertuzumab_pdb, torch_device)
     (
         chain_id,
@@ -66,7 +64,7 @@ def test_default_canonical_form_from_pdb(pertuzumab_pdb, torch_device):
         cf.atom_occupancy,
         cf.atom_b_factor,
     )
-    def_co = default_canonical_ordering()
+    def_co = _default_canonical_ordering()
     assert chain_id.device == torch_device
     assert res_types.device == torch_device
     assert coords.device == torch_device
@@ -147,7 +145,7 @@ def test_canonical_form_w_unk(torch_device):
         "HETATM 6185  N3  SAM B 402     -13.902  12.803   5.006  1.00 46.34           N\n",
         "HETATM 6186  C4  SAM B 402     -15.231  13.034   5.166  1.00 53.49           C\n",
     ]
-    can_ord = default_canonical_ordering()
+    can_ord = _default_canonical_ordering()
     co = _canonical_form_from_pdb(can_ord, sam_pdb_lines, torch_device)
     (
         chain_id,
@@ -158,7 +156,7 @@ def test_canonical_form_w_unk(torch_device):
         co.res_types,
         co.coords,
     )
-    def_co = default_canonical_ordering()
+    def_co = _default_canonical_ordering()
 
     assert chain_id.device == torch_device
     assert res_types.device == torch_device
@@ -197,7 +195,7 @@ def test_concatenate_pdb_atom_records_dataframes(disulfide_pdb):
             _select_atom_records_res_subset(atom_records, 21, 22),
         )
     )
-    co = default_canonical_ordering()
+    co = _default_canonical_ordering()
     _canonical_form_from_atom_records(co, ar, torch.device("cpu"))
 
 
@@ -214,7 +212,7 @@ def test_canonical_form_from_pdb_keeps_one_alternate_per_group(torch_device):
     )
     lines = lines.decode()
     records = _parse_pdb(lines)
-    co = default_canonical_ordering()
+    co = _default_canonical_ordering()
     cf = _canonical_form_from_pdb(co, lines, torch_device)
     atoms = "\n".join(
         line for line in lines.splitlines() if line.startswith(("ATOM", "HETATM"))

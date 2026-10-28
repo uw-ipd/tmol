@@ -1,6 +1,6 @@
-from tmol._load_ext import load_ops
+from tmol._load_ext import _load_ops
 
-_ops = load_ops(
+_ops = _load_ops(
     __name__,
     __file__,
     [
@@ -12,5 +12,5 @@ _ops = load_ops(
     "tmol_disulfide",
 )
 
-disulfide_pose_scores = _ops.disulfide_pose_scores
-disulfide_rotamer_scores = _ops.disulfide_rotamer_scores
+_disulfide_pose_scores = _ops.disulfide_pose_scores
+_disulfide_rotamer_scores = _ops.disulfide_rotamer_scores

@@ -4,14 +4,14 @@ import inspect
 from decorator import decorate
 import typing
 
-from ._validators import get_validator
-from ._converters import get_converter
+from ._validators import _get_validator
+from ._converters import _get_converter
 
 
-def validate_args(f):
+def _validate_args(f):
     """Decorate a callable with runtime validation of annotated values."""
     f._signature = inspect.signature(f)
-    f._validators = {n: get_validator(v) for n, v in typing.get_type_hints(f).items()}
+    f._validators = {n: _get_validator(v) for n, v in typing.get_type_hints(f).items()}
 
     def validate_f(f, *args, **kwargs):
         bound = f._signature.bind(*args, **kwargs)
@@ -39,10 +39,10 @@ def validate_args(f):
     return decorate(f, validate_f)
 
 
-def convert_args(f):
+def _convert_args(f):
     """Decorate a callable with runtime conversion of annotated values."""
     f._signature = inspect.signature(f)
-    f._converters = {n: get_converter(v) for n, v in typing.get_type_hints(f).items()}
+    f._converters = {n: _get_converter(v) for n, v in typing.get_type_hints(f).items()}
 
     def convert_f(f, *args, **kwargs):
         bound = f._signature.bind(*args, **kwargs)

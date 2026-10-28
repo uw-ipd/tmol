@@ -1,9 +1,8 @@
 import numpy
 import torch
 
-from tmol.io import pose_stack_from_file
-from tmol.pose import PoseStackBuilder
-from tmol.score.lk_ball import LKBallEnergyTerm
+from tmol import pose_stack_from_file, PoseStackBuilder
+from tmol.score import LKBallEnergyTerm
 
 from tmol.tests.score.common import EnergyTermTestBase
 

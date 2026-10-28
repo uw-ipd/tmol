@@ -1,6 +1,7 @@
 import numpy
-from tmol.database.scoring import CountPairReps, ElecDatabase
-from tmol.score.elec import ElecParamResolver
+from tmol.database.scoring._elec import CountPairReps
+from tmol.database.scoring import ElecDatabase
+from tmol.score.elec._params import ElecParamResolver
 
 
 def test_construct_elec_param_resolver_smoke(default_database, torch_device):

@@ -6,32 +6,28 @@ import numpy
 import pandas
 import torch
 
-from tmol.types import (
-    NDArray,
-    Tensor,
-    TensorGroup,
-    ValidateAttrs,
-    ConvertAttrs,
-    validate_args,
-)
-from tmol.numeric import BSplineInterpolation
+from tmol.types._array import NDArray
+from tmol.types._torch import Tensor
+from tmol.types._tensor import TensorGroup
+from tmol.types._attrs import ValidateAttrs, ConvertAttrs
+from tmol.types._functional import _validate_args
+from tmol.numeric._bspline import BSplineInterpolation
 from tmol.utility import resolve_device
 from tmol.utility.weak_identity_cache import WeakIdentityLRU
 
 from tmol.database.scoring import DunbrackRotamerLibrary
 
-from tmol.utility.tensor import (
-    exclusive_cumsum1d,
-    # print_row_numbered_tensor,
-    nplus1d_tensor_from_list,
-    cat_differently_sized_tensors,
+from tmol.utility.tensor._common_operations import (
+    _exclusive_cumsum1d,
+    _nplus1d_tensor_from_list,
+    _cat_differently_sized_tensors,
 )
 
 
 def _pack_bspline_coefficients(coordinate_tables, device, ndim=2):
     """Batch coefficient generation and retain rank for absent library families."""
     if coordinate_tables:
-        packed = nplus1d_tensor_from_list(
+        packed = _nplus1d_tensor_from_list(
             BSplineInterpolation._coefficients_from_coordinate_tables(coordinate_tables)
         )
         return tuple(t.to(device) for t in packed)
@@ -165,7 +161,7 @@ class DunbrackParamResolver(ValidateAttrs):
     device: torch.device
 
     @classmethod
-    @validate_args
+    @_validate_args
     def from_database(cls, dun_database: DunbrackRotamerLibrary, device: torch.device):
         device = resolve_device(device)
         return cls._from_dun_db_cache.get_or_create(
@@ -359,7 +355,7 @@ class DunbrackParamResolver(ValidateAttrs):
             dtype=torch.int32,
             device=device,
         )
-        return prob_table_nrots, exclusive_cumsum1d(prob_table_nrots)
+        return prob_table_nrots, _exclusive_cumsum1d(prob_table_nrots)
 
     @classmethod
     def _compute_rotprob_coeffs(cls, all_rotlibs, device):
@@ -390,7 +386,7 @@ class DunbrackParamResolver(ValidateAttrs):
             * rotlib.rotameric_data.rotamer_means.shape[3]
             for rotlib in all_rotlibs
         ]
-        return exclusive_cumsum1d(
+        return _exclusive_cumsum1d(
             torch.tensor(mean_table_n_entries, dtype=torch.int32, device=device)
         )
 
@@ -629,7 +625,7 @@ class DunbrackParamResolver(ValidateAttrs):
         ]
 
         # same for both rotameric and semi-rotameric rotind2tableind tables
-        return exclusive_cumsum1d(
+        return _exclusive_cumsum1d(
             torch.tensor(
                 [3 ** rotamers.shape[1] for rotamers in rotamer_sets],
                 dtype=torch.int32,
@@ -650,7 +646,7 @@ class DunbrackParamResolver(ValidateAttrs):
             for rotlib in dun_database.semi_rotameric_libraries
         ]
 
-        return exclusive_cumsum1d(
+        return _exclusive_cumsum1d(
             torch.tensor(rotamer_counts_sets, dtype=torch.int32, device=device),
         )
 
@@ -729,7 +725,7 @@ class DunbrackParamResolver(ValidateAttrs):
             rotlib.nonrotameric_chi_probabilities.shape[0]
             for rotlib in dun_database.semi_rotameric_libraries
         ]
-        return exclusive_cumsum1d(
+        return _exclusive_cumsum1d(
             torch.tensor(nsemirot_rotamers, dtype=torch.int32, device=device)
         )
 
@@ -737,7 +733,7 @@ class DunbrackParamResolver(ValidateAttrs):
     def create_sorted_rot_2_rot(cls, all_rotlibs, device):
         if not all_rotlibs:
             return torch.empty((0, 0, 0), dtype=torch.int64, device=device)
-        sorted_2_rotinds, _1, _2 = cat_differently_sized_tensors(
+        sorted_2_rotinds, _1, _2 = _cat_differently_sized_tensors(
             [
                 rot.rotameric_data.prob_sorted_rot_inds.permute(2, 0, 1).to(device)
                 for rot in all_rotlibs
@@ -750,7 +746,7 @@ class DunbrackParamResolver(ValidateAttrs):
     def create_rotamer_well_table(cls, all_rotlibs, device):
         if not all_rotlibs:
             return torch.empty((0, 0), dtype=torch.int32, device=device)
-        rotwells, _1, _2 = cat_differently_sized_tensors(
+        rotwells, _1, _2 = _cat_differently_sized_tensors(
             [rot.rotameric_data.rotamers.to(device) for rot in all_rotlibs]
         )
         return rotwells

@@ -3,28 +3,26 @@ import torch
 
 from typing import Any
 
-from tmol.types import (
-    NDArray,
-    Tensor,
-    validate_args,
-)
-from tmol.utility.tensor import exclusive_cumsum1d
+from tmol.types._array import NDArray
+from tmol.types._torch import Tensor
+from tmol.types._functional import _validate_args
+from tmol.utility.tensor._common_operations import _exclusive_cumsum1d
 from tmol.database.chemical import ChemicalDatabase
-from tmol.kinematics import KinForest
+from tmol.kinematics._datatypes import KinForest
 from tmol.chemical import RefinedResidueType
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
+from tmol.pack.rotamer._rotamer_set import RotamerSet
+from tmol.pack.rotamer._chi_sampler import ChiSampler
+from tmol.pack.rotamer._single_residue_kinforest import (
+    _construct_single_residue_kinforest,
+    _coalesce_single_residue_kinforests,
 )
-from tmol.pack.rotamer import (
-    RotamerSet,
-    ChiSampler,
-    construct_single_residue_kinforest,
-    coalesce_single_residue_kinforests,
-    annotate_residue_type_with_sampler_fingerprints,
-    find_unique_fingerprints,
+from tmol.pack.rotamer._mainchain_fingerprint import (
+    _annotate_residue_type_with_sampler_fingerprints,
+    _find_unique_fingerprints,
 )
-from tmol.pack import SetPackerTask
+from tmol.pack._packer_task import SetPackerTask
 from tmol.numeric import coord_dihedrals
 from tmol.numeric._dihedrals import _numpy_coord_dihedrals
 
@@ -142,7 +140,7 @@ def _chi4_and_kfo_device_tables(pbt, device):
     return pbt._chi4_kfo_device_tables
 
 
-def correct_phi_c_from_measured_chi(
+def _correct_phi_c_from_measured_chi(
     pbt,
     conformer_samples,
     new_ind_for_sampler_rotamer,
@@ -169,7 +167,7 @@ def correct_phi_c_from_measured_chi(
     """
     # trial forward pass to get coords in RTO
     n_at_total = conformer_kinforest.id.numel() - 1
-    trial_coords_rto = calculate_rotamer_coords(
+    trial_coords_rto = _calculate_rotamer_coords(
         pbt, n_at_total, conformer_kinforest, nodes, scans, gens, conf_dofs_kto
     )
 
@@ -213,7 +211,7 @@ def correct_phi_c_from_measured_chi(
         )
 
 
-def exc_cumsum_from_inc_cumsum(cumsum):
+def _exc_cumsum_from_inc_cumsum(cumsum):
     return numpy.concatenate((numpy.zeros(1, dtype=numpy.int64), cumsum[:-1]))
 
 
@@ -237,21 +235,21 @@ def exc_cumsum_from_inc_cumsum(cumsum):
 #       to indicate which residues they should operate on
 
 
-def annotate_restype(
+def _annotate_restype(
     restype: RefinedResidueType,
     samplers: tuple[ChiSampler, ...],
     chem_db: ChemicalDatabase,
 ) -> None:
-    construct_single_residue_kinforest(restype)
-    annotate_residue_type_with_sampler_fingerprints(restype, samplers, chem_db)
+    _construct_single_residue_kinforest(restype)
+    _annotate_residue_type_with_sampler_fingerprints(restype, samplers, chem_db)
 
 
-def annotate_packed_block_types(pbt: PackedBlockTypes) -> None:
-    coalesce_single_residue_kinforests(pbt)
-    find_unique_fingerprints(pbt)
+def _annotate_packed_block_types(pbt: PackedBlockTypes) -> None:
+    _coalesce_single_residue_kinforests(pbt)
+    _find_unique_fingerprints(pbt)
 
 
-def annotate_everything(
+def _annotate_everything(
     chem_db: ChemicalDatabase,
     samplers: tuple[ChiSampler, ...],
     pbt: PackedBlockTypes,
@@ -263,11 +261,11 @@ def annotate_everything(
         sampler.annotate_packed_block_types(pbt)
 
     for rt in pbt.active_block_types:
-        annotate_restype(rt, samplers, chem_db)
-    annotate_packed_block_types(pbt)
+        _annotate_restype(rt, samplers, chem_db)
+    _annotate_packed_block_types(pbt)
 
 
-def update_nodes(
+def _update_nodes(
     nodes_orig: NDArray[numpy.int32][:],
     genStartsStack: NDArray[numpy.int32][:, :, 2],
     n_nodes_offset_for_rot: NDArray[numpy.int64][:],
@@ -310,7 +308,7 @@ def update_nodes(
     return nodes
 
 
-def update_scan_starts(
+def _update_scan_starts(
     n_scans: int,
     atomStartsOffsets: NDArray[numpy.int64][:, :],
     scanStartsStack: NDArray[numpy.int32][:, :],
@@ -341,7 +339,7 @@ def update_scan_starts(
 
 
 # @validate_args
-def construct_scans_for_conformers(
+def _construct_scans_for_conformers(
     pbt: PackedBlockTypes,
     block_type_ind_for_conf: NDArray[numpy.int32][:],
     n_atoms_for_conf: Tensor[torch.int32][:],
@@ -361,7 +359,7 @@ def construct_scans_for_conformers(
         pbt.rotamer_kinforest.n_scans_per_gen[block_type_ind_for_conf], 0, 1
     )
     ngenStack[ngenStack < 0] = 0
-    scanStarts = update_scan_starts(
+    scanStarts = _update_scan_starts(
         ngenStack.sum(),
         atomStartsOffsets,
         scanStartsStack,
@@ -374,9 +372,9 @@ def construct_scans_for_conformers(
 
     n_nodes_for_conf = pbt.rotamer_kinforest.n_nodes[block_type_ind_for_conf]
     first_node_for_conf = numpy.cumsum(n_nodes_for_conf)
-    n_nodes_offset_for_conf = exc_cumsum_from_inc_cumsum(first_node_for_conf)
+    n_nodes_offset_for_conf = _exc_cumsum_from_inc_cumsum(first_node_for_conf)
 
-    nodes = update_nodes(
+    nodes = _update_nodes(
         nodes_orig, genStartsStack, n_nodes_offset_for_conf, n_atoms_offset_for_conf
     )
 
@@ -385,7 +383,7 @@ def construct_scans_for_conformers(
     return nodes, scanStarts, gen_starts
 
 
-def load_from_rotamers(
+def _load_from_rotamers(
     arr: NDArray[numpy.int32][:, :],
     n_atoms_total: int,
     n_atoms_for_rot: NDArray[numpy.int32][:],
@@ -397,7 +395,7 @@ def load_from_rotamers(
     return compact_arr
 
 
-def load_from_rotamers_w_offsets(
+def _load_from_rotamers_w_offsets(
     arr: NDArray[numpy.int32][:, :],
     n_atoms_total: int,
     n_atoms_for_rot: NDArray[numpy.int32][:],
@@ -413,7 +411,7 @@ def load_from_rotamers_w_offsets(
     return compact_arr
 
 
-def load_rotamer_parents(
+def _load_rotamer_parents(
     parents: NDArray[numpy.int32][:, :],
     n_atoms_total: int,
     n_atoms_for_rot: NDArray[numpy.int32][:],
@@ -433,8 +431,8 @@ def load_rotamer_parents(
     return compact_arr
 
 
-@validate_args
-def construct_kinforest_for_conformers(
+@_validate_args
+def _construct_kinforest_for_conformers(
     pbt: PackedBlockTypes,
     conf_block_type_ind: NDArray[numpy.int32][:],
     n_atoms_total: int,
@@ -482,15 +480,15 @@ def construct_kinforest_for_conformers(
     return KinForest(**dict(zip(fields, packed.unbind(0))))
 
 
-def measure_dofs_from_orig_coords(
+def _measure_dofs_from_orig_coords(
     coords: Tensor[torch.float32][:, :, :], kinforest: KinForest
 ) -> Tensor[torch.float32][:, 9]:
-    from tmol.kinematics.compiled import inverse_kin
+    from tmol.kinematics.compiled._compiled_ops import _inverse_kin
 
     kinforest_coords = coords.view(-1, 3)[kinforest.id.to(torch.int64)]
     kinforest_coords[0, :] = 0  # reset root
 
-    dofs_orig = inverse_kin(
+    dofs_orig = _inverse_kin(
         kinforest_coords,
         kinforest.parent,
         kinforest.frame_x,
@@ -501,7 +499,7 @@ def measure_dofs_from_orig_coords(
     return dofs_orig
 
 
-def measure_pose_dofs(
+def _measure_pose_dofs(
     poses: PoseStack,
 ) -> tuple[KinForest, Tensor[torch.float32][:, 9]]:
     """Measure the internal coordinates of every real residue in a pose stack.
@@ -538,7 +536,7 @@ def measure_pose_dofs(
     n_atoms_for_orig = pbt.n_atoms[orig_res_block_type_ind.to(torch.int64)]
     n_orig_atoms_total = int(n_atoms_for_orig.sum())
 
-    orig_kinforest = construct_kinforest_for_conformers(
+    orig_kinforest = _construct_kinforest_for_conformers(
         poses.packed_block_types,
         orig_res_block_type_ind.cpu().numpy(),
         n_orig_atoms_total,
@@ -548,10 +546,10 @@ def measure_pose_dofs(
     )
 
     # orig_dofs returned in kinforest order
-    return orig_kinforest, measure_dofs_from_orig_coords(poses.coords, orig_kinforest)
+    return orig_kinforest, _measure_dofs_from_orig_coords(poses.coords, orig_kinforest)
 
 
-def merge_conformer_samples(
+def _merge_conformer_samples(
     conformer_samples: list[ConformerSample],
 ) -> tuple[
     Tensor[torch.int32][:],
@@ -647,7 +645,7 @@ def merge_conformer_samples(
     )
 
 
-def calculate_rotamer_coords(
+def _calculate_rotamer_coords(
     pbt: PackedBlockTypes,
     n_atoms_total: int,
     rot_kinforest: KinForest,
@@ -670,7 +668,7 @@ def calculate_rotamer_coords(
     Returns:
         Rotamer coordinates shaped ``[n_atoms_total, 3]`` in residue-type order.
     """
-    from tmol.kinematics.compiled import forward_only_op
+    from tmol.kinematics.compiled._compiled_ops import _forward_only_op
 
     def _p(t):
         return torch.nn.Parameter(t, requires_grad=False)
@@ -695,7 +693,7 @@ def calculate_rotamer_coords(
         ).to(pbt.device)
     )
 
-    new_coords_kto = forward_only_op(
+    new_coords_kto = _forward_only_op(
         rot_dofs_kto, _p(_t(nodes)), _p(_t(scans)), _p(_tcpu(gens)), kinforest_stack
     )
 
@@ -707,7 +705,7 @@ def calculate_rotamer_coords(
     return new_coords_rto
 
 
-def get_rotamer_origin_data(
+def _get_rotamer_origin_data(
     task: SetPackerTask, gbt_for_rot: Tensor[torch.int32][:]
 ) -> tuple[
     Tensor[torch.int64][:],
@@ -726,14 +724,14 @@ def get_rotamer_origin_data(
     gbt_for_rot64 = gbt_for_rot.to(torch.int64)
     pose_for_rot = pose_for_gbt[gbt_for_rot64].to(torch.int64)
     n_rots_for_pose = torch.bincount(pose_for_rot, minlength=n_poses)
-    rot_offset_for_pose = exclusive_cumsum1d(n_rots_for_pose)
+    rot_offset_for_pose = _exclusive_cumsum1d(n_rots_for_pose)
     block_ind_for_rot = block_ind_for_rt[gbt_for_rot64]
     block_ind_for_rt_global = max_n_blocks * pose_for_gbt + block_ind_for_rt
     block_ind_for_rot_global = block_ind_for_rt_global[gbt_for_rot64]
     n_rots_for_block = torch.bincount(
         block_ind_for_rot_global, minlength=n_poses * max_n_blocks
     ).reshape(n_poses, max_n_blocks)
-    rot_offset_for_block = exclusive_cumsum1d(n_rots_for_block.flatten()).reshape(
+    rot_offset_for_block = _exclusive_cumsum1d(n_rots_for_block.flatten()).reshape(
         n_poses, max_n_blocks
     )
 
@@ -832,7 +830,7 @@ def build_rotamers(
     pbt = poses.packed_block_types
 
     # Step 2
-    annotate_everything(chem_db, samplers, pbt)
+    _annotate_everything(chem_db, samplers, pbt)
 
     # Step 3
     # the "global block type" (gbt) is the list of all considered block types
@@ -861,9 +859,9 @@ def build_rotamers(
 
     correlated_groups = _correlated_groups_for_samples(task, conformer_samples)
 
-    from tmol.pack.rotamer._chi_budget import check_task_sample_budget
+    from tmol.pack.rotamer._chi_budget import _check_task_sample_budget
 
-    check_task_sample_budget(task, conformer_samples)
+    _check_task_sample_budget(task, conformer_samples)
 
     # Step 5
     (
@@ -872,7 +870,7 @@ def build_rotamers(
         gbt_for_conformer,
         conformer_built_by_sampler,
         new_ind_for_sampler_rotamer,
-    ) = merge_conformer_samples(conformer_samples)
+    ) = _merge_conformer_samples(conformer_samples)
 
     def _t(t, dtype):
         return torch.tensor(t, dtype=dtype, device=pbt.device)
@@ -901,13 +899,13 @@ def build_rotamers(
         raise ValueError(
             "Conformer atoms exceed 32-bit index capacity; reduce the sampling budget"
         )
-    n_atoms_offset_for_conformer = exc_cumsum_from_inc_cumsum(
+    n_atoms_offset_for_conformer = _exc_cumsum_from_inc_cumsum(
         n_atoms_offset_for_conformer
     )
     n_atoms_offset_for_conformer_torch = _t(n_atoms_offset_for_conformer, torch.int64)
 
     # Step 7
-    conformer_kinforest = construct_kinforest_for_conformers(
+    conformer_kinforest = _construct_kinforest_for_conformers(
         pbt,
         block_type_ind_for_conformer,
         n_atoms_total,
@@ -916,7 +914,7 @@ def build_rotamers(
         pbt.device,
     )
 
-    nodes, scans, gens = construct_scans_for_conformers(
+    nodes, scans, gens = _construct_scans_for_conformers(
         pbt,
         block_type_ind_for_conformer,
         n_atoms_for_conformer,
@@ -924,7 +922,7 @@ def build_rotamers(
     )
 
     # Step 8 & 9
-    orig_kinforest, orig_dofs_kto = measure_pose_dofs(poses)
+    orig_kinforest, orig_dofs_kto = _measure_pose_dofs(poses)
 
     # Step 9a
     conf_dofs_kto = torch.zeros(
@@ -956,7 +954,7 @@ def build_rotamers(
             conf_dofs_kto,
         )
 
-    correct_phi_c_from_measured_chi(
+    _correct_phi_c_from_measured_chi(
         pbt,
         conformer_samples,
         new_ind_for_sampler_rotamer,
@@ -969,7 +967,7 @@ def build_rotamers(
         conf_dofs_kto,
     )
 
-    rotamer_coords = calculate_rotamer_coords(
+    rotamer_coords = _calculate_rotamer_coords(
         pbt,
         n_atoms_total,
         conformer_kinforest,
@@ -986,7 +984,7 @@ def build_rotamers(
         rot_offset_for_block,
         pose_for_rot,
         block_ind_for_rot,
-    ) = get_rotamer_origin_data(task, gbt_for_conformer_torch)
+    ) = _get_rotamer_origin_data(task, gbt_for_conformer_torch)
 
     # Current/fallback rows must preserve the input, including frozen blocks.
     # Gather only real copied atoms, without a padded conformer-by-atom array.

@@ -4,7 +4,7 @@ import attr
 import pytest
 import torch
 
-from tmol.pose import PackedBlockTypes
+from tmol import PackedBlockTypes
 from tmol.io.details import _select_from_canonical as selection
 from tmol.tests.ligand.test_fragmented_ligand_scoring import (
     _load_fixture,
@@ -53,9 +53,10 @@ def test_declared_connections_between_repeated_fragment_types(fragment_case):
     assert result == [(0, 0, 0, 3, 0), (0, 2, 0, 1, 0), (1, 0, 0, 1, 0)]
     torch.testing.assert_close(blocks, original)
 
-    from tmol.io import canonical_form_from_pose_stack, pose_stack_from_canonical_form
+    from tmol.io._pose_stack_deconstruction import _canonical_form_from_pose_stack
+    from tmol.io._pose_stack_construction import _pose_stack_from_canonical_form
 
-    form = canonical_form_from_pose_stack(co, pose)
+    form = _canonical_form_from_pose_stack(co, pose)
     source_blocks = [pose.block_type_ind[0].tolist().index(i) for i in indices]
     coords = form.coords[:, source_blocks * 2].repeat(2, 1, 1, 1)
     res_types = form.res_types[:, source_blocks * 2].repeat(2, 1).int()
@@ -63,7 +64,7 @@ def test_declared_connections_between_repeated_fragment_types(fragment_case):
     coords[1, 2:] = torch.nan
     res_types[1, 2:] = -1
     chains[1, 2:] = -1
-    rebuilt = pose_stack_from_canonical_form(
+    rebuilt = _pose_stack_from_canonical_form(
         co,
         pbt,
         chains,

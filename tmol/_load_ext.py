@@ -24,7 +24,7 @@ def _env_flag(name: str) -> bool:
     }
 
 
-def ensure_compiled_or_jit() -> bool:
+def _ensure_compiled_or_jit() -> bool:
     """Return True if JIT should be used; False if precompiled is loaded.
 
     Behavior:
@@ -50,7 +50,7 @@ def ensure_compiled_or_jit() -> bool:
         raise
 
 
-def load_ops(module_name: str, file: str, sources, ops_name: str):
+def _load_ops(module_name: str, file: str, sources, ops_name: str):
     """JIT-compile and register torch ops if needed, then return the torch.ops namespace.
 
     In JIT mode, compiles the given sources and registers them as torch ops.
@@ -63,17 +63,17 @@ def load_ops(module_name: str, file: str, sources, ops_name: str):
         sources: Source filenames relative to ``file``'s directory.
         ops_name: The ``torch.ops`` namespace (e.g. ``"tmol_ljlk"``).
     """
-    if ensure_compiled_or_jit():
-        from tmol.utility import (
-            load,
-            relpaths,
-            modulename,
-            cuda_if_available,
+    if _ensure_compiled_or_jit():
+        from tmol.utility._cpp_extension import (
+            _load,
+            _relpaths,
+            _modulename,
+            _cuda_if_available,
         )
 
-        load(
-            modulename(module_name),
-            cuda_if_available(relpaths(file, sources)),
+        _load(
+            _modulename(module_name),
+            _cuda_if_available(_relpaths(file, sources)),
             is_python_module=False,
         )
     import torch
@@ -81,13 +81,13 @@ def load_ops(module_name: str, file: str, sources, ops_name: str):
     return getattr(torch.ops, ops_name)
 
 
-def load_module(module_name: str, file: str, sources, precompiled_path: str):
+def _load_module(module_name: str, file: str, sources, precompiled_path: str):
     """JIT-compile or import a precompiled pybind11 module.
 
     In JIT mode, compiles the given sources and returns the resulting module.
     In AOT mode, imports and returns ``precompiled_path``.
 
-    ``cuda_if_available`` is applied automatically, so CUDA source files are
+    ``_cuda_if_available`` is applied automatically, so CUDA source files are
     silently dropped when CUDA is unavailable.
 
     Args:
@@ -97,15 +97,17 @@ def load_module(module_name: str, file: str, sources, precompiled_path: str):
         precompiled_path: Dotted import path to the precompiled ``_ext`` module
             (e.g. ``"tmol.tests.score.common.geom._ext"``).
     """
-    if ensure_compiled_or_jit():
-        from tmol.utility import (
-            load,
-            relpaths,
-            modulename,
-            cuda_if_available,
+    if _ensure_compiled_or_jit():
+        from tmol.utility._cpp_extension import (
+            _load,
+            _relpaths,
+            _modulename,
+            _cuda_if_available,
         )
 
-        return load(modulename(module_name), cuda_if_available(relpaths(file, sources)))
+        return _load(
+            _modulename(module_name), _cuda_if_available(_relpaths(file, sources))
+        )
     import importlib
 
     return importlib.import_module(precompiled_path)

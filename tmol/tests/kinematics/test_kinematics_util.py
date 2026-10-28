@@ -5,9 +5,14 @@ from __future__ import annotations
 import numpy
 import pytest
 
-from tmol.io import extended_pose_stack_from_sequences
-from tmol.kinematics import EdgeType, FoldForest, set_named_torsions
-from tmol.pose import get_named_torsions, get_torsion_names
+from tmol import (
+    extended_pose_stack_from_sequences,
+    EdgeType,
+    FoldForest,
+    get_torsion_names,
+)
+from tmol.kinematics import set_named_torsions
+from tmol.pose import get_named_torsions
 
 
 def block_names(pose_stack, pose):

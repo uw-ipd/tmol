@@ -1,10 +1,8 @@
 import torch
 import numpy
-from tmol.types import (
-    Tensor,
-    NDArray,
-    validate_args,
-)
+from tmol.types._torch import Tensor
+from tmol.types._array import NDArray
+from tmol.types._functional import _validate_args
 from typing import Union, Optional
 
 ##################################################################
@@ -28,7 +26,7 @@ from typing import Union, Optional
 # 2. index into one tensor into a condensed output tensor
 
 
-def condense_numpy_inds(selection: NDArray[bool][:, :]):
+def _condense_numpy_inds(selection: NDArray[bool][:, :]):
     """Given a two dimensional boolean tensor, create
     an output tensor holding the column indices of the non-zero
     entries for each row. Pad out the extra entries
@@ -58,7 +56,7 @@ def condense_numpy_inds(selection: NDArray[bool][:, :]):
     return inds
 
 
-def condense_torch_inds(selection: Tensor[bool][:, :], device: torch.device):
+def _condense_torch_inds(selection: Tensor[bool][:, :], device: torch.device):
     """Given a two dimensional boolean tensor, create
     an output tensor holding the column indices of the non-zero
     entries for each row. Pad out the extra entries
@@ -87,8 +85,8 @@ def condense_torch_inds(selection: Tensor[bool][:, :], device: torch.device):
     return inds
 
 
-@validate_args
-def take_values_w_sentineled_index(
+@_validate_args
+def _take_values_w_sentineled_index(
     value_tensor, sentineled_index_tensor: Tensor[torch.int64][:, :], default_fill=-1
 ):
     """The sentinel in the sentineled_index_tensor is -1: the positions
@@ -122,8 +120,8 @@ def take_values_w_sentineled_index(
     return output_value_tensor
 
 
-@validate_args
-def take_values_w_sentineled_index_and_dest(
+@_validate_args
+def _take_values_w_sentineled_index_and_dest(
     value_tensor,
     sentineled_index_tensor: Tensor[torch.int64][:, :],
     sentineled_dest_tensor,
@@ -167,7 +165,7 @@ def take_values_w_sentineled_index_and_dest(
     return output_value_tensor
 
 
-def take_values_w_sentineled_dest(
+def _take_values_w_sentineled_dest(
     value_tensor,
     values_to_take,  # boolean mask tensor
     sentineled_dest_tensor,
@@ -206,7 +204,7 @@ def take_values_w_sentineled_dest(
     return output_value_tensor
 
 
-def condense_subset(
+def _condense_subset(
     values,  # three dimensional tensor of values
     values_to_keep,  # two dimensional boolean tensor
     default_fill=-1,
@@ -230,7 +228,7 @@ def condense_subset(
     assert len(values.shape) == 3
     assert len(values_to_keep.shape) == 2
     assert values.shape[:2] == values_to_keep.shape
-    cinds = condense_torch_inds(values_to_keep, values_to_keep.device)
+    cinds = _condense_torch_inds(values_to_keep, values_to_keep.device)
     selected_values = torch.full(
         (cinds.shape[0], cinds.shape[1], values.shape[2]),
         default_fill,
@@ -244,8 +242,8 @@ def condense_subset(
     return selected_values
 
 
-@validate_args
-def take_condensed_3d_subset(
+@_validate_args
+def _take_condensed_3d_subset(
     values,  # 3D Tensor of arbitrary dtype
     condensed_inds_to_keep: Tensor[torch.int64][:, :],
     condensed_dst_inds: Tensor[torch.int64][:, 2],
@@ -300,8 +298,8 @@ def take_condensed_3d_subset(
     return subset
 
 
-@validate_args
-def tile_subset_indices(
+@_validate_args
+def _tile_subset_indices(
     indices: Union[
         Tensor[torch.int32][:],
         Tensor[torch.int64][:],
@@ -345,8 +343,8 @@ def tile_subset_indices(
     return _value_or_arg_tile_subset_indices(indices, tile_size, False, max_entry)
 
 
-@validate_args
-def arg_tile_subset_indices(
+@_validate_args
+def _arg_tile_subset_indices(
     indices: Union[
         Tensor[torch.int32][:],
         Tensor[torch.int64][:],

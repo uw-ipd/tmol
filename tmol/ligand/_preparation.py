@@ -19,38 +19,38 @@ from rdkit import Chem
 
 from tmol.database import ParameterDatabase
 from tmol.database.chemical import AtomAlias
-from tmol.io import CanonicalOrdering
+from tmol.io._canonical_ordering import CanonicalOrdering
 from tmol.io._protonation import (
     PROTONATION_VARIANT,
     _bonded_out,
-    database_forms,
-    hydrogen_names_by_parent,
-    hydrogens_by_parent,
-    with_atomworks_hydrogens,
+    _database_forms,
+    _hydrogen_names_by_parent,
+    _hydrogens_by_parent,
+    _with_atomworks_hydrogens,
 )
-from tmol.ligand._atom_typing import AtomTypeAssignment, assign_tmol_atom_types
+from tmol.ligand._atom_typing import AtomTypeAssignment, _assign_tmol_atom_types
 from tmol.ligand._detect import (
     NonStandardResidueInfo,
     _FORMAL_CHARGE_SPECIFIED_ANNOTATION,
-    detect_nonstandard_residues,
-    is_polymer_linking_component_type,
-    with_resolved_coordinates,
+    _detect_nonstandard_residues,
+    _is_polymer_linking_component_type,
+    _with_resolved_coordinates,
     nonstandard_residue_info_from_smiles_via_mol2,
 )
-from tmol.ligand._conjugation_patches import charges_for_database_residue
-from tmol.ligand._input_repair import deprotonate_overprotonated_oxyacids
+from tmol.ligand._conjugation_patches import _charges_for_database_residue
+from tmol.ligand._input_repair import _deprotonate_overprotonated_oxyacids
 from tmol.ligand._registry import (
     LigandPreparation,
     _build_cartbonded_params,
-    inject_ligand_preparations,
-    rebuild_canonical_ordering,
+    _inject_ligand_preparations,
+    _rebuild_canonical_ordering,
+    _collect_new_atom_types,
 )
-from tmol.ligand._mol3d import authoritative_charges_by_index
-from tmol.ligand._residue_builder import build_residue_type
+from tmol.ligand._mol3d import _authoritative_charges_by_index
+from tmol.ligand._residue_builder import _build_residue_type
 from tmol.ligand._structure_to_smiles import ligand_smiles_from_atom_array
-from tmol.ligand._rdkit_mol import ligand_atom_array_to_rdkit_mol
-from tmol.ligand._polymer_profile import na_base_reference
-from tmol.ligand._registry import collect_new_atom_types
+from tmol.ligand._rdkit_mol import _ligand_atom_array_to_rdkit_mol
+from tmol.ligand._polymer_profile import _na_base_reference
 from tmol.ligand._rotamer_reference import _cached_profiles
 
 logger = logging.getLogger(__name__)
@@ -92,13 +92,13 @@ def _without_unprepared_partners(atom_array, chemistry, strict_ligands):
     is cut and the rest of the input still parameterizes.
     """
     from tmol.ligand._conjugate_model import (
-        unprepared_conjugate_partners,
-        without_cross_bonds_to,
+        _unprepared_conjugate_partners,
+        _without_cross_bonds_to,
     )
 
     if atom_array.bonds is None:
         return atom_array, frozenset()
-    unprepared = unprepared_conjugate_partners(atom_array, chemistry)
+    unprepared = _unprepared_conjugate_partners(atom_array, chemistry)
     if not unprepared:
         return atom_array, frozenset()
     listed = ", ".join(sorted(unprepared))
@@ -114,15 +114,15 @@ def _without_unprepared_partners(atom_array, chemistry, strict_ligands):
         "are not parameterized",
         listed,
     )
-    return without_cross_bonds_to(atom_array, unprepared), frozenset(unprepared)
+    return _without_cross_bonds_to(atom_array, unprepared), frozenset(unprepared)
 
 
 def _prepare_conjugate_params(atom_array, param_db, ph, strict_ligands=True):
-    from tmol.ligand._conjugate_context import contextual_conjugate_types
+    from tmol.ligand._conjugate_context import _contextual_conjugate_types
     from tmol.ligand._local_conjugate_params import (
         ConjugateContextConflict,
-        generate_conjugate_parameters,
-        install_conjugate_parameters,
+        _generate_conjugate_parameters,
+        _install_conjugate_parameters,
     )
 
     if atom_array.bonds is None:
@@ -133,7 +133,7 @@ def _prepare_conjugate_params(atom_array, param_db, ph, strict_ligands=True):
     models = None
     while True:
         try:
-            result = generate_conjugate_parameters(
+            result = _generate_conjugate_parameters(
                 atom_array,
                 param_db,
                 ph=ph,
@@ -142,7 +142,7 @@ def _prepare_conjugate_params(atom_array, param_db, ph, strict_ligands=True):
             )
             break
         except ConjugateContextConflict as error:
-            extended, models = contextual_conjugate_types(
+            extended, models = _contextual_conjugate_types(
                 atom_array, param_db, error.residue_name
             )
             if extended is param_db:
@@ -150,7 +150,7 @@ def _prepare_conjugate_params(atom_array, param_db, ph, strict_ligands=True):
             param_db = extended
     if not result.connections:
         return param_db, (), ()
-    param_db = install_conjugate_parameters(param_db, result)
+    param_db = _install_conjugate_parameters(param_db, result)
     replacements = tuple(
         LigandPreparation(
             residue_type=row.residue_type,
@@ -208,7 +208,7 @@ def _assert_fragment_names_available(param_db, fragment_preparations) -> None:
         previous = existing.get(prep.residue_type.name)
         if previous is None:
             continue
-        previous_charges = charges_for_database_residue(
+        previous_charges = _charges_for_database_residue(
             param_db, prep.residue_type.name
         )
         previous_cartbonded = param_db.scoring.cartbonded.residue_params.get(
@@ -238,7 +238,7 @@ def _assert_prepared_names_cover(atom_array, param_db) -> None:
     }
     if prepared.isdisjoint(np.char.strip(atom_array.res_name.astype(str))):
         return
-    known = rebuild_canonical_ordering(param_db).restypes_atom_index_mapping
+    known = _rebuild_canonical_ordering(param_db).restypes_atom_index_mapping
     heavy = ~np.isin(np.char.upper(atom_array.element.astype(str)), ("H", "D"))
     starts = struc.get_residue_starts(atom_array, add_exclusive_stop=True)
     uncovered: dict[str, set[str]] = {}
@@ -293,7 +293,7 @@ def _name_hydrogens_by_parent(
 ) -> list[AtomTypeAssignment]:
     """Name each hydrogen after the heavy atom it is bonded to.
 
-    Parents are taken in atom order and named by ``hydrogen_names_by_parent``.
+    Parents are taken in atom order and named by ``_hydrogen_names_by_parent``.
     """
     name_by_index = {at.index: at.atom_name for at in atom_types}
     hydrogens_of: dict[int, list[int]] = {}
@@ -301,7 +301,7 @@ def _name_hydrogens_by_parent(
         if heavy:
             hydrogens_of.setdefault(heavy[0], []).append(h)
     parents = sorted(hydrogens_of)
-    given = hydrogen_names_by_parent(
+    given = _hydrogen_names_by_parent(
         [
             (
                 name_by_index[p],
@@ -420,16 +420,16 @@ def prepare_single_ligand(
     protonation state and authoritative per-atom partial charges (the OpenBabel
     MMFF94 charges produced by the SMILES -> mol2 step). Protonation and charge
     generation are *not* done here -- they happen upstream in
-    :func:`tmol.ligand._detect.nonstandard_residue_info_from_smiles_via_mol2`.
+    ``tmol.ligand.nonstandard_residue_info_from_smiles_via_mol2``.
 
     Charges are mapped onto atoms by stable RDKit index (source atom order),
     so they are independent of the atom renaming below and never recomputed.
 
     Returns a :class:`LigandPreparation` -- the same struct
-    :func:`tmol.ligand._params_file.load_params_file` produces for each residue
+    :func:`tmol.ligand.load_params_file` produces for each residue
     defined in a ``.tmol`` file, so the AtomArray-driven path and the params-file
     path converge on a single abstraction that
-    :func:`inject_ligand_preparations` consumes.
+    :func:`_inject_ligand_preparations` consumes.
 
     Args:
         ligand_info: A SMILES-derived ligand (``skip_protonation=True`` with
@@ -456,26 +456,26 @@ def prepare_single_ligand(
             "Gasteiger charge fallback is used."
         )
 
-    from tmol.ligand._atom_typing import sanitize_tolerant
-    from tmol.ligand._generated_geometry import correct_generated_geometry
+    from tmol.ligand._atom_typing import _sanitize_tolerant
+    from tmol.ligand._generated_geometry import _correct_generated_geometry
 
-    protonated = ligand_atom_array_to_rdkit_mol(ligand_info, keep_hydrogens=True)
-    sanitize_tolerant(protonated)
+    protonated = _ligand_atom_array_to_rdkit_mol(ligand_info, keep_hydrogens=True)
+    _sanitize_tolerant(protonated)
 
     # The generated conformer has correct chemistry but wrong local geometry.
     # Repair it before computing icoors
-    for applied in correct_generated_geometry(protonated):
+    for applied in _correct_generated_geometry(protonated):
         logger.info("%s: %s", ligand_info.res_name, applied)
 
     # typing promotes conjugated and amide single bonds; keep the Lewis orders
     chemical_orders = _kekule_bond_orders(protonated)
-    atom_types, typing_state = assign_tmol_atom_types(protonated, return_state=True)
+    atom_types, typing_state = _assign_tmol_atom_types(protonated, return_state=True)
 
     # Charges come straight from the SMILES -> OpenBabel MMFF94 step, carried on
     # ``ligand_info`` in source-atom order. Map them onto atoms by stable RDKit
     # index *before* renaming so they are wholly independent of atom naming --
     # no name-based bridging and no force-field recomputation.
-    charge_by_index = authoritative_charges_by_index(
+    charge_by_index = _authoritative_charges_by_index(
         ligand_info.atom_names,
         ligand_info.partial_charges,
         protonated,
@@ -509,7 +509,7 @@ def prepare_single_ligand(
         and "is_leaving_atom" in template.get_annotation_categories()
     ):
         frame_excluded = frozenset(template.atom_name[template.is_leaving_atom])
-    restype = build_residue_type(
+    restype = _build_residue_type(
         protonated,
         ligand_info.res_name,
         atom_types,
@@ -583,7 +583,7 @@ def _with_sampling_reference(residue_type, profile, param_db, atom_type_elements
     if profile.backbone_type in ("dna", "rna"):
         return attr.evolve(
             residue_type,
-            na_base_reference=na_base_reference(
+            na_base_reference=_na_base_reference(
                 residue_type, profile, param_db.chemical
             ),
         )
@@ -593,7 +593,7 @@ def _with_sampling_reference(residue_type, profile, param_db, atom_type_elements
     return residue_type
 
 
-def prepare_polymer_residue(
+def _prepare_polymer_residue(
     atom_array,
     canonical_ordering,
     param_db: Optional[ParameterDatabase] = None,
@@ -613,20 +613,20 @@ def prepare_polymer_residue(
     through a sidechain carbon.
     """
     from tmol.ligand._polymer_builder import (
-        add_capped_junction_parameters,
-        backbone_renames,
-        to_polymer_residue_type,
+        _add_capped_junction_parameters,
+        _backbone_renames,
+        _to_polymer_residue_type,
     )
-    from tmol.ligand._terminus_patches import patch_charge_entries, terminus_patches
+    from tmol.ligand._terminus_patches import _patch_charge_entries, _terminus_patches
     from tmol.ligand._polymer_profile import (
-        canonical_backbone_renames,
-        complete_backbone_from_reference,
-        cap_residue,
-        profile_for_atom_array,
+        _canonical_backbone_renames,
+        _complete_backbone_from_reference,
+        _cap_residue,
+        _profile_for_atom_array,
         _CANONICAL_RING_ATOM,
-        ring_nitrogen_angle_atom,
-        noncanonical_junction_substitutions,
-        substituted_wildcard_rows,
+        _ring_nitrogen_angle_atom,
+        _noncanonical_junction_substitutions,
+        _substituted_wildcard_rows,
     )
 
     if param_db is None:
@@ -642,7 +642,7 @@ def prepare_polymer_residue(
             "include_bonds=True so its chemistry can be derived"
         )
     if profile is None:
-        profile = profile_for_atom_array(
+        profile = _profile_for_atom_array(
             atom_array, connection_atoms, param_db.chemical
         )
     if profile is None:
@@ -662,12 +662,12 @@ def prepare_polymer_residue(
         )
 
     # CCD geometry uses source names before backbone renaming or cap donation.
-    resolved = with_resolved_coordinates(atom_array, str(atom_array.res_name[0]))
+    resolved = _with_resolved_coordinates(atom_array, str(atom_array.res_name[0]))
     atom_array = atom_array if resolved is None else resolved
 
     # Scoring and reference completion use canonical backbone names. Preserve
     # source names as aliases so construction still accepts the original input.
-    backbone_renames_to_canonical = canonical_backbone_renames(
+    backbone_renames_to_canonical = _canonical_backbone_renames(
         atom_array, profile, param_db.chemical, connection_atoms
     )
     atom_aliases = ()
@@ -682,11 +682,11 @@ def prepare_polymer_residue(
 
     # a residue seen only at a chain end is missing what that end does not
     #    carry; put it back before capping, once the names are settled
-    atom_array = complete_backbone_from_reference(atom_array, profile, param_db)
+    atom_array = _complete_backbone_from_reference(atom_array, profile, param_db)
 
     # an atom the structure did not resolve arrives at NaN; the molecule has to
     #    be readable before it can be typed
-    resolved = with_resolved_coordinates(atom_array, str(atom_array.res_name[0]))
+    resolved = _with_resolved_coordinates(atom_array, str(atom_array.res_name[0]))
     if resolved is None:
         unresolved = sorted(
             str(n)
@@ -705,9 +705,9 @@ def prepare_polymer_residue(
         )
     atom_array = resolved
 
-    capped, cap_names = cap_residue(atom_array, profile)
+    capped, cap_names = _cap_residue(atom_array, profile)
     # the capped molecule is built here, so its completeness is not in doubt
-    detected = detect_nonstandard_residues(capped, canonical_ordering)
+    detected = _detect_nonstandard_residues(capped, canonical_ordering)
     if not detected:
         raise LigandPreparationError(
             f"{atom_array.res_name[0]}: capped residue was not detected as "
@@ -744,14 +744,14 @@ def prepare_polymer_residue(
     atom_type_index.update(
         {
             a.name: a
-            for a in collect_new_atom_types(
+            for a in _collect_new_atom_types(
                 param_db.chemical,
                 prep.residue_type,
                 atom_type_elements=prep.atom_type_elements,
             )
         }
     )
-    residue_type = to_polymer_residue_type(
+    residue_type = _to_polymer_residue_type(
         prep.residue_type,
         coords,
         profile,
@@ -771,7 +771,7 @@ def prepare_polymer_residue(
     )
 
     kept = {a.name for a in residue_type.atoms}
-    renamed, _dropped = backbone_renames(
+    renamed, _dropped = _backbone_renames(
         prep.residue_type, profile, elements, cap_names
     )
     charges = {
@@ -790,12 +790,12 @@ def prepare_polymer_residue(
     # Keep the existing ring-specific rows for continuing backbones.
     substitutions = []
     if profile.name != "cap":
-        ring_atom = ring_nitrogen_angle_atom(atom_array, connection_atoms)
+        ring_atom = _ring_nitrogen_angle_atom(atom_array, connection_atoms)
         if ring_atom is not None and ring_atom in kept:
             substitutions.append(((_CANONICAL_RING_ATOM,), ring_atom))
     # Both continuing backbones and terminal caps need these chemical roles.
     # Scoring resolves either side of a junction without renaming source atoms.
-    junctions = noncanonical_junction_substitutions(
+    junctions = _noncanonical_junction_substitutions(
         residue_type, atom_type_index, atom_array
     )
     references = {
@@ -813,7 +813,7 @@ def prepare_polymer_residue(
             ),
         )
 
-    cartbonded_params = add_capped_junction_parameters(
+    cartbonded_params = _add_capped_junction_parameters(
         cartbonded_params,
         prep.cartbonded_params,
         profile,
@@ -824,7 +824,7 @@ def prepare_polymer_residue(
     )
 
     for substitution in substitutions:
-        rows = substituted_wildcard_rows(
+        rows = _substituted_wildcard_rows(
             param_db.scoring.cartbonded, *substitution, kept
         )
         cartbonded_params = attr.evolve(
@@ -852,7 +852,7 @@ def prepare_polymer_residue(
     #    other one brings its own, named around the atoms it already has
     generated, variant_charges = (), None
     if profile.backbone_type in ("nonstandard_aa", "nonstandard_na"):
-        generated = terminus_patches(
+        generated = _terminus_patches(
             param_db.chemical, residue_type, profile, atom_array, ph, charges
         )
         if generated:
@@ -860,7 +860,7 @@ def prepare_polymer_residue(
                 [residue_type],
                 atom_types=(
                     *param_db.chemical.atom_types,
-                    *collect_new_atom_types(
+                    *_collect_new_atom_types(
                         param_db.chemical,
                         residue_type,
                         atom_type_elements=prep.atom_type_elements,
@@ -868,7 +868,7 @@ def prepare_polymer_residue(
                 ),
                 variants=[patch for patch, _t, _c in generated],
             )
-            variant_charges = patch_charge_entries(
+            variant_charges = _patch_charge_entries(
                 param_db, patched, residue_type, generated
             )
             # a patch whose terminal charges could not be measured would leave
@@ -922,7 +922,7 @@ def _patches_with_charges(residue_type, generated, variant_charges, patched):
 def _ideal_coords_by_name(residue_type) -> dict:
     """Conformer positions by atom name, rebuilt from the residue's icoors."""
     import cattr
-    from tmol.chemical._restypes import RefinedResidueType
+    from tmol.chemical import RefinedResidueType
 
     refined = cattr.structure(cattr.unstructure(residue_type), RefinedResidueType)
     xyz = refined.compute_ideal_coords()
@@ -1053,7 +1053,7 @@ def _polymer_connection_atoms(res_name, lig, canonical_ordering, chemdb):
     """
     from tmol.ligand._polymer_profile import (
         _chain_end_candidates,
-        profile_for_atom_array,
+        _profile_for_atom_array,
     )
 
     classes = canonical_ordering.restype_io_equiv_classes
@@ -1071,7 +1071,7 @@ def _polymer_connection_atoms(res_name, lig, canonical_ordering, chemdb):
         }
     if lig is None:
         return {}
-    profile = profile_for_atom_array(lig.atom_array, lig.connection_atom_names, chemdb)
+    profile = _profile_for_atom_array(lig.atom_array, lig.connection_atom_names, chemdb)
     if profile is None and len(lig.connection_atom_names or ()) > 2:
         elements = dict(zip(lig.atom_array.atom_name, lig.atom_array.element))
         pairs = {
@@ -1084,7 +1084,7 @@ def _polymer_connection_atoms(res_name, lig, canonical_ordering, chemdb):
         # Sidechain crosslinks do not erase a peptide backbone; where two amines
         # could each start one, the shortest (alpha) mainchain wins (7AG5 DNP).
         candidates = (
-            profile_for_atom_array(lig.atom_array, pair, chemdb) for pair in pairs
+            _profile_for_atom_array(lig.atom_array, pair, chemdb) for pair in pairs
         )
         profiles = [p for p in candidates if p is not None]
         shortest = min((len(p.mainchain_atoms) for p in profiles), default=None)
@@ -1096,7 +1096,7 @@ def _polymer_connection_atoms(res_name, lig, canonical_ordering, chemdb):
     return {atom: name for name, atom in profile.connections}
 
 
-def conjugation_atoms(lig, polymer_ports, any_instance=False):
+def _conjugation_atoms(lig, polymer_ports, any_instance=False):
     """Sites outside an ordinary connection between two polymer ports.
 
     A bond is a polymer link only from one residue's up port to the other's
@@ -1105,7 +1105,7 @@ def conjugation_atoms(lig, polymer_ports, any_instance=False):
     ``any_instance``, a port that some copy bonds otherwise is a site too (3W93
     TYZ caps ARG A:1 N and acylates LYS B:21 NZ).
     """
-    from tmol.ligand._conjugate_model import is_polymer_link
+    from tmol.ligand._conjugate_model import _is_polymer_link
 
     partners = lig.connection_partners
     if not partners:
@@ -1114,7 +1114,7 @@ def conjugation_atoms(lig, polymer_ports, any_instance=False):
     conjugations = set()
     for atom, far_side in partners.items():
         links = [
-            is_polymer_link(
+            _is_polymer_link(
                 own.get(atom), polymer_ports[partner_name].get(partner_atom)
             )
             for partner_name, partner_atom in far_side
@@ -1138,7 +1138,7 @@ def _retain_polymer_connected_ports(ports, ligands):
         and (
             name not in ligands
             or ligands[name].in_polymer_entity
-            or is_polymer_linking_component_type(ligands[name].component_type)
+            or _is_polymer_linking_component_type(ligands[name].component_type)
             or len(atoms) > 1
         )
     }
@@ -1199,15 +1199,15 @@ def _with_conjugation(
     from dataclasses import replace
 
     from tmol.ligand._conjugation_patches import (
-        conjugation_charge_entries,
-        conjugation_patches,
+        _conjugation_charge_entries,
+        _conjugation_patches,
     )
 
     if not atoms:
         return prep
     residue_type = prep.residue_type
     distances = {atom: lengths.get((residue_type.name, atom)) for atom in atoms}
-    patches = conjugation_patches(
+    patches = _conjugation_patches(
         residue_type,
         atoms,
         chemdb,
@@ -1219,7 +1219,7 @@ def _with_conjugation(
     )
     if not patches:
         return prep
-    charges = conjugation_charge_entries(
+    charges = _conjugation_charge_entries(
         residue_type,
         atoms,
         chemdb,
@@ -1234,9 +1234,9 @@ def _with_conjugation(
     )
 
 
-def canonical_conjugation_sites(atom_array, chemical_database):
+def _canonical_conjugation_sites(atom_array, chemical_database):
     """Undeclared attachment sites on existing types, including canonical pairs."""
-    from tmol.ligand._conjugate_model import attachment_connection_name
+    from tmol.ligand._conjugate_model import _attachment_connection_name
 
     if atom_array.bonds is None:
         return {}
@@ -1276,7 +1276,7 @@ def canonical_conjugation_sites(atom_array, chemical_database):
             if residue is None:
                 continue
             partner_residue = definitions.get(str(atom_array.res_name[partner]))
-            connection = attachment_connection_name(
+            connection = _attachment_connection_name(
                 atom_array, index, partner, residue, partner_residue
             )
             if connection in ("up", "down"):
@@ -1294,7 +1294,7 @@ def _conjugation_chemistry(atom_array, chemical_database, ph):
     hydrogens just as a canonical lysine does. Preserve source instance identity
     while protonating; reusable patches must agree across every instance.
     """
-    from tmol.ligand._conjugate_model import iter_capped_conjugate_models
+    from tmol.ligand._conjugate_model import _iter_capped_conjugate_models
     from tmol.ligand._connection_params import _model_identity, _protonated_model
     from rdkit.Chem import AllChem
 
@@ -1306,7 +1306,7 @@ def _conjugation_chemistry(atom_array, chemical_database, ph):
         for rt in chemical_database.residues
         if rt.name == rt.base_name
     }
-    for model in iter_capped_conjugate_models(atom_array, chemical_database):
+    for model in _iter_capped_conjugate_models(atom_array, chemical_database):
         identity = _model_identity(model)
         if identity in seen:
             continue
@@ -1393,9 +1393,9 @@ def _canonical_conjugation_parameters(
     """Patches and charges for the database residues a component attaches to."""
     from tmol.ligand._conjugation_patches import (
         _hydrogens_on,
-        combined_terminal_conjugation_patch,
-        conjugation_patch,
-        conjugation_charge_entries,
+        _combined_terminal_conjugation_patch,
+        _conjugation_patch,
+        _conjugation_charge_entries,
     )
     from tmol.ligand._parameter_replacements import _baseline_charges
 
@@ -1431,7 +1431,7 @@ def _canonical_conjugation_parameters(
             )
             continue
         for residue_type in residue_types:
-            base = charges_for_database_residue(param_db, residue_type.name)
+            base = _charges_for_database_residue(param_db, residue_type.name)
             connections = {conn.atom: conn.name for conn in residue_type.connections}
             for atom in sorted(partners):
                 count = hydrogen_counts.get((res_name, atom))
@@ -1459,7 +1459,7 @@ def _canonical_conjugation_parameters(
                 )
                 patch_source = terminal_type if is_terminal_amine else residue_type
                 try:
-                    patch = conjugation_patch(
+                    patch = _conjugation_patch(
                         patch_source,
                         atom,
                         param_db.chemical,
@@ -1484,13 +1484,13 @@ def _canonical_conjugation_parameters(
                 if patch is None:
                     continue
                 if is_terminal_amine:
-                    patch = combined_terminal_conjugation_patch(
+                    patch = _combined_terminal_conjugation_patch(
                         residue_type, terminal_type, patch, param_db.chemical
                     )
                     if patch is None:
                         continue
                     terminal_charges = _baseline_charges(charge_index, terminal_type)
-                    entry = conjugation_charge_entries(
+                    entry = _conjugation_charge_entries(
                         terminal_type,
                         {atom},
                         param_db.chemical,
@@ -1503,7 +1503,7 @@ def _canonical_conjugation_parameters(
                     )
                 else:
                     charges.update(
-                        conjugation_charge_entries(
+                        _conjugation_charge_entries(
                             residue_type,
                             {atom},
                             param_db.chemical,
@@ -1528,7 +1528,7 @@ def _routes_to_polymer_path(
     routed by its chemistry; the cap profiles match their whole atom set, so an
     unrelated linked fragment does not qualify.
     """
-    from tmol.ligand._polymer_profile import profile_for_atom_array
+    from tmol.ligand._polymer_profile import _profile_for_atom_array
 
     if not lig.covalently_linked:
         return False
@@ -1539,7 +1539,7 @@ def _routes_to_polymer_path(
         return False
     if lig.in_polymer_entity:
         return True
-    if is_polymer_linking_component_type(lig.component_type):
+    if _is_polymer_linking_component_type(lig.component_type):
         return True
     backbone_connections = (
         (lig.connection_atom_names - (conjugations or frozenset()))
@@ -1547,7 +1547,8 @@ def _routes_to_polymer_path(
         else None
     )
     return (
-        profile_for_atom_array(lig.atom_array, backbone_connections, chemdb) is not None
+        _profile_for_atom_array(lig.atom_array, backbone_connections, chemdb)
+        is not None
     )
 
 
@@ -1733,10 +1734,10 @@ def _as_free_molecule(lig, ph, bonded_out=frozenset()):
         reopened |= _open_valence(array, bonded_out)[~is_h]
         a, b = heavy.bonds.as_array()[:, :2].T.astype(np.int64)
         reopened[np.r_[a[unresolved[b]], b[unresolved[a]]]] = True
-        declared = np.where(reopened, -1, hydrogens_by_parent(array)[~is_h])
+        declared = np.where(reopened, -1, _hydrogens_by_parent(array)[~is_h])
     stand_in = heavy.copy()
     stand_in.coord = _placeholder_coords(heavy)
-    protonated = with_atomworks_hydrogens(stand_in, ph=ph, hydrogens=declared)
+    protonated = _with_atomworks_hydrogens(stand_in, ph=ph, hydrogens=declared)
     protonated.res_name[:] = heavy.res_name[0]
     names = {str(n) for n in heavy.atom_name[unresolved]}
     if names and protonated.bonds is not None:
@@ -1759,7 +1760,7 @@ def _hydrogen_state(array: struc.AtomArray, reopened) -> dict:
     heavy = ~np.isin(element, ("H", "D"))
     resolved = np.isfinite(array.coord).all(axis=-1)
     kept = heavy & resolved & ~np.isin(array.atom_name, list(reopened))
-    count = hydrogens_by_parent(array)
+    count = _hydrogens_by_parent(array)
     partners = array.bonds.get_all_bonds()[0]
     # AtomWorks gives an atom next to an unresolved one the count it can place
     kept &= ~((partners >= 0) & ~resolved[partners]).any(axis=-1)
@@ -1902,10 +1903,10 @@ def prepare_ligands(  # noqa: C901
             as the third return value.
         chem_comp_types: ``{comp_id: type}`` read from the input file's
             ``_chem_comp`` table (see
-            :func:`tmol.ligand.chem_comp_types_from_cif`), consulted where the
+            ``tmol.ligand._detect._chem_comp_types_from_cif``), consulted where the
             file does not number the residue along a polymer sequence. A
             polymer-linking type routes the residue to
-            :func:`prepare_polymer_residue` instead of the free-molecule
+            :func:`_prepare_polymer_residue` instead of the free-molecule
             ligand path.
         seed: Fixed RNG seed for the 3D conformer each residue is built from.
             ``None`` is random, which makes the prepared residue types differ
@@ -1940,15 +1941,15 @@ def prepare_ligands(  # noqa: C901
         param_db = ParameterDatabase.get_default()
     # an input protonated in context (with its metal bonds) keeps that state (5XNL)
     if PROTONATION_VARIANT not in atom_array.get_annotation_categories():
-        atom_array = with_atomworks_hydrogens(
-            atom_array, ph=ph, forms=database_forms(param_db.chemical)
+        atom_array = _with_atomworks_hydrogens(
+            atom_array, ph=ph, forms=_database_forms(param_db.chemical)
         )
     _assert_prepared_names_cover(atom_array, param_db)
 
     from tmol.ligand._fragmentation import (
         FRAGMENT_ID_ANNOTATION,
-        build_ligand_fragment_definition,
-        fragment_ids_from_atom_array,
+        _build_ligand_fragment_definition,
+        _fragment_ids_from_atom_array,
     )
 
     fragment_layouts_by_name = {}
@@ -1961,7 +1962,7 @@ def prepare_ligands(  # noqa: C901
         if not has_fragments and ligand_name in first_residue_by_name:
             continue
         residue = atom_array[start:end]
-        fragment_ids = fragment_ids_from_atom_array(residue)
+        fragment_ids = _fragment_ids_from_atom_array(residue)
         layout = (
             None
             if fragment_ids is None
@@ -1983,7 +1984,7 @@ def prepare_ligands(  # noqa: C901
         from tmol.ligand._params_file import _load_params_files
 
         params_preparations = _load_params_files(params_files)
-        param_db = inject_ligand_preparations(
+        param_db = _inject_ligand_preparations(
             param_db,
             params_preparations,
             strict_atom_types=strict_atom_types,
@@ -2006,12 +2007,12 @@ def prepare_ligands(  # noqa: C901
             cartbonded_params = _build_cartbonded_params(restype)
         fragment_source_preparations[ligand_name] = LigandPreparation(
             residue_type=restype,
-            partial_charges=charges_for_database_residue(param_db, ligand_name),
+            partial_charges=_charges_for_database_residue(param_db, ligand_name),
             cartbonded_params=cartbonded_params,
             atom_type_elements=None,
         )
 
-    canonical_ordering = rebuild_canonical_ordering(param_db)
+    canonical_ordering = _rebuild_canonical_ordering(param_db)
     fragment_definitions_by_name = {}
 
     def add_fragment_definition(ligand_name, definition):
@@ -2026,7 +2027,7 @@ def prepare_ligands(  # noqa: C901
             if source is None:
                 continue
             try:
-                definition = build_ligand_fragment_definition(prep, source)
+                definition = _build_ligand_fragment_definition(prep, source)
             except Exception as err:
                 raise LigandPreparationError(
                     f"{prep.residue_type.name}: invalid "
@@ -2040,27 +2041,27 @@ def prepare_ligands(  # noqa: C901
                 for fragment_prep in definition.fragment_preparations
             ]
             _assert_fragment_names_available(param_db, fragment_preparations)
-            param_db = inject_ligand_preparations(
+            param_db = _inject_ligand_preparations(
                 param_db,
                 fragment_preparations,
                 strict_atom_types=strict_atom_types,
             )
-            canonical_ordering = rebuild_canonical_ordering(param_db)
+            canonical_ordering = _rebuild_canonical_ordering(param_db)
 
-    ligands = detect_nonstandard_residues(
+    ligands = _detect_nonstandard_residues(
         atom_array,
         canonical_ordering,
         chem_comp_types=chem_comp_types,
     )
 
-    canonical_sites = canonical_conjugation_sites(atom_array, param_db.chemical)
+    canonical_sites = _canonical_conjugation_sites(atom_array, param_db.chemical)
     if not ligands and not canonical_sites:
         logger.info("No non-standard residues detected")
         prepared_db, records, replacements = _prepare_conjugate_params(
             atom_array, param_db, ph, strict_ligands=strict_ligands
         )
         if prepared_db is not param_db:
-            canonical_ordering = rebuild_canonical_ordering(prepared_db)
+            canonical_ordering = _rebuild_canonical_ordering(prepared_db)
         param_db = prepared_db
         if params_output:
             _write_preparations(
@@ -2101,7 +2102,7 @@ def prepare_ligands(  # noqa: C901
     polymer_ports = _retain_polymer_connected_ports(polymer_ports, ligands_by_name)
     bond_lengths = _bond_lengths_by_site(atom_array)
     for lig in ligands:
-        conjugations = conjugation_atoms(lig, polymer_ports)
+        conjugations = _conjugation_atoms(lig, polymer_ports)
         is_polymer = _routes_to_polymer_path(lig, param_db.chemical, conjugations)
         reason = _ligand_unsupported_reason(lig, supported_elements, is_polymer)
         if reason:
@@ -2126,7 +2127,7 @@ def prepare_ligands(  # noqa: C901
                     "or load its prepared .tmol parameters with params_files."
                 )
             if is_polymer:
-                prep = prepare_polymer_residue(
+                prep = _prepare_polymer_residue(
                     lig.atom_array,
                     canonical_ordering,
                     param_db,
@@ -2202,9 +2203,9 @@ def prepare_ligands(  # noqa: C901
             prepared_ligands.append((lig, prep))
             preparations.extend(variants)
 
-    from tmol.ligand._conjugation_patches import declared_heavy_leaving_groups
+    from tmol.ligand._conjugation_patches import _declared_heavy_leaving_groups
 
-    heavy_leaving = declared_heavy_leaving_groups(atom_array, param_db.chemical)
+    heavy_leaving = _declared_heavy_leaving_groups(atom_array, param_db.chemical)
     hydrogen_counts, bond_types, open_geometries = {}, {}, {}
     if preparations or canonical_sites:
         # Base definitions suffice for identifying polymer caps. Avoid a second
@@ -2228,7 +2229,7 @@ def prepare_ligands(  # noqa: C901
         known = {
             n for r in param_db.chemical.residues for n in (r.name, r.io_equiv_class)
         }
-        for name, atoms in canonical_conjugation_sites(atom_array, chemistry).items():
+        for name, atoms in _canonical_conjugation_sites(atom_array, chemistry).items():
             if name in known:
                 canonical_sites.setdefault(name, set()).update(atoms)
         hydrogen_counts, bond_types, open_geometries = _conjugation_chemistry(
@@ -2238,7 +2239,7 @@ def prepare_ligands(  # noqa: C901
         for prep in preparations:
             # a deprotonated variant is looked up as the residue it varies
             name = prep.residue_type.io_equiv_class
-            atoms = conjugation_atoms(
+            atoms = _conjugation_atoms(
                 ligands_by_name[name], polymer_ports, any_instance=True
             )
             prepared_by_name[prep.residue_type.name] = _with_conjugation(
@@ -2263,7 +2264,7 @@ def prepare_ligands(  # noqa: C901
     if prepared_ligands:
         for lig, prep in prepared_ligands:
             try:
-                definition = build_ligand_fragment_definition(prep, lig.atom_array)
+                definition = _build_ligand_fragment_definition(prep, lig.atom_array)
             except Exception as err:
                 raise LigandPreparationError(
                     f"{lig.res_name}: invalid {FRAGMENT_ID_ANNOTATION} annotation "
@@ -2308,7 +2309,7 @@ def prepare_ligands(  # noqa: C901
             preparations.append(
                 LigandPreparation(
                     residue_type=residue,
-                    partial_charges=charges_for_database_residue(
+                    partial_charges=_charges_for_database_residue(
                         param_db, residue.name
                     ),
                     cartbonded_params=param_db.scoring.cartbonded.residue_params.get(
@@ -2325,13 +2326,13 @@ def prepare_ligands(  # noqa: C901
                 **partner_charges,
             },
         )
-        param_db = inject_ligand_preparations(
+        param_db = _inject_ligand_preparations(
             param_db, preparations, strict_atom_types=strict_atom_types
         )
         param_db, records, replacements = _prepare_conjugate_params(
             atom_array, param_db, ph, strict_ligands=strict_ligands
         )
-        canonical_ordering = rebuild_canonical_ordering(param_db)
+        canonical_ordering = _rebuild_canonical_ordering(param_db)
 
         if params_output:
             # Fragment residue types are an in-memory representation in this
@@ -2366,7 +2367,7 @@ def _ligand_info_from_cif(
     cif_path: str, res_name: str | None
 ) -> NonStandardResidueInfo:
     """Read one ligand through the shared format, identity and completion path."""
-    from tmol.io import atom_array_from_file
+    from tmol.io._structure_io import atom_array_from_file
 
     arr = atom_array_from_file(cif_path)
     if struc.get_residue_count(arr) != 1:
@@ -2398,10 +2399,10 @@ def _inject_single(
     """
     if param_db is None:
         param_db = ParameterDatabase.get_default()
-    param_db = inject_ligand_preparations(
+    param_db = _inject_ligand_preparations(
         param_db, [prep], strict_atom_types=strict_atom_types
     )
-    return param_db, rebuild_canonical_ordering(param_db)
+    return param_db, _rebuild_canonical_ordering(param_db)
 
 
 def prepare_ligand_from_cif(
@@ -2474,7 +2475,7 @@ def prepare_ligand_from_smiles(
     return _inject_single(prep, param_db, strict_atom_types)
 
 
-def unused_ligand_name(taken) -> str:
+def _unused_ligand_name(taken) -> str:
     """First "L_n" name not already present in ``taken``.
 
     The underscore keeps the name out of the component dictionary, which uses
@@ -2487,7 +2488,7 @@ def unused_ligand_name(taken) -> str:
             return name
 
 
-def prepare_ligands_from_smiles(
+def _prepare_ligands_from_smiles(
     smiles,
     *,
     param_db: Optional[ParameterDatabase] = None,
@@ -2507,7 +2508,7 @@ def prepare_ligands_from_smiles(
     for smi in smiles:
         if smi in names:
             continue
-        name = unused_ligand_name(taken)
+        name = _unused_ligand_name(taken)
         taken.add(name)
         param_db, _ = prepare_ligand_from_smiles(
             smi,
@@ -2524,7 +2525,7 @@ def prepare_ligands_from_smiles(
 
 def _without_oxyacid_overprotonation(lig: NonStandardResidueInfo):
     """The ligand with over-protonated oxyacid groups deprotonated."""
-    array, promoted = deprotonate_overprotonated_oxyacids(lig.atom_array)
+    array, promoted = _deprotonate_overprotonated_oxyacids(lig.atom_array)
     if array is lig.atom_array:
         return lig
     kept = set(str(n) for n in array.atom_name)
@@ -2552,11 +2553,11 @@ def _without_oxyacid_overprotonation(lig: NonStandardResidueInfo):
 
 
 def _prepare_mol2(mol2_path, res_name=None, *, ph=7.4, mode="auto", seed=None):
-    from tmol.ligand._detect import nonstandard_residue_info_from_file
+    from tmol.ligand._detect import _nonstandard_residue_info_from_file
 
     if mode not in ("keep", "auto", "regenerate"):
         raise ValueError("MOL2 mode must be keep, auto, or regenerate")
-    lig = nonstandard_residue_info_from_file(mol2_path, res_name=res_name)
+    lig = _nonstandard_residue_info_from_file(mol2_path, res_name=res_name)
     if mode == "regenerate":
         lig = _without_oxyacid_overprotonation(lig)
     try:

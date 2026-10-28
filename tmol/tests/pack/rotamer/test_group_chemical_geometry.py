@@ -6,9 +6,8 @@ import pytest
 import torch
 
 from tmol.numeric import coord_dihedrals
-from tmol.pack import SetPackerTask
-from tmol.pack.rotamer import build_rotamers
-from tmol.pose._conjugated_groups import find_conjugated_groups
+from tmol.pack import SetPackerTask, build_rotamers
+from tmol.pose._conjugated_groups import _find_conjugated_groups
 from tmol.pose._util import _resolve_uaid
 from tmol.tests.pack.test_conjugated_group_packing import FIXTURES, _pose, _task
 
@@ -21,7 +20,7 @@ def test_group_conformers_preserve_all_bonds_angles_and_chirality(
     task, sampler = _task(pose, context.parameter_database, torch_device)
     concrete = SetPackerTask.from_packer_task(task)
     pose, rotamers = build_rotamers(pose, concrete, context.parameter_database.chemical)
-    groups = find_conjugated_groups(pose)
+    groups = _find_conjugated_groups(pose)
     anchor_chi = sampler.anchor_library_chi(pose, concrete, groups)
     enumerated = sampler.group_conformers(pose, anchor_chi)
     for group, columns, targets in enumerated:

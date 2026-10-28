@@ -2,12 +2,10 @@ import torch
 import toolz.functoolz
 
 from typing import Tuple
-from tmol.types import (
-    Tensor,
-    validate_args,
-)
-from tmol.io import CanonicalOrdering, HisSpecialCaseIndices
-from tmol.utility import AutoNumber
+from tmol.types._torch import Tensor
+from tmol.types._functional import _validate_args
+from tmol.io._canonical_ordering import CanonicalOrdering, HisSpecialCaseIndices
+from tmol.utility._auto_number import AutoNumber
 
 # Special case variant-type handling for HIS
 # The I/O code knows that spcase variant 0 for HIS is HIS-E,
@@ -28,8 +26,8 @@ class HisTautomerResolution(AutoNumber):
     his_taut_unresolved = ()  # future
 
 
-@validate_args
-def resolve_his_tautomerization(
+@_validate_args
+def _resolve_his_tautomerization(
     canonical_ordering: CanonicalOrdering,
     res_types: Tensor[torch.int32][:, :],
     res_type_variants: Tensor[torch.int32][:, :],
@@ -43,7 +41,7 @@ def resolve_his_tautomerization(
 ]:
     if not canonical_ordering.his_inds.his_co_aa_inds:
         return (torch.zeros_like(res_types), res_type_variants, coords, atom_is_present)
-    from tmol.io.details.compiled import resolve_his_taut
+    from tmol.io.details.compiled._compiled import _resolve_his_taut
 
     his_inds = canonical_ordering.his_inds
 
@@ -68,7 +66,7 @@ def resolve_his_tautomerization(
         (res_types.shape[0], res_types.shape[1], 1),
     )
 
-    his_taut = resolve_his_taut(
+    his_taut = _resolve_his_taut(
         coords,
         res_types,
         res_type_variants,

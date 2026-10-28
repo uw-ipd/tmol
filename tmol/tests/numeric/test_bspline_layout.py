@@ -5,7 +5,7 @@ import math
 import pytest
 import torch
 
-from tmol.numeric import BSplineInterpolation
+from tmol.numeric._bspline import BSplineInterpolation
 from tmol.numeric.bspline_compiled import _compiled
 from tmol.tests._torch import requires_cuda
 
@@ -32,9 +32,9 @@ def _strided_copy(source, layout):
 
 @pytest.fixture(scope="module")
 def _cuda_bspline():
-    from tmol._load_ext import load_module
+    from tmol._load_ext import _load_module
 
-    return load_module(
+    return _load_module(
         __name__,
         __file__,
         ["bspline.cuda.cu"],
@@ -54,7 +54,7 @@ def test_strided_coefficients_preserve_values_and_derivatives(ndim, layout):
     points = torch.tensor([[0.125, -0.75, 3.25, 5.9], [4.875, 6.25, 7.5, -1.2]])[
         :, :ndim
     ].contiguous()
-    evaluate = getattr(_compiled, f"interpolate{ndim}")
+    evaluate = getattr(_compiled, f"_interpolate{ndim}")
     expected = evaluate(fitted.coeffs, points)
     actual = evaluate(view, points)
     for left, right in zip(expected, actual):
@@ -75,7 +75,7 @@ def test_cuda_strided_coefficients_match_cpu_reference(_cuda_bspline, ndim, layo
         dtype=torch.float32,
     )[:, :ndim].contiguous()
 
-    expected = getattr(_compiled, f"interpolate{ndim}")(fitted.coeffs, points)
+    expected = getattr(_compiled, f"_interpolate{ndim}")(fitted.coeffs, points)
     coeffs = _strided_copy(fitted.coeffs.cuda(), layout)
     actual = getattr(_cuda_bspline, f"interpolate{ndim}")(coeffs, points.cuda())
 
