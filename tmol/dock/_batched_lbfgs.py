@@ -57,7 +57,6 @@ class BatchedLBFGS:
         self.small = torch.zeros(n_poses, dtype=torch.int64, device=x0.device)
         self.active = torch.ones(n_poses, dtype=torch.bool, device=x0.device)
         self._graph = None
-        self.trace: list = []
         self._reset(x0)
         if graph:
             self._capture()
@@ -114,7 +113,6 @@ class BatchedLBFGS:
             self._capture_locked()
 
     def _capture_locked(self) -> None:
-        start = self.x.clone()
         stream = torch.cuda.Stream(device=self.x.device)
         stream.wait_stream(torch.cuda.current_stream(self.x.device))
         with torch.cuda.stream(stream), torch.no_grad():
@@ -129,7 +127,6 @@ class BatchedLBFGS:
             torch.no_grad(),
         ):
             self._iterate()
-        self._start = start
 
     def minimize(
         self, x0: torch.Tensor, max_iter: int, check_every: int = 10
@@ -142,9 +139,6 @@ class BatchedLBFGS:
                     self._graph.replay()
                 else:
                     self._iterate()
-                if iteration % check_every == 0:
-                    n_active = int(self.active.sum())
-                    self.trace.append((iteration, n_active))
-                    if n_active == 0:
-                        break
+                if iteration % check_every == 0 and not bool(self.active.any()):
+                    break
         return self.x.clone()
