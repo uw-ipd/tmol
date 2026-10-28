@@ -406,9 +406,6 @@
     
     <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.pack.rotamer._chi_sampler</span></li>
   </ul>
 </nav>
@@ -432,30 +429,26 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">Tensor</span><span class="p">,</span>
-    <span class="n">validate_args</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._functional</span><span class="w"> </span><span class="kn">import</span> <span class="n">_validate_args</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">PackedBlockTypes</span><span class="p">,</span>
-    <span class="n">PoseStack</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics</span><span class="w"> </span><span class="kn">import</span> <span class="n">KinForest</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConformerSample</span><span class="p">,</span> <span class="n">ConformerSampler</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._packed_block_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackedBlockTypes</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics._datatypes</span><span class="w"> </span><span class="kn">import</span> <span class="n">KinForest</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._conformer_sampler</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConformerSample</span><span class="p">,</span> <span class="n">ConformerSampler</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackerTask</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack._packer_task</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackerTask</span>
 
 
 <div class="viewcode-block" id="ChiSampler">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.ChiSampler">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.ChiSampler">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ChiSampler</span><span class="p">(</span><span class="n">ConformerSampler</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Base class for samplers that define conformers through chi angles."""</span>
 
 <div class="viewcode-block" id="ChiSampler.sampler_name">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.ChiSampler.sampler_name">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.ChiSampler.sampler_name">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">sampler_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return the stable name used for chi-sampler annotations."""</span>
@@ -463,39 +456,39 @@
 
 
 <div class="viewcode-block" id="ChiSampler.annotate_residue_type">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.ChiSampler.annotate_residue_type">[docs]</a>
-    <span class="nd">@validate_args</span>
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.ChiSampler.annotate_residue_type">[docs]</a>
+    <span class="nd">@_validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">annotate_residue_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Attach optional sampler metadata to one residue type."""</span>
         <span class="k">pass</span></div>
 
 
 <div class="viewcode-block" id="ChiSampler.annotate_packed_block_types">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.ChiSampler.annotate_packed_block_types">[docs]</a>
-    <span class="nd">@validate_args</span>
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.ChiSampler.annotate_packed_block_types">[docs]</a>
+    <span class="nd">@_validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">annotate_packed_block_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Attach optional sampler metadata to packed block types."""</span>
         <span class="k">pass</span></div>
 
 
 <div class="viewcode-block" id="ChiSampler.defines_rotamers_for_rt">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.ChiSampler.defines_rotamers_for_rt">[docs]</a>
-    <span class="nd">@validate_args</span>
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.ChiSampler.defines_rotamers_for_rt">[docs]</a>
+    <span class="nd">@_validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">defines_rotamers_for_rt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return whether this sampler supports a residue type."""</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="ChiSampler.first_sc_atoms_for_rt">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.ChiSampler.first_sc_atoms_for_rt">[docs]</a>
-    <span class="nd">@validate_args</span>
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.ChiSampler.first_sc_atoms_for_rt">[docs]</a>
+    <span class="nd">@_validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">first_sc_atoms_for_rt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Return side-chain roots used to transfer main-chain geometry."""</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="ChiSampler.create_samples_for_poses">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.ChiSampler.create_samples_for_poses">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.ChiSampler.create_samples_for_poses">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">create_samples_for_poses</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
@@ -529,7 +522,7 @@
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
 
 <div class="viewcode-block" id="ChiSampler.fill_dofs_for_samples">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.ChiSampler.fill_dofs_for_samples">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.ChiSampler.fill_dofs_for_samples">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">fill_dofs_for_samples</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
@@ -548,7 +541,7 @@
         <span class="n">sample_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">conf_dofs_kto</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="mi">9</span><span class="p">],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">copy_dofs_from_orig_to_rotamers_for_sampler</span><span class="p">(</span>
+        <span class="n">_copy_dofs_from_orig_to_rotamers_for_sampler</span><span class="p">(</span>
             <span class="n">pose_stack</span><span class="p">,</span>
             <span class="n">task</span><span class="p">,</span>
             <span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
@@ -567,7 +560,7 @@
         <span class="k">if</span> <span class="n">chi</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span>
 
-        <span class="n">assign_chi_dofs_from_samples</span><span class="p">(</span>
+        <span class="n">_assign_chi_dofs_from_samples</span><span class="p">(</span>
             <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="p">,</span>
             <span class="n">block_type_ind_for_conformer</span><span class="p">,</span>
             <span class="n">conf_inds_for_sampler</span><span class="p">,</span>
@@ -582,8 +575,8 @@
 
 
 
-<span class="nd">@validate_args</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">copy_dofs_from_orig_to_rotamers_for_sampler</span><span class="p">(</span>
+<span class="nd">@_validate_args</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_copy_dofs_from_orig_to_rotamers_for_sampler</span><span class="p">(</span>
     <span class="n">poses</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
     <span class="n">task</span><span class="p">,</span>
     <span class="n">sampler_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
@@ -596,7 +589,7 @@
     <span class="n">orig_dofs_kto</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="mi">9</span><span class="p">],</span>
     <span class="n">rot_dofs_kto</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="mi">9</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="n">dst</span><span class="p">,</span> <span class="n">src</span> <span class="o">=</span> <span class="n">create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler</span><span class="p">(</span>
+    <span class="n">dst</span><span class="p">,</span> <span class="n">src</span> <span class="o">=</span> <span class="n">_create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler</span><span class="p">(</span>
         <span class="n">poses</span><span class="p">,</span>
         <span class="n">task</span><span class="p">,</span>
         <span class="n">sampler_name</span><span class="p">,</span>
@@ -617,7 +610,7 @@
     <span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler</span><span class="p">(</span>
     <span class="n">poses</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
     <span class="n">task</span><span class="p">:</span> <span class="s2">"PackerTask"</span><span class="p">,</span>  <span class="c1"># noqa F821</span>
     <span class="n">sampler_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
@@ -675,10 +668,8 @@
     <span class="k">return</span> <span class="n">target_local</span><span class="p">[</span><span class="n">present</span><span class="p">],</span> <span class="n">source_local</span><span class="p">[</span><span class="n">present</span><span class="p">]</span>
 
 
-<div class="viewcode-block" id="assign_chi_dofs_from_samples">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.assign_chi_dofs_from_samples">[docs]</a>
-<span class="nd">@validate_args</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">assign_chi_dofs_from_samples</span><span class="p">(</span>
+<span class="nd">@_validate_args</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_assign_chi_dofs_from_samples</span><span class="p">(</span>
     <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span>
     <span class="n">block_type_ind_for_rot</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
     <span class="n">conf_inds_for_sampler</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
@@ -720,8 +711,7 @@
     <span class="n">corrections</span> <span class="o">=</span> <span class="n">_build_ring_chi_phi_c_corrections</span><span class="p">(</span><span class="n">pbt</span><span class="p">)[</span><span class="n">types</span><span class="p">,</span> <span class="n">atoms</span><span class="p">]</span>
     <span class="c1"># These are fresh gathers, so input samples and static tables stay intact.</span>
     <span class="n">values</span><span class="o">.</span><span class="n">sub_</span><span class="p">(</span><span class="n">corrections</span><span class="p">)</span>
-    <span class="n">rot_dofs_kto</span><span class="p">[</span><span class="n">destinations</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">values</span></div>
-
+    <span class="n">rot_dofs_kto</span><span class="p">[</span><span class="n">destinations</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">values</span>
 </pre></div>
 
                 </article>

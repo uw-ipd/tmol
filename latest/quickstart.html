@@ -486,8 +486,7 @@ curl<span class="w"> </span>-L<span class="w"> </span>https://files.rcsb.org/dow
 <p>This installs CPU-only TMol. For CUDA, follow <a class="reference internal" href="installation.html"><span class="doc">Installation</span></a> and use
 <code class="docutils literal notranslate"><span class="pre">torch.device(&quot;cuda&quot;)</span></code> below.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">file_from_pose_stack</span><span class="p">,</span> <span class="n">pose_stack_from_file</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol</span><span class="w"> </span><span class="kn">import</span> <span class="n">file_from_pose_stack</span><span class="p">,</span> <span class="n">pose_stack_from_file</span><span class="p">,</span> <span class="n">beta2016_score_function</span>
 
 <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">)</span>
 <span class="n">pose</span> <span class="o">=</span> <span class="n">pose_stack_from_file</span><span class="p">(</span><span class="s2">"1ubq.pdb"</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
@@ -519,7 +518,7 @@ total. See <a class="reference internal" href="terminology.html#glossary-score-f
 </section>
 <section id="minimize-coordinates">
 <h2>Minimize coordinates<a class="headerlink" href="#minimize-coordinates" title="Link to this heading">#</a></h2>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_cart_min</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_cart_min</span>
 
 <span class="n">minimized</span> <span class="o">=</span> <span class="n">run_cart_min</span><span class="p">(</span><span class="n">pose</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">"Before:"</span><span class="p">,</span> <span class="n">scorer</span><span class="p">(</span><span class="n">pose</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
@@ -534,10 +533,12 @@ movement to selected atoms; see <a class="reference internal" href="user_guide/o
 <h2>Repack side chains<a class="headerlink" href="#repack-side-chains" title="Link to this heading">#</a></h2>
 <p><a class="reference internal" href="terminology.html#glossary-repacking"><span class="std std-ref">Repacking</span></a> searches side-chain conformations while
 keeping the amino-acid sequence fixed.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackerPalette</span><span class="p">,</span> <span class="n">PackerTask</span><span class="p">,</span> <span class="n">pack_rotamers</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">FixedAAChiSampler</span><span class="p">,</span> <span class="n">IncludeCurrentSampler</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.dunbrack</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_dunbrack_sampler_from_database</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackerPalette</span><span class="p">,</span> <span class="n">PackerTask</span><span class="p">,</span> <span class="n">pack_rotamers</span><span class="p">,</span> <span class="n">ParameterDatabase</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">FixedAAChiSampler</span><span class="p">,</span>
+    <span class="n">IncludeCurrentSampler</span><span class="p">,</span>
+    <span class="n">create_dunbrack_sampler_from_database</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="n">task</span> <span class="o">=</span> <span class="n">PackerTask</span><span class="p">(</span><span class="n">pose</span><span class="p">,</span> <span class="n">PackerPalette</span><span class="p">())</span>
 <span class="n">task</span><span class="o">.</span><span class="n">restrict_to_repacking</span><span class="p">()</span>
@@ -560,8 +561,7 @@ fixed residues, mutation scans, and residue-level results.</p>
 <h2>Combine packing and minimization<a class="headerlink" href="#combine-packing-and-minimization" title="Link to this heading">#</a></h2>
 <p><a class="reference internal" href="terminology.html#glossary-fastrelax"><span class="std std-ref">FastRelax</span></a> alternates the two operations while
 ramping steric repulsion back to its full weight.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics</span><span class="w"> </span><span class="kn">import</span> <span class="n">CartesianMoveMap</span><span class="p">,</span> <span class="n">FoldForest</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.relax</span><span class="w"> </span><span class="kn">import</span> <span class="n">fast_relax</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol</span><span class="w"> </span><span class="kn">import</span> <span class="n">CartesianMoveMap</span><span class="p">,</span> <span class="n">FoldForest</span><span class="p">,</span> <span class="n">fast_relax</span>
 
 <span class="n">relaxed</span> <span class="o">=</span> <span class="n">fast_relax</span><span class="p">(</span>
     <span class="n">pose</span><span class="p">,</span>
@@ -581,7 +581,7 @@ or jump control, use a configured <code class="docutils literal notranslate"><sp
 </section>
 <section id="score-a-batch">
 <h2>Score a batch<a class="headerlink" href="#score-a-batch" title="Link to this heading">#</a></h2>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStackBuilder</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStackBuilder</span>
 
 <span class="n">batch</span> <span class="o">=</span> <span class="n">PoseStackBuilder</span><span class="o">.</span><span class="n">from_poses</span><span class="p">([</span><span class="n">pose</span><span class="p">,</span> <span class="n">minimized</span><span class="p">],</span> <span class="n">device</span><span class="p">)</span>
 <span class="n">batch_scorer</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
@@ -598,7 +598,7 @@ See the <a class="reference internal" href="tutorial/01_tmol_tutorial.html#1.-Ba
 <h2>Load a protein–ligand complex<a class="headerlink" href="#load-a-proteinligand-complex" title="Link to this heading">#</a></h2>
 <p>Use mmCIF to retain ligand bond information, and score with the extended
 parameter database returned during preparation:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_array_from_file</span><span class="p">,</span> <span class="n">pose_stack_from_atom_array</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_array_from_file</span><span class="p">,</span> <span class="n">pose_stack_from_atom_array</span>
 
 <span class="n">structure</span> <span class="o">=</span> <span class="n">atom_array_from_file</span><span class="p">(</span><span class="s2">"complex.cif"</span><span class="p">)</span>
 <span class="n">complex_pose</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="n">pose_stack_from_atom_array</span><span class="p">(</span>

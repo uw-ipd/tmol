@@ -484,9 +484,7 @@
 <p>Canonical DNA and RNA use the same <code class="docutils literal notranslate"><span class="pre">PoseStack</span></code> and score-function interfaces as
 proteins. Load a Biotite structure with the default parameter database, then
 build the score function from that same database:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_atom_array</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span><span class="p">,</span> <span class="n">pose_stack_from_atom_array</span><span class="p">,</span> <span class="n">beta2016_score_function</span>
 
 <span class="n">param_db</span> <span class="o">=</span> <span class="n">ParameterDatabase</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
 <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">pose_stack_from_atom_array</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">param_db</span><span class="o">=</span><span class="n">param_db</span><span class="p">)</span>
@@ -499,10 +497,8 @@ ordinary all-atom nonbonded terms, and nucleic-acid cartbonded parameters.</p>
 <section id="repack-selected-bases">
 <h2>Repack selected bases<a class="headerlink" href="#repack-selected-bases" title="Link to this heading">#</a></h2>
 <p>Use <code class="docutils literal notranslate"><span class="pre">NaChiRotamerSampler</span></code> with an explicit block mask:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">pack_rotamers</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackerPalette</span><span class="p">,</span> <span class="n">PackerTask</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">IncludeCurrentSampler</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">NaChiRotamerSampler</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol</span><span class="w"> </span><span class="kn">import</span> <span class="n">pack_rotamers</span><span class="p">,</span> <span class="n">PackerPalette</span><span class="p">,</span> <span class="n">PackerTask</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">IncludeCurrentSampler</span><span class="p">,</span> <span class="n">NaChiRotamerSampler</span>
 
 <span class="n">task</span> <span class="o">=</span> <span class="n">PackerTask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">PackerPalette</span><span class="p">())</span>
 <span class="n">task</span><span class="o">.</span><span class="n">restrict_to_repacking</span><span class="p">()</span>

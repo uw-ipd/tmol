@@ -483,13 +483,12 @@
 <p>Start with a prepared <code class="docutils literal notranslate"><span class="pre">PoseStack</span></code> and a score function from the same parameter database.</p>
 <p>Fixed-sequence repacking changes conformations while preserving block identities.
 Create a <code class="docutils literal notranslate"><span class="pre">PackerTask</span></code>, restrict it to repacking, and attach samplers:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">pack_rotamers</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackerPalette</span><span class="p">,</span> <span class="n">PackerTask</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.dunbrack</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol</span><span class="w"> </span><span class="kn">import</span> <span class="n">pack_rotamers</span><span class="p">,</span> <span class="n">PackerPalette</span><span class="p">,</span> <span class="n">PackerTask</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">create_dunbrack_sampler_from_database</span><span class="p">,</span>
+    <span class="n">FixedAAChiSampler</span><span class="p">,</span>
+    <span class="n">IncludeCurrentSampler</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">FixedAAChiSampler</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">IncludeCurrentSampler</span>
 
 <span class="n">task</span> <span class="o">=</span> <span class="n">PackerTask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">PackerPalette</span><span class="p">())</span>
 <span class="n">task</span><span class="o">.</span><span class="n">restrict_to_repacking</span><span class="p">()</span>

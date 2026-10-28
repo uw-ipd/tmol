@@ -522,7 +522,7 @@ paths described in the <a class="reference internal" href="../model_inputs.html"
 <h2>Read a structure<a class="headerlink" href="#read-a-structure" title="Link to this heading">#</a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_file</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_file</span>
 
 <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cuda"</span><span class="p">)</span>
 <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">pose_stack_from_file</span><span class="p">(</span><span class="s2">"input.cif"</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
@@ -533,8 +533,7 @@ paths described in the <a class="reference internal" href="../model_inputs.html"
 <code class="docutils literal notranslate"><span class="pre">assembly_id</span></code>, a half-open residue range <code class="docutils literal notranslate"><span class="pre">residue_start</span></code>/<code class="docutils literal notranslate"><span class="pre">residue_end</span></code>, and
 passes any other keyword arguments to <code class="docutils literal notranslate"><span class="pre">pose_stack_from_atom_array()</span></code>.</p>
 <p>Read the <code class="docutils literal notranslate"><span class="pre">AtomArray</span></code> yourself when you want to inspect or edit it first:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_array_from_file</span><span class="p">,</span> <span class="n">pose_stack_from_atom_array</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span><span class="p">,</span> <span class="n">atom_array_from_file</span><span class="p">,</span> <span class="n">pose_stack_from_atom_array</span>
 
 <span class="n">structure</span> <span class="o">=</span> <span class="n">atom_array_from_file</span><span class="p">(</span><span class="s2">"input.cif"</span><span class="p">)</span>
 
@@ -563,7 +562,7 @@ changes atoms.</p>
 file output:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_array_from_pose_stack</span><span class="p">,</span> <span class="n">selection_gallery</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_array_from_pose_stack</span><span class="p">,</span> <span class="n">selection_gallery</span>
 
 <span class="n">built</span> <span class="o">=</span> <span class="n">atom_array_from_pose_stack</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
 <span class="n">selection_gallery</span><span class="p">(</span>
@@ -580,7 +579,7 @@ checks, inspect its <code class="docutils literal notranslate"><span class="pre"
 </section>
 <section id="write">
 <h2>Write<a class="headerlink" href="#write" title="Link to this heading">#</a></h2>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">file_from_atom_array</span><span class="p">,</span> <span class="n">file_from_pose_stack</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol</span><span class="w"> </span><span class="kn">import</span> <span class="n">file_from_atom_array</span><span class="p">,</span> <span class="n">file_from_pose_stack</span>
 
 <span class="n">file_from_pose_stack</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="s2">"output.cif"</span><span class="p">)</span>
 <span class="n">pdb_text</span> <span class="o">=</span> <span class="n">file_from_pose_stack</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"pdb"</span><span class="p">)</span>

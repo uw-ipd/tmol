@@ -407,9 +407,6 @@
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
     
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
-    
     <li class="breadcrumb-item"><a href="../score.html" class="nav-link">tmol.score</a></li>
     
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.score._fragment_interactions</span></li>
@@ -438,10 +435,10 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._split_block_mapping</span><span class="w"> </span><span class="kn">import</span> <span class="n">SplitBlockEntry</span><span class="p">,</span> <span class="n">SplitBlockMapping</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score._score_function</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreFunction</span>
 
 
@@ -465,15 +462,12 @@
 <span class="n">_FRAGMENT_REDUCTION_WORKSPACE_BYTES</span> <span class="o">=</span> <span class="mi">256</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span>
 
 
-<div class="viewcode-block" id="FragmentInteractionScores">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.FragmentInteractionScores">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">FragmentInteractionScores</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Per-fragment interactions with an explicitly selected partner."""</span>
 
     <span class="n">scores</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
-    <span class="n">mapping</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">FragmentRecord</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span></div>
-
+    <span class="n">mapping</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">FragmentRecord</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
 
 
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -632,7 +626,7 @@
 
 
 <div class="viewcode-block" id="calculate_fragment_interactions">
-<a class="viewcode-back" href="../../../api/score.html#tmol.score.calculate_fragment_interactions">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.calculate_fragment_interactions">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">calculate_fragment_interactions</span><span class="p">(</span>
     <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
     <span class="n">partner_mask</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:],</span>

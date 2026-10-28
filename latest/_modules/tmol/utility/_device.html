@@ -406,12 +406,6 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
-    
-    <li class="breadcrumb-item"><a href="../utility.html" class="nav-link">tmol.utility</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.utility._device</span></li>
   </ul>
 </nav>
@@ -444,7 +438,7 @@
 
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">synchronize_device</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_synchronize_device</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Wait for queued CUDA work on ``device``; do nothing for CPU devices."""</span>
     <span class="n">device</span> <span class="o">=</span> <span class="n">resolve_device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"cuda"</span><span class="p">:</span>

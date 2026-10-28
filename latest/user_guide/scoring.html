@@ -485,8 +485,11 @@
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">tmol</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_array_from_file</span><span class="p">,</span> <span class="n">pose_stack_from_atom_array</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">atom_array_from_file</span><span class="p">,</span>
+    <span class="n">pose_stack_from_atom_array</span><span class="p">,</span>
+    <span class="n">beta2016_score_function</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cuda"</span> <span class="k">if</span> <span class="n">tmol</span><span class="o">.</span><span class="n">has_cuda</span><span class="p">()</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">"cpu"</span><span class="p">)</span>
 <span class="n">structure</span> <span class="o">=</span> <span class="n">atom_array_from_file</span><span class="p">(</span><span class="s2">"1ubq.cif"</span><span class="p">)</span>
@@ -525,7 +528,7 @@ benchmarking guidance.</p>
 <h2>Scoring prepared ligands<a class="headerlink" href="#scoring-prepared-ligands" title="Link to this heading">#</a></h2>
 <p>When a structure introduces ligand residue types at load time, the score
 function must be created from the ligand-extended parameter database:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
 
 <span class="n">sfxn</span> <span class="o">=</span> <span class="n">beta2016_score_function</span><span class="p">(</span>
     <span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
@@ -572,7 +575,7 @@ terms separately.</p>
 <h2>Fragmented-ligand attribution<a class="headerlink" href="#fragmented-ligand-attribution" title="Link to this heading">#</a></h2>
 <p>For a ligand represented by connected fragment blocks, attribute its
 interaction with an explicit partner mask in one connected-pose score:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">calculate_fragment_interactions</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol</span><span class="w"> </span><span class="kn">import</span> <span class="n">calculate_fragment_interactions</span>
 
 <span class="n">fragment_scores</span> <span class="o">=</span> <span class="n">calculate_fragment_interactions</span><span class="p">(</span>
     <span class="n">pose_stack</span><span class="p">,</span>

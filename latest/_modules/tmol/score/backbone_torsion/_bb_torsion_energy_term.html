@@ -407,9 +407,6 @@
     <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
     
     
-    <li class="breadcrumb-item"><a href="../../../tmol.html" class="nav-link">tmol</a></li>
-    
-    
     <li class="breadcrumb-item"><a href="../../score.html" class="nav-link">tmol.score</a></li>
     
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.score.backbone_torsion._bb_torsion_energy_term</span></li>
@@ -435,20 +432,17 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">Tensor</span><span class="p">,</span>
-    <span class="n">NDArray</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">EnergyTerm</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">.._annotation_cache</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnnotationKey</span><span class="p">,</span> <span class="n">cached_annotation</span><span class="p">,</span> <span class="n">store_annotation</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._array</span><span class="w"> </span><span class="kn">import</span> <span class="n">NDArray</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score._energy_term</span><span class="w"> </span><span class="kn">import</span> <span class="n">EnergyTerm</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.._annotation_cache</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnnotationKey</span><span class="p">,</span> <span class="n">_cached_annotation</span><span class="p">,</span> <span class="n">_store_annotation</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">._params</span><span class="w"> </span><span class="kn">import</span> <span class="n">BackboneTorsionParamResolver</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span><span class="p">,</span> <span class="n">uaid_t</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">PackedBlockTypes</span><span class="p">,</span>
-    <span class="n">PoseStack</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical._restypes</span><span class="w"> </span><span class="kn">import</span> <span class="n">uaid_t</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._packed_block_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackedBlockTypes</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
 
 
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -488,7 +482,7 @@
 
 
 <div class="viewcode-block" id="BackboneTorsionEnergyTerm">
-<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.backbone_torsion.BackboneTorsionEnergyTerm">[docs]</a>
+<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.BackboneTorsionEnergyTerm">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">BackboneTorsionEnergyTerm</span><span class="p">(</span><span class="n">EnergyTerm</span><span class="p">):</span>
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
     <span class="n">param_resolver</span><span class="p">:</span> <span class="n">BackboneTorsionParamResolver</span>
@@ -555,7 +549,7 @@
             <span class="k">return</span> <span class="n">uaids</span>
 
         <span class="nb">super</span><span class="p">(</span><span class="n">BackboneTorsionEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_block_type</span><span class="p">(</span><span class="n">block_type</span><span class="p">)</span>
-        <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="n">_cached_annotation</span><span class="p">(</span>
             <span class="n">block_type</span><span class="p">,</span> <span class="s2">"_backbone_torsion_annotation"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_block_annotation_key</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -626,7 +620,7 @@
             <span class="n">backbone_torsion_atoms</span><span class="o">=</span><span class="n">backbone_torsion_atoms</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"backbone_torsion_params"</span><span class="p">,</span> <span class="n">bt_bbtors_params</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">_store_annotation</span><span class="p">(</span>
             <span class="n">block_type</span><span class="p">,</span>
             <span class="s2">"_backbone_torsion_annotation"</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_block_annotation_key</span><span class="p">,</span>
@@ -638,7 +632,7 @@
         <span class="nb">super</span><span class="p">(</span><span class="n">BackboneTorsionEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_packed_block_types</span><span class="p">(</span>
             <span class="n">packed_block_types</span>
         <span class="p">)</span>
-        <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="n">_cached_annotation</span><span class="p">(</span>
             <span class="n">packed_block_types</span><span class="p">,</span>
             <span class="s2">"_backbone_torsion_annotation"</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_packed_annotation_key</span><span class="p">,</span>
@@ -679,7 +673,7 @@
             <span class="n">bt_backbone_torsion_atoms</span><span class="o">=</span><span class="n">_t</span><span class="p">(</span><span class="n">bt_backbone_torsion_atoms</span><span class="p">),</span>
         <span class="p">)</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"backbone_torsion_params"</span><span class="p">,</span> <span class="n">backbone_torsion_params</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">_store_annotation</span><span class="p">(</span>
             <span class="n">packed_block_types</span><span class="p">,</span>
             <span class="s2">"_backbone_torsion_annotation"</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_packed_annotation_key</span><span class="p">,</span>
@@ -695,25 +689,25 @@
         <span class="nb">super</span><span class="p">(</span><span class="n">BackboneTorsionEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_poses</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_pose_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.backbone_torsion.potentials</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-            <span class="n">backbone_torsion_pose_score</span><span class="p">,</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.backbone_torsion.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+            <span class="n">_backbone_torsion_pose_score</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">backbone_torsion_pose_score</span>
+        <span class="k">return</span> <span class="n">_backbone_torsion_pose_score</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_packing_rotamer_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.backbone_torsion.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-            <span class="n">iter_packing_rotamer_scores</span><span class="p">,</span>
+            <span class="n">_iter_packing_rotamer_scores</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">iter_packing_rotamer_scores</span>
+        <span class="k">return</span> <span class="n">_iter_packing_rotamer_scores</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_rotamer_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.backbone_torsion.potentials</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-            <span class="n">backbone_torsion_rotamer_score</span><span class="p">,</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.backbone_torsion.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+            <span class="n">_backbone_torsion_rotamer_score</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">backbone_torsion_rotamer_score</span>
+        <span class="k">return</span> <span class="n">_backbone_torsion_rotamer_score</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_score_term_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">):</span>
         <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>

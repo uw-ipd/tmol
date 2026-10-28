@@ -406,9 +406,6 @@
     
     <li class="breadcrumb-item"><a href="../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.score</span></li>
   </ul>
 </nav>
@@ -441,27 +438,14 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span>
 
 <span class="c1"># Import in topological order: dependencies before dependents.</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._score_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreType</span>  <span class="c1"># noqa: F401</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._bonded_atom</span><span class="w"> </span><span class="kn">import</span> <span class="n">IndexedBonds</span>  <span class="c1"># noqa: F401</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._chemical_database</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: F401</span>
-    <span class="n">AcceptorHybridization</span><span class="p">,</span>
-    <span class="n">AtomTypeParamResolver</span><span class="p">,</span>
-    <span class="n">AtomTypeParams</span><span class="p">,</span>
-<span class="p">)</span>  <span class="c1"># noqa: F401</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._energy_term</span><span class="w"> </span><span class="kn">import</span> <span class="n">EnergyTerm</span>  <span class="c1"># noqa: F401</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._atom_type_dependent_term</span><span class="w"> </span><span class="kn">import</span> <span class="n">AtomTypeDependentTerm</span>  <span class="c1"># noqa: F401</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._bond_dependent_term</span><span class="w"> </span><span class="kn">import</span> <span class="n">BondDependentTerm</span>  <span class="c1"># noqa: F401</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._fragment_interactions</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: F401</span>
-    <span class="n">FragmentInteractionScores</span><span class="p">,</span>
-    <span class="n">calculate_fragment_interactions</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._score_function</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: F401</span>
-    <span class="n">BlockPairScoringModule</span><span class="p">,</span>
-    <span class="n">RotamerScoringModule</span><span class="p">,</span>
-    <span class="n">SFXN_FORMAT_VERSION</span><span class="p">,</span>
-    <span class="n">ScoreFunction</span><span class="p">,</span>
-    <span class="n">WholePoseScoringModule</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">_score_types</span>  <span class="c1"># noqa: F401</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">_bonded_atom</span>  <span class="c1"># noqa: F401</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">_chemical_database</span>  <span class="c1"># noqa: F401</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">_energy_term</span>  <span class="c1"># noqa: F401</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">_atom_type_dependent_term</span>  <span class="c1"># noqa: F401</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">_bond_dependent_term</span>  <span class="c1"># noqa: F401</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">_fragment_interactions</span>  <span class="c1"># noqa: F401</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._score_function</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreFunction</span>  <span class="c1"># noqa: F401</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
     <span class="k">pass</span>
@@ -491,7 +475,7 @@
 
 
 <div class="viewcode-block" id="beta2016_score_function">
-<a class="viewcode-back" href="../../api/score.html#tmol.score.beta2016_score_function">[docs]</a>
+<a class="viewcode-back" href="../../api/top_level.html#tmol.beta2016_score_function">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">beta2016_score_function</span><span class="p">(</span>
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">param_db</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ParameterDatabase</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"ScoreFunction"</span><span class="p">:</span>
@@ -526,20 +510,60 @@
 
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="s2">"AcceptorHybridization"</span><span class="p">,</span>
-    <span class="s2">"AtomTypeParamResolver"</span><span class="p">,</span>
-    <span class="s2">"AtomTypeParams"</span><span class="p">,</span>
-    <span class="s2">"BlockPairScoringModule"</span><span class="p">,</span>
-    <span class="s2">"FragmentInteractionScores"</span><span class="p">,</span>
-    <span class="s2">"IndexedBonds"</span><span class="p">,</span>
-    <span class="s2">"RotamerScoringModule"</span><span class="p">,</span>
-    <span class="s2">"SFXN_FORMAT_VERSION"</span><span class="p">,</span>
-    <span class="s2">"ScoreFunction"</span><span class="p">,</span>
-    <span class="s2">"ScoreType"</span><span class="p">,</span>
-    <span class="s2">"WholePoseScoringModule"</span><span class="p">,</span>
-    <span class="s2">"beta2016_score_function"</span><span class="p">,</span>
-    <span class="s2">"calculate_fragment_interactions"</span><span class="p">,</span>
+    <span class="s2">"BackboneTorsionEnergyTerm"</span><span class="p">,</span>
+    <span class="s2">"CartBondedEnergyTerm"</span><span class="p">,</span>
+    <span class="s2">"ConstraintEnergyTerm"</span><span class="p">,</span>
+    <span class="s2">"DisulfideEnergyTerm"</span><span class="p">,</span>
+    <span class="s2">"DunbrackEnergyTerm"</span><span class="p">,</span>
+    <span class="s2">"ElecEnergyTerm"</span><span class="p">,</span>
+    <span class="s2">"GenBondedEnergyTerm"</span><span class="p">,</span>
+    <span class="s2">"HBondEnergyTerm"</span><span class="p">,</span>
+    <span class="s2">"LJLKEnergyTerm"</span><span class="p">,</span>
+    <span class="s2">"LKBallEnergyTerm"</span><span class="p">,</span>
+    <span class="s2">"NaTorsionEnergyTerm"</span><span class="p">,</span>
+    <span class="s2">"RefEnergyTerm"</span><span class="p">,</span>
+    <span class="s2">"ScoreTermFactory"</span><span class="p">,</span>
+    <span class="s2">"constrain_all_ca"</span><span class="p">,</span>
+    <span class="s2">"constrain_closest_interchain_ca_pair"</span><span class="p">,</span>
+    <span class="s2">"create_mainchain_coordinate_constraints"</span><span class="p">,</span>
 <span class="p">]</span>
+
+
+<span class="c1"># API names defined in modules this package does not otherwise import; they</span>
+<span class="c1"># load on first access so importing the package stays cheap and acyclic.</span>
+<span class="n">_LAZY_ATTRS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"BackboneTorsionEnergyTerm"</span><span class="p">:</span> <span class="s2">"tmol.score.backbone_torsion._bb_torsion_energy_term"</span><span class="p">,</span>
+    <span class="s2">"CartBondedEnergyTerm"</span><span class="p">:</span> <span class="s2">"tmol.score.cartbonded._cartbonded_energy_term"</span><span class="p">,</span>
+    <span class="s2">"ConstraintEnergyTerm"</span><span class="p">:</span> <span class="s2">"tmol.score.constraint._constraint_energy_term"</span><span class="p">,</span>
+    <span class="s2">"DisulfideEnergyTerm"</span><span class="p">:</span> <span class="s2">"tmol.score.disulfide._disulfide_energy_term"</span><span class="p">,</span>
+    <span class="s2">"DunbrackEnergyTerm"</span><span class="p">:</span> <span class="s2">"tmol.score.dunbrack._dunbrack_energy_term"</span><span class="p">,</span>
+    <span class="s2">"ElecEnergyTerm"</span><span class="p">:</span> <span class="s2">"tmol.score.elec._elec_energy_term"</span><span class="p">,</span>
+    <span class="s2">"GenBondedEnergyTerm"</span><span class="p">:</span> <span class="s2">"tmol.score.genbonded._genbonded_energy_term"</span><span class="p">,</span>
+    <span class="s2">"HBondEnergyTerm"</span><span class="p">:</span> <span class="s2">"tmol.score.hbond._hbond_energy_term"</span><span class="p">,</span>
+    <span class="s2">"LJLKEnergyTerm"</span><span class="p">:</span> <span class="s2">"tmol.score.ljlk._ljlk_energy_term"</span><span class="p">,</span>
+    <span class="s2">"LKBallEnergyTerm"</span><span class="p">:</span> <span class="s2">"tmol.score.lk_ball._lk_ball_energy_term"</span><span class="p">,</span>
+    <span class="s2">"NaTorsionEnergyTerm"</span><span class="p">:</span> <span class="s2">"tmol.score.na_torsion._na_torsion_energy_term"</span><span class="p">,</span>
+    <span class="s2">"RefEnergyTerm"</span><span class="p">:</span> <span class="s2">"tmol.score.ref._ref_energy_term"</span><span class="p">,</span>
+    <span class="s2">"ScoreTermFactory"</span><span class="p">:</span> <span class="s2">"tmol.score.terms._score_term_factory"</span><span class="p">,</span>
+    <span class="s2">"constrain_all_ca"</span><span class="p">:</span> <span class="s2">"tmol.score.constraint._utility"</span><span class="p">,</span>
+    <span class="s2">"constrain_closest_interchain_ca_pair"</span><span class="p">:</span> <span class="s2">"tmol.score.constraint._utility"</span><span class="p">,</span>
+    <span class="s2">"create_mainchain_coordinate_constraints"</span><span class="p">:</span> <span class="s2">"tmol.score.constraint._utility"</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="fm">__getattr__</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="n">module_name</span> <span class="o">=</span> <span class="n">_LAZY_ATTRS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">module_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"module </span><span class="si">{</span><span class="vm">__name__</span><span class="si">!r}</span><span class="s2"> has no attribute </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">importlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">import_module</span>
+
+    <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">import_module</span><span class="p">(</span><span class="n">module_name</span><span class="p">),</span> <span class="n">name</span><span class="p">)</span>
+    <span class="nb">globals</span><span class="p">()[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+    <span class="k">return</span> <span class="n">value</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="fm">__dir__</span><span class="p">():</span>
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="nb">globals</span><span class="p">())</span> <span class="o">|</span> <span class="nb">set</span><span class="p">(</span><span class="n">__all__</span><span class="p">))</span>
 </pre></div>
 
                 </article>

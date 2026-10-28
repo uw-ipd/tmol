@@ -407,9 +407,6 @@
     <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
     
     
-    <li class="breadcrumb-item"><a href="../../../tmol.html" class="nav-link">tmol</a></li>
-    
-    
     <li class="breadcrumb-item"><a href="../../score.html" class="nav-link">tmol.score</a></li>
     
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.score.constraint._utility</span></li>
@@ -433,18 +430,16 @@
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">attrs</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._packed_block_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackedBlockTypes</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score._annotation_cache</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AnnotationKey</span><span class="p">,</span>
-    <span class="n">cached_annotation</span><span class="p">,</span>
-    <span class="n">store_annotation</span><span class="p">,</span>
+    <span class="n">_cached_annotation</span><span class="p">,</span>
+    <span class="n">_store_annotation</span><span class="p">,</span>
 <span class="p">)</span>
 
 
-<div class="viewcode-block" id="constrain_closest_interchain_ca_pair">
-<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.constraint.constrain_closest_interchain_ca_pair">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">constrain_closest_interchain_ca_pair</span><span class="p">(</span>
     <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">chain_a</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">chain_b</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">std_dev</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
@@ -522,12 +517,11 @@
         <span class="n">ConstraintEnergyTerm</span><span class="o">.</span><span class="n">harmonic</span><span class="p">,</span> <span class="n">cnstr_atoms</span><span class="p">,</span> <span class="n">cnstr_params</span>
     <span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">attrs</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">constraint_set</span><span class="o">=</span><span class="n">constraint_set</span><span class="p">)</span></div>
-
+    <span class="k">return</span> <span class="n">attrs</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">constraint_set</span><span class="o">=</span><span class="n">constraint_set</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="constrain_all_ca">
-<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.constraint.constrain_all_ca">[docs]</a>
+<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.constrain_all_ca">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">constrain_all_ca</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Add coordinate constraints at every available protein CA atom."""</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._constraint_set</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConstraintSet</span>
@@ -580,8 +574,6 @@
 
 
 
-<div class="viewcode-block" id="MCAtomIndices">
-<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.constraint.MCAtomIndices">[docs]</a>
 <span class="nd">@attrs</span><span class="o">.</span><span class="n">define</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">MCAtomIndices</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Padded main-chain atom indices for every packed block type."""</span>
@@ -589,8 +581,7 @@
     <span class="n">max_n_mainchain_atoms</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">n_mainchain_atoms</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:]</span>
     <span class="n">mainchain_atoms</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:]</span>
-    <span class="n">is_real_mainchain_atom</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:]</span></div>
-
+    <span class="n">is_real_mainchain_atom</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:]</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_annotate_mainchain_atom_indices</span><span class="p">(</span>
@@ -598,7 +589,7 @@
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MCAtomIndices</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Get the list of mainchain atoms for each block type and annotate their indices."""</span>
     <span class="n">key</span> <span class="o">=</span> <span class="n">AnnotationKey</span><span class="o">.</span><span class="n">from_sources</span><span class="p">(</span><span class="n">settings</span><span class="o">=</span><span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="p">,))</span>
-    <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span>
+    <span class="n">cached</span> <span class="o">=</span> <span class="n">_cached_annotation</span><span class="p">(</span>
         <span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"_mainchain_atom_indices_annotation"</span><span class="p">,</span> <span class="n">key</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -644,7 +635,7 @@
         <span class="n">is_real_mainchain_atom</span><span class="o">=</span><span class="n">is_real_mainchain_atom</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"mainchain_atom_indices"</span><span class="p">,</span> <span class="n">mcatominds</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">_store_annotation</span><span class="p">(</span>
         <span class="n">packed_block_types</span><span class="p">,</span>
         <span class="s2">"_mainchain_atom_indices_annotation"</span><span class="p">,</span>
         <span class="n">key</span><span class="p">,</span>
@@ -654,7 +645,7 @@
 
 
 <div class="viewcode-block" id="create_mainchain_coordinate_constraints">
-<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.constraint.create_mainchain_coordinate_constraints">[docs]</a>
+<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.create_mainchain_coordinate_constraints">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">create_mainchain_coordinate_constraints</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Add coordinate constraints for every declared polymer main-chain atom."""</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._constraint_set</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConstraintSet</span>

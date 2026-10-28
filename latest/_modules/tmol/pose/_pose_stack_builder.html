@@ -406,9 +406,6 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.pose._pose_stack_builder</span></li>
   </ul>
 </nav>
@@ -438,31 +435,23 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">NDArray</span><span class="p">,</span>
-    <span class="n">Tensor</span><span class="p">,</span>
-    <span class="n">validate_args</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">RefinedResidueType</span><span class="p">,</span>
-    <span class="n">three2one</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._array</span><span class="w"> </span><span class="kn">import</span> <span class="n">NDArray</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._functional</span><span class="w"> </span><span class="kn">import</span> <span class="n">_validate_args</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical._restypes</span><span class="w"> </span><span class="kn">import</span> <span class="n">_three2one</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">InterBlockBondsep</span><span class="p">,</span>
-    <span class="n">PackedBlockTypes</span><span class="p">,</span>
-    <span class="n">PDBInfo</span><span class="p">,</span>
-    <span class="n">DEFAULT_ATOM_B_FACTOR</span><span class="p">,</span>
-    <span class="n">DEFAULT_ATOM_OCCUPANCY</span><span class="p">,</span>
-    <span class="n">PoseStack</span><span class="p">,</span>
-    <span class="n">ConstraintSet</span><span class="p">,</span>
-    <span class="n">SplitBlockMapping</span><span class="p">,</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._inter_block_bondsep</span><span class="w"> </span><span class="kn">import</span> <span class="n">InterBlockBondsep</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._packed_block_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackedBlockTypes</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pdb_info</span><span class="w"> </span><span class="kn">import</span> <span class="n">PDBInfo</span><span class="p">,</span> <span class="n">DEFAULT_ATOM_B_FACTOR</span><span class="p">,</span> <span class="n">DEFAULT_ATOM_OCCUPANCY</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._constraint_set</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConstraintSet</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._split_block_mapping</span><span class="w"> </span><span class="kn">import</span> <span class="n">SplitBlockMapping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.tensor._common_operations</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">_exclusive_cumsum1d</span><span class="p">,</span>
+    <span class="n">_exclusive_cumsum2d</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.tensor</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">exclusive_cumsum1d</span><span class="p">,</span>
-    <span class="n">exclusive_cumsum2d</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility._device</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_device</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_device</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_is_leading_run</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">of</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -471,7 +460,7 @@
 
 
 <div class="viewcode-block" id="PoseStackBuilder">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PoseStackBuilder">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.PoseStackBuilder">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">PoseStackBuilder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Build heterogeneous pose stacks while preserving chemical-database identity."""</span>
 
@@ -495,9 +484,9 @@
         <span class="k">return</span> <span class="n">widest</span>
 
 <div class="viewcode-block" id="PoseStackBuilder.from_poses">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PoseStackBuilder.from_poses">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.PoseStackBuilder.from_poses">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="nd">@validate_args</span>
+    <span class="nd">@_validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_poses</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">pose_stacks</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">PoseStack</span><span class="p">],</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
@@ -544,7 +533,7 @@
         <span class="p">)</span>
 
         <span class="n">n_poses</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ps</span><span class="p">)</span> <span class="k">for</span> <span class="n">ps</span> <span class="ow">in</span> <span class="n">pose_stacks</span><span class="p">)</span>
-        <span class="n">ps_offset</span> <span class="o">=</span> <span class="n">exclusive_cumsum1d</span><span class="p">(</span>
+        <span class="n">ps_offset</span> <span class="o">=</span> <span class="n">_exclusive_cumsum1d</span><span class="p">(</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">ps</span><span class="p">)</span> <span class="k">for</span> <span class="n">ps</span> <span class="ow">in</span> <span class="n">pose_stacks</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
         <span class="p">)</span>
 
@@ -641,9 +630,9 @@
         <span class="k">return</span> <span class="n">SplitBlockMapping</span><span class="p">(</span><span class="n">entries</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">combined_entries</span><span class="p">))</span>
 
 <div class="viewcode-block" id="PoseStackBuilder.from_block_type_names">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PoseStackBuilder.from_block_type_names">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.PoseStackBuilder.from_block_type_names">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="nd">@validate_args</span>
+    <span class="nd">@_validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_block_type_names</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span>
@@ -724,7 +713,7 @@
 
         <span class="n">n_atoms</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_res</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
         <span class="n">n_atoms</span><span class="p">[</span><span class="n">real_res</span><span class="p">]</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">[</span><span class="n">block_type_ind64</span><span class="p">[</span><span class="n">real_res</span><span class="p">]]</span>
-        <span class="n">block_coord_offset</span> <span class="o">=</span> <span class="n">exclusive_cumsum2d</span><span class="p">(</span><span class="n">n_atoms</span><span class="p">)</span>
+        <span class="n">block_coord_offset</span> <span class="o">=</span> <span class="n">_exclusive_cumsum2d</span><span class="p">(</span><span class="n">n_atoms</span><span class="p">)</span>
 
         <span class="n">max_n_atoms</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">n_atoms</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
 
@@ -781,7 +770,7 @@
     <span class="c1">################# HELPER FUNCTIONS FOR CONSTRUCTION ###############</span>
 
     <span class="nd">@classmethod</span>
-    <span class="nd">@validate_args</span>
+    <span class="nd">@_validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_find_connection_pairs_for_residue_subset</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span>
@@ -846,7 +835,7 @@
         <span class="k">return</span> <span class="n">ps_conn_inds</span>
 
     <span class="nd">@classmethod</span>
-    <span class="nd">@validate_args</span>
+    <span class="nd">@_validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_pack_pose_stack_coords</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span>
@@ -873,7 +862,7 @@
         <span class="k">return</span> <span class="n">coords</span><span class="p">,</span> <span class="n">block_coord_offset</span>
 
     <span class="nd">@classmethod</span>
-    <span class="nd">@validate_args</span>
+    <span class="nd">@_validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_inter_residue_connections_from_pose_stacks</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span>
@@ -899,7 +888,7 @@
         <span class="k">return</span> <span class="n">inter_residue_connections</span>
 
     <span class="nd">@classmethod</span>
-    <span class="nd">@validate_args</span>
+    <span class="nd">@_validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_resolve_block_type_ind</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span>
@@ -935,7 +924,7 @@
         <span class="k">return</span> <span class="n">block_type_ind</span>
 
     <span class="nd">@classmethod</span>
-    <span class="nd">@validate_args</span>
+    <span class="nd">@_validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_chain_id_from_pose_stacks</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">pose_stacks</span><span class="p">,</span>  <span class="c1"># : List["PoseStack"],</span>
@@ -1026,7 +1015,7 @@
         <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="nd">@validate_args</span>
+    <span class="nd">@_validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_annotate_pbt_w_canonical_aa1lc_lookup</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Annotate the PBT with a pandas dictionary mapping the (unique!) names</span>
 <span class="sd">        of each of the block types to their index in the active_block_types list,</span>
@@ -1046,7 +1035,7 @@
 
         <span class="n">lcaa_ind</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">res</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">):</span>
-            <span class="n">one</span> <span class="o">=</span> <span class="n">three2one</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">one</span> <span class="o">=</span> <span class="n">_three2one</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">one</span><span class="p">:</span>
                 <span class="k">assert</span> <span class="n">one</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">lcaa_ind</span>
                 <span class="n">lcaa_ind</span><span class="p">[</span><span class="n">one</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span>
@@ -1063,7 +1052,7 @@
         <span class="nb">setattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"bt_mapping_w_lcaa_1lc_ind"</span><span class="p">,</span> <span class="n">ind</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="nd">@validate_args</span>
+    <span class="nd">@_validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_annotate_bt_w_intraresidue_connection_atom_distances</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">bt</span><span class="p">:</span> <span class="n">RefinedResidueType</span>
     <span class="p">):</span>
@@ -1081,7 +1070,7 @@
         <span class="nb">setattr</span><span class="p">(</span><span class="n">bt</span><span class="p">,</span> <span class="s2">"conn_at_intrablock_bond_sep"</span><span class="p">,</span> <span class="n">conn_at_intrablock_bond_sep</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="nd">@validate_args</span>
+    <span class="nd">@_validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_annotate_pbt_w_intraresidue_connection_atom_distances</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span>
     <span class="p">):</span>
@@ -1108,7 +1097,7 @@
         <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="nd">@validate_args</span>
+    <span class="nd">@_validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_find_connections_in_sequences</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span>
@@ -1172,7 +1161,7 @@
         <span class="k">return</span> <span class="n">trimmed_seqs</span><span class="p">,</span> <span class="n">ps_conns</span>
 
     <span class="nd">@classmethod</span>
-    <span class="nd">@validate_args</span>
+    <span class="nd">@_validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_block_type_indices_from_sequences</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span>
@@ -1238,7 +1227,7 @@
         <span class="k">return</span> <span class="n">real_res</span><span class="p">,</span> <span class="n">n_res</span><span class="p">,</span> <span class="n">block_type_ind</span><span class="p">,</span> <span class="n">block_type_ind64</span>
 
     <span class="nd">@classmethod</span>
-    <span class="nd">@validate_args</span>
+    <span class="nd">@_validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_inter_residue_connections_for_polymeric_monomers</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span>
@@ -1372,7 +1361,7 @@
         <span class="k">return</span> <span class="n">inter_residue_connections64</span><span class="p">,</span> <span class="n">chain_id</span>
 
     <span class="nd">@classmethod</span>
-    <span class="nd">@validate_args</span>
+    <span class="nd">@_validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_incorporate_extra_connections_into_inter_res_conn_set</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">expoly_connections</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]],</span>

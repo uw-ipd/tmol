@@ -406,9 +406,6 @@
     
     <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.pack.rotamer._fallback_sampler</span></li>
   </ul>
 </nav>
@@ -432,20 +429,16 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClassVar</span><span class="p">,</span> <span class="n">Tuple</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">PackedBlockTypes</span><span class="p">,</span>
-    <span class="n">PoseStack</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">ConformerSampler</span><span class="p">,</span>
-    <span class="n">IncludeCurrentSampler</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._packed_block_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackedBlockTypes</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._conformer_sampler</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConformerSampler</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._include_current_sampler</span><span class="w"> </span><span class="kn">import</span> <span class="n">IncludeCurrentSampler</span>
 
 
 <div class="viewcode-block" id="FallbackSampler">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.FallbackSampler">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.FallbackSampler">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">FallbackSampler</span><span class="p">(</span><span class="n">ConformerSampler</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Include the input conformation as a rotamer only for positions that have</span>
@@ -471,38 +464,38 @@
     <span class="n">samples_after_other_samplers</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
 
 <div class="viewcode-block" id="FallbackSampler.sampler_name">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.FallbackSampler.sampler_name">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.FallbackSampler.sampler_name">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">sampler_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
         <span class="k">return</span> <span class="s2">"FallbackSampler"</span></div>
 
 
 <div class="viewcode-block" id="FallbackSampler.annotate_residue_type">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.FallbackSampler.annotate_residue_type">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.FallbackSampler.annotate_residue_type">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">annotate_residue_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
         <span class="k">pass</span></div>
 
 
 <div class="viewcode-block" id="FallbackSampler.annotate_packed_block_types">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.FallbackSampler.annotate_packed_block_types">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.FallbackSampler.annotate_packed_block_types">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">annotate_packed_block_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
         <span class="k">pass</span></div>
 
 
 <div class="viewcode-block" id="FallbackSampler.defines_rotamers_for_rt">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.FallbackSampler.defines_rotamers_for_rt">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.FallbackSampler.defines_rotamers_for_rt">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">defines_rotamers_for_rt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
         <span class="k">return</span> <span class="kc">True</span></div>
 
 
 <div class="viewcode-block" id="FallbackSampler.first_sc_atoms_for_rt">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.FallbackSampler.first_sc_atoms_for_rt">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.FallbackSampler.first_sc_atoms_for_rt">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">first_sc_atoms_for_rt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">default_jump_connection_atom</span><span class="p">,)</span></div>
 
 
 <div class="viewcode-block" id="FallbackSampler.create_samples_for_poses">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.FallbackSampler.create_samples_for_poses">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.FallbackSampler.create_samples_for_poses">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">create_samples_for_poses</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>

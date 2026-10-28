@@ -406,9 +406,6 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.pack._mutate</span></li>
   </ul>
 </nav>
@@ -429,13 +426,18 @@
   <h1>Source code for tmol.pack._mutate</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">one2three</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical._restypes</span><span class="w"> </span><span class="kn">import</span> <span class="n">_one2three</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreFunction</span><span class="p">,</span> <span class="n">beta2016_score_function</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackerTask</span><span class="p">,</span> <span class="n">PackerPalette</span><span class="p">,</span> <span class="n">pack_rotamers</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">FixedAAChiSampler</span><span class="p">,</span> <span class="n">IncludeCurrentSampler</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.dunbrack</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_dunbrack_sampler_from_database</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score._score_function</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreFunction</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack._packer_task</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackerTask</span><span class="p">,</span> <span class="n">PackerPalette</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack._pack_rotamers</span><span class="w"> </span><span class="kn">import</span> <span class="n">pack_rotamers</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._fixed_aa_chi_sampler</span><span class="w"> </span><span class="kn">import</span> <span class="n">FixedAAChiSampler</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._include_current_sampler</span><span class="w"> </span><span class="kn">import</span> <span class="n">IncludeCurrentSampler</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.dunbrack._dunbrack_chi_sampler</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">create_dunbrack_sampler_from_database</span><span class="p">,</span>
+<span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_mutate_blocks</span><span class="p">(</span>
@@ -480,7 +482,7 @@
 
 
 <div class="viewcode-block" id="mutate_residue">
-<a class="viewcode-back" href="../../../api/pack.html#tmol.pack.mutate_residue">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.mutate_residue">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">mutate_residue</span><span class="p">(</span>
     <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
     <span class="n">pose_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -508,7 +510,7 @@
 <span class="sd">            beta2016 on the pose stack's device.</span>
 <span class="sd">        param_db: Parameter database used to build the Dunbrack sampler;</span>
 <span class="sd">            defaults to the score function's own database.</span>
-<span class="sd">        seed: Packer seed, as for :func:`~tmol.pack.pack_rotamers`.</span>
+<span class="sd">        seed: Packer seed, as for :func:`~tmol.pack_rotamers`.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        A new PoseStack with the requested block mutated.</span>
@@ -520,7 +522,7 @@
 
 
 <div class="viewcode-block" id="mutate_to_sequence">
-<a class="viewcode-back" href="../../../api/pack.html#tmol.pack.mutate_to_sequence">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.mutate_to_sequence">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">mutate_to_sequence</span><span class="p">(</span>
     <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
     <span class="n">pose_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -533,7 +535,7 @@
 <span class="w">    </span><span class="sd">"""Mutate every real block of one pose whose identity doesn't match ``sequence``.</span>
 
 <span class="sd">    ``sequence`` is a one-letter sequence, as returned by</span>
-<span class="sd">    :func:`~tmol.pose.get_sequence`, for the real (non-padding) blocks of one</span>
+<span class="sd">    :func:`~tmol.get_sequence`, for the real (non-padding) blocks of one</span>
 <span class="sd">    pose, in block order. Positions whose current three-letter code already</span>
 <span class="sd">    matches their requested letter are left untouched; every differing</span>
 <span class="sd">    position is redesigned to the requested identity in a single packing run.</span>
@@ -546,7 +548,7 @@
 <span class="sd">            beta2016 on the pose stack's device.</span>
 <span class="sd">        param_db: Parameter database used to build the Dunbrack sampler;</span>
 <span class="sd">            defaults to the score function's own database.</span>
-<span class="sd">        seed: Packer seed, as for :func:`~tmol.pack.pack_rotamers`.</span>
+<span class="sd">        seed: Packer seed, as for :func:`~tmol.pack_rotamers`.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        A new PoseStack with every differing position mutated to match.</span>
@@ -562,7 +564,7 @@
 
     <span class="n">name3_by_block</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">block</span><span class="p">,</span> <span class="n">letter</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">real_blocks</span><span class="p">,</span> <span class="n">sequence</span><span class="p">):</span>
-        <span class="n">new_name3</span> <span class="o">=</span> <span class="n">one2three</span><span class="p">(</span><span class="n">letter</span><span class="p">)</span>
+        <span class="n">new_name3</span> <span class="o">=</span> <span class="n">_one2three</span><span class="p">(</span><span class="n">letter</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">new_name3</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">letter</span><span class="si">!r}</span><span class="s2"> is not a valid one-letter amino acid code"</span><span class="p">)</span>
         <span class="n">current_name3</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">block_type_ind</span><span class="p">[</span><span class="n">block</span><span class="p">])]</span><span class="o">.</span><span class="n">name3</span>

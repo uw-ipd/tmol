@@ -407,9 +407,6 @@
     <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
     
     
-    <li class="breadcrumb-item"><a href="../../../tmol.html" class="nav-link">tmol</a></li>
-    
-    
     <li class="breadcrumb-item"><a href="../../score.html" class="nav-link">tmol.score</a></li>
     
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.score.lk_ball._lk_ball_energy_term</span></li>
@@ -435,25 +432,21 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">._params</span><span class="w"> </span><span class="kn">import</span> <span class="n">LKBallBlockTypeParams</span><span class="p">,</span> <span class="n">LKBallPackedBlockTypesParams</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">.._annotation_cache</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnnotationKey</span><span class="p">,</span> <span class="n">cached_annotation</span><span class="p">,</span> <span class="n">store_annotation</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.._annotation_cache</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnnotationKey</span><span class="p">,</span> <span class="n">_cached_annotation</span><span class="p">,</span> <span class="n">_store_annotation</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.._atom_type_dependent_term</span><span class="w"> </span><span class="kn">import</span> <span class="n">AtomTypeDependentTerm</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">..hbond._hbond_dependent_term</span><span class="w"> </span><span class="kn">import</span> <span class="n">HBondDependentTerm</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">..ljlk._params</span><span class="w"> </span><span class="kn">import</span> <span class="n">LJLKGlobalParams</span><span class="p">,</span> <span class="n">LJLKParamResolver</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">PackedBlockTypes</span><span class="p">,</span>
-    <span class="n">PoseStack</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.common</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">arg_tile_subset_indices</span><span class="p">,</span>
-    <span class="n">convert_float64</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._packed_block_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackedBlockTypes</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.common._stack_condense</span><span class="w"> </span><span class="kn">import</span> <span class="n">_arg_tile_subset_indices</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.common._convert_float64</span><span class="w"> </span><span class="kn">import</span> <span class="n">_convert_float64</span>
 
 
 <div class="viewcode-block" id="LKBallEnergyTerm">
-<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.lk_ball.LKBallEnergyTerm">[docs]</a>
+<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.LKBallEnergyTerm">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">LKBallEnergyTerm</span><span class="p">(</span><span class="n">AtomTypeDependentTerm</span><span class="p">,</span> <span class="n">HBondDependentTerm</span><span class="p">):</span>
     <span class="n">tile_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">HBondDependentTerm</span><span class="o">.</span><span class="n">tile_size</span>
     <span class="n">ljlk_global_params</span><span class="p">:</span> <span class="n">LJLKGlobalParams</span>
@@ -546,7 +539,7 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_block_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_type</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ljlk_param_resolver</span><span class="o">.</span><span class="n">validate_block_type</span><span class="p">(</span><span class="n">block_type</span><span class="p">)</span>
         <span class="n">atom_params</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">LKBallEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_block_type</span><span class="p">(</span><span class="n">block_type</span><span class="p">)</span>
-        <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="n">_cached_annotation</span><span class="p">(</span>
             <span class="n">block_type</span><span class="p">,</span> <span class="s2">"_lk_ball_annotation"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lk_ball_block_key</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -576,7 +569,7 @@
         <span class="n">polar_inds</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">atom_is_polar</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
 
         <span class="n">tile_size</span> <span class="o">=</span> <span class="n">LKBallEnergyTerm</span><span class="o">.</span><span class="n">tile_size</span>
-        <span class="n">tiled_polar_orig_inds</span><span class="p">,</span> <span class="n">tile_n_polar</span> <span class="o">=</span> <span class="n">arg_tile_subset_indices</span><span class="p">(</span>
+        <span class="n">tiled_polar_orig_inds</span><span class="p">,</span> <span class="n">tile_n_polar</span> <span class="o">=</span> <span class="n">_arg_tile_subset_indices</span><span class="p">(</span>
             <span class="n">polar_inds</span><span class="p">,</span> <span class="n">tile_size</span><span class="p">,</span> <span class="n">block_type</span><span class="o">.</span><span class="n">n_atoms</span> <span class="o">-</span> <span class="mi">1</span>
         <span class="p">)</span>
         <span class="n">tiled_polar_orig_inds</span> <span class="o">=</span> <span class="n">tiled_polar_orig_inds</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_tiles</span><span class="p">,</span> <span class="n">tile_size</span><span class="p">)</span>
@@ -597,7 +590,7 @@
         <span class="p">)</span>
         <span class="n">heavy_apolar_inds</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">atom_is_heavy_apolar</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
 
-        <span class="n">tiled_heavy_apolar_orig_inds</span><span class="p">,</span> <span class="n">tile_n_apolar</span> <span class="o">=</span> <span class="n">arg_tile_subset_indices</span><span class="p">(</span>
+        <span class="n">tiled_heavy_apolar_orig_inds</span><span class="p">,</span> <span class="n">tile_n_apolar</span> <span class="o">=</span> <span class="n">_arg_tile_subset_indices</span><span class="p">(</span>
             <span class="n">heavy_apolar_inds</span><span class="p">,</span> <span class="n">tile_size</span><span class="p">,</span> <span class="n">block_type</span><span class="o">.</span><span class="n">n_atoms</span> <span class="o">-</span> <span class="mi">1</span>
         <span class="p">)</span>
         <span class="n">tiled_heavy_apolar_orig_inds</span> <span class="o">=</span> <span class="n">tiled_heavy_apolar_orig_inds</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
@@ -645,7 +638,7 @@
             <span class="n">tile_lk_ball_params</span><span class="o">=</span><span class="n">tiled_bt_lk_ball_at_params</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"lk_ball_params"</span><span class="p">,</span> <span class="n">bt_lk_ball_params</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">_store_annotation</span><span class="p">(</span>
             <span class="n">block_type</span><span class="p">,</span>
             <span class="s2">"_lk_ball_annotation"</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_lk_ball_block_key</span><span class="p">,</span>
@@ -655,7 +648,7 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_packed_block_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">LKBallEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_packed_block_types</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">)</span>
-        <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="n">_cached_annotation</span><span class="p">(</span>
             <span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"_lk_ball_annotation"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lk_ball_packed_key</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -695,7 +688,7 @@
             <span class="n">tile_lk_ball_params</span><span class="o">=</span><span class="n">_t</span><span class="p">(</span><span class="n">tile_lk_ball_params</span><span class="p">),</span>
         <span class="p">)</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"lk_ball_params"</span><span class="p">,</span> <span class="n">lk_ball_params</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">_store_annotation</span><span class="p">(</span>
             <span class="n">packed_block_types</span><span class="p">,</span>
             <span class="s2">"_lk_ball_annotation"</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_lk_ball_packed_key</span><span class="p">,</span>
@@ -723,7 +716,7 @@
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_gen_waters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">common_args</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">,</span> <span class="n">hbond_params</span><span class="p">):</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.lk_ball.potentials</span><span class="w"> </span><span class="kn">import</span> <span class="n">gen_pose_waters</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.lk_ball.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">_gen_pose_waters</span>
 
         <span class="n">args</span> <span class="o">=</span> <span class="p">[</span>
             <span class="o">*</span><span class="n">common_args</span><span class="p">,</span>
@@ -749,12 +742,12 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">ljlk_param_resolver</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">lkb_water_tors_ring</span><span class="p">,</span>
         <span class="p">]</span>
         <span class="k">if</span> <span class="n">common_args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">:</span>
-            <span class="n">convert_float64</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+            <span class="n">_convert_float64</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">gen_pose_waters</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_gen_pose_waters</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">pose_score_lk_ball</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.lk_ball.potentials</span><span class="w"> </span><span class="kn">import</span> <span class="n">lk_ball_pose_score</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.lk_ball.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">_lk_ball_pose_score</span>
 
         <span class="n">common_args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">5</span><span class="p">]</span>
         <span class="p">(</span>
@@ -793,12 +786,14 @@
             <span class="nb">getattr</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="s2">"_lk_ball_allow_split_backward"</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
         <span class="p">]</span>
         <span class="k">if</span> <span class="n">common_args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">:</span>
-            <span class="n">convert_float64</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+            <span class="n">_convert_float64</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">lk_ball_pose_score</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_lk_ball_pose_score</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">rotamer_score_lk_ball</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.lk_ball.potentials</span><span class="w"> </span><span class="kn">import</span> <span class="n">lk_ball_rotamer_score_shared</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.lk_ball.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+            <span class="n">_lk_ball_rotamer_score_shared</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="n">common_args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">5</span><span class="p">]</span>
         <span class="p">(</span>
@@ -834,9 +829,9 @@
             <span class="n">block_pair_scoring</span><span class="p">,</span>
         <span class="p">]</span>
         <span class="k">if</span> <span class="n">common_args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">:</span>
-            <span class="n">convert_float64</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+            <span class="n">_convert_float64</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">lk_ball_rotamer_score_shared</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">shared_dispatch_indices</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_lk_ball_rotamer_score_shared</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">shared_dispatch_indices</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_pose_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose_score_lk_ball</span>

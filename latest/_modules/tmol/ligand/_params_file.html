@@ -406,9 +406,6 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.ligand._params_file</span></li>
   </ul>
 </nav>
@@ -476,17 +473,14 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">cattr</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database._yaml</span><span class="w"> </span><span class="kn">import</span> <span class="n">safe_load</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database._yaml</span><span class="w"> </span><span class="kn">import</span> <span class="n">_safe_load</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">RawResidueType</span><span class="p">,</span>
     <span class="n">VariantType</span><span class="p">,</span>
-    <span class="n">normalize_bond_tuples</span><span class="p">,</span>
+    <span class="n">_normalize_bond_tuples</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.scoring</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">CartRes</span><span class="p">,</span>
-    <span class="n">ConnectionCartRes</span><span class="p">,</span>
-    <span class="n">PartialCharges</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.scoring._cartbonded</span><span class="w"> </span><span class="kn">import</span> <span class="n">CartRes</span><span class="p">,</span> <span class="n">ConnectionCartRes</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.scoring._elec</span><span class="w"> </span><span class="kn">import</span> <span class="n">PartialCharges</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
@@ -553,7 +547,7 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_structure_residue</span><span class="p">(</span><span class="n">item</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">RawResidueType</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Apply defaults for optional fields, then structure into RawResidueType."""</span>
     <span class="n">populated</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">_RAW_RESIDUE_DEFAULTS</span><span class="p">,</span> <span class="o">**</span><span class="n">item</span><span class="p">}</span>
-    <span class="n">normalize_bond_tuples</span><span class="p">([</span><span class="n">populated</span><span class="p">])</span>
+    <span class="n">_normalize_bond_tuples</span><span class="p">([</span><span class="n">populated</span><span class="p">])</span>
     <span class="k">if</span> <span class="s2">"properties"</span> <span class="ow">in</span> <span class="n">populated</span><span class="p">:</span>
         <span class="n">populated</span><span class="p">[</span><span class="s2">"properties"</span><span class="p">]</span> <span class="o">=</span> <span class="n">_fill_properties_defaults</span><span class="p">(</span><span class="n">populated</span><span class="p">[</span><span class="s2">"properties"</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">cattr</span><span class="o">.</span><span class="n">structure</span><span class="p">(</span><span class="n">populated</span><span class="p">,</span> <span class="n">RawResidueType</span><span class="p">)</span>
@@ -616,7 +610,7 @@
 <span class="sd">    The returned list is the same abstraction the AtomArray pipeline</span>
 <span class="sd">    produces (see :func:`tmol.ligand.prepare_single_ligand`), so the</span>
 <span class="sd">    caller can pass it directly to</span>
-<span class="sd">    :func:`tmol.ligand._registry.inject_ligand_preparations` regardless</span>
+<span class="sd">    ``tmol.ligand._registry._inject_ligand_preparations`` regardless</span>
 <span class="sd">    of which input form (file or AtomArray) it came from.</span>
 
 <span class="sd">    The ``.tmol`` schema is the nested</span>
@@ -644,7 +638,7 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_load_params_file_uncached</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="s2">"LigandPreparation"</span><span class="p">]:</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">LigandPreparation</span><span class="p">,</span> <span class="n">_charges_from_rows</span>
 
-    <span class="n">raw</span> <span class="o">=</span> <span class="n">safe_load</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">read_text</span><span class="p">())</span>
+    <span class="n">raw</span> <span class="o">=</span> <span class="n">_safe_load</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">read_text</span><span class="p">())</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Expected mapping at YAML root, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
@@ -827,9 +821,9 @@
     <span class="n">strict_atom_types</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParameterDatabase</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Load a single ``.tmol`` file and inject it into a ParameterDatabase."""</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">inject_ligand_preparations</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">_inject_ligand_preparations</span>
 
-    <span class="k">return</span> <span class="n">inject_ligand_preparations</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">_inject_ligand_preparations</span><span class="p">(</span>
         <span class="n">param_db</span><span class="p">,</span> <span class="n">load_params_file</span><span class="p">(</span><span class="n">path</span><span class="p">),</span> <span class="n">strict_atom_types</span><span class="o">=</span><span class="n">strict_atom_types</span>
     <span class="p">)</span></div>
 
@@ -853,9 +847,9 @@
     <span class="n">strict_atom_types</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParameterDatabase</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Load multiple ``.tmol`` files and inject them in one shot."""</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">inject_ligand_preparations</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">_inject_ligand_preparations</span>
 
-    <span class="k">return</span> <span class="n">inject_ligand_preparations</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">_inject_ligand_preparations</span><span class="p">(</span>
         <span class="n">param_db</span><span class="p">,</span> <span class="n">_load_params_files</span><span class="p">(</span><span class="n">paths</span><span class="p">),</span> <span class="n">strict_atom_types</span><span class="o">=</span><span class="n">strict_atom_types</span>
     <span class="p">)</span></div>
 

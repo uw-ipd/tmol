@@ -521,8 +521,8 @@ valid entries from coordinate values alone.</p>
 <section id="device-and-dtype">
 <h2>Device and dtype<a class="headerlink" href="#device-and-dtype" title="Link to this heading">#</a></h2>
 <p>All tensors participating in one operation must use compatible devices and
-dtypes. A <a class="reference internal" href="api/pose.html#tmol.pose.PoseStack" title="tmol.pose.PoseStack"><code class="xref py py-class docutils literal notranslate"><span class="pre">PoseStack</span></code></a>, its
-<a class="reference internal" href="api/pose.html#tmol.pose.PackedBlockTypes" title="tmol.pose.PackedBlockTypes"><code class="xref py py-class docutils literal notranslate"><span class="pre">PackedBlockTypes</span></code></a>, rendered scoring modules, and movement
+dtypes. A <a class="reference internal" href="api/top_level.html#tmol.PoseStack" title="tmol.PoseStack"><code class="xref py py-class docutils literal notranslate"><span class="pre">PoseStack</span></code></a>, its
+<a class="reference internal" href="api/top_level.html#tmol.PackedBlockTypes" title="tmol.PackedBlockTypes"><code class="xref py py-class docutils literal notranslate"><span class="pre">PackedBlockTypes</span></code></a>, rendered scoring modules, and movement
 data normally live on the same CPU or CUDA device.</p>
 <p>TMol APIs commonly accept a device-like value and normalize it through
 <a class="reference internal" href="api/utility.html#tmol.utility.resolve_device" title="tmol.utility.resolve_device"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmol.utility.resolve_device()</span></code></a>. Preserve the input coordinate dtype unless
@@ -539,7 +539,7 @@ through NumPy breaks PyTorch autograd.</p>
 </section>
 <section id="public-typing-helpers">
 <h2>Public typing helpers<a class="headerlink" href="#public-typing-helpers" title="Link to this heading">#</a></h2>
-<p>The <a class="reference internal" href="api/types.html#module-tmol.types" title="tmol.types"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmol.types</span></code></a> package provides runtime conversion, validation, tensor
+<p>The <code class="docutils literal notranslate"><span class="pre">tmol.types</span></code> package provides runtime conversion, validation, tensor
 shape annotations, and <code class="docutils literal notranslate"><span class="pre">TensorGroup</span></code> helpers used throughout the codebase.
 The <a class="reference internal" href="api/utility.html#module-tmol.utility" title="tmol.utility"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmol.utility</span></code></a> package contains device, cumulative-sum, units, and
 other implementation helpers. Most workflow users interact with the molecular

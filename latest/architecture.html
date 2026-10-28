@@ -483,7 +483,7 @@
                   
   <section id="architecture">
 <span id="id1"></span><h1>Architecture<a class="headerlink" href="#architecture" title="Link to this heading">#</a></h1>
-<p><code class="docutils literal notranslate"><span class="pre">tmol.io</span></code> builds batched <a class="reference internal" href="api/pose.html#tmol.pose.PoseStack" title="tmol.pose.PoseStack"><code class="xref py py-class docutils literal notranslate"><span class="pre">PoseStack</span></code></a> objects from structures
+<p><code class="docutils literal notranslate"><span class="pre">tmol.io</span></code> builds batched <a class="reference internal" href="api/top_level.html#tmol.PoseStack" title="tmol.PoseStack"><code class="xref py py-class docutils literal notranslate"><span class="pre">PoseStack</span></code></a> objects from structures
 or model tensors. <code class="docutils literal notranslate"><span class="pre">tmol.score</span></code> evaluates their coordinates using chemical
 definitions from <code class="docutils literal notranslate"><span class="pre">tmol.database.chemical</span></code> and parameters from
 <code class="docutils literal notranslate"><span class="pre">tmol.database.scoring</span></code>.</p>
@@ -528,20 +528,20 @@ definitions from <code class="docutils literal notranslate"><span class="pre">tm
      Biotite structure or PDB output
 </pre></div>
 </div>
-<p>The <a class="reference internal" href="api/database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><code class="xref py py-class docutils literal notranslate"><span class="pre">ParameterDatabase</span></code></a> supplies chemical and scoring
+<p>The <a class="reference internal" href="api/top_level.html#tmol.ParameterDatabase" title="tmol.ParameterDatabase"><code class="xref py py-class docutils literal notranslate"><span class="pre">ParameterDatabase</span></code></a> supplies chemical and scoring
 definitions. I/O chooses compatible block types and constructs a
-<a class="reference internal" href="api/pose.html#tmol.pose.PackedBlockTypes" title="tmol.pose.PackedBlockTypes"><code class="xref py py-class docutils literal notranslate"><span class="pre">PackedBlockTypes</span></code></a> collection on the requested device. The
-resulting <a class="reference internal" href="api/pose.html#tmol.pose.PoseStack" title="tmol.pose.PoseStack"><code class="xref py py-class docutils literal notranslate"><span class="pre">PoseStack</span></code></a> owns coordinates, topology, block
+<a class="reference internal" href="api/top_level.html#tmol.PackedBlockTypes" title="tmol.PackedBlockTypes"><code class="xref py py-class docutils literal notranslate"><span class="pre">PackedBlockTypes</span></code></a> collection on the requested device. The
+resulting <a class="reference internal" href="api/top_level.html#tmol.PoseStack" title="tmol.PoseStack"><code class="xref py py-class docutils literal notranslate"><span class="pre">PoseStack</span></code></a> owns coordinates, topology, block
 indices, and references to those packed types.</p>
 <p>Packing may return a new stack when chemical identities or atom counts change.
 Cartesian or kinematic minimization usually changes coordinates while keeping
 the same layout. That distinction determines whether an existing rendered
 scoring module can be reused.</p>
 <p><code class="docutils literal notranslate"><span class="pre">tmol.pose</span></code> and <code class="docutils literal notranslate"><span class="pre">tmol.score</span></code> meet when a
-<a class="reference internal" href="api/score.html#tmol.score.ScoreFunction" title="tmol.score.ScoreFunction"><code class="xref py py-class docutils literal notranslate"><span class="pre">ScoreFunction</span></code></a> renders a scoring module for a
-<a class="reference internal" href="api/pose.html#tmol.pose.PoseStack" title="tmol.pose.PoseStack"><code class="xref py py-class docutils literal notranslate"><span class="pre">PoseStack</span></code></a>, for example with
-<a class="reference internal" href="api/score.html#tmol.score.ScoreFunction.render_whole_pose_scoring_module" title="tmol.score.ScoreFunction.render_whole_pose_scoring_module"><code class="xref py py-meth docutils literal notranslate"><span class="pre">render_whole_pose_scoring_module()</span></code></a>.
-Score terms annotate <a class="reference internal" href="api/pose.html#tmol.pose.PackedBlockTypes" title="tmol.pose.PackedBlockTypes"><code class="xref py py-class docutils literal notranslate"><span class="pre">PackedBlockTypes</span></code></a>
+<a class="reference internal" href="api/top_level.html#tmol.ScoreFunction" title="tmol.ScoreFunction"><code class="xref py py-class docutils literal notranslate"><span class="pre">ScoreFunction</span></code></a> renders a scoring module for a
+<a class="reference internal" href="api/top_level.html#tmol.PoseStack" title="tmol.PoseStack"><code class="xref py py-class docutils literal notranslate"><span class="pre">PoseStack</span></code></a>, for example with
+<a class="reference internal" href="api/top_level.html#tmol.ScoreFunction.render_whole_pose_scoring_module" title="tmol.ScoreFunction.render_whole_pose_scoring_module"><code class="xref py py-meth docutils literal notranslate"><span class="pre">render_whole_pose_scoring_module()</span></code></a>.
+Score terms annotate <a class="reference internal" href="api/top_level.html#tmol.PackedBlockTypes" title="tmol.PackedBlockTypes"><code class="xref py py-class docutils literal notranslate"><span class="pre">PackedBlockTypes</span></code></a>
 and then render <code class="docutils literal notranslate"><span class="pre">torch.nn.Module</span></code> objects for repeated evaluation.</p>
 </section>
 <section id="scoring-overview">

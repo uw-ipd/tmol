@@ -406,9 +406,6 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.io._pose_stack_from_atomworks</span></li>
   </ul>
 </nav>
@@ -431,19 +428,15 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">toolz</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_args</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._functional</span><span class="w"> </span><span class="kn">import</span> <span class="n">_validate_args</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">ResidueTypeSet</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._build_context</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseBuildContext</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._pose_stack_from_atom37</span><span class="w"> </span><span class="kn">import</span> <span class="n">canonical_form_from_atom37</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">CanonicalForm</span><span class="p">,</span>
-    <span class="n">CanonicalOrdering</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">PackedBlockTypes</span><span class="p">,</span>
-    <span class="n">PoseStack</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._pose_stack_from_atom37</span><span class="w"> </span><span class="kn">import</span> <span class="n">_canonical_form_from_atom37</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._canonical_form</span><span class="w"> </span><span class="kn">import</span> <span class="n">CanonicalForm</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._canonical_ordering</span><span class="w"> </span><span class="kn">import</span> <span class="n">CanonicalOrdering</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._packed_block_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackedBlockTypes</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
 
 <span class="c1"># Use AtomWorks' protein token order and atom slots as the source of truth.</span>
 <span class="c1"># This module therefore has a runtime AtomWorks dependency. Copy the public</span>
@@ -468,7 +461,7 @@
 
 <div class="viewcode-block" id="pose_stack_from_canonical_aa_atom37">
 <a class="viewcode-back" href="../../../api/io.html#tmol.io.pose_stack_from_canonical_aa_atom37">[docs]</a>
-<span class="nd">@validate_args</span>
+<span class="nd">@_validate_args</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">pose_stack_from_canonical_aa_atom37</span><span class="p">(</span>
     <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">residue_type</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
@@ -501,7 +494,7 @@
 <span class="sd">    chain_iid : Tensor[int64], shape [batch, n_res]</span>
 <span class="sd">        Chain identifiers (integer IDs, not string labels).</span>
 <span class="sd">    **kwargs</span>
-<span class="sd">        Additional arguments passed to ``pose_stack_from_canonical_form``.</span>
+<span class="sd">        Additional arguments passed to ``_pose_stack_from_canonical_form``.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -513,20 +506,20 @@
 <span class="sd">        If any ``residue_type`` value is outside 1..20 (protein-only) and not</span>
 <span class="sd">        0 (padding).</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_canonical_form</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._pose_stack_construction</span><span class="w"> </span><span class="kn">import</span> <span class="n">_pose_stack_from_canonical_form</span>
 
-    <span class="n">cf</span> <span class="o">=</span> <span class="n">canonical_form_from_atomworks</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">residue_type</span><span class="p">,</span> <span class="n">chain_iid</span><span class="p">)</span>
+    <span class="n">cf</span> <span class="o">=</span> <span class="n">_canonical_form_from_atomworks</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">residue_type</span><span class="p">,</span> <span class="n">chain_iid</span><span class="p">)</span>
 
-    <span class="n">co</span> <span class="o">=</span> <span class="n">canonical_ordering_for_atomworks</span><span class="p">()</span>
-    <span class="n">pbt</span> <span class="o">=</span> <span class="n">packed_block_types_for_atomworks</span><span class="p">(</span><span class="n">cf</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">co</span> <span class="o">=</span> <span class="n">_canonical_ordering_for_atomworks</span><span class="p">()</span>
+    <span class="n">pbt</span> <span class="o">=</span> <span class="n">_packed_block_types_for_atomworks</span><span class="p">(</span><span class="n">cf</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">pose_stack_from_canonical_form</span><span class="p">(</span><span class="n">co</span><span class="p">,</span> <span class="n">pbt</span><span class="p">,</span> <span class="o">*</span><span class="n">cf</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">_pose_stack_from_canonical_form</span><span class="p">(</span><span class="n">co</span><span class="p">,</span> <span class="n">pbt</span><span class="p">,</span> <span class="o">*</span><span class="n">cf</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
 
 <div class="viewcode-block" id="pose_stack_from_atom37_and_topology">
 <a class="viewcode-back" href="../../../api/io.html#tmol.io.pose_stack_from_atom37_and_topology">[docs]</a>
-<span class="nd">@validate_args</span>
+<span class="nd">@_validate_args</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">pose_stack_from_atom37_and_topology</span><span class="p">(</span>
     <span class="n">atom37_coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">biotite_structure</span><span class="p">:</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArray</span> <span class="o">|</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">,</span>
@@ -546,7 +539,7 @@
 
 <span class="sd">    The topology is only read to derive residue identity and the Atom37 slot</span>
 <span class="sd">    map. Once derived, construction is pure tensor work in the shared</span>
-<span class="sd">    :py:func:`~tmol.io.pose_stack_from_canonical_form_and_context`. When the</span>
+<span class="sd">    ``_pose_stack_from_canonical_form_and_context``. When the</span>
 <span class="sd">    same topology is scored repeatedly, use</span>
 <span class="sd">    :py:func:`~tmol.io.prepare_atom37_pose_builder` to pay that derivation once;</span>
 <span class="sd">    the returned builder never touches the ``AtomArray`` again. Unmapped finite reference atoms</span>
@@ -590,7 +583,7 @@
 <span class="sd">    PoseStack</span>
 <span class="sd">        Whose ``coords`` carry gradients back to ``atom37_coords``.</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_atom_array</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._pose_stack_from_biotite</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_atom_array</span>
 
     <span class="k">return</span> <span class="n">pose_stack_from_atom_array</span><span class="p">(</span>
         <span class="n">biotite_structure</span><span class="p">,</span>
@@ -604,10 +597,8 @@
 
 
 
-<div class="viewcode-block" id="canonical_form_from_atomworks">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.canonical_form_from_atomworks">[docs]</a>
-<span class="nd">@validate_args</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">canonical_form_from_atomworks</span><span class="p">(</span>
+<span class="nd">@_validate_args</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_canonical_form_from_atomworks</span><span class="p">(</span>
     <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">residue_type</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">chain_iid</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
@@ -652,13 +643,12 @@
 
     <span class="c1"># Only the residue-index space is atomworks-specific. Once the tokens are</span>
     <span class="c1"># expressed as tmol residue types, the coordinate scatter is the shared one.</span>
-    <span class="k">return</span> <span class="n">canonical_form_from_atom37</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">_canonical_form_from_atom37</span><span class="p">(</span>
         <span class="n">coords</span><span class="p">,</span>
         <span class="n">_aw_2_tmol_restype_map</span><span class="p">(</span><span class="n">device</span><span class="p">)[</span><span class="n">residue_type</span><span class="p">],</span>
         <span class="n">chain_iid</span><span class="p">,</span>
-        <span class="n">canonical_ordering_for_atomworks</span><span class="p">(),</span>
-    <span class="p">)</span></div>
-
+        <span class="n">_canonical_ordering_for_atomworks</span><span class="p">(),</span>
+    <span class="p">)</span>
 
 
 <span class="c1"># ---------------------------------------------------------------------------</span>
@@ -687,10 +677,10 @@
 <span class="sd">    chain_iid : Tensor[int64], shape [n_poses, max_n_res]</span>
 <span class="sd">        Chain identifiers.</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">canonical_form_from_pose_stack</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._pose_stack_deconstruction</span><span class="w"> </span><span class="kn">import</span> <span class="n">_canonical_form_from_pose_stack</span>
 
-    <span class="n">co</span> <span class="o">=</span> <span class="n">canonical_ordering_for_atomworks</span><span class="p">()</span>
-    <span class="n">cf</span> <span class="o">=</span> <span class="n">canonical_form_from_pose_stack</span><span class="p">(</span><span class="n">co</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">)</span>
+    <span class="n">co</span> <span class="o">=</span> <span class="n">_canonical_ordering_for_atomworks</span><span class="p">()</span>
+    <span class="n">cf</span> <span class="o">=</span> <span class="n">_canonical_form_from_pose_stack</span><span class="p">(</span><span class="n">co</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">)</span>
 
     <span class="n">device</span> <span class="o">=</span> <span class="n">cf</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">device</span>
     <span class="n">tmol_2_aw_rtmap</span><span class="p">,</span> <span class="n">tmol_2_aw_atmap</span><span class="p">,</span> <span class="n">tmol_at_is_real</span> <span class="o">=</span> <span class="n">_get_tmol_2_aw_mappings</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
@@ -765,18 +755,18 @@
     <span class="k">return</span> <span class="n">ResidueTypeSet</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">paramdb</span><span class="o">.</span><span class="n">chemical</span><span class="p">)</span>
 
 
-<span class="nd">@validate_args</span>
+<span class="nd">@_validate_args</span>
 <span class="nd">@toolz</span><span class="o">.</span><span class="n">functoolz</span><span class="o">.</span><span class="n">memoize</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">canonical_ordering_for_atomworks</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">CanonicalOrdering</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_canonical_ordering_for_atomworks</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">CanonicalOrdering</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Construct the CanonicalOrdering for the protein subset used</span>
 <span class="sd">    by the atomworks UNIFIED_ATOM37_ENCODING."""</span>
     <span class="n">paramdb</span> <span class="o">=</span> <span class="n">_paramdb_for_atomworks</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">CanonicalOrdering</span><span class="o">.</span><span class="n">from_chemdb</span><span class="p">(</span><span class="n">paramdb</span><span class="o">.</span><span class="n">chemical</span><span class="p">)</span>
 
 
-<span class="nd">@validate_args</span>
+<span class="nd">@_validate_args</span>
 <span class="nd">@toolz</span><span class="o">.</span><span class="n">functoolz</span><span class="o">.</span><span class="n">memoize</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">packed_block_types_for_atomworks</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PackedBlockTypes</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_packed_block_types_for_atomworks</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PackedBlockTypes</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Construct the PackedBlockTypes for the protein subset used</span>
 <span class="sd">    by the atomworks UNIFIED_ATOM37_ENCODING."""</span>
     <span class="n">restype_set</span> <span class="o">=</span> <span class="n">_restype_set_for_atomworks</span><span class="p">()</span>
@@ -788,7 +778,7 @@
 <span class="nd">@toolz</span><span class="o">.</span><span class="n">functoolz</span><span class="o">.</span><span class="n">memoize</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_aw_2_tmol_restype_map</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Atomworks residue index -&gt; tmol canonical residue type (-1 if tmol has none)."""</span>
-    <span class="n">classes</span> <span class="o">=</span> <span class="n">canonical_ordering_for_atomworks</span><span class="p">()</span><span class="o">.</span><span class="n">restype_io_equiv_classes</span>
+    <span class="n">classes</span> <span class="o">=</span> <span class="n">_canonical_ordering_for_atomworks</span><span class="p">()</span><span class="o">.</span><span class="n">restype_io_equiv_classes</span>
     <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
         <span class="p">[</span><span class="n">classes</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">if</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">classes</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">ATOMWORKS_NAME3S</span><span class="p">],</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
@@ -799,7 +789,7 @@
 <span class="nd">@toolz</span><span class="o">.</span><span class="n">functoolz</span><span class="o">.</span><span class="n">memoize</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_get_tmol_2_aw_mappings</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Build reverse mapping tensors: tmol canonical -&gt; atomworks atom37 slot."""</span>
-    <span class="n">co</span> <span class="o">=</span> <span class="n">canonical_ordering_for_atomworks</span><span class="p">()</span>
+    <span class="n">co</span> <span class="o">=</span> <span class="n">_canonical_ordering_for_atomworks</span><span class="p">()</span>
 
     <span class="n">n_co_restypes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">co</span><span class="o">.</span><span class="n">restype_io_equiv_classes</span><span class="p">)</span>
     <span class="n">max_n_canonical_atoms</span> <span class="o">=</span> <span class="n">co</span><span class="o">.</span><span class="n">max_n_canonical_atoms</span>

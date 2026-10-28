@@ -406,9 +406,6 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.numeric._dihedrals</span></li>
   </ul>
 </nav>
@@ -430,11 +427,9 @@
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">NDArray</span><span class="p">,</span>
-    <span class="n">validate_args</span><span class="p">,</span>
-    <span class="n">Tensor</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._array</span><span class="w"> </span><span class="kn">import</span> <span class="n">NDArray</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._functional</span><span class="w"> </span><span class="kn">import</span> <span class="n">_validate_args</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
 
 <span class="n">Coord64Array</span> <span class="o">=</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">double</span><span class="p">][:,</span> <span class="mi">3</span><span class="p">]</span>
 <span class="n">Angles</span> <span class="o">=</span> <span class="n">Tensor</span><span class="p">[</span><span class="nb">float</span><span class="p">][:]</span>
@@ -460,7 +455,7 @@
 
 <div class="viewcode-block" id="coord_dihedrals">
 <a class="viewcode-back" href="../../../api/numeric.html#tmol.numeric.coord_dihedrals">[docs]</a>
-<span class="nd">@validate_args</span>
+<span class="nd">@_validate_args</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">coord_dihedrals</span><span class="p">(</span>
     <span class="n">a</span><span class="p">:</span> <span class="n">Coord64Array</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">Coord64Array</span><span class="p">,</span> <span class="n">c</span><span class="p">:</span> <span class="n">Coord64Array</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="n">Coord64Array</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Angles</span><span class="p">:</span>

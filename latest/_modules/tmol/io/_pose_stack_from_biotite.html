@@ -406,9 +406,6 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.io._pose_stack_from_biotite</span></li>
   </ul>
 </nav>
@@ -440,51 +437,43 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_args</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._functional</span><span class="w"> </span><span class="kn">import</span> <span class="n">_validate_args</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">ResidueTypeSet</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">BondType</span> <span class="k">as</span> <span class="n">ChemBondType</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">chemical_bond_orders</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical._restypes</span><span class="w"> </span><span class="kn">import</span> <span class="n">BondType</span> <span class="k">as</span> <span class="n">ChemBondType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical._bond_orders</span><span class="w"> </span><span class="kn">import</span> <span class="n">_chemical_bond_orders</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">metal_table</span><span class="p">,</span> <span class="n">site_connections</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">_metal_table</span><span class="p">,</span> <span class="n">_site_connections</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._atomworks_reader</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">INFERRED_POLYMER_BOND</span><span class="p">,</span>
-    <span class="n">renumbered_decreasing_chains</span><span class="p">,</span>
+    <span class="n">_renumbered_decreasing_chains</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._input_geometry</span><span class="w"> </span><span class="kn">import</span> <span class="n">rebuild_coincident_hydrogens</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io.details._select_from_canonical</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_ligand_hydrogens</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._input_geometry</span><span class="w"> </span><span class="kn">import</span> <span class="n">_rebuild_coincident_hydrogens</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io.details._select_from_canonical</span><span class="w"> </span><span class="kn">import</span> <span class="n">_validate_ligand_hydrogens</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._input_termini</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">EXPLICIT_TERMINI</span><span class="p">,</span>
-    <span class="n">validate_connection_hydrogens</span><span class="p">,</span>
-    <span class="n">with_stated_termini</span><span class="p">,</span>
+    <span class="n">_validate_connection_hydrogens</span><span class="p">,</span>
+    <span class="n">_with_stated_termini</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._canonical_ordering</span><span class="w"> </span><span class="kn">import</span> <span class="n">_only_coordinates_a_metal</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._canonical_ordering</span><span class="w"> </span><span class="kn">import</span> <span class="n">_only_coordinates_a_metal</span><span class="p">,</span> <span class="n">CanonicalOrdering</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._protonation</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">PROTONATION_VARIANT</span><span class="p">,</span>
-    <span class="n">database_forms</span><span class="p">,</span>
-    <span class="n">residues_lacking_hydrogens</span><span class="p">,</span>
-    <span class="n">with_atomworks_hydrogens</span><span class="p">,</span>
+    <span class="n">_database_forms</span><span class="p">,</span>
+    <span class="n">_residues_lacking_hydrogens</span><span class="p">,</span>
+    <span class="n">_with_atomworks_hydrogens</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">CanonicalForm</span><span class="p">,</span>
-    <span class="n">CanonicalOrdering</span><span class="p">,</span>
-    <span class="n">canonical_form_from_pose_stack</span><span class="p">,</span>
-    <span class="n">PoseBuildContext</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">PackedBlockTypes</span><span class="p">,</span>
-    <span class="n">PoseStack</span><span class="p">,</span>
-    <span class="n">DEFAULT_ATOM_B_FACTOR</span><span class="p">,</span>
-    <span class="n">DEFAULT_ATOM_OCCUPANCY</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">get_all_residue_positions</span><span class="p">,</span>
-    <span class="n">resolve_device</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._canonical_form</span><span class="w"> </span><span class="kn">import</span> <span class="n">CanonicalForm</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._pose_stack_deconstruction</span><span class="w"> </span><span class="kn">import</span> <span class="n">_canonical_form_from_pose_stack</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._build_context</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseBuildContext</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._packed_block_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackedBlockTypes</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pdb_info</span><span class="w"> </span><span class="kn">import</span> <span class="n">DEFAULT_ATOM_B_FACTOR</span><span class="p">,</span> <span class="n">DEFAULT_ATOM_OCCUPANCY</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility._biotite_util</span><span class="w"> </span><span class="kn">import</span> <span class="n">_get_all_residue_positions</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_device</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand</span><span class="w"> </span><span class="kn">import</span> <span class="n">FragmentedLigandPoseMapping</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._fragmentation</span><span class="w"> </span><span class="kn">import</span> <span class="n">FragmentedLigandPoseMapping</span>
 
 <span class="n">_MAX_PREPARED_BATCH_SIZES</span> <span class="o">=</span> <span class="mi">4</span>
 
@@ -497,11 +486,8 @@
     <span class="k">return</span> <span class="n">result</span>
 
 
-<div class="viewcode-block" id="Atom37MappingError">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.Atom37MappingError">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Atom37MappingError</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""An AtomArray cannot be routed unambiguously into an Atom37 tensor."""</span></div>
-
+<span class="w">    </span><span class="sd">"""An AtomArray cannot be routed unambiguously into an Atom37 tensor."""</span>
 
 
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -575,9 +561,9 @@
         <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io.details._build_missing_leaf_atoms</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
             <span class="n">_apply_h_geometric_completion</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io.details.compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">gen_pose_leaf_atoms</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io.details.compiled._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">_gen_pose_leaf_atoms</span>
 
-        <span class="n">coords</span> <span class="o">=</span> <span class="n">gen_pose_leaf_atoms</span><span class="p">(</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">_gen_pose_leaf_atoms</span><span class="p">(</span>
             <span class="n">coords</span><span class="p">,</span>
             <span class="n">block_leaf_atom_is_missing</span><span class="p">,</span>
             <span class="n">pose_atom_is_missing</span><span class="p">,</span>
@@ -625,8 +611,6 @@
         <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">missing</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">is_leaf</span><span class="p">))</span>
 
 
-<div class="viewcode-block" id="PreparedAtom37PoseBuilder">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.PreparedAtom37PoseBuilder">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">PreparedAtom37PoseBuilder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Bind immutable Biotite topology for repeated Atom37 pose construction.</span>
@@ -675,7 +659,7 @@
 <span class="sd">        """</span>
         <span class="n">canonical_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_canonical_coords</span><span class="p">(</span><span class="n">atom37_coords</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_topology_cache_safe</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">pose_stack_from_canonical_form_and_context</span><span class="p">(</span>
+            <span class="k">return</span> <span class="n">_pose_stack_from_canonical_form_and_context</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_canonical_form</span><span class="p">(</span><span class="n">canonical_coords</span><span class="p">),</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">,</span>
                 <span class="n">no_optH</span><span class="o">=</span><span class="ow">not</span> <span class="n">opt_h</span><span class="p">,</span>
@@ -687,7 +671,7 @@
         <span class="n">topology_was_cached</span> <span class="o">=</span> <span class="n">topology</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">topology</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">cf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_canonical_form</span><span class="p">(</span><span class="n">canonical_coords</span><span class="p">)</span>
-            <span class="n">pose_stack</span><span class="p">,</span> <span class="n">details</span> <span class="o">=</span> <span class="n">pose_stack_from_canonical_form_and_context</span><span class="p">(</span>
+            <span class="n">pose_stack</span><span class="p">,</span> <span class="n">details</span> <span class="o">=</span> <span class="n">_pose_stack_from_canonical_form_and_context</span><span class="p">(</span>
                 <span class="n">cf</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">,</span>
                 <span class="n">no_optH</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -699,7 +683,7 @@
             <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">block_has_missing_atoms</span><span class="p">)):</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="n">opt_h</span><span class="p">:</span>
                     <span class="k">return</span> <span class="n">pose_stack</span>
-                <span class="k">return</span> <span class="n">pose_stack_from_canonical_form_and_context</span><span class="p">(</span>
+                <span class="k">return</span> <span class="n">_pose_stack_from_canonical_form_and_context</span><span class="p">(</span>
                     <span class="n">cf</span><span class="p">,</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">,</span>
                     <span class="n">no_optH</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -716,7 +700,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">topology</span><span class="o">.</span><span class="n">has_missing_nonleaf</span><span class="p">(</span><span class="n">canonical_coords</span><span class="p">):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_pose_topologies</span><span class="p">[</span><span class="n">n_poses</span><span class="p">]</span> <span class="o">=</span> <span class="n">topology</span>
-                <span class="k">return</span> <span class="n">pose_stack_from_canonical_form_and_context</span><span class="p">(</span>
+                <span class="k">return</span> <span class="n">_pose_stack_from_canonical_form_and_context</span><span class="p">(</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_canonical_form</span><span class="p">(</span><span class="n">canonical_coords</span><span class="p">),</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">,</span>
                     <span class="n">no_optH</span><span class="o">=</span><span class="ow">not</span> <span class="n">opt_h</span><span class="p">,</span>
@@ -729,9 +713,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_pose_topologies</span><span class="p">[</span><span class="n">n_poses</span><span class="p">]</span> <span class="o">=</span> <span class="n">topology</span>
 
         <span class="k">if</span> <span class="n">opt_h</span><span class="p">:</span>
-            <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_missing_sidechains</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack._build_missing_sidechains</span><span class="w"> </span><span class="kn">import</span> <span class="n">_build_missing_sidechains</span>
 
-            <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">build_missing_sidechains</span><span class="p">(</span>
+            <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">_build_missing_sidechains</span><span class="p">(</span>
                 <span class="n">pose_stack</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">_opth_score_function</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">_dunbrack_sampler</span><span class="p">,</span>
@@ -824,13 +808,12 @@
             <span class="n">covalent_bonds</span><span class="o">=</span><span class="n">bonds_for_poses</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">covalent_bonds</span><span class="p">),</span>
             <span class="n">metal_coordination</span><span class="o">=</span><span class="n">bonds_for_poses</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">metal_coordination</span><span class="p">),</span>
             <span class="n">residue_annotations</span><span class="o">=</span><span class="n">array_for_poses</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">residue_annotations</span><span class="p">),</span>
-        <span class="p">)</span></div>
-
+        <span class="p">)</span>
 
 
 <div class="viewcode-block" id="prepare_atom37_pose_builder">
 <a class="viewcode-back" href="../../../api/io.html#tmol.io.prepare_atom37_pose_builder">[docs]</a>
-<span class="nd">@validate_args</span>
+<span class="nd">@_validate_args</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">prepare_atom37_pose_builder</span><span class="p">(</span>
     <span class="n">biotite_structure</span><span class="p">:</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArray</span> <span class="o">|</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">,</span>
     <span class="n">context</span><span class="p">:</span> <span class="n">PoseBuildContext</span><span class="p">,</span>
@@ -848,9 +831,9 @@
     <span class="n">device</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span>
     <span class="n">fragment_mapping</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">fragment_definitions</span><span class="p">:</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand</span><span class="w"> </span><span class="kn">import</span> <span class="n">expand_fragmented_ligands</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._fragmentation</span><span class="w"> </span><span class="kn">import</span> <span class="n">_expand_fragmented_ligands</span>
 
-        <span class="n">biotite_structure</span><span class="p">,</span> <span class="n">fragment_mapping</span> <span class="o">=</span> <span class="n">expand_fragmented_ligands</span><span class="p">(</span>
+        <span class="n">biotite_structure</span><span class="p">,</span> <span class="n">fragment_mapping</span> <span class="o">=</span> <span class="n">_expand_fragmented_ligands</span><span class="p">(</span>
             <span class="n">biotite_structure</span><span class="p">,</span> <span class="n">context</span><span class="o">.</span><span class="n">fragment_definitions</span>
         <span class="p">)</span>
 
@@ -872,7 +855,7 @@
         <span class="n">missing_density_distance_threshold</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
         <span class="n">_filter_missing_mainchain</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">atom_residue</span> <span class="o">=</span> <span class="n">get_all_residue_positions</span><span class="p">(</span><span class="n">filtered</span><span class="p">)</span>
+    <span class="n">atom_residue</span> <span class="o">=</span> <span class="n">_get_all_residue_positions</span><span class="p">(</span><span class="n">filtered</span><span class="p">)</span>
     <span class="n">valid_mask</span><span class="p">,</span> <span class="n">valid_atom</span><span class="p">,</span> <span class="n">valid_residue</span> <span class="o">=</span> <span class="n">_map_atoms_to_canonical</span><span class="p">(</span>
         <span class="n">context</span><span class="o">.</span><span class="n">canonical_ordering</span><span class="p">,</span>
         <span class="n">atom_residue</span><span class="p">,</span>
@@ -925,7 +908,7 @@
 
 <div class="viewcode-block" id="build_context_from_atom_array">
 <a class="viewcode-back" href="../../../api/io.html#tmol.io.build_context_from_atom_array">[docs]</a>
-<span class="nd">@validate_args</span>
+<span class="nd">@_validate_args</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">build_context_from_atom_array</span><span class="p">(</span>
     <span class="n">biotite_structure</span><span class="p">:</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArray</span> <span class="o">|</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">,</span>
     <span class="n">torch_device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
@@ -971,7 +954,7 @@
 <span class="sd">            Residues defined in these files skip the RDKit/OB pipeline.</span>
 <span class="sd">        chem_comp_types: ``{comp_id: type}`` from the input file's</span>
 <span class="sd">            ``_chem_comp`` table (see</span>
-<span class="sd">            ``tmol.ligand.chem_comp_types_from_cif``), which says whether a</span>
+<span class="sd">            ``tmol.ligand._detect._chem_comp_types_from_cif``), which says whether a</span>
 <span class="sd">            residue belongs to a polymer where the file does not number it</span>
 <span class="sd">            along a sequence. Only used when prepare_ligands=True.</span>
 <span class="sd">        ligand_seed: Fixed RNG seed for the conformer each prepared residue</span>
@@ -986,11 +969,11 @@
 <span class="sd">        types, parameter database, and residue type set.</span>
 <span class="sd">    """</span>
     <span class="n">torch_device</span> <span class="o">=</span> <span class="n">resolve_device</span><span class="p">(</span><span class="n">torch_device</span><span class="p">)</span>
-    <span class="n">validate_ligand_hydrogens</span><span class="p">(</span><span class="n">ligand_hydrogens</span><span class="p">)</span>
+    <span class="n">_validate_ligand_hydrogens</span><span class="p">(</span><span class="n">ligand_hydrogens</span><span class="p">)</span>
     <span class="c1"># aliased names are resolved before ligand detection, or the residue the</span>
     <span class="c1">#    alias points at would be prepared as a nonstandard one</span>
     <span class="k">if</span> <span class="n">ligand_params_files</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">prepare_ligands</span><span class="p">:</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._params_file</span><span class="w"> </span><span class="kn">import</span> <span class="n">inject_params_files</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand</span><span class="w"> </span><span class="kn">import</span> <span class="n">inject_params_files</span>
 
         <span class="n">param_db</span> <span class="o">=</span> <span class="n">inject_params_files</span><span class="p">(</span>
             <span class="n">param_db</span> <span class="ow">or</span> <span class="n">ParameterDatabase</span><span class="o">.</span><span class="n">get_default</span><span class="p">(),</span>
@@ -1072,8 +1055,8 @@
 
 
 <div class="viewcode-block" id="pose_stack_from_atom_array">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.pose_stack_from_atom_array">[docs]</a>
-<span class="nd">@validate_args</span>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.io.pose_stack_from_atom_array">[docs]</a>
+<span class="nd">@_validate_args</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">pose_stack_from_atom_array</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
     <span class="n">biotite_structure</span><span class="p">:</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArray</span> <span class="o">|</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">,</span>
     <span class="n">torch_device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
@@ -1239,9 +1222,9 @@
 
     <span class="n">fragment_mapping</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">fragment_definitions</span><span class="p">:</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand</span><span class="w"> </span><span class="kn">import</span> <span class="n">expand_fragmented_ligands</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._fragmentation</span><span class="w"> </span><span class="kn">import</span> <span class="n">_expand_fragmented_ligands</span>
 
-        <span class="n">biotite_structure</span><span class="p">,</span> <span class="n">fragment_mapping</span> <span class="o">=</span> <span class="n">expand_fragmented_ligands</span><span class="p">(</span>
+        <span class="n">biotite_structure</span><span class="p">,</span> <span class="n">fragment_mapping</span> <span class="o">=</span> <span class="n">_expand_fragmented_ligands</span><span class="p">(</span>
             <span class="n">biotite_structure</span><span class="p">,</span> <span class="n">context</span><span class="o">.</span><span class="n">fragment_definitions</span>
         <span class="p">)</span>
 
@@ -1281,7 +1264,7 @@
             <span class="n">bonds</span> <span class="o">=</span> <span class="n">bonds</span><span class="p">[</span><span class="o">~</span><span class="n">remove</span><span class="p">]</span>
         <span class="n">cf</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">cf</span><span class="p">,</span> <span class="n">res_not_connected</span><span class="o">=</span><span class="n">disconnected</span><span class="p">,</span> <span class="n">covalent_bonds</span><span class="o">=</span><span class="n">bonds</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">pose_stack_from_canonical_form_and_context</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">_pose_stack_from_canonical_form_and_context</span><span class="p">(</span>
         <span class="n">cf</span><span class="p">,</span>
         <span class="n">context</span><span class="p">,</span>
         <span class="n">no_optH</span><span class="o">=</span><span class="n">no_optH</span><span class="p">,</span>
@@ -1295,9 +1278,7 @@
 
 
 
-<div class="viewcode-block" id="pose_stack_from_canonical_form_and_context">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.pose_stack_from_canonical_form_and_context">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">pose_stack_from_canonical_form_and_context</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_pose_stack_from_canonical_form_and_context</span><span class="p">(</span>
     <span class="n">cf</span><span class="p">:</span> <span class="n">CanonicalForm</span><span class="p">,</span>
     <span class="n">context</span><span class="p">:</span> <span class="n">PoseBuildContext</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -1342,12 +1323,12 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      The constructed pose, optionally with atom mappings or the context.</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_canonical_form</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_missing_sidechains</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-        <span class="n">FixedAAChiSampler</span><span class="p">,</span>
-        <span class="n">bfs_sidechain_atoms</span><span class="p">,</span>
-        <span class="n">construct_single_residue_kinforest</span><span class="p">,</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._pose_stack_construction</span><span class="w"> </span><span class="kn">import</span> <span class="n">_pose_stack_from_canonical_form</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack._build_missing_sidechains</span><span class="w"> </span><span class="kn">import</span> <span class="n">_build_missing_sidechains</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">FixedAAChiSampler</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._bfs_sidechain</span><span class="w"> </span><span class="kn">import</span> <span class="n">_bfs_sidechain_atoms</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._single_residue_kinforest</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">_construct_single_residue_kinforest</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="c1"># amino-acid side chains a rotamer sampler covers are left for the packer</span>
@@ -1357,9 +1338,9 @@
         <span class="n">placed</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="n">samplers</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">sampler</span><span class="o">.</span><span class="n">defines_rotamers_for_rt</span><span class="p">(</span><span class="n">rt</span><span class="p">):</span>
-                <span class="n">construct_single_residue_kinforest</span><span class="p">(</span><span class="n">rt</span><span class="p">)</span>
+                <span class="n">_construct_single_residue_kinforest</span><span class="p">(</span><span class="n">rt</span><span class="p">)</span>
                 <span class="n">roots</span> <span class="o">=</span> <span class="p">[</span><span class="n">rt</span><span class="o">.</span><span class="n">atom_to_idx</span><span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">sampler</span><span class="o">.</span><span class="n">first_sc_atoms_for_rt</span><span class="p">(</span><span class="n">rt</span><span class="p">)]</span>
-                <span class="n">placed</span> <span class="o">|=</span> <span class="n">bfs_sidechain_atoms</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="n">roots</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+                <span class="n">placed</span> <span class="o">|=</span> <span class="n">_bfs_sidechain_atoms</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="n">roots</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">placed</span>
 
     <span class="k">if</span> <span class="n">atom37_coords</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -1379,7 +1360,7 @@
     <span class="n">return_block_has_missing_atoms</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span>
         <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"return_block_has_missing_atoms"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
     <span class="p">)</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="n">pose_stack_from_canonical_form</span><span class="p">(</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">_pose_stack_from_canonical_form</span><span class="p">(</span>
         <span class="n">context</span><span class="o">.</span><span class="n">canonical_ordering</span><span class="p">,</span>
         <span class="n">context</span><span class="o">.</span><span class="n">packed_block_types</span><span class="p">,</span>
         <span class="o">*</span><span class="n">cf</span><span class="p">,</span>
@@ -1390,11 +1371,11 @@
 
     <span class="n">pose_stack</span><span class="p">,</span> <span class="n">opt_return_vals</span> <span class="o">=</span> <span class="n">result</span>
     <span class="k">if</span> <span class="n">atom37_coords</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">rebuild_coincident_hydrogens</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
+        <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">_rebuild_coincident_hydrogens</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">fragment_mapping</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand</span><span class="w"> </span><span class="kn">import</span> <span class="n">apply_fragment_connections</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._fragmentation</span><span class="w"> </span><span class="kn">import</span> <span class="n">_apply_fragment_connections</span>
 
-        <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">apply_fragment_connections</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">fragment_mapping</span><span class="p">)</span>
+        <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">_apply_fragment_connections</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">fragment_mapping</span><span class="p">)</span>
         <span class="n">fragment_mapping</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">split_block_mapping</span>
     <span class="n">block_has_missing_atoms</span> <span class="o">=</span> <span class="n">opt_return_vals</span><span class="p">[</span><span class="s2">"block_has_missing_atoms"</span><span class="p">]</span>
 
@@ -1421,7 +1402,7 @@
                 <span class="s2">"</span><span class="si">%i</span><span class="s2"> blocks with missing heavy atoms"</span><span class="p">,</span>
                 <span class="n">torch</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">block_has_missing_atoms</span><span class="p">),</span>
             <span class="p">)</span>
-        <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">build_missing_sidechains</span><span class="p">(</span>
+        <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">_build_missing_sidechains</span><span class="p">(</span>
             <span class="n">pose_stack</span><span class="p">,</span>
             <span class="n">sfxn</span><span class="p">,</span>
             <span class="n">dunbrack_sampler</span><span class="p">,</span>
@@ -1454,8 +1435,7 @@
         <span class="k">return</span> <span class="n">pose_stack</span><span class="p">,</span> <span class="n">context</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">opt_return_vals</span><span class="p">)</span> <span class="o">&gt;</span> <span class="p">(</span><span class="mi">0</span> <span class="k">if</span> <span class="n">return_block_has_missing_atoms</span> <span class="k">else</span> <span class="mi">1</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">pose_stack</span><span class="p">,</span> <span class="n">opt_return_vals</span>
-    <span class="k">return</span> <span class="n">pose_stack</span></div>
-
+    <span class="k">return</span> <span class="n">pose_stack</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_restore_canonical_input_coords</span><span class="p">(</span>
@@ -1600,8 +1580,8 @@
 
 
 <div class="viewcode-block" id="atom_array_from_pose_stack">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.atom_array_from_pose_stack">[docs]</a>
-<span class="nd">@validate_args</span>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.io.atom_array_from_pose_stack">[docs]</a>
+<span class="nd">@_validate_args</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">atom_array_from_pose_stack</span><span class="p">(</span>
     <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
     <span class="n">co</span><span class="p">:</span> <span class="n">CanonicalOrdering</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1631,8 +1611,8 @@
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="n">co</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">co</span> <span class="o">=</span> <span class="n">_canonical_ordering_for_pose_stack</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
-    <span class="n">cf</span> <span class="o">=</span> <span class="n">canonical_form_from_pose_stack</span><span class="p">(</span><span class="n">co</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">)</span>
-    <span class="n">structure</span><span class="p">,</span> <span class="n">block_for_atom</span> <span class="o">=</span> <span class="n">_biotite_from_canonical_form</span><span class="p">(</span>
+    <span class="n">cf</span> <span class="o">=</span> <span class="n">_canonical_form_from_pose_stack</span><span class="p">(</span><span class="n">co</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">)</span>
+    <span class="n">structure</span><span class="p">,</span> <span class="n">block_for_atom</span> <span class="o">=</span> <span class="n">_biotite_from_canonical_form_impl</span><span class="p">(</span>
         <span class="n">cf</span><span class="p">,</span> <span class="n">co</span><span class="p">,</span> <span class="n">include_virtual_atoms</span>
     <span class="p">)</span>
     <span class="n">structure</span><span class="o">.</span><span class="n">bonds</span> <span class="o">=</span> <span class="n">_bonds_from_pose_stack</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">structure</span><span class="p">,</span> <span class="n">block_for_atom</span><span class="p">)</span>
@@ -1651,7 +1631,7 @@
         <span class="p">)</span>
     <span class="n">sbm</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="s2">"split_block_mapping"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">merge_fragments</span> <span class="ow">and</span> <span class="n">sbm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">sbm</span><span class="o">.</span><span class="n">entries</span><span class="p">:</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand</span><span class="w"> </span><span class="kn">import</span> <span class="n">recombine_fragmented_ligands</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._fragmentation</span><span class="w"> </span><span class="kn">import</span> <span class="n">recombine_fragmented_ligands</span>
 
         <span class="n">structure</span> <span class="o">=</span> <span class="n">recombine_fragmented_ligands</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">_renumbered_for_cif</span><span class="p">(</span><span class="n">structure</span><span class="p">)</span></div>
@@ -1664,7 +1644,7 @@
 <span class="sd">    Generated ligand and custom residue types are absent from the default</span>
 <span class="sd">    ordering, but the pose's packed block types carry the database they came from.</span>
 <span class="sd">    """</span>
-    <span class="n">co</span> <span class="o">=</span> <span class="n">canonical_ordering_for_biotite</span><span class="p">()</span>
+    <span class="n">co</span> <span class="o">=</span> <span class="n">_canonical_ordering_for_biotite</span><span class="p">()</span>
     <span class="n">known</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">co</span><span class="o">.</span><span class="n">restype_io_equiv_classes</span><span class="p">)</span>
     <span class="n">block_types</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
     <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">io_equiv_class</span> <span class="ow">in</span> <span class="n">known</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">block_types</span><span class="p">):</span>
@@ -1741,7 +1721,7 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">metal_bond</span><span class="p">(</span><span class="n">bt</span><span class="p">,</span> <span class="n">bt_ind</span><span class="p">,</span> <span class="n">conn</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">bt_ind</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sites_for_type</span><span class="p">:</span>
-            <span class="n">sites_for_type</span><span class="p">[</span><span class="n">bt_ind</span><span class="p">]</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">site_connections</span><span class="p">(</span><span class="n">bt</span><span class="p">))</span>
+            <span class="n">sites_for_type</span><span class="p">[</span><span class="n">bt_ind</span><span class="p">]</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">_site_connections</span><span class="p">(</span><span class="n">bt</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">bt</span><span class="o">.</span><span class="n">connections</span><span class="p">[</span><span class="n">conn</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">sites_for_type</span><span class="p">[</span><span class="n">bt_ind</span><span class="p">]</span>
 
     <span class="n">orders_for_type</span> <span class="o">=</span> <span class="p">{}</span>
@@ -1753,7 +1733,7 @@
         <span class="k">if</span> <span class="n">bt_ind</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">orders_for_type</span><span class="p">:</span>
             <span class="c1"># Only the first block of each type needs this; there are two dozen</span>
             <span class="c1"># types behind hundreds of blocks.</span>
-            <span class="n">orders_for_type</span><span class="p">[</span><span class="n">bt_ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">chemical_bond_orders</span><span class="p">(</span><span class="n">bt</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">chem_db</span><span class="p">)</span>
+            <span class="n">orders_for_type</span><span class="p">[</span><span class="n">bt_ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">_chemical_bond_orders</span><span class="p">(</span><span class="n">bt</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">chem_db</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">order</span> <span class="ow">in</span> <span class="n">orders_for_type</span><span class="p">[</span><span class="n">bt_ind</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
             <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">block</span><span class="p">,</span> <span class="n">a</span><span class="p">)),</span> <span class="n">index</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">block</span><span class="p">,</span> <span class="n">b</span><span class="p">))</span>
@@ -1840,7 +1820,7 @@
 <span class="sd">    that decreases within a chain: the first is shifted to start at 1, the second 1..N.</span>
 <span class="sd">    """</span>
     <span class="n">template</span> <span class="o">=</span> <span class="n">_template_array</span><span class="p">(</span><span class="n">structure</span><span class="p">)</span>
-    <span class="n">res_id</span><span class="p">,</span> <span class="n">ins_code</span><span class="p">,</span> <span class="n">decreasing</span> <span class="o">=</span> <span class="n">renumbered_decreasing_chains</span><span class="p">(</span><span class="n">template</span><span class="p">)</span>
+    <span class="n">res_id</span><span class="p">,</span> <span class="n">ins_code</span><span class="p">,</span> <span class="n">decreasing</span> <span class="o">=</span> <span class="n">_renumbered_decreasing_chains</span><span class="p">(</span><span class="n">template</span><span class="p">)</span>
     <span class="n">reasons</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">decreasing</span><span class="p">,</span> <span class="s2">"numbering that decreases within a chain"</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">chain</span> <span class="ow">in</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">chain_id</span><span class="o">.</span><span class="n">tolist</span><span class="p">()):</span>
         <span class="n">in_chain</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">chain_id</span> <span class="o">==</span> <span class="n">chain</span>
@@ -1908,7 +1888,7 @@
             <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">metal_sites</span>
         <span class="p">}</span>
     <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="k">for</span> <span class="n">ion</span> <span class="ow">in</span> <span class="n">metal_table</span><span class="p">()[</span><span class="s2">"ions"</span><span class="p">]:</span>
+    <span class="k">for</span> <span class="n">ion</span> <span class="ow">in</span> <span class="n">_metal_table</span><span class="p">()[</span><span class="s2">"ions"</span><span class="p">]:</span>
         <span class="n">names</span> <span class="o">=</span> <span class="n">co</span><span class="o">.</span><span class="n">restypes_ordered_atom_names</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ion</span><span class="p">[</span><span class="s2">"name3"</span><span class="p">])</span>
         <span class="k">if</span> <span class="n">names</span><span class="p">:</span>
             <span class="n">virtual</span> <span class="o">=</span> <span class="n">co</span><span class="o">.</span><span class="n">restypes_virtual_atoms</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ion</span><span class="p">[</span><span class="s2">"name3"</span><span class="p">],</span> <span class="nb">frozenset</span><span class="p">())</span>
@@ -1921,7 +1901,7 @@
 <span class="sd">    component that stays one organic molecule without them (a heme's Fe, not a cluster).</span>
 <span class="sd">    """</span>
     <span class="n">ion_for_element</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="k">for</span> <span class="n">ion</span> <span class="ow">in</span> <span class="n">metal_table</span><span class="p">()[</span><span class="s2">"ions"</span><span class="p">]:</span>
+    <span class="k">for</span> <span class="n">ion</span> <span class="ow">in</span> <span class="n">_metal_table</span><span class="p">()[</span><span class="s2">"ions"</span><span class="p">]:</span>
         <span class="n">element</span> <span class="o">=</span> <span class="n">ion</span><span class="p">[</span><span class="s2">"element"</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
         <span class="n">ion_for_element</span><span class="o">.</span><span class="n">setdefault</span><span class="p">((</span><span class="n">element</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">ion</span><span class="p">[</span><span class="s2">"name3"</span><span class="p">])</span>
         <span class="n">ion_for_element</span><span class="p">[</span><span class="n">element</span><span class="p">,</span> <span class="n">ion</span><span class="p">[</span><span class="s2">"oxidation_state"</span><span class="p">]]</span> <span class="o">=</span> <span class="n">ion</span><span class="p">[</span><span class="s2">"name3"</span><span class="p">]</span>
@@ -2127,7 +2107,7 @@
 <span class="w">    </span><span class="sd">"""Elements of the ions a chelated metal can become."""</span>
     <span class="k">return</span> <span class="p">{</span>
         <span class="n">ion</span><span class="p">[</span><span class="s2">"element"</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">ion</span> <span class="ow">in</span> <span class="n">metal_table</span><span class="p">()[</span><span class="s2">"ions"</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">ion</span> <span class="ow">in</span> <span class="n">_metal_table</span><span class="p">()[</span><span class="s2">"ions"</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">ion</span><span class="p">[</span><span class="s2">"name3"</span><span class="p">]</span> <span class="ow">in</span> <span class="n">metal_atom</span>
     <span class="p">}</span>
 
@@ -2454,7 +2434,7 @@
             <span class="s2">"complete coordinates."</span>
         <span class="p">)</span>
 
-    <span class="n">atom_res</span> <span class="o">=</span> <span class="n">get_all_residue_positions</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">)</span>
+    <span class="n">atom_res</span> <span class="o">=</span> <span class="n">_get_all_residue_positions</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">)</span>
     <span class="n">_validate_filtered_covalent_partners</span><span class="p">(</span>
         <span class="n">_template_array</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">),</span>
         <span class="n">co</span><span class="p">,</span>
@@ -2905,7 +2885,7 @@
     <span class="k">return</span> <span class="n">reference_coords</span><span class="p">,</span> <span class="n">n_poses</span>
 
 
-<span class="nd">@validate_args</span>
+<span class="nd">@_validate_args</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_normalize_input_identifiers</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">,</span> <span class="n">name3_aliases</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Resolve residue aliases and AtomWorks assembly instances without mutation.</span>
 
@@ -2935,18 +2915,18 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_with_input_hydrogens</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">,</span> <span class="n">ph</span><span class="p">,</span> <span class="n">co</span><span class="p">,</span> <span class="n">chemdb</span><span class="p">,</span> <span class="n">find_metal_coordination</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""The input with AtomWorks' protonation of residues lacking hydrogens (only</span>
 <span class="sd">    ``co``'s if given), seeing detected metal bonds and ``chemdb`` backbone links."""</span>
-    <span class="n">biotite_structure</span> <span class="o">=</span> <span class="n">with_stated_termini</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">,</span> <span class="n">chemdb</span><span class="p">,</span> <span class="n">co</span><span class="p">)</span>
-    <span class="n">validate_connection_hydrogens</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">,</span> <span class="n">chemdb</span><span class="p">)</span>
+    <span class="n">biotite_structure</span> <span class="o">=</span> <span class="n">_with_stated_termini</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">,</span> <span class="n">chemdb</span><span class="p">,</span> <span class="n">co</span><span class="p">)</span>
+    <span class="n">_validate_connection_hydrogens</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">,</span> <span class="n">chemdb</span><span class="p">)</span>
     <span class="n">aliases</span> <span class="o">=</span> <span class="p">{</span><span class="n">a</span><span class="o">.</span><span class="n">name3</span><span class="p">:</span> <span class="n">a</span><span class="o">.</span><span class="n">read_as</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">name3_aliases</span><span class="p">}</span>
     <span class="n">names</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">co</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">co</span><span class="o">.</span><span class="n">restype_io_equiv_classes</span><span class="p">)</span>
         <span class="n">names</span> <span class="o">|=</span> <span class="p">{</span><span class="n">alias</span> <span class="k">for</span> <span class="n">alias</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">aliases</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">}</span>
     <span class="n">template</span> <span class="o">=</span> <span class="n">_template_array</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">)</span>
-    <span class="n">forms</span> <span class="o">=</span> <span class="n">database_forms</span><span class="p">(</span><span class="n">chemdb</span><span class="p">)</span>
+    <span class="n">forms</span> <span class="o">=</span> <span class="n">_database_forms</span><span class="p">(</span><span class="n">chemdb</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">PROTONATION_VARIANT</span> <span class="ow">in</span> <span class="n">template</span><span class="o">.</span><span class="n">get_annotation_categories</span><span class="p">()</span> <span class="ow">or</span> <span class="p">(</span>
         <span class="n">EXPLICIT_TERMINI</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">template</span><span class="o">.</span><span class="n">get_annotation_categories</span><span class="p">()</span>
-        <span class="ow">and</span> <span class="ow">not</span> <span class="n">residues_lacking_hydrogens</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">forms</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">any</span><span class="p">()</span>
+        <span class="ow">and</span> <span class="ow">not</span> <span class="n">_residues_lacking_hydrogens</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">forms</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">any</span><span class="p">()</span>
     <span class="p">):</span>
         <span class="k">return</span> <span class="n">biotite_structure</span>
     <span class="n">metal_atom</span> <span class="o">=</span> <span class="n">_metal_atom_names</span><span class="p">(</span><span class="n">chemdb</span><span class="o">=</span><span class="n">chemdb</span><span class="p">)</span>
@@ -2957,7 +2937,7 @@
     <span class="n">res_name</span> <span class="o">=</span> <span class="n">_template_array</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">)</span><span class="o">.</span><span class="n">res_name</span>
     <span class="k">if</span> <span class="n">find_metal_coordination</span> <span class="ow">and</span> <span class="n">numpy</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">res_name</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">metal_atom</span><span class="p">))</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
         <span class="n">coordination</span> <span class="o">=</span> <span class="n">_detected_metal_bonds</span><span class="p">(</span>
-            <span class="n">biotite_structure</span><span class="p">,</span> <span class="n">co</span> <span class="ow">or</span> <span class="n">canonical_ordering_for_biotite</span><span class="p">(),</span> <span class="n">chemdb</span>
+            <span class="n">biotite_structure</span><span class="p">,</span> <span class="n">co</span> <span class="ow">or</span> <span class="n">_canonical_ordering_for_biotite</span><span class="p">(),</span> <span class="n">chemdb</span>
         <span class="p">)</span>
     <span class="n">backbone</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">residue</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">residues</span><span class="p">:</span>
@@ -2967,7 +2947,7 @@
             <span class="n">up</span> <span class="ow">or</span> <span class="n">connection</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"up"</span><span class="p">),</span>
             <span class="n">down</span> <span class="ow">or</span> <span class="n">connection</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"down"</span><span class="p">),</span>
         <span class="p">)</span>
-    <span class="k">return</span> <span class="n">with_atomworks_hydrogens</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">_with_atomworks_hydrogens</span><span class="p">(</span>
         <span class="n">biotite_structure</span><span class="p">,</span>
         <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span>
         <span class="n">residue_names</span><span class="o">=</span><span class="n">names</span><span class="p">,</span>
@@ -2980,8 +2960,8 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_detected_metal_bonds</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">,</span> <span class="n">co</span><span class="p">,</span> <span class="n">chemdb</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""(metal atom, donor atom) index pairs metal detection bonds in the input."""</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._pose_stack_construction</span><span class="w"> </span><span class="kn">import</span> <span class="n">_declared_metal_sites</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io.details</span><span class="w"> </span><span class="kn">import</span> <span class="n">find_disulfides</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io.details._metal_detection</span><span class="w"> </span><span class="kn">import</span> <span class="n">find_metal_geometries</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io.details._disulfide_search</span><span class="w"> </span><span class="kn">import</span> <span class="n">_find_disulfides</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io.details._metal_detection</span><span class="w"> </span><span class="kn">import</span> <span class="n">_find_metal_geometries</span>
 
     <span class="n">template</span> <span class="o">=</span> <span class="n">_template_array</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">)</span>
     <span class="n">known</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span>
@@ -2998,10 +2978,10 @@
     <span class="n">declared</span><span class="p">,</span> <span class="n">required</span> <span class="o">=</span> <span class="n">_declared_metal_sites</span><span class="p">(</span>
         <span class="n">cf</span><span class="o">.</span><span class="n">res_types</span><span class="p">,</span> <span class="n">cf</span><span class="o">.</span><span class="n">metal_sites</span><span class="p">,</span> <span class="n">cf</span><span class="o">.</span><span class="n">metal_coordination</span>
     <span class="p">)</span>
-    <span class="n">_</span><span class="p">,</span> <span class="n">disulfide_variants</span> <span class="o">=</span> <span class="n">find_disulfides</span><span class="p">(</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">disulfide_variants</span> <span class="o">=</span> <span class="n">_find_disulfides</span><span class="p">(</span>
         <span class="n">co</span><span class="p">,</span> <span class="n">cf</span><span class="o">.</span><span class="n">res_types</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="n">cf</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span> <span class="n">cf</span><span class="o">.</span><span class="n">disulfides</span><span class="p">,</span> <span class="kc">True</span>
     <span class="p">)</span>
-    <span class="n">_</span><span class="p">,</span> <span class="n">assignments</span> <span class="o">=</span> <span class="n">find_metal_geometries</span><span class="p">(</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">assignments</span> <span class="o">=</span> <span class="n">_find_metal_geometries</span><span class="p">(</span>
         <span class="n">co</span><span class="p">,</span>
         <span class="n">chemdb</span><span class="p">,</span>
         <span class="n">cf</span><span class="o">.</span><span class="n">res_types</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
@@ -3109,7 +3089,7 @@
 <span class="sd">    """</span>
     <span class="n">torch_device</span> <span class="o">=</span> <span class="n">resolve_device</span><span class="p">(</span><span class="n">torch_device</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">co</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">co</span> <span class="o">=</span> <span class="n">canonical_ordering_for_biotite</span><span class="p">()</span>
+        <span class="n">co</span> <span class="o">=</span> <span class="n">_canonical_ordering_for_biotite</span><span class="p">()</span>
 
     <span class="n">biotite_structure</span> <span class="o">=</span> <span class="n">_normalize_input_identifiers</span><span class="p">(</span>
         <span class="n">biotite_structure</span><span class="p">,</span> <span class="n">co</span><span class="o">.</span><span class="n">name3_aliases</span>
@@ -3132,7 +3112,7 @@
         <span class="n">biotite_residues</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">=</span> <span class="n">_extract_residue_metadata</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">,</span> <span class="n">not_connected</span><span class="p">)</span>
 
-    <span class="n">atom_res_inds</span> <span class="o">=</span> <span class="n">get_all_residue_positions</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">)</span>
+    <span class="n">atom_res_inds</span> <span class="o">=</span> <span class="n">_get_all_residue_positions</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">)</span>
     <span class="n">biotite_name_for_atom</span> <span class="o">=</span> <span class="n">biotite_structure</span><span class="o">.</span><span class="n">atom_name</span>
     <span class="n">biotite_res_name_for_atom</span> <span class="o">=</span> <span class="n">biotite_structure</span><span class="o">.</span><span class="n">res_name</span>
 
@@ -3319,9 +3299,9 @@
     <span class="k">return</span> <span class="n">ResidueTypeSet</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">paramdb</span><span class="o">.</span><span class="n">chemical</span><span class="p">)</span>
 
 
-<span class="nd">@validate_args</span>
+<span class="nd">@_validate_args</span>
 <span class="nd">@toolz</span><span class="o">.</span><span class="n">functoolz</span><span class="o">.</span><span class="n">memoize</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">canonical_ordering_for_biotite</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">CanonicalOrdering</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_canonical_ordering_for_biotite</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">CanonicalOrdering</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Construct the CanonicalOrdering object to use for Biotite.</span>
 <span class="sd">    This wont be used as a typical CanonicalOrdering object, since</span>
 <span class="sd">    we aren't mapping from int-to-int, and instead are going from</span>
@@ -3332,9 +3312,9 @@
     <span class="k">return</span> <span class="n">CanonicalOrdering</span><span class="o">.</span><span class="n">from_chemdb</span><span class="p">(</span><span class="n">paramdb</span><span class="o">.</span><span class="n">chemical</span><span class="p">)</span>
 
 
-<span class="nd">@validate_args</span>
+<span class="nd">@_validate_args</span>
 <span class="nd">@toolz</span><span class="o">.</span><span class="n">functoolz</span><span class="o">.</span><span class="n">memoize</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">packed_block_types_for_biotite</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PackedBlockTypes</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_packed_block_types_for_biotite</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PackedBlockTypes</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Construct the PackedBlockTypes (PBT) object that will used for Biotite.</span>
 <span class="sd">    We'll use the defaults since anything might show up in a Biotite AtomArray.</span>
 <span class="sd">    Some things may show up in the AtomArrays that are not handled by this</span>
@@ -3353,9 +3333,9 @@
     <span class="p">)</span>
 
 
-<span class="nd">@validate_args</span>
+<span class="nd">@_validate_args</span>
 <span class="nd">@toolz</span><span class="o">.</span><span class="n">functoolz</span><span class="o">.</span><span class="n">memoize</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">packed_block_types_for_biotite_with_metals</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_packed_block_types_for_biotite_with_metals</span><span class="p">(</span>
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PackedBlockTypes</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""The Biotite packed block types, plus the ions and clusters a structure's</span>
@@ -3369,7 +3349,7 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_is_metal</span><span class="p">(</span><span class="n">structure</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Per atom, whether its element is one the metal table coordinates."""</span>
-    <span class="n">metals</span> <span class="o">=</span> <span class="p">[</span><span class="n">ion</span><span class="p">[</span><span class="s2">"element"</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="k">for</span> <span class="n">ion</span> <span class="ow">in</span> <span class="n">metal_table</span><span class="p">()[</span><span class="s2">"ions"</span><span class="p">]]</span>
+    <span class="n">metals</span> <span class="o">=</span> <span class="p">[</span><span class="n">ion</span><span class="p">[</span><span class="s2">"element"</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="k">for</span> <span class="n">ion</span> <span class="ow">in</span> <span class="n">_metal_table</span><span class="p">()[</span><span class="s2">"ions"</span><span class="p">]]</span>
     <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span>
         <span class="n">numpy</span><span class="o">.</span><span class="n">char</span><span class="o">.</span><span class="n">upper</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">structure</span><span class="o">.</span><span class="n">element</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">)),</span> <span class="n">metals</span>
     <span class="p">)</span>
@@ -3391,19 +3371,19 @@
         <span class="k">return</span> <span class="n">ResidueTypeSet</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">chemical_db</span><span class="p">)</span>
 
 
-<span class="nd">@validate_args</span>
+<span class="nd">@_validate_args</span>
 <span class="nd">@toolz</span><span class="o">.</span><span class="n">functoolz</span><span class="o">.</span><span class="n">memoize</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_default_pose_build_context</span><span class="p">(</span>
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">with_metals</span><span class="p">:</span> <span class="nb">bool</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseBuildContext</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Return the process-wide construction context for the default database."""</span>
     <span class="n">packed</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">packed_block_types_for_biotite_with_metals</span>
+        <span class="n">_packed_block_types_for_biotite_with_metals</span>
         <span class="k">if</span> <span class="n">with_metals</span>
-        <span class="k">else</span> <span class="n">packed_block_types_for_biotite</span>
+        <span class="k">else</span> <span class="n">_packed_block_types_for_biotite</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="n">PoseBuildContext</span><span class="p">(</span>
-        <span class="n">canonical_ordering</span><span class="o">=</span><span class="n">canonical_ordering_for_biotite</span><span class="p">(),</span>
+        <span class="n">canonical_ordering</span><span class="o">=</span><span class="n">_canonical_ordering_for_biotite</span><span class="p">(),</span>
         <span class="n">packed_block_types</span><span class="o">=</span><span class="n">packed</span><span class="p">(</span><span class="n">device</span><span class="p">),</span>
         <span class="n">parameter_database</span><span class="o">=</span><span class="n">_paramdb_for_biotite</span><span class="p">(),</span>
         <span class="n">restype_set</span><span class="o">=</span><span class="n">_restype_set_for_biotite</span><span class="p">(),</span>
@@ -3422,10 +3402,8 @@
     <span class="k">return</span> <span class="n">co</span><span class="p">,</span> <span class="n">rts</span><span class="p">,</span> <span class="n">pbt</span>
 
 
-<div class="viewcode-block" id="biotite_from_canonical_form">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.biotite_from_canonical_form">[docs]</a>
-<span class="nd">@validate_args</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">biotite_from_canonical_form</span><span class="p">(</span>
+<span class="nd">@_validate_args</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_biotite_from_canonical_form</span><span class="p">(</span>
     <span class="n">cf</span><span class="p">:</span> <span class="n">CanonicalForm</span><span class="p">,</span>
     <span class="n">co</span><span class="p">:</span> <span class="n">CanonicalOrdering</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">include_virtual_atoms</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -3439,16 +3417,15 @@
 <span class="sd">    export detaches coordinates from autograd. A canonical form carries no</span>
 <span class="sd">    residue types, so the result has no bonds; atom_array_from_pose_stack adds them.</span>
 <span class="sd">    """</span>
-    <span class="k">return</span> <span class="n">_biotite_from_canonical_form</span><span class="p">(</span><span class="n">cf</span><span class="p">,</span> <span class="n">co</span><span class="p">,</span> <span class="n">include_virtual_atoms</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+    <span class="k">return</span> <span class="n">_biotite_from_canonical_form_impl</span><span class="p">(</span><span class="n">cf</span><span class="p">,</span> <span class="n">co</span><span class="p">,</span> <span class="n">include_virtual_atoms</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
 
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_biotite_from_canonical_form</span><span class="p">(</span><span class="n">cf</span><span class="p">,</span> <span class="n">co</span><span class="p">,</span> <span class="n">include_virtual_atoms</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_biotite_from_canonical_form_impl</span><span class="p">(</span><span class="n">cf</span><span class="p">,</span> <span class="n">co</span><span class="p">,</span> <span class="n">include_virtual_atoms</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""The exported structure, and the canonical residue of each of its atoms."""</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">struc</span>
 
     <span class="k">if</span> <span class="n">co</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">co</span> <span class="o">=</span> <span class="n">canonical_ordering_for_biotite</span><span class="p">()</span>
+        <span class="n">co</span> <span class="o">=</span> <span class="n">_canonical_ordering_for_biotite</span><span class="p">()</span>
     <span class="n">n_poses</span><span class="p">,</span> <span class="n">n_residues</span><span class="p">,</span> <span class="n">max_atoms</span> <span class="o">=</span> <span class="n">cf</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">n_poses</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">_poses_have_identical_metadata</span><span class="p">(</span><span class="n">cf</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -3527,7 +3504,7 @@
     <span class="k">return</span> <span class="n">result</span><span class="p">,</span> <span class="n">rows</span>
 
 
-<span class="nd">@validate_args</span>
+<span class="nd">@_validate_args</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_poses_have_identical_metadata</span><span class="p">(</span><span class="n">cf</span><span class="p">:</span> <span class="n">CanonicalForm</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Check if all poses in the CanonicalForm have identical metadata.</span>
 

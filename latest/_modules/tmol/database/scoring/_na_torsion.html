@@ -6,7 +6,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>tmol.score.terms._ljlk_creator &#8212; TMol</title>
+    <title>tmol.database.scoring._na_torsion &#8212; TMol</title>
   
   
   
@@ -46,10 +46,10 @@
     <script>let toggleOpenOnPrint = 'true';</script>
     <script src="../../../../_static/togglebutton.js?v=b8b12719"></script>
     <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
-    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/score/terms/_ljlk_creator';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/database/scoring/_na_torsion';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <script src="../../../../_static/tmol-explorers.js?v=089c5f52"></script>
-    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/score/terms/_ljlk_creator.html" />
+    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/database/scoring/_na_torsion.html" />
     <link rel="icon" href="../../../../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../../../../genindex.html" />
     <link rel="search" title="Search" href="../../../../search.html" />
@@ -407,12 +407,9 @@
     <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
     
     
-    <li class="breadcrumb-item"><a href="../../../tmol.html" class="nav-link">tmol</a></li>
+    <li class="breadcrumb-item"><a href="../../database.html" class="nav-link">tmol.database</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../score.html" class="nav-link">tmol.score</a></li>
-    
-    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.score.terms._ljlk_creator</span></li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.database.scoring._na_torsion</span></li>
   </ul>
 </nav>
 </div>
@@ -429,30 +426,58 @@
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <h1>Source code for tmol.score.terms._ljlk_creator</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.terms</span><span class="w"> </span><span class="kn">import</span> <span class="n">TermCreator</span><span class="p">,</span> <span class="n">score_term_creator</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreType</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+  <h1>Source code for tmol.database.scoring._na_torsion</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database._yaml</span><span class="w"> </span><span class="kn">import</span> <span class="n">_load_yaml</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cattr</span>
 
 
-<div class="viewcode-block" id="LJLKTermCreator">
-<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.terms.LJLKTermCreator">[docs]</a>
-<span class="nd">@score_term_creator</span>
-<span class="k">class</span><span class="w"> </span><span class="nc">LJLKTermCreator</span><span class="p">(</span><span class="n">TermCreator</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Create the Lennard-Jones and Lazaridis-Karplus energy term."""</span>
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">NaTorsionGlobalParams</span><span class="p">:</span>
+    <span class="n">sdev_sugar</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">sdev_chi</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">sdev_backbone</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>  <span class="c1"># alpha beta gamma delta epsilon zeta</span>
+    <span class="n">weight_bb</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">weight_chi</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">weight_sugar</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">pucker_temperature</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">bin_blend_sdev</span><span class="p">:</span> <span class="nb">float</span>
 
-    <span class="n">_score_types</span> <span class="o">=</span> <span class="p">[</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">fa_ljatr</span><span class="p">,</span> <span class="n">ScoreType</span><span class="o">.</span><span class="n">fa_ljrep</span><span class="p">,</span> <span class="n">ScoreType</span><span class="o">.</span><span class="n">fa_lk</span><span class="p">]</span>
+
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">NaTorsionWells</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Bin-population energies, -ln P shifted so the deepest well is 0."""</span>
+
+    <span class="n">pucker</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">alpha_gamma</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">bibii_given_pucker</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">alphanext_given_bibii</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">chi_syn_given_pucker</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]]]</span>
+
+
+<div class="viewcode-block" id="NaTorsionDatabase">
+<a class="viewcode-back" href="../../../../api/database.html#tmol.database.scoring.NaTorsionDatabase">[docs]</a>
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">NaTorsionDatabase</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Mean nucleic acid torsion angles by bin, one parameter set per polymer.</span>
+
+<span class="sd">    Generated by tmol/support/scoring/na_torsion_param_import.py. Every field is</span>
+<span class="sd">    keyed "dna" or "rna" first; the functional form is shared, the numbers are</span>
+<span class="sd">    not. Backbone means are then keyed by torsion name (3 bins for alpha/gamma,</span>
+<span class="sd">    2 for the rest); sugar means by torsion name then "all", except chi which is</span>
+<span class="sd">    per base -- acgt for DNA, acgu for RNA.</span>
+<span class="sd">    """</span>
+
+    <span class="n">global_parameters</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">NaTorsionGlobalParams</span><span class="p">]</span>
+    <span class="n">backbone_means</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]]]</span>
+    <span class="n">sugar_means</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]]]]</span>
+    <span class="n">well_energies</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">NaTorsionWells</span><span class="p">]</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">create_term</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">param_db</span><span class="p">:</span> <span class="n">ParameterDatabase</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
-        <span class="kn">import</span><span class="w"> </span><span class="nn">tmol.score.ljlk._ljlk_energy_term</span>
-
-        <span class="k">return</span> <span class="n">tmol</span><span class="o">.</span><span class="n">score</span><span class="o">.</span><span class="n">ljlk</span><span class="o">.</span><span class="n">_ljlk_energy_term</span><span class="o">.</span><span class="n">LJLKEnergyTerm</span><span class="p">(</span><span class="n">param_db</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
-
-    <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">score_types</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_score_types</span></div>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">cattr</span><span class="o">.</span><span class="n">structure</span><span class="p">(</span><span class="n">_load_yaml</span><span class="p">(</span><span class="n">path</span><span class="p">),</span> <span class="bp">cls</span><span class="p">)</span></div>
 
 </pre></div>
 

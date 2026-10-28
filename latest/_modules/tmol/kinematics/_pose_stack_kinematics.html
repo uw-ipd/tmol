@@ -406,9 +406,6 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.kinematics._pose_stack_kinematics</span></li>
   </ul>
 </nav>
@@ -441,20 +438,13 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics.compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">inverse_kin</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">BondDOFTypes</span><span class="p">,</span>
-    <span class="n">NodeType</span><span class="p">,</span>
-    <span class="n">FoldForest</span><span class="p">,</span>
-    <span class="n">PoseStackKinematicsModule</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics.compiled._compiled_ops</span><span class="w"> </span><span class="kn">import</span> <span class="n">_inverse_kin</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics._datatypes</span><span class="w"> </span><span class="kn">import</span> <span class="n">BondDOFTypes</span><span class="p">,</span> <span class="n">NodeType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics._fold_forest</span><span class="w"> </span><span class="kn">import</span> <span class="n">FoldForest</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics._script_modules</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStackKinematicsModule</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._util</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">_measure_torsions</span><span class="p">,</span>
-    <span class="n">_resolve_uaid</span><span class="p">,</span>
-    <span class="n">_torsion_requests</span><span class="p">,</span>
-    <span class="n">residue_label</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._util</span><span class="w"> </span><span class="kn">import</span> <span class="n">_measure_torsions</span><span class="p">,</span> <span class="n">_resolve_uaid</span><span class="p">,</span> <span class="n">_torsion_requests</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">residue_label</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_controlling_kfo_node</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">kmd</span><span class="p">,</span> <span class="n">kfo_for_atom</span><span class="p">,</span> <span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">tor_ind</span><span class="p">):</span>
@@ -510,7 +500,7 @@
         <span class="p">(</span><span class="n">kmd</span><span class="o">.</span><span class="n">forest</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span>
     <span class="p">)</span>
     <span class="n">kincoords</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)[</span><span class="n">kmd</span><span class="o">.</span><span class="n">forest</span><span class="o">.</span><span class="n">id</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)]</span>
-    <span class="n">dofs</span> <span class="o">=</span> <span class="n">inverse_kin</span><span class="p">(</span>
+    <span class="n">dofs</span> <span class="o">=</span> <span class="n">_inverse_kin</span><span class="p">(</span>
         <span class="n">kincoords</span><span class="p">,</span>
         <span class="n">kmd</span><span class="o">.</span><span class="n">forest</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>
         <span class="n">kmd</span><span class="o">.</span><span class="n">forest</span><span class="o">.</span><span class="n">frame_x</span><span class="p">,</span>

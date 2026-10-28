@@ -407,9 +407,6 @@
     <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
     
     
-    <li class="breadcrumb-item"><a href="../../../tmol.html" class="nav-link">tmol</a></li>
-    
-    
     <li class="breadcrumb-item"><a href="../../score.html" class="nav-link">tmol.score</a></li>
     
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.score.constraint._constraint_energy_term</span></li>
@@ -438,14 +435,12 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">PackedBlockTypes</span><span class="p">,</span>
-    <span class="n">PoseStack</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._packed_block_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackedBlockTypes</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
 
 
 <div class="viewcode-block" id="ConstraintEnergyTerm">
-<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.constraint.ConstraintEnergyTerm">[docs]</a>
+<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.ConstraintEnergyTerm">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">ConstraintEnergyTerm</span><span class="p">(</span><span class="n">EnergyTerm</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Score coordinate and geometric constraints attached to a pose stack."""</span>
 
@@ -471,9 +466,9 @@
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_torsion_angle_test</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">tensor</span><span class="p">):</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.constraint.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_torsion_angle</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.constraint.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">_get_torsion_angle</span>
 
-        <span class="k">return</span> <span class="n">get_torsion_angle</span><span class="p">(</span><span class="n">tensor</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_get_torsion_angle</span><span class="p">(</span><span class="n">tensor</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">harmonic</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">atoms</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -526,13 +521,13 @@
         <span class="c1"># params[:, 0] == mean (target value)</span>
         <span class="c1"># params[:, 1] == standard deviation</span>
         <span class="c1"># params[:, 2] == constant that's added to the score regardless</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.constraint.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_torsion_angle</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.constraint.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">_get_torsion_angle</span>
 
         <span class="n">x0</span> <span class="o">=</span> <span class="n">params</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>  <span class="c1"># The desired angle</span>
         <span class="n">sd</span> <span class="o">=</span> <span class="n">params</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
         <span class="n">offset</span> <span class="o">=</span> <span class="n">params</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span>
 
-        <span class="n">angles</span> <span class="o">=</span> <span class="n">get_torsion_angle</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span>
+        <span class="n">angles</span> <span class="o">=</span> <span class="n">_get_torsion_angle</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span>
 
         <span class="k">def</span><span class="w"> </span><span class="nf">round_away_from_zero</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">trunc</span><span class="p">(</span><span class="n">val</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.5</span><span class="p">)</span>

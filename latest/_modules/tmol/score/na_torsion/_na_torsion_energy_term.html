@@ -407,9 +407,6 @@
     <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
     
     
-    <li class="breadcrumb-item"><a href="../../../tmol.html" class="nav-link">tmol</a></li>
-    
-    
     <li class="breadcrumb-item"><a href="../../score.html" class="nav-link">tmol.score</a></li>
     
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.score.na_torsion._na_torsion_energy_term</span></li>
@@ -434,30 +431,28 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.._energy_term</span><span class="w"> </span><span class="kn">import</span> <span class="n">EnergyTerm</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">.._annotation_cache</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnnotationKey</span><span class="p">,</span> <span class="n">cached_annotation</span><span class="p">,</span> <span class="n">store_annotation</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.._annotation_cache</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnnotationKey</span><span class="p">,</span> <span class="n">_cached_annotation</span><span class="p">,</span> <span class="n">_store_annotation</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">PackedBlockTypes</span><span class="p">,</span>
-    <span class="n">PoseStack</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._packed_block_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackedBlockTypes</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">._params</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">NaTorsionParams</span><span class="p">,</span>
-    <span class="n">block_type_params</span><span class="p">,</span>
-    <span class="n">polymer_index</span><span class="p">,</span>
+    <span class="n">_block_type_params</span><span class="p">,</span>
+    <span class="n">_polymer_index</span><span class="p">,</span>
     <span class="n">TORSION_NAMES</span><span class="p">,</span>
     <span class="n">TORSION_IND</span><span class="p">,</span>
     <span class="n">SYN_MEAN</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">._potentials</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">bi_bii_weight</span><span class="p">,</span>
-    <span class="n">blended_devsq</span><span class="p">,</span>
-    <span class="n">dihedral</span><span class="p">,</span>
+    <span class="n">_bi_bii_weight</span><span class="p">,</span>
+    <span class="n">_blended_devsq</span><span class="p">,</span>
+    <span class="n">_dihedral</span><span class="p">,</span>
     <span class="n">pucker_weights</span><span class="p">,</span>
-    <span class="n">syn_weight</span><span class="p">,</span>
-    <span class="n">triple_bin_weights</span><span class="p">,</span>
-    <span class="n">wrap_degrees</span><span class="p">,</span>
+    <span class="n">_syn_weight</span><span class="p">,</span>
+    <span class="n">_triple_bin_weights</span><span class="p">,</span>
+    <span class="n">_wrap_degrees</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="n">N_TORSION</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">TORSION_NAMES</span><span class="p">)</span>
@@ -467,7 +462,7 @@
 
 
 <div class="viewcode-block" id="NaTorsionEnergyTerm">
-<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.na_torsion.NaTorsionEnergyTerm">[docs]</a>
+<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.NaTorsionEnergyTerm">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">NaTorsionEnergyTerm</span><span class="p">(</span><span class="n">EnergyTerm</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Score nucleic-acid backbone, sugar-pucker, and glycosidic torsions."""</span>
 
@@ -503,14 +498,14 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_block_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_type</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">NaTorsionEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_block_type</span><span class="p">(</span><span class="n">block_type</span><span class="p">)</span>
-        <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="n">_cached_annotation</span><span class="p">(</span>
             <span class="n">block_type</span><span class="p">,</span> <span class="s2">"_na_torsion_annotation"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_block_annotation_key</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">cached</span>
-        <span class="n">params</span> <span class="o">=</span> <span class="n">block_type_params</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">element_for_atom_type</span><span class="p">)</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">_block_type_params</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">element_for_atom_type</span><span class="p">)</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"na_torsion_params"</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">_store_annotation</span><span class="p">(</span>
             <span class="n">block_type</span><span class="p">,</span>
             <span class="s2">"_na_torsion_annotation"</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_block_annotation_key</span><span class="p">,</span>
@@ -520,7 +515,7 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_packed_block_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">NaTorsionEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_packed_block_types</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">)</span>
-        <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="n">_cached_annotation</span><span class="p">(</span>
             <span class="n">packed_block_types</span><span class="p">,</span>
             <span class="s2">"_na_torsion_annotation"</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_packed_annotation_key</span><span class="p">,</span>
@@ -549,7 +544,7 @@
             <span class="s2">"na_torsion_down"</span><span class="p">,</span>
             <span class="n">to_t</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">params</span><span class="p">[</span><span class="s2">"down"</span><span class="p">]</span> <span class="k">for</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">block_params</span><span class="p">])),</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">_store_annotation</span><span class="p">(</span>
             <span class="n">packed_block_types</span><span class="p">,</span>
             <span class="s2">"_na_torsion_annotation"</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_packed_annotation_key</span><span class="p">,</span>
@@ -573,7 +568,7 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_poses</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">poses</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">NaTorsionEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_poses</span><span class="p">(</span><span class="n">poses</span><span class="p">)</span>
-        <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="n">_cached_annotation</span><span class="p">(</span>
             <span class="n">poses</span><span class="p">,</span> <span class="s2">"_na_torsion_annotation"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pose_annotation_key</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -593,7 +588,7 @@
         <span class="p">)</span>
         <span class="n">poses</span><span class="o">.</span><span class="n">na_torsion_pose_params</span> <span class="o">=</span> <span class="n">params</span>
         <span class="n">poses</span><span class="o">.</span><span class="n">na_torsion_has_na</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">any</span><span class="p">())</span>
-        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">_store_annotation</span><span class="p">(</span>
             <span class="n">poses</span><span class="p">,</span>
             <span class="s2">"_na_torsion_annotation"</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_pose_annotation_key</span><span class="p">,</span>
@@ -602,10 +597,10 @@
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_pose_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">eval_na_torsion_for_pose</span>
+        <span class="k">return</span> <span class="n">_eval_na_torsion_for_pose</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_rotamer_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">eval_na_torsion_for_rotamers</span>
+        <span class="k">return</span> <span class="n">_eval_na_torsion_for_rotamers</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_pose_has_na</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="s2">"na_torsion_has_na"</span><span class="p">):</span>
@@ -744,9 +739,7 @@
     <span class="k">return</span> <span class="n">pose</span><span class="p">,</span> <span class="n">offset</span> <span class="o">+</span> <span class="n">local</span><span class="p">,</span> <span class="n">ok</span>
 
 
-<div class="viewcode-block" id="eval_na_torsion_for_pose">
-<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.na_torsion.eval_na_torsion_for_pose">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">eval_na_torsion_for_pose</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_eval_na_torsion_for_pose</span><span class="p">(</span>
     <span class="c1"># common args</span>
     <span class="n">rot_coords</span><span class="p">,</span>
     <span class="n">_rot_coord_offset</span><span class="p">,</span>
@@ -805,9 +798,9 @@
         <span class="k">return</span> <span class="n">_finish</span><span class="p">((</span><span class="n">zero</span><span class="p">,</span> <span class="n">zero</span><span class="p">),</span> <span class="n">output_block_pair_energies</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">rot_coords</span><span class="o">.</span><span class="n">is_cuda</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">output_block_pair_energies</span><span class="p">:</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">.potentials</span><span class="w"> </span><span class="kn">import</span> <span class="n">na_torsion_pose_score</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">_na_torsion_pose_score</span>
 
-        <span class="k">return</span> <span class="n">na_torsion_pose_score</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">_na_torsion_pose_score</span><span class="p">(</span>
             <span class="n">rot_coords</span><span class="p">,</span>
             <span class="n">pose_base</span><span class="p">,</span>
             <span class="n">pose_is_na</span><span class="p">,</span>
@@ -859,7 +852,7 @@
         <span class="n">pucker_temperature</span><span class="p">,</span>
         <span class="n">bin_blend_sdev</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">poly</span> <span class="o">=</span> <span class="n">polymer_index</span><span class="p">(</span><span class="n">pose_base</span><span class="p">)</span>
+    <span class="n">poly</span> <span class="o">=</span> <span class="n">_polymer_index</span><span class="p">(</span><span class="n">pose_base</span><span class="p">)</span>
     <span class="n">harmonic</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">weight_bb</span><span class="p">[</span><span class="n">poly</span><span class="p">]</span> <span class="o">*</span> <span class="n">e_bb</span> <span class="o">+</span> <span class="n">weight_chi</span><span class="p">[</span><span class="n">poly</span><span class="p">]</span> <span class="o">*</span> <span class="n">e_chi</span> <span class="o">+</span> <span class="n">weight_sugar</span><span class="p">[</span><span class="n">poly</span><span class="p">]</span> <span class="o">*</span> <span class="n">e_sugar</span>
     <span class="p">)</span>
@@ -871,8 +864,7 @@
             <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">pose_is_na</span><span class="p">,</span> <span class="n">well</span><span class="p">,</span> <span class="n">zero</span><span class="p">),</span>
         <span class="p">),</span>
         <span class="n">output_block_pair_energies</span><span class="p">,</span>
-    <span class="p">)</span></div>
-
+    <span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_pose_indices</span><span class="p">(</span>
@@ -962,9 +954,7 @@
     <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">energy</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="k">for</span> <span class="n">energy</span> <span class="ow">in</span> <span class="n">energies</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="na_torsion_subterms">
-<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.na_torsion.na_torsion_subterms">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">na_torsion_subterms</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_na_torsion_subterms</span><span class="p">(</span>
     <span class="n">rot_coords</span><span class="p">,</span>
     <span class="n">block_type_ind_for_rot</span><span class="p">,</span>
     <span class="n">bt_base</span><span class="p">,</span>
@@ -1025,8 +1015,7 @@
         <span class="n">pucker_temperature</span><span class="p">,</span>
         <span class="n">bin_blend_sdev</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="k">return</span> <span class="p">(</span><span class="o">*</span><span class="n">energies</span><span class="p">,</span> <span class="n">is_na</span><span class="p">,</span> <span class="n">base</span><span class="p">)</span></div>
-
+    <span class="k">return</span> <span class="p">(</span><span class="o">*</span><span class="n">energies</span><span class="p">,</span> <span class="n">is_na</span><span class="p">,</span> <span class="n">base</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_subterm_energies</span><span class="p">(</span>
@@ -1060,8 +1049,8 @@
     <span class="n">is_na</span> <span class="o">=</span> <span class="n">base</span> <span class="o">&gt;=</span> <span class="mi">0</span>
     <span class="c1"># DNA and RNA share the functional form and nothing else; every table below</span>
     <span class="c1"># that is not per-base is gathered on this index</span>
-    <span class="n">poly</span> <span class="o">=</span> <span class="n">polymer_index</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
-    <span class="n">tors</span> <span class="o">=</span> <span class="n">dihedral</span><span class="p">(</span><span class="n">xyz</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:],</span> <span class="n">xyz</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:],</span> <span class="n">xyz</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="p">:],</span> <span class="n">xyz</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="p">:])</span>
+    <span class="n">poly</span> <span class="o">=</span> <span class="n">_polymer_index</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
+    <span class="n">tors</span> <span class="o">=</span> <span class="n">_dihedral</span><span class="p">(</span><span class="n">xyz</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:],</span> <span class="n">xyz</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:],</span> <span class="n">xyz</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="p">:],</span> <span class="n">xyz</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="p">:])</span>
     <span class="n">tors</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">tor_ok</span><span class="p">,</span> <span class="n">tors</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">tors</span><span class="p">))</span> <span class="o">%</span> <span class="mf">360.0</span>
     <span class="n">zero</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">tors</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">tors</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
 
@@ -1079,22 +1068,22 @@
     <span class="n">bin_w</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">tor</span> <span class="ow">in</span> <span class="p">(</span><span class="n">ALPHA</span><span class="p">,</span> <span class="n">GAMMA</span><span class="p">):</span>
         <span class="n">ang</span> <span class="o">=</span> <span class="n">tors</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tor</span><span class="p">]</span>
-        <span class="n">w</span> <span class="o">=</span> <span class="n">triple_bin_weights</span><span class="p">(</span><span class="n">ang</span><span class="p">,</span> <span class="n">means</span><span class="p">[:,</span> <span class="n">tor</span><span class="p">,</span> <span class="p">:</span><span class="mi">3</span><span class="p">],</span> <span class="n">bin_blend_sdev</span><span class="p">)</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">_triple_bin_weights</span><span class="p">(</span><span class="n">ang</span><span class="p">,</span> <span class="n">means</span><span class="p">[:,</span> <span class="n">tor</span><span class="p">,</span> <span class="p">:</span><span class="mi">3</span><span class="p">],</span> <span class="n">bin_blend_sdev</span><span class="p">)</span>
         <span class="n">bin_w</span><span class="p">[</span><span class="n">tor</span><span class="p">]</span> <span class="o">=</span> <span class="n">w</span>
         <span class="n">e_bb</span> <span class="o">=</span> <span class="n">e_bb</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
             <span class="n">tor_ok</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tor</span><span class="p">],</span>
-            <span class="n">blended_devsq</span><span class="p">(</span><span class="n">ang</span><span class="p">,</span> <span class="n">means</span><span class="p">[:,</span> <span class="n">tor</span><span class="p">,</span> <span class="p">:</span><span class="mi">3</span><span class="p">],</span> <span class="n">w</span><span class="p">)</span> <span class="o">/</span> <span class="n">sdev_bb</span><span class="p">[:,</span> <span class="n">tor</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="n">_blended_devsq</span><span class="p">(</span><span class="n">ang</span><span class="p">,</span> <span class="n">means</span><span class="p">[:,</span> <span class="n">tor</span><span class="p">,</span> <span class="p">:</span><span class="mi">3</span><span class="p">],</span> <span class="n">w</span><span class="p">)</span> <span class="o">/</span> <span class="n">sdev_bb</span><span class="p">[:,</span> <span class="n">tor</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span>
             <span class="n">zero</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="n">w_bi</span> <span class="o">=</span> <span class="n">bi_bii_weight</span><span class="p">(</span><span class="n">tors</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">EPSILON</span><span class="p">],</span> <span class="n">tors</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">ZETA</span><span class="p">])</span>
+    <span class="n">w_bi</span> <span class="o">=</span> <span class="n">_bi_bii_weight</span><span class="p">(</span><span class="n">tors</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">EPSILON</span><span class="p">],</span> <span class="n">tors</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">ZETA</span><span class="p">])</span>
     <span class="n">both</span> <span class="o">=</span> <span class="n">tor_ok</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">EPSILON</span><span class="p">]</span> <span class="o">&amp;</span> <span class="n">tor_ok</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">ZETA</span><span class="p">]</span>
     <span class="k">for</span> <span class="n">tor</span> <span class="ow">in</span> <span class="p">(</span><span class="n">EPSILON</span><span class="p">,</span> <span class="n">ZETA</span><span class="p">):</span>
         <span class="n">ang</span> <span class="o">=</span> <span class="n">tors</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tor</span><span class="p">]</span>
         <span class="n">w</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">w_bi</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">w_bi</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">e_bb</span> <span class="o">=</span> <span class="n">e_bb</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
             <span class="n">both</span><span class="p">,</span>
-            <span class="n">blended_devsq</span><span class="p">(</span><span class="n">ang</span><span class="p">,</span> <span class="n">means</span><span class="p">[:,</span> <span class="n">tor</span><span class="p">,</span> <span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="n">w</span><span class="p">)</span> <span class="o">/</span> <span class="n">sdev_bb</span><span class="p">[:,</span> <span class="n">tor</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="n">_blended_devsq</span><span class="p">(</span><span class="n">ang</span><span class="p">,</span> <span class="n">means</span><span class="p">[:,</span> <span class="n">tor</span><span class="p">,</span> <span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="n">w</span><span class="p">)</span> <span class="o">/</span> <span class="n">sdev_bb</span><span class="p">[:,</span> <span class="n">tor</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span>
             <span class="n">zero</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -1106,7 +1095,7 @@
     <span class="n">ang</span> <span class="o">=</span> <span class="n">tors</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">BETA</span><span class="p">]</span>
     <span class="n">e_bb</span> <span class="o">=</span> <span class="n">e_bb</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
         <span class="n">tor_ok</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">BETA</span><span class="p">],</span>
-        <span class="n">blended_devsq</span><span class="p">(</span>
+        <span class="n">_blended_devsq</span><span class="p">(</span>
             <span class="n">ang</span><span class="p">,</span> <span class="n">means</span><span class="p">[:,</span> <span class="n">BETA</span><span class="p">,</span> <span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">w_beta</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">w_beta</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
         <span class="p">)</span>
         <span class="o">/</span> <span class="n">sdev_bb</span><span class="p">[:,</span> <span class="n">BETA</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span>
@@ -1115,11 +1104,11 @@
 
     <span class="c1"># --- chi ----------------------------------------------------------------</span>
     <span class="n">chi</span> <span class="o">=</span> <span class="n">tors</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">CHI</span><span class="p">]</span>
-    <span class="n">w_syn</span> <span class="o">=</span> <span class="n">syn_weight</span><span class="p">(</span><span class="n">chi</span><span class="p">)</span>
-    <span class="n">dev_pucker</span> <span class="o">=</span> <span class="n">wrap_degrees</span><span class="p">(</span>
+    <span class="n">w_syn</span> <span class="o">=</span> <span class="n">_syn_weight</span><span class="p">(</span><span class="n">chi</span><span class="p">)</span>
+    <span class="n">dev_pucker</span> <span class="o">=</span> <span class="n">_wrap_degrees</span><span class="p">(</span>
         <span class="n">chi</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">chi_means</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="p">)[</span><span class="n">base</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">)]</span>
     <span class="p">)</span>
-    <span class="n">dev_syn</span> <span class="o">=</span> <span class="n">wrap_degrees</span><span class="p">(</span><span class="n">chi</span> <span class="o">-</span> <span class="n">SYN_MEAN</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">dev_syn</span> <span class="o">=</span> <span class="n">_wrap_degrees</span><span class="p">(</span><span class="n">chi</span> <span class="o">-</span> <span class="n">SYN_MEAN</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">w_syn1</span> <span class="o">=</span> <span class="n">w_syn</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">e_chi</span> <span class="o">=</span> <span class="p">(</span><span class="n">pucker</span> <span class="o">*</span> <span class="p">((</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">w_syn1</span><span class="p">)</span> <span class="o">*</span> <span class="n">dev_pucker</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">w_syn1</span> <span class="o">*</span> <span class="n">dev_syn</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
         <span class="o">-</span><span class="mi">1</span>
@@ -1129,7 +1118,7 @@
     <span class="c1"># --- sugar --------------------------------------------------------------</span>
     <span class="n">e_sugar</span> <span class="o">=</span> <span class="n">zero</span>
     <span class="k">for</span> <span class="n">slot</span><span class="p">,</span> <span class="n">tor</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">SUGAR_SLOTS</span><span class="p">):</span>
-        <span class="n">dev</span> <span class="o">=</span> <span class="n">wrap_degrees</span><span class="p">(</span>
+        <span class="n">dev</span> <span class="o">=</span> <span class="n">_wrap_degrees</span><span class="p">(</span>
             <span class="n">tors</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tor</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">sugar_means</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="p">)[</span><span class="n">poly</span><span class="p">][:,</span> <span class="p">:,</span> <span class="n">slot</span><span class="p">]</span>
         <span class="p">)</span>
         <span class="n">e_sugar</span> <span class="o">=</span> <span class="n">e_sugar</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
@@ -1291,7 +1280,7 @@
     <span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">eval_na_torsion_for_rotamers</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_eval_na_torsion_for_rotamers</span><span class="p">(</span>
     <span class="c1"># common args</span>
     <span class="n">rot_coords</span><span class="p">,</span>
     <span class="n">rot_coord_offset</span><span class="p">,</span>
@@ -1361,9 +1350,9 @@
         <span class="n">base</span> <span class="o">=</span> <span class="n">rotamer_base</span>
         <span class="n">is_na</span> <span class="o">=</span> <span class="n">rotamer_is_na</span>
         <span class="k">if</span> <span class="n">rot_coords</span><span class="o">.</span><span class="n">is_cuda</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">rot_coords</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">:</span>
-            <span class="kn">from</span><span class="w"> </span><span class="nn">.potentials</span><span class="w"> </span><span class="kn">import</span> <span class="n">na_torsion_pose_score</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">_na_torsion_pose_score</span>
 
-            <span class="n">score</span> <span class="o">=</span> <span class="n">na_torsion_pose_score</span><span class="p">(</span>
+            <span class="n">score</span> <span class="o">=</span> <span class="n">_na_torsion_pose_score</span><span class="p">(</span>
                 <span class="n">rot_coords</span><span class="p">,</span>
                 <span class="n">base</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
                 <span class="n">is_na</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
@@ -1421,7 +1410,7 @@
                 <span class="n">pucker_temperature</span><span class="p">,</span>
                 <span class="n">bin_blend_sdev</span><span class="p">,</span>
             <span class="p">)</span>
-            <span class="n">poly</span> <span class="o">=</span> <span class="n">polymer_index</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
+            <span class="n">poly</span> <span class="o">=</span> <span class="n">_polymer_index</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
             <span class="n">harmonic</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="n">weight_bb</span><span class="p">[</span><span class="n">poly</span><span class="p">]</span> <span class="o">*</span> <span class="n">e_bb</span>
                 <span class="o">+</span> <span class="n">weight_chi</span><span class="p">[</span><span class="n">poly</span><span class="p">]</span> <span class="o">*</span> <span class="n">e_chi</span>

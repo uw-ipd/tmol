@@ -406,9 +406,6 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.kinematics._move_map</span></li>
   </ul>
 </nav>
@@ -430,10 +427,10 @@
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">attrs</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics._datatypes</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">KinematicModuleData</span><span class="p">,</span>
     <span class="n">n_movable_bond_dof_types</span><span class="p">,</span>
     <span class="n">n_movable_jump_dof_types</span><span class="p">,</span>
@@ -443,27 +440,27 @@
 
 
 <div class="viewcode-block" id="CartesianMoveMap">
-<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.CartesianMoveMap">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.CartesianMoveMap">[docs]</a>
 <span class="nd">@attrs</span><span class="o">.</span><span class="n">define</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">CartesianMoveMap</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Move map for Cartesian-space minimization.</span>
 
 <span class="sd">    A lightweight wrapper around a coordinate mask that can be passed as the</span>
-<span class="sd">    ``move_map`` argument to :func:`~tmol.relax._fast_relax.fast_relax` when</span>
+<span class="sd">    ``move_map`` argument to :func:`~tmol.fast_relax` when</span>
 <span class="sd">    using a Cartesian ``min_fn`` (e.g. one built around</span>
-<span class="sd">    :func:`~tmol.optimization._minimizers.run_cart_min`).</span>
+<span class="sd">    :func:`~tmol.run_cart_min`).</span>
 
 <span class="sd">    Unlike the full :class:`MoveMap`, which describes freedom in internal</span>
 <span class="sd">    (torsion/jump) DOF space, ``CartesianMoveMap`` works directly in atomic</span>
 <span class="sd">    Cartesian space.  The ``min_fn`` is responsible for extracting</span>
 <span class="sd">    ``coord_mask`` and passing it to</span>
-<span class="sd">    :class:`~tmol.optimization._sfxn_modules.CartesianSfxnNetwork`.</span>
+<span class="sd">    ``CartesianSfxnNetwork``.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        coord_mask: Boolean tensor of shape ``[n_poses, max_n_atoms]``</span>
 <span class="sd">            indicating which atoms are free to move.  ``None`` means all</span>
 <span class="sd">            atoms are free to move (the default behaviour of</span>
-<span class="sd">            :class:`~tmol.optimization._sfxn_modules.CartesianSfxnNetwork`).</span>
+<span class="sd">            ``CartesianSfxnNetwork``).</span>
 <span class="sd">    """</span>
 
     <span class="n">coord_mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></div>
@@ -471,7 +468,7 @@
 
 
 <div class="viewcode-block" id="MoveMap">
-<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MoveMap">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.MoveMap">[docs]</a>
 <span class="nd">@attrs</span><span class="o">.</span><span class="n">define</span><span class="p">(</span><span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">MoveMap</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Hierarchical internal-coordinate degrees of freedom for a pose stack."""</span>
@@ -516,7 +513,7 @@
     <span class="n">move_atom_dof_mask</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span>
 
 <div class="viewcode-block" id="MoveMap.from_pose_stack">
-<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MoveMap.from_pose_stack">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.MoveMap.from_pose_stack">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_pose_stack</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ps</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"MoveMap"</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Construct a move map sized for ``ps`` with all movement disabled."""</span>
@@ -530,7 +527,7 @@
 
 
 <div class="viewcode-block" id="MoveMap.set_move_all_jump_dofs_for_jump">
-<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MoveMap.set_move_all_jump_dofs_for_jump">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.MoveMap.set_move_all_jump_dofs_for_jump">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_move_all_jump_dofs_for_jump</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">pose_selection</span><span class="p">:</span> <span class="n">TensorSelection</span><span class="p">,</span>
@@ -547,7 +544,7 @@
 
 
 <div class="viewcode-block" id="MoveMap.set_move_all_jump_dofs_for_root_jump">
-<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MoveMap.set_move_all_jump_dofs_for_root_jump">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.MoveMap.set_move_all_jump_dofs_for_root_jump">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_move_all_jump_dofs_for_root_jump</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">pose_selection</span><span class="p">:</span> <span class="n">TensorSelection</span><span class="p">,</span>
@@ -566,7 +563,7 @@
 
 
 <div class="viewcode-block" id="MoveMap.set_move_all_mc_tors_for_blocks">
-<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MoveMap.set_move_all_mc_tors_for_blocks">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.MoveMap.set_move_all_mc_tors_for_blocks">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_move_all_mc_tors_for_blocks</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">pose_selection</span><span class="p">:</span> <span class="n">TensorSelection</span><span class="p">,</span>
@@ -610,7 +607,7 @@
         <span class="p">)</span>
 
 <div class="viewcode-block" id="MoveMap.set_move_mc_tor_for_blocks">
-<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MoveMap.set_move_mc_tor_for_blocks">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.MoveMap.set_move_mc_tor_for_blocks">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_move_mc_tor_for_blocks</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">pose_selection</span><span class="p">:</span> <span class="n">TensorSelection</span><span class="p">,</span>
@@ -634,7 +631,7 @@
 
 
 <div class="viewcode-block" id="MoveMap.set_move_sc_tor_for_blocks">
-<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MoveMap.set_move_sc_tor_for_blocks">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.MoveMap.set_move_sc_tor_for_blocks">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_move_sc_tor_for_blocks</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">pose_selection</span><span class="p">:</span> <span class="n">TensorSelection</span><span class="p">,</span>
@@ -652,7 +649,7 @@
 
 
 <div class="viewcode-block" id="MoveMap.set_move_named_torsion_for_blocks">
-<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MoveMap.set_move_named_torsion_for_blocks">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.MoveMap.set_move_named_torsion_for_blocks">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_move_named_torsion_for_blocks</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">pose_selection</span><span class="p">:</span> <span class="n">TensorSelection</span><span class="p">,</span>
@@ -670,7 +667,7 @@
 
 
 <div class="viewcode-block" id="MoveMap.set_move_jump_dof_for_jumps">
-<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MoveMap.set_move_jump_dof_for_jumps">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.MoveMap.set_move_jump_dof_for_jumps">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_move_jump_dof_for_jumps</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">pose_selection</span><span class="p">:</span> <span class="n">TensorSelection</span><span class="p">,</span>
@@ -693,7 +690,7 @@
 
 
 <div class="viewcode-block" id="MoveMap.set_move_jump_dof_for_root_jumps">
-<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MoveMap.set_move_jump_dof_for_root_jumps">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.MoveMap.set_move_jump_dof_for_root_jumps">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_move_jump_dof_for_root_jumps</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">pose_selection</span><span class="p">:</span> <span class="n">TensorSelection</span><span class="p">,</span>
@@ -716,7 +713,7 @@
 
 
 <div class="viewcode-block" id="MoveMap.set_move_atom_dof_for_blocks">
-<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MoveMap.set_move_atom_dof_for_blocks">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.MoveMap.set_move_atom_dof_for_blocks">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_move_atom_dof_for_blocks</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">pose_selection</span><span class="p">:</span> <span class="n">TensorSelection</span><span class="p">,</span>
@@ -902,8 +899,6 @@
 
 
 
-<div class="viewcode-block" id="MinimizerMap">
-<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.MinimizerMap">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">MinimizerMap</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Resolved per-DOF movement mask for a pose's kinematic forest."""</span>
 
@@ -915,12 +910,12 @@
         <span class="n">kmd</span><span class="p">:</span> <span class="n">KinematicModuleData</span><span class="p">,</span>
         <span class="n">mm</span><span class="p">:</span> <span class="n">MoveMap</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics.compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">minimizer_map_from_movemap</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics.compiled._compiled_ops</span><span class="w"> </span><span class="kn">import</span> <span class="n">_minimizer_map_from_movemap</span>
 
         <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
 
         <span class="c1"># fmt: off</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dof_mask</span> <span class="o">=</span> <span class="n">minimizer_map_from_movemap</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dof_mask</span> <span class="o">=</span> <span class="n">_minimizer_map_from_movemap</span><span class="p">(</span>
             <span class="n">kmd</span><span class="o">.</span><span class="n">forest</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
             <span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_pose_atoms</span><span class="p">,</span>
             <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset</span><span class="p">,</span>
@@ -963,8 +958,7 @@
             <span class="n">mm</span><span class="o">.</span><span class="n">move_named_torsion_mask</span><span class="p">,</span>
             <span class="n">mm</span><span class="o">.</span><span class="n">move_atom_dof</span><span class="p">,</span>
             <span class="n">mm</span><span class="o">.</span><span class="n">move_atom_dof_mask</span><span class="p">,</span>
-        <span class="p">)</span></div>
-
+        <span class="p">)</span>
         <span class="c1"># fmt: on</span>
 </pre></div>
 

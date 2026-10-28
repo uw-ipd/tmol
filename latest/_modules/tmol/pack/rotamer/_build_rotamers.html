@@ -406,9 +406,6 @@
     
     <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.pack.rotamer._build_rotamers</span></li>
   </ul>
 </nav>
@@ -432,28 +429,26 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">NDArray</span><span class="p">,</span>
-    <span class="n">Tensor</span><span class="p">,</span>
-    <span class="n">validate_args</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.tensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">exclusive_cumsum1d</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._array</span><span class="w"> </span><span class="kn">import</span> <span class="n">NDArray</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._functional</span><span class="w"> </span><span class="kn">import</span> <span class="n">_validate_args</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.tensor._common_operations</span><span class="w"> </span><span class="kn">import</span> <span class="n">_exclusive_cumsum1d</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChemicalDatabase</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics</span><span class="w"> </span><span class="kn">import</span> <span class="n">KinForest</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics._datatypes</span><span class="w"> </span><span class="kn">import</span> <span class="n">KinForest</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">PackedBlockTypes</span><span class="p">,</span>
-    <span class="n">PoseStack</span><span class="p">,</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._packed_block_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackedBlockTypes</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._rotamer_set</span><span class="w"> </span><span class="kn">import</span> <span class="n">RotamerSet</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._chi_sampler</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChiSampler</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._single_residue_kinforest</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">_construct_single_residue_kinforest</span><span class="p">,</span>
+    <span class="n">_coalesce_single_residue_kinforests</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">RotamerSet</span><span class="p">,</span>
-    <span class="n">ChiSampler</span><span class="p">,</span>
-    <span class="n">construct_single_residue_kinforest</span><span class="p">,</span>
-    <span class="n">coalesce_single_residue_kinforests</span><span class="p">,</span>
-    <span class="n">annotate_residue_type_with_sampler_fingerprints</span><span class="p">,</span>
-    <span class="n">find_unique_fingerprints</span><span class="p">,</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._mainchain_fingerprint</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">_annotate_residue_type_with_sampler_fingerprints</span><span class="p">,</span>
+    <span class="n">_find_unique_fingerprints</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">SetPackerTask</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack._packer_task</span><span class="w"> </span><span class="kn">import</span> <span class="n">SetPackerTask</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.numeric</span><span class="w"> </span><span class="kn">import</span> <span class="n">coord_dihedrals</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.numeric._dihedrals</span><span class="w"> </span><span class="kn">import</span> <span class="n">_numpy_coord_dihedrals</span>
 
@@ -571,7 +566,7 @@
     <span class="k">return</span> <span class="n">pbt</span><span class="o">.</span><span class="n">_chi4_kfo_device_tables</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">correct_phi_c_from_measured_chi</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_correct_phi_c_from_measured_chi</span><span class="p">(</span>
     <span class="n">pbt</span><span class="p">,</span>
     <span class="n">conformer_samples</span><span class="p">,</span>
     <span class="n">new_ind_for_sampler_rotamer</span><span class="p">,</span>
@@ -598,7 +593,7 @@
 <span class="sd">    """</span>
     <span class="c1"># trial forward pass to get coords in RTO</span>
     <span class="n">n_at_total</span> <span class="o">=</span> <span class="n">conformer_kinforest</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span>
-    <span class="n">trial_coords_rto</span> <span class="o">=</span> <span class="n">calculate_rotamer_coords</span><span class="p">(</span>
+    <span class="n">trial_coords_rto</span> <span class="o">=</span> <span class="n">_calculate_rotamer_coords</span><span class="p">(</span>
         <span class="n">pbt</span><span class="p">,</span> <span class="n">n_at_total</span><span class="p">,</span> <span class="n">conformer_kinforest</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">scans</span><span class="p">,</span> <span class="n">gens</span><span class="p">,</span> <span class="n">conf_dofs_kto</span>
     <span class="p">)</span>
 
@@ -642,7 +637,7 @@
         <span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">exc_cumsum_from_inc_cumsum</span><span class="p">(</span><span class="n">cumsum</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_exc_cumsum_from_inc_cumsum</span><span class="p">(</span><span class="n">cumsum</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span> <span class="n">cumsum</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
 
 
@@ -666,21 +661,21 @@
 <span class="c1">#       to indicate which residues they should operate on</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">annotate_restype</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_annotate_restype</span><span class="p">(</span>
     <span class="n">restype</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">,</span>
     <span class="n">samplers</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">ChiSampler</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
     <span class="n">chem_db</span><span class="p">:</span> <span class="n">ChemicalDatabase</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="n">construct_single_residue_kinforest</span><span class="p">(</span><span class="n">restype</span><span class="p">)</span>
-    <span class="n">annotate_residue_type_with_sampler_fingerprints</span><span class="p">(</span><span class="n">restype</span><span class="p">,</span> <span class="n">samplers</span><span class="p">,</span> <span class="n">chem_db</span><span class="p">)</span>
+    <span class="n">_construct_single_residue_kinforest</span><span class="p">(</span><span class="n">restype</span><span class="p">)</span>
+    <span class="n">_annotate_residue_type_with_sampler_fingerprints</span><span class="p">(</span><span class="n">restype</span><span class="p">,</span> <span class="n">samplers</span><span class="p">,</span> <span class="n">chem_db</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">annotate_packed_block_types</span><span class="p">(</span><span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="n">coalesce_single_residue_kinforests</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
-    <span class="n">find_unique_fingerprints</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_annotate_packed_block_types</span><span class="p">(</span><span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">_coalesce_single_residue_kinforests</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
+    <span class="n">_find_unique_fingerprints</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">annotate_everything</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_annotate_everything</span><span class="p">(</span>
     <span class="n">chem_db</span><span class="p">:</span> <span class="n">ChemicalDatabase</span><span class="p">,</span>
     <span class="n">samplers</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">ChiSampler</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
     <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span>
@@ -692,11 +687,11 @@
         <span class="n">sampler</span><span class="o">.</span><span class="n">annotate_packed_block_types</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">rt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">:</span>
-        <span class="n">annotate_restype</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="n">samplers</span><span class="p">,</span> <span class="n">chem_db</span><span class="p">)</span>
-    <span class="n">annotate_packed_block_types</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
+        <span class="n">_annotate_restype</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="n">samplers</span><span class="p">,</span> <span class="n">chem_db</span><span class="p">)</span>
+    <span class="n">_annotate_packed_block_types</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">update_nodes</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_update_nodes</span><span class="p">(</span>
     <span class="n">nodes_orig</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
     <span class="n">genStartsStack</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">],</span>
     <span class="n">n_nodes_offset_for_rot</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
@@ -739,7 +734,7 @@
     <span class="k">return</span> <span class="n">nodes</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">update_scan_starts</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_update_scan_starts</span><span class="p">(</span>
     <span class="n">n_scans</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">atomStartsOffsets</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:],</span>
     <span class="n">scanStartsStack</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:],</span>
@@ -770,7 +765,7 @@
 
 
 <span class="c1"># @validate_args</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">construct_scans_for_conformers</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_construct_scans_for_conformers</span><span class="p">(</span>
     <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span>
     <span class="n">block_type_ind_for_conf</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
     <span class="n">n_atoms_for_conf</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
@@ -790,7 +785,7 @@
         <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">n_scans_per_gen</span><span class="p">[</span><span class="n">block_type_ind_for_conf</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span>
     <span class="p">)</span>
     <span class="n">ngenStack</span><span class="p">[</span><span class="n">ngenStack</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">scanStarts</span> <span class="o">=</span> <span class="n">update_scan_starts</span><span class="p">(</span>
+    <span class="n">scanStarts</span> <span class="o">=</span> <span class="n">_update_scan_starts</span><span class="p">(</span>
         <span class="n">ngenStack</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span>
         <span class="n">atomStartsOffsets</span><span class="p">,</span>
         <span class="n">scanStartsStack</span><span class="p">,</span>
@@ -803,9 +798,9 @@
 
     <span class="n">n_nodes_for_conf</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">n_nodes</span><span class="p">[</span><span class="n">block_type_ind_for_conf</span><span class="p">]</span>
     <span class="n">first_node_for_conf</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">n_nodes_for_conf</span><span class="p">)</span>
-    <span class="n">n_nodes_offset_for_conf</span> <span class="o">=</span> <span class="n">exc_cumsum_from_inc_cumsum</span><span class="p">(</span><span class="n">first_node_for_conf</span><span class="p">)</span>
+    <span class="n">n_nodes_offset_for_conf</span> <span class="o">=</span> <span class="n">_exc_cumsum_from_inc_cumsum</span><span class="p">(</span><span class="n">first_node_for_conf</span><span class="p">)</span>
 
-    <span class="n">nodes</span> <span class="o">=</span> <span class="n">update_nodes</span><span class="p">(</span>
+    <span class="n">nodes</span> <span class="o">=</span> <span class="n">_update_nodes</span><span class="p">(</span>
         <span class="n">nodes_orig</span><span class="p">,</span> <span class="n">genStartsStack</span><span class="p">,</span> <span class="n">n_nodes_offset_for_conf</span><span class="p">,</span> <span class="n">n_atoms_offset_for_conf</span>
     <span class="p">)</span>
 
@@ -814,7 +809,7 @@
     <span class="k">return</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">scanStarts</span><span class="p">,</span> <span class="n">gen_starts</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">load_from_rotamers</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_from_rotamers</span><span class="p">(</span>
     <span class="n">arr</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:],</span>
     <span class="n">n_atoms_total</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">n_atoms_for_rot</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
@@ -826,7 +821,7 @@
     <span class="k">return</span> <span class="n">compact_arr</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">load_from_rotamers_w_offsets</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_from_rotamers_w_offsets</span><span class="p">(</span>
     <span class="n">arr</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:],</span>
     <span class="n">n_atoms_total</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">n_atoms_for_rot</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
@@ -842,7 +837,7 @@
     <span class="k">return</span> <span class="n">compact_arr</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">load_rotamer_parents</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_rotamer_parents</span><span class="p">(</span>
     <span class="n">parents</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:],</span>
     <span class="n">n_atoms_total</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">n_atoms_for_rot</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
@@ -862,8 +857,8 @@
     <span class="k">return</span> <span class="n">compact_arr</span>
 
 
-<span class="nd">@validate_args</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">construct_kinforest_for_conformers</span><span class="p">(</span>
+<span class="nd">@_validate_args</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_construct_kinforest_for_conformers</span><span class="p">(</span>
     <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span>
     <span class="n">conf_block_type_ind</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
     <span class="n">n_atoms_total</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -911,15 +906,15 @@
     <span class="k">return</span> <span class="n">KinForest</span><span class="p">(</span><span class="o">**</span><span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">fields</span><span class="p">,</span> <span class="n">packed</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="mi">0</span><span class="p">))))</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">measure_dofs_from_orig_coords</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_measure_dofs_from_orig_coords</span><span class="p">(</span>
     <span class="n">coords</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:],</span> <span class="n">kinforest</span><span class="p">:</span> <span class="n">KinForest</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="mi">9</span><span class="p">]:</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics.compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">inverse_kin</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics.compiled._compiled_ops</span><span class="w"> </span><span class="kn">import</span> <span class="n">_inverse_kin</span>
 
     <span class="n">kinforest_coords</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)[</span><span class="n">kinforest</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)]</span>
     <span class="n">kinforest_coords</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># reset root</span>
 
-    <span class="n">dofs_orig</span> <span class="o">=</span> <span class="n">inverse_kin</span><span class="p">(</span>
+    <span class="n">dofs_orig</span> <span class="o">=</span> <span class="n">_inverse_kin</span><span class="p">(</span>
         <span class="n">kinforest_coords</span><span class="p">,</span>
         <span class="n">kinforest</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>
         <span class="n">kinforest</span><span class="o">.</span><span class="n">frame_x</span><span class="p">,</span>
@@ -930,9 +925,7 @@
     <span class="k">return</span> <span class="n">dofs_orig</span>
 
 
-<div class="viewcode-block" id="measure_pose_dofs">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.measure_pose_dofs">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">measure_pose_dofs</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_measure_pose_dofs</span><span class="p">(</span>
     <span class="n">poses</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">KinForest</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="mi">9</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">"""Measure the internal coordinates of every real residue in a pose stack.</span>
@@ -969,7 +962,7 @@
     <span class="n">n_atoms_for_orig</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">[</span><span class="n">orig_res_block_type_ind</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)]</span>
     <span class="n">n_orig_atoms_total</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_atoms_for_orig</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
 
-    <span class="n">orig_kinforest</span> <span class="o">=</span> <span class="n">construct_kinforest_for_conformers</span><span class="p">(</span>
+    <span class="n">orig_kinforest</span> <span class="o">=</span> <span class="n">_construct_kinforest_for_conformers</span><span class="p">(</span>
         <span class="n">poses</span><span class="o">.</span><span class="n">packed_block_types</span><span class="p">,</span>
         <span class="n">orig_res_block_type_ind</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
         <span class="n">n_orig_atoms_total</span><span class="p">,</span>
@@ -979,13 +972,10 @@
     <span class="p">)</span>
 
     <span class="c1"># orig_dofs returned in kinforest order</span>
-    <span class="k">return</span> <span class="n">orig_kinforest</span><span class="p">,</span> <span class="n">measure_dofs_from_orig_coords</span><span class="p">(</span><span class="n">poses</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span> <span class="n">orig_kinforest</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">orig_kinforest</span><span class="p">,</span> <span class="n">_measure_dofs_from_orig_coords</span><span class="p">(</span><span class="n">poses</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span> <span class="n">orig_kinforest</span><span class="p">)</span>
 
 
-
-<div class="viewcode-block" id="merge_conformer_samples">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.merge_conformer_samples">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">merge_conformer_samples</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_merge_conformer_samples</span><span class="p">(</span>
     <span class="n">conformer_samples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">ConformerSample</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span>
     <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
@@ -1078,13 +1068,10 @@
         <span class="n">gbt_for_conformer</span><span class="p">,</span>
         <span class="p">[</span><span class="n">sampler_for_conformer</span> <span class="o">==</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">conformer_samples</span><span class="p">))],</span>
         <span class="n">destinations</span><span class="p">,</span>
-    <span class="p">)</span></div>
+    <span class="p">)</span>
 
 
-
-<div class="viewcode-block" id="calculate_rotamer_coords">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.calculate_rotamer_coords">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">calculate_rotamer_coords</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_calculate_rotamer_coords</span><span class="p">(</span>
     <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span>
     <span class="n">n_atoms_total</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">rot_kinforest</span><span class="p">:</span> <span class="n">KinForest</span><span class="p">,</span>
@@ -1107,7 +1094,7 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        Rotamer coordinates shaped ``[n_atoms_total, 3]`` in residue-type order.</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics.compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">forward_only_op</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics.compiled._compiled_ops</span><span class="w"> </span><span class="kn">import</span> <span class="n">_forward_only_op</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_p</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -1132,7 +1119,7 @@
         <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="p">)</span>
 
-    <span class="n">new_coords_kto</span> <span class="o">=</span> <span class="n">forward_only_op</span><span class="p">(</span>
+    <span class="n">new_coords_kto</span> <span class="o">=</span> <span class="n">_forward_only_op</span><span class="p">(</span>
         <span class="n">rot_dofs_kto</span><span class="p">,</span> <span class="n">_p</span><span class="p">(</span><span class="n">_t</span><span class="p">(</span><span class="n">nodes</span><span class="p">)),</span> <span class="n">_p</span><span class="p">(</span><span class="n">_t</span><span class="p">(</span><span class="n">scans</span><span class="p">)),</span> <span class="n">_p</span><span class="p">(</span><span class="n">_tcpu</span><span class="p">(</span><span class="n">gens</span><span class="p">)),</span> <span class="n">kinforest_stack</span>
     <span class="p">)</span>
 
@@ -1141,11 +1128,10 @@
     <span class="p">)</span>
 
     <span class="n">new_coords_rto</span><span class="p">[</span><span class="n">rot_kinforest</span><span class="o">.</span><span class="n">id</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)]</span> <span class="o">=</span> <span class="n">new_coords_kto</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
-    <span class="k">return</span> <span class="n">new_coords_rto</span></div>
+    <span class="k">return</span> <span class="n">new_coords_rto</span>
 
 
-
-<span class="k">def</span><span class="w"> </span><span class="nf">get_rotamer_origin_data</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_rotamer_origin_data</span><span class="p">(</span>
     <span class="n">task</span><span class="p">:</span> <span class="n">SetPackerTask</span><span class="p">,</span> <span class="n">gbt_for_rot</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span>
     <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
@@ -1164,14 +1150,14 @@
     <span class="n">gbt_for_rot64</span> <span class="o">=</span> <span class="n">gbt_for_rot</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
     <span class="n">pose_for_rot</span> <span class="o">=</span> <span class="n">pose_for_gbt</span><span class="p">[</span><span class="n">gbt_for_rot64</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
     <span class="n">n_rots_for_pose</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span><span class="n">pose_for_rot</span><span class="p">,</span> <span class="n">minlength</span><span class="o">=</span><span class="n">n_poses</span><span class="p">)</span>
-    <span class="n">rot_offset_for_pose</span> <span class="o">=</span> <span class="n">exclusive_cumsum1d</span><span class="p">(</span><span class="n">n_rots_for_pose</span><span class="p">)</span>
+    <span class="n">rot_offset_for_pose</span> <span class="o">=</span> <span class="n">_exclusive_cumsum1d</span><span class="p">(</span><span class="n">n_rots_for_pose</span><span class="p">)</span>
     <span class="n">block_ind_for_rot</span> <span class="o">=</span> <span class="n">block_ind_for_rt</span><span class="p">[</span><span class="n">gbt_for_rot64</span><span class="p">]</span>
     <span class="n">block_ind_for_rt_global</span> <span class="o">=</span> <span class="n">max_n_blocks</span> <span class="o">*</span> <span class="n">pose_for_gbt</span> <span class="o">+</span> <span class="n">block_ind_for_rt</span>
     <span class="n">block_ind_for_rot_global</span> <span class="o">=</span> <span class="n">block_ind_for_rt_global</span><span class="p">[</span><span class="n">gbt_for_rot64</span><span class="p">]</span>
     <span class="n">n_rots_for_block</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span>
         <span class="n">block_ind_for_rot_global</span><span class="p">,</span> <span class="n">minlength</span><span class="o">=</span><span class="n">n_poses</span> <span class="o">*</span> <span class="n">max_n_blocks</span>
     <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">)</span>
-    <span class="n">rot_offset_for_block</span> <span class="o">=</span> <span class="n">exclusive_cumsum1d</span><span class="p">(</span><span class="n">n_rots_for_block</span><span class="o">.</span><span class="n">flatten</span><span class="p">())</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+    <span class="n">rot_offset_for_block</span> <span class="o">=</span> <span class="n">_exclusive_cumsum1d</span><span class="p">(</span><span class="n">n_rots_for_block</span><span class="o">.</span><span class="n">flatten</span><span class="p">())</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
         <span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span>
     <span class="p">)</span>
 
@@ -1230,7 +1216,7 @@
 
 
 <div class="viewcode-block" id="build_rotamers">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.build_rotamers">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.build_rotamers">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">build_rotamers</span><span class="p">(</span>
     <span class="n">poses</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="n">SetPackerTask</span><span class="p">,</span> <span class="n">chem_db</span><span class="p">:</span> <span class="n">ChemicalDatabase</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PoseStack</span><span class="p">,</span> <span class="n">RotamerSet</span><span class="p">]:</span>
@@ -1272,7 +1258,7 @@
     <span class="n">pbt</span> <span class="o">=</span> <span class="n">poses</span><span class="o">.</span><span class="n">packed_block_types</span>
 
     <span class="c1"># Step 2</span>
-    <span class="n">annotate_everything</span><span class="p">(</span><span class="n">chem_db</span><span class="p">,</span> <span class="n">samplers</span><span class="p">,</span> <span class="n">pbt</span><span class="p">)</span>
+    <span class="n">_annotate_everything</span><span class="p">(</span><span class="n">chem_db</span><span class="p">,</span> <span class="n">samplers</span><span class="p">,</span> <span class="n">pbt</span><span class="p">)</span>
 
     <span class="c1"># Step 3</span>
     <span class="c1"># the "global block type" (gbt) is the list of all considered block types</span>
@@ -1301,9 +1287,9 @@
 
     <span class="n">correlated_groups</span> <span class="o">=</span> <span class="n">_correlated_groups_for_samples</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">conformer_samples</span><span class="p">)</span>
 
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._chi_budget</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_task_sample_budget</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._chi_budget</span><span class="w"> </span><span class="kn">import</span> <span class="n">_check_task_sample_budget</span>
 
-    <span class="n">check_task_sample_budget</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">conformer_samples</span><span class="p">)</span>
+    <span class="n">_check_task_sample_budget</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">conformer_samples</span><span class="p">)</span>
 
     <span class="c1"># Step 5</span>
     <span class="p">(</span>
@@ -1312,7 +1298,7 @@
         <span class="n">gbt_for_conformer</span><span class="p">,</span>
         <span class="n">conformer_built_by_sampler</span><span class="p">,</span>
         <span class="n">new_ind_for_sampler_rotamer</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">=</span> <span class="n">merge_conformer_samples</span><span class="p">(</span><span class="n">conformer_samples</span><span class="p">)</span>
+    <span class="p">)</span> <span class="o">=</span> <span class="n">_merge_conformer_samples</span><span class="p">(</span><span class="n">conformer_samples</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_t</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
@@ -1341,13 +1327,13 @@
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="s2">"Conformer atoms exceed 32-bit index capacity; reduce the sampling budget"</span>
         <span class="p">)</span>
-    <span class="n">n_atoms_offset_for_conformer</span> <span class="o">=</span> <span class="n">exc_cumsum_from_inc_cumsum</span><span class="p">(</span>
+    <span class="n">n_atoms_offset_for_conformer</span> <span class="o">=</span> <span class="n">_exc_cumsum_from_inc_cumsum</span><span class="p">(</span>
         <span class="n">n_atoms_offset_for_conformer</span>
     <span class="p">)</span>
     <span class="n">n_atoms_offset_for_conformer_torch</span> <span class="o">=</span> <span class="n">_t</span><span class="p">(</span><span class="n">n_atoms_offset_for_conformer</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
 
     <span class="c1"># Step 7</span>
-    <span class="n">conformer_kinforest</span> <span class="o">=</span> <span class="n">construct_kinforest_for_conformers</span><span class="p">(</span>
+    <span class="n">conformer_kinforest</span> <span class="o">=</span> <span class="n">_construct_kinforest_for_conformers</span><span class="p">(</span>
         <span class="n">pbt</span><span class="p">,</span>
         <span class="n">block_type_ind_for_conformer</span><span class="p">,</span>
         <span class="n">n_atoms_total</span><span class="p">,</span>
@@ -1356,7 +1342,7 @@
         <span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="n">nodes</span><span class="p">,</span> <span class="n">scans</span><span class="p">,</span> <span class="n">gens</span> <span class="o">=</span> <span class="n">construct_scans_for_conformers</span><span class="p">(</span>
+    <span class="n">nodes</span><span class="p">,</span> <span class="n">scans</span><span class="p">,</span> <span class="n">gens</span> <span class="o">=</span> <span class="n">_construct_scans_for_conformers</span><span class="p">(</span>
         <span class="n">pbt</span><span class="p">,</span>
         <span class="n">block_type_ind_for_conformer</span><span class="p">,</span>
         <span class="n">n_atoms_for_conformer</span><span class="p">,</span>
@@ -1364,7 +1350,7 @@
     <span class="p">)</span>
 
     <span class="c1"># Step 8 &amp; 9</span>
-    <span class="n">orig_kinforest</span><span class="p">,</span> <span class="n">orig_dofs_kto</span> <span class="o">=</span> <span class="n">measure_pose_dofs</span><span class="p">(</span><span class="n">poses</span><span class="p">)</span>
+    <span class="n">orig_kinforest</span><span class="p">,</span> <span class="n">orig_dofs_kto</span> <span class="o">=</span> <span class="n">_measure_pose_dofs</span><span class="p">(</span><span class="n">poses</span><span class="p">)</span>
 
     <span class="c1"># Step 9a</span>
     <span class="n">conf_dofs_kto</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
@@ -1396,7 +1382,7 @@
             <span class="n">conf_dofs_kto</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="n">correct_phi_c_from_measured_chi</span><span class="p">(</span>
+    <span class="n">_correct_phi_c_from_measured_chi</span><span class="p">(</span>
         <span class="n">pbt</span><span class="p">,</span>
         <span class="n">conformer_samples</span><span class="p">,</span>
         <span class="n">new_ind_for_sampler_rotamer</span><span class="p">,</span>
@@ -1409,7 +1395,7 @@
         <span class="n">conf_dofs_kto</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="n">rotamer_coords</span> <span class="o">=</span> <span class="n">calculate_rotamer_coords</span><span class="p">(</span>
+    <span class="n">rotamer_coords</span> <span class="o">=</span> <span class="n">_calculate_rotamer_coords</span><span class="p">(</span>
         <span class="n">pbt</span><span class="p">,</span>
         <span class="n">n_atoms_total</span><span class="p">,</span>
         <span class="n">conformer_kinforest</span><span class="p">,</span>
@@ -1426,7 +1412,7 @@
         <span class="n">rot_offset_for_block</span><span class="p">,</span>
         <span class="n">pose_for_rot</span><span class="p">,</span>
         <span class="n">block_ind_for_rot</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">=</span> <span class="n">get_rotamer_origin_data</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">gbt_for_conformer_torch</span><span class="p">)</span>
+    <span class="p">)</span> <span class="o">=</span> <span class="n">_get_rotamer_origin_data</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">gbt_for_conformer_torch</span><span class="p">)</span>
 
     <span class="c1"># Current/fallback rows must preserve the input, including frozen blocks.</span>
     <span class="c1"># Gather only real copied atoms, without a padded conformer-by-atom array.</span>

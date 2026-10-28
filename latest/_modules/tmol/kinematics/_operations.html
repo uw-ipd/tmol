@@ -406,9 +406,6 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.kinematics._operations</span></li>
   </ul>
 </nav>
@@ -429,10 +426,8 @@
   <h1>Source code for tmol.kinematics._operations</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">validate_args</span><span class="p">,</span>
-    <span class="n">Tensor</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._functional</span><span class="w"> </span><span class="kn">import</span> <span class="n">_validate_args</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">._datatypes</span><span class="w"> </span><span class="kn">import</span> <span class="n">KinForest</span><span class="p">,</span> <span class="n">KinDOF</span>
 
 <span class="n">CoordArray</span> <span class="o">=</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">double</span><span class="p">][:,</span> <span class="mi">3</span><span class="p">]</span>
@@ -440,14 +435,14 @@
 
 <div class="viewcode-block" id="inverseKin">
 <a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.inverseKin">[docs]</a>
-<span class="nd">@validate_args</span>
+<span class="nd">@_validate_args</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">inverseKin</span><span class="p">(</span><span class="n">kinforest</span><span class="p">:</span> <span class="n">KinForest</span><span class="p">,</span> <span class="n">coords</span><span class="p">:</span> <span class="n">CoordArray</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KinDOF</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""xyzs -&gt; HTs, dofs</span>
 <span class="sd">    - "backward" kinematics</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics.compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">inverse_kin</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics.compiled._compiled_ops</span><span class="w"> </span><span class="kn">import</span> <span class="n">_inverse_kin</span>
 
-    <span class="n">raw_dofs</span> <span class="o">=</span> <span class="n">inverse_kin</span><span class="p">(</span>
+    <span class="n">raw_dofs</span> <span class="o">=</span> <span class="n">_inverse_kin</span><span class="p">(</span>
         <span class="n">coords</span><span class="p">,</span>
         <span class="n">kinforest</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>
         <span class="n">kinforest</span><span class="o">.</span><span class="n">frame_x</span><span class="p">,</span>

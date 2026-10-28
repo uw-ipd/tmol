@@ -406,9 +406,6 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.io._pose_stack_from_sequence</span></li>
   </ul>
 </nav>
@@ -434,27 +431,25 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.experimental.protonation.geometry</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_coordinates</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._icoor_tree</span><span class="w"> </span><span class="kn">import</span> <span class="n">vertex_angle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._icoor_tree</span><span class="w"> </span><span class="kn">import</span> <span class="n">_vertex_angle</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">ResidueTypeSet</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._build_context</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseBuildContext</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._canonical_ordering</span><span class="w"> </span><span class="kn">import</span> <span class="n">CanonicalOrdering</span><span class="p">,</span> <span class="n">default_packed_block_types</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._canonical_ordering</span><span class="w"> </span><span class="kn">import</span> <span class="n">CanonicalOrdering</span><span class="p">,</span> <span class="n">_default_packed_block_types</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._packed_block_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackedBlockTypes</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack_builder</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStackBuilder</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._sequence</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">resolve_block_type_names</span><span class="p">,</span>
-    <span class="n">smiles_in_tokens</span><span class="p">,</span>
-    <span class="n">tokenize_sequences</span><span class="p">,</span>
+    <span class="n">_resolve_block_type_names</span><span class="p">,</span>
+    <span class="n">_smiles_in_tokens</span><span class="p">,</span>
+    <span class="n">_tokenize_sequences</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_device</span>
 
 
-<div class="viewcode-block" id="create_pose_stack_from_sequences">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.create_pose_stack_from_sequences">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">create_pose_stack_from_sequences</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_create_pose_stack_from_sequences</span><span class="p">(</span>
     <span class="n">seqs</span><span class="p">,</span>  <span class="c1"># str | Sequence[str]</span>
     <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PackedBlockTypes</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -473,7 +468,7 @@
     <span class="k">if</span> <span class="n">context</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">param_db</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"pass either context= or param_db=, not both"</span><span class="p">)</span>
 
-    <span class="n">tokens</span><span class="p">,</span> <span class="n">chain_lengths</span> <span class="o">=</span> <span class="n">tokenize_sequences</span><span class="p">(</span><span class="n">seqs</span><span class="p">)</span>
+    <span class="n">tokens</span><span class="p">,</span> <span class="n">chain_lengths</span> <span class="o">=</span> <span class="n">_tokenize_sequences</span><span class="p">(</span><span class="n">seqs</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">context</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">context_device</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span>
@@ -489,11 +484,11 @@
         <span class="n">ligand_names</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">ligand_names</span>
         <span class="n">canonical_ordering</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">canonical_ordering</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">smiles</span> <span class="o">=</span> <span class="n">smiles_in_tokens</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
+        <span class="n">smiles</span> <span class="o">=</span> <span class="n">_smiles_in_tokens</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">smiles</span><span class="p">:</span>
-            <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand</span><span class="w"> </span><span class="kn">import</span> <span class="n">prepare_ligands_from_smiles</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._preparation</span><span class="w"> </span><span class="kn">import</span> <span class="n">_prepare_ligands_from_smiles</span>
 
-            <span class="n">param_db</span><span class="p">,</span> <span class="n">ligand_names</span> <span class="o">=</span> <span class="n">prepare_ligands_from_smiles</span><span class="p">(</span>
+            <span class="n">param_db</span><span class="p">,</span> <span class="n">ligand_names</span> <span class="o">=</span> <span class="n">_prepare_ligands_from_smiles</span><span class="p">(</span>
                 <span class="n">smiles</span><span class="p">,</span> <span class="n">param_db</span><span class="o">=</span><span class="n">param_db</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -505,13 +500,13 @@
             <span class="n">restype_set</span> <span class="o">=</span> <span class="n">ResidueTypeSet</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">)</span>
         <span class="n">canonical_ordering</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="n">names</span><span class="p">,</span> <span class="n">chain_lengths</span> <span class="o">=</span> <span class="n">resolve_block_type_names</span><span class="p">(</span>
+    <span class="n">names</span><span class="p">,</span> <span class="n">chain_lengths</span> <span class="o">=</span> <span class="n">_resolve_block_type_names</span><span class="p">(</span>
         <span class="n">tokens</span><span class="p">,</span> <span class="n">chain_lengths</span><span class="p">,</span> <span class="n">restype_set</span><span class="p">,</span> <span class="n">ligand_names</span><span class="p">,</span> <span class="n">termini</span>
     <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">packed_block_types</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">restype_set</span><span class="o">.</span><span class="n">chem_db</span> <span class="ow">is</span> <span class="n">ParameterDatabase</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span><span class="o">.</span><span class="n">chemical</span><span class="p">:</span>
-            <span class="n">packed_block_types</span> <span class="o">=</span> <span class="n">default_packed_block_types</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">packed_block_types</span> <span class="o">=</span> <span class="n">_default_packed_block_types</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">packed_block_types</span> <span class="o">=</span> <span class="n">PackedBlockTypes</span><span class="o">.</span><span class="n">from_restype_list</span><span class="p">(</span>
                 <span class="n">restype_set</span><span class="o">.</span><span class="n">chem_db</span><span class="p">,</span> <span class="n">restype_set</span><span class="p">,</span> <span class="n">restype_set</span><span class="o">.</span><span class="n">residue_types</span><span class="p">,</span> <span class="n">device</span>
@@ -531,8 +526,7 @@
         <span class="n">parameter_database</span><span class="o">=</span><span class="n">param_db</span><span class="p">,</span>
         <span class="n">restype_set</span><span class="o">=</span><span class="n">restype_set</span><span class="p">,</span>
         <span class="n">ligand_names</span><span class="o">=</span><span class="n">ligand_names</span><span class="p">,</span>
-    <span class="p">)</span></div>
-
+    <span class="p">)</span>
 
 
 <span class="c1"># ---------------------------------------------------------------------------</span>
@@ -562,7 +556,7 @@
 
 
 <div class="viewcode-block" id="extended_pose_stack_from_sequences">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.extended_pose_stack_from_sequences">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.extended_pose_stack_from_sequences">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">extended_pose_stack_from_sequences</span><span class="p">(</span>
     <span class="n">seqs</span><span class="p">,</span>  <span class="c1"># str | Sequence[str]</span>
     <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -577,7 +571,7 @@
 <span class="sd">    See tmol.pose._sequence for the grammar. Returns</span>
 <span class="sd">    (PoseStack, PoseBuildContext) when return_context is set.</span>
 <span class="sd">    """</span>
-    <span class="n">pose_stack</span><span class="p">,</span> <span class="n">build_context</span> <span class="o">=</span> <span class="n">create_pose_stack_from_sequences</span><span class="p">(</span>
+    <span class="n">pose_stack</span><span class="p">,</span> <span class="n">build_context</span> <span class="o">=</span> <span class="n">_create_pose_stack_from_sequences</span><span class="p">(</span>
         <span class="n">seqs</span><span class="p">,</span>
         <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
         <span class="n">param_db</span><span class="o">=</span><span class="n">param_db</span><span class="p">,</span>
@@ -733,7 +727,7 @@
         <span class="p">]</span>
     <span class="p">)</span>
     <span class="n">dist</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">src</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">src</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-    <span class="n">angle</span> <span class="o">=</span> <span class="n">vertex_angle</span><span class="p">(</span><span class="n">src</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">src</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">src</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+    <span class="n">angle</span> <span class="o">=</span> <span class="n">_vertex_angle</span><span class="p">(</span><span class="n">src</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">src</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">src</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
     <span class="n">torsion</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">_junction_torsion_value</span><span class="p">(</span><span class="n">prev_bt</span><span class="p">,</span> <span class="n">prev_conn</span><span class="p">))</span>
 
     <span class="n">dst</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>

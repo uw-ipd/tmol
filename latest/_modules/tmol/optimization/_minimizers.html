@@ -406,9 +406,6 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.optimization._minimizers</span></li>
   </ul>
 </nav>
@@ -434,26 +431,24 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">FoldForest</span><span class="p">,</span>
-    <span class="n">MoveMap</span><span class="p">,</span>
-    <span class="n">MinimizerMap</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreFunction</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics._fold_forest</span><span class="w"> </span><span class="kn">import</span> <span class="n">FoldForest</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics._move_map</span><span class="w"> </span><span class="kn">import</span> <span class="n">MoveMap</span><span class="p">,</span> <span class="n">MinimizerMap</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score._score_function</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreFunction</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">LBFGS_Armijo</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility._device</span><span class="w"> </span><span class="kn">import</span> <span class="n">synchronize_device</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization._lbfgs_armijo</span><span class="w"> </span><span class="kn">import</span> <span class="n">LBFGS_Armijo</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility._device</span><span class="w"> </span><span class="kn">import</span> <span class="n">_synchronize_device</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">CartesianSfxnNetwork</span><span class="p">,</span> <span class="n">KinForestSfxnNetwork</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization._sfxn_modules</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">CartesianSfxnNetwork</span><span class="p">,</span>
+        <span class="n">KinForestSfxnNetwork</span><span class="p">,</span>
+    <span class="p">)</span>
 
 
-<div class="viewcode-block" id="build_kinforest_network">
-<a class="viewcode-back" href="../../../api/optimization.html#tmol.optimization.build_kinforest_network">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">build_kinforest_network</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_kinforest_network</span><span class="p">(</span>
     <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
     <span class="n">sfxn</span><span class="p">:</span> <span class="n">ScoreFunction</span><span class="p">,</span>
     <span class="n">ff</span><span class="p">:</span> <span class="n">FoldForest</span><span class="p">,</span>
@@ -478,20 +473,20 @@
 <span class="sd">        A network mapping movable kinematic degrees of freedom to pose energies.</span>
 <span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStackKinematicsModule</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">KinForestSfxnNetwork</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization._sfxn_modules</span><span class="w"> </span><span class="kn">import</span> <span class="n">KinForestSfxnNetwork</span>
 
     <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-        <span class="n">synchronize_device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">_synchronize_device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
 
     <span class="n">kin_module</span> <span class="o">=</span> <span class="n">PoseStackKinematicsModule</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">ff</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-        <span class="n">synchronize_device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">_synchronize_device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="n">end_time1</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
 
     <span class="n">minimizer_map</span> <span class="o">=</span> <span class="n">MinimizerMap</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">kin_module</span><span class="o">.</span><span class="n">kmd</span><span class="p">,</span> <span class="n">mm</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-        <span class="n">synchronize_device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">_synchronize_device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="n">end_time2</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
 
     <span class="n">kf_network</span> <span class="o">=</span> <span class="n">KinForestSfxnNetwork</span><span class="p">(</span>
@@ -505,7 +500,7 @@
         <span class="n">move_map</span><span class="o">=</span><span class="n">mm</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-        <span class="n">synchronize_device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">_synchronize_device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="n">end_time3</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
@@ -515,13 +510,10 @@
             <span class="o">+</span> <span class="sa">f</span><span class="s2">" s3: </span><span class="si">{</span><span class="n">end_time3</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">end_time2</span><span class="si">:</span><span class="s2"> .2f</span><span class="si">}</span><span class="s2">"</span>
         <span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">kf_network</span></div>
+    <span class="k">return</span> <span class="n">kf_network</span>
 
 
-
-<div class="viewcode-block" id="run_min">
-<a class="viewcode-back" href="../../../api/optimization.html#tmol.optimization.run_min">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">run_min</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_run_min</span><span class="p">(</span>
     <span class="n">sfxn_module</span><span class="p">:</span> <span class="n">CartesianSfxnNetwork</span> <span class="o">|</span> <span class="n">KinForestSfxnNetwork</span><span class="p">,</span>
     <span class="n">optimizer_cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">]</span> <span class="o">=</span> <span class="n">LBFGS_Armijo</span><span class="p">,</span>
     <span class="n">optimizer_kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -557,7 +549,7 @@
 
     <span class="n">timing_device</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">sfxn_module</span><span class="o">.</span><span class="n">parameters</span><span class="p">())</span><span class="o">.</span><span class="n">device</span> <span class="k">if</span> <span class="n">verbose</span> <span class="k">else</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">timing_device</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">synchronize_device</span><span class="p">(</span><span class="n">timing_device</span><span class="p">)</span>
+        <span class="n">_synchronize_device</span><span class="p">(</span><span class="n">timing_device</span><span class="p">)</span>
     <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
 
     <span class="n">segment_ids</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sfxn_module</span><span class="p">,</span> <span class="s2">"segment_ids"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
@@ -584,19 +576,19 @@
         <span class="k">return</span> <span class="n">E</span> <span class="k">if</span> <span class="n">segmented</span> <span class="k">else</span> <span class="n">E</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">timing_device</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">synchronize_device</span><span class="p">(</span><span class="n">timing_device</span><span class="p">)</span>
+        <span class="n">_synchronize_device</span><span class="p">(</span><span class="n">timing_device</span><span class="p">)</span>
     <span class="n">end_time1</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
     <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="s2">"value_only_line_search"</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
         <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">closure</span><span class="p">,</span> <span class="n">value_only_closure</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">closure</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">timing_device</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">synchronize_device</span><span class="p">(</span><span class="n">timing_device</span><span class="p">)</span>
+        <span class="n">_synchronize_device</span><span class="p">(</span><span class="n">timing_device</span><span class="p">)</span>
     <span class="n">end_time2</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
 
     <span class="n">new_pose_stack</span> <span class="o">=</span> <span class="n">sfxn_module</span><span class="o">.</span><span class="n">pose_stack_from_dofs</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">timing_device</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">synchronize_device</span><span class="p">(</span><span class="n">timing_device</span><span class="p">)</span>
+        <span class="n">_synchronize_device</span><span class="p">(</span><span class="n">timing_device</span><span class="p">)</span>
     <span class="n">end_time3</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
@@ -605,12 +597,11 @@
             <span class="o">+</span> <span class="sa">f</span><span class="s2">" opt </span><span class="si">{</span><span class="n">end_time2</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">end_time1</span><span class="si">:</span><span class="s2"> .2f</span><span class="si">}</span><span class="s2"> stack-ctor: </span><span class="si">{</span><span class="n">end_time3</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">end_time2</span><span class="si">:</span><span class="s2"> .2f</span><span class="si">}</span><span class="s2">"</span>
         <span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">new_pose_stack</span></div>
-
+    <span class="k">return</span> <span class="n">new_pose_stack</span>
 
 
 <div class="viewcode-block" id="run_kin_min">
-<a class="viewcode-back" href="../../../api/optimization.html#tmol.optimization.run_kin_min">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.run_kin_min">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">run_kin_min</span><span class="p">(</span>
     <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
     <span class="n">sfxn</span><span class="p">:</span> <span class="n">ScoreFunction</span><span class="p">,</span>
@@ -624,7 +615,7 @@
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Run minimization on a PoseStack in internal DOF space.</span>
 
-<span class="sd">    Builds a ``KinForestSfxnNetwork`` and delegates to :func:`run_min`.</span>
+<span class="sd">    Builds a ``KinForestSfxnNetwork`` and delegates to :func:`_run_min`.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        pose_stack: Structures and coordinates to minimize.</span>
@@ -653,8 +644,6 @@
 
 
 
-<div class="viewcode-block" id="KinematicMinimizer">
-<a class="viewcode-back" href="../../../api/optimization.html#tmol.optimization.KinematicMinimizer">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">KinematicMinimizer</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Reusable Kinematic minimizer for pose stacks with stable topology.</span>
 
@@ -684,8 +673,6 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">last_optimizer_reused</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_lbfgs_factory</span> <span class="o">=</span> <span class="n">_ReusableLBFGSFactory</span><span class="p">()</span>
 
-<div class="viewcode-block" id="KinematicMinimizer.release_retained_state">
-<a class="viewcode-back" href="../../../api/optimization.html#tmol.optimization.KinematicMinimizer.release_retained_state">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">release_retained_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Release topology-specific scoring and optimizer state.</span>
 
@@ -699,8 +686,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_lbfgs_factory</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_lbfgs_factory</span><span class="o">.</span><span class="n">parameter</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_lbfgs_factory</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_lbfgs_factory</span><span class="o">.</span><span class="n">last_reused</span> <span class="o">=</span> <span class="kc">False</span></div>
-
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lbfgs_factory</span><span class="o">.</span><span class="n">last_reused</span> <span class="o">=</span> <span class="kc">False</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -717,7 +703,7 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">_reset</span><span class="p">(</span>
             <span class="n">sfxn</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">,</span> <span class="n">fold_forest</span><span class="p">,</span> <span class="n">move_map</span>
         <span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="o">=</span> <span class="n">build_kinforest_network</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="o">=</span> <span class="n">_build_kinforest_network</span><span class="p">(</span>
                 <span class="n">pose_stack</span><span class="p">,</span>
                 <span class="n">sfxn</span><span class="p">,</span>
                 <span class="n">fold_forest</span><span class="p">,</span>
@@ -730,7 +716,7 @@
         <span class="n">selected_optimizer</span> <span class="o">=</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_lbfgs_factory</span> <span class="k">if</span> <span class="n">optimizer_cls</span> <span class="ow">is</span> <span class="n">LBFGS_Armijo</span> <span class="k">else</span> <span class="n">optimizer_cls</span>
         <span class="p">)</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="n">run_min</span><span class="p">(</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">_run_min</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">,</span>
             <span class="n">optimizer_cls</span><span class="o">=</span><span class="n">selected_optimizer</span><span class="p">,</span>
             <span class="n">optimizer_kwargs</span><span class="o">=</span><span class="n">optimizer_kwargs</span><span class="p">,</span>
@@ -738,8 +724,7 @@
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lbfgs_factory</span><span class="o">.</span><span class="n">optimizer</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">last_optimizer_reused</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lbfgs_factory</span><span class="o">.</span><span class="n">last_reused</span>
-        <span class="k">return</span> <span class="n">result</span></div>
-
+        <span class="k">return</span> <span class="n">result</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_ReusableLBFGSFactory</span><span class="p">:</span>
@@ -791,8 +776,6 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span>
 
 
-<div class="viewcode-block" id="CartesianMinimizer">
-<a class="viewcode-back" href="../../../api/optimization.html#tmol.optimization.CartesianMinimizer">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CartesianMinimizer</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Reusable Cartesian minimizer for pose stacks with stable topology.</span>
 
@@ -818,8 +801,6 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">last_optimizer_reused</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_lbfgs_factory</span> <span class="o">=</span> <span class="n">_ReusableLBFGSFactory</span><span class="p">()</span>
 
-<div class="viewcode-block" id="CartesianMinimizer.release_retained_state">
-<a class="viewcode-back" href="../../../api/optimization.html#tmol.optimization.CartesianMinimizer.release_retained_state">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">release_retained_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Release topology-specific scoring and optimizer state.</span>
 
@@ -833,8 +814,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_lbfgs_factory</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_lbfgs_factory</span><span class="o">.</span><span class="n">parameter</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_lbfgs_factory</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_lbfgs_factory</span><span class="o">.</span><span class="n">last_reused</span> <span class="o">=</span> <span class="kc">False</span></div>
-
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lbfgs_factory</span><span class="o">.</span><span class="n">last_reused</span> <span class="o">=</span> <span class="kc">False</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -846,7 +826,7 @@
         <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Minimize one pose stack, reusing compatible rendered state."""</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">CartesianSfxnNetwork</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization._sfxn_modules</span><span class="w"> </span><span class="kn">import</span> <span class="n">CartesianSfxnNetwork</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">_reset</span><span class="p">(</span>
             <span class="n">sfxn</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">,</span> <span class="n">coord_mask</span>
@@ -860,7 +840,7 @@
         <span class="n">selected_optimizer</span> <span class="o">=</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_lbfgs_factory</span> <span class="k">if</span> <span class="n">optimizer_cls</span> <span class="ow">is</span> <span class="n">LBFGS_Armijo</span> <span class="k">else</span> <span class="n">optimizer_cls</span>
         <span class="p">)</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="n">run_min</span><span class="p">(</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">_run_min</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">,</span>
             <span class="n">optimizer_cls</span><span class="o">=</span><span class="n">selected_optimizer</span><span class="p">,</span>
             <span class="n">optimizer_kwargs</span><span class="o">=</span><span class="n">optimizer_kwargs</span><span class="p">,</span>
@@ -868,12 +848,11 @@
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lbfgs_factory</span><span class="o">.</span><span class="n">optimizer</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">last_optimizer_reused</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lbfgs_factory</span><span class="o">.</span><span class="n">last_reused</span>
-        <span class="k">return</span> <span class="n">result</span></div>
-
+        <span class="k">return</span> <span class="n">result</span>
 
 
 <div class="viewcode-block" id="run_cart_min">
-<a class="viewcode-back" href="../../../api/optimization.html#tmol.optimization.run_cart_min">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.run_cart_min">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">run_cart_min</span><span class="p">(</span>
     <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
     <span class="n">sfxn</span><span class="p">:</span> <span class="n">ScoreFunction</span><span class="p">,</span>
@@ -885,7 +864,7 @@
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Run minimization on a PoseStack in Cartesian coordinate space.</span>
 
-<span class="sd">    Builds a ``CartesianSfxnNetwork`` and delegates to :func:`run_min`.</span>
+<span class="sd">    Builds a ``CartesianSfxnNetwork`` and delegates to :func:`_run_min`.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        pose_stack: Structures and coordinates to minimize.</span>

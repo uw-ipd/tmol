@@ -9,7 +9,7 @@ from time import perf_counter
 
 import torch
 
-from tmol.pose import PoseStackBuilder
+from tmol import PoseStackBuilder
 
 batch = PoseStackBuilder.from_poses(poses, device)
 scorer = sfxn.render_whole_pose_scoring_module(batch)
