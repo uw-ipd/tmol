@@ -34,7 +34,7 @@ class BatchedLBFGS:
         evaluate: Evaluate,
         x0: torch.Tensor,
         *,
-        n_trials: int = 6,
+        n_trials: int = 4,
         history: int = 10,
         atol: float = 1e-2,
         patience: int = 5,

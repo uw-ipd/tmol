@@ -457,7 +457,7 @@ class _PopulationMinimizer:
         kin_dtype: torch.dtype,
     ) -> None:
         cuda = pose_stack.device.type == "cuda"
-        n_trials, n_poses = (6 if cuda else 2), pose_stack.n_poses
+        n_trials, n_poses = (4 if cuda else 2), pose_stack.n_poses
         candidates = repeat_pose_stack(pose_stack.split(0), n_trials * n_poses)
         candidate_dofs = build_ligand_docking_dofs(
             candidates,

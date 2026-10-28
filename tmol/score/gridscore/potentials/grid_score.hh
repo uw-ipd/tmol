@@ -48,8 +48,8 @@ struct GridScoreDispatch {
   // Rosetta's gridded LK-ball water terms: builds each polar atom's waters,
   // samples the water and bridge grids there, takes the softmax / softmin
   // over the waters and propagates the gradient back to the atoms. Adds to
-  // ``energy`` and ``gradient`` in place (atomically on CUDA; the CPU loop is
-  // serial). One work item per (pose, polar atom).
+  // ``energy`` and ``gradient`` in place (atomically on CUDA, serially within
+  // a pose on CPU). One work item per (pose, polar atom).
   static void waters(
       ContextManager& mgr,
       TView<GridVec<Real, 3>, 2, D> coords,

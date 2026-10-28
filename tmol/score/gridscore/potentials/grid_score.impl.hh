@@ -125,8 +125,8 @@ auto GridScoreDispatch<DeviceOps, D, Real, Int>::atoms(
   auto gradient = gradient_t.view;
 
   LAUNCH_BOX_32;
-  DeviceOps<D>::template forall_independent<launch_t>(
-      mgr, n_poses * n_grid_atoms, [=] TMOL_DEVICE_FUNC(int work) {
+  DeviceOps<D>::template forall_grouped<launch_t>(
+      mgr, n_poses, n_grid_atoms, [=] TMOL_DEVICE_FUNC(int work) {
         int const pose = work / n_grid_atoms;
         int const g = work % n_grid_atoms;
         Real const scale = Real(1) / voxel_spacing;
@@ -206,8 +206,10 @@ void GridScoreDispatch<DeviceOps, D, Real, Int>::waters(
       int(water_grid.size(3))};
 
   LAUNCH_BOX_32;
-  DeviceOps<D>::template forall<launch_t>(
-      mgr, n_poses * n_polar, [=] TMOL_DEVICE_FUNC(int work) {
+  // Groups are poses: items of a pose run serially on CPU (they share atoms in
+  // the gradient), poses run in parallel.
+  DeviceOps<D>::template forall_grouped<launch_t>(
+      mgr, n_poses, n_polar, [=] TMOL_DEVICE_FUNC(int work) {
         int const pose = work / n_polar;
         int const polar = work % n_polar;
         Real const scale = Real(1) / voxel_spacing;
