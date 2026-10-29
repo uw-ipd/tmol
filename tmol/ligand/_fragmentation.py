@@ -15,9 +15,9 @@ from typing import Mapping, Sequence
 import biotite.structure as struc
 import numpy as np
 
-from tmol.chemical import build_coords_from_icoors
+from tmol.chemical._ideal_coords import _build_coords_from_icoors
 from tmol.database.chemical import Connection, Icoor, RawResidueType
-from tmol.ligand._icoor_tree import signed_dihedral_angle, vertex_angle
+from tmol.ligand._icoor_tree import _signed_dihedral_angle, _vertex_angle
 from tmol.ligand._registry import LigandPreparation
 
 FRAGMENT_ID_ANNOTATION = "tmol_fragment_id"
@@ -131,7 +131,7 @@ def recombine_fragmented_ligands(
     return result
 
 
-def fragment_ids_from_atom_array(atom_array: struc.AtomArray) -> np.ndarray | None:
+def _fragment_ids_from_atom_array(atom_array: struc.AtomArray) -> np.ndarray | None:
     """Return validated fragment IDs, or ``None`` when no split is requested."""
 
     if FRAGMENT_ID_ANNOTATION not in atom_array.get_annotation_categories():
@@ -173,7 +173,7 @@ def _full_ideal_coords(restype: RawResidueType) -> dict[str, np.ndarray]:
             icoor_index[icoor.great_grand_parent],
         )
         geom[i] = (icoor.phi, icoor.theta, icoor.d)
-    coords = build_coords_from_icoors(ancestors, geom)
+    coords = _build_coords_from_icoors(ancestors, geom)
     return {
         icoor.name: coords[i].astype(np.float64)
         for i, icoor in enumerate(restype.icoors)
@@ -184,7 +184,7 @@ def _angle(a: np.ndarray, b: np.ndarray, c: np.ndarray) -> float:
     """Angle at vertex b, in radians; zero where the points coincide."""
     if float(np.linalg.norm(a - b) * np.linalg.norm(c - b)) < 1e-12:
         return 0.0
-    return vertex_angle(a, b, c)
+    return _vertex_angle(a, b, c)
 
 
 def _fragment_atom_tree(  # noqa: C901
@@ -261,7 +261,7 @@ def _atom_icoors(
             theta = math.pi - _angle(coords[name], coords[par], coords[gp])
             d = float(np.linalg.norm(coords[name] - coords[par]))
         else:
-            phi = -signed_dihedral_angle(
+            phi = -_signed_dihedral_angle(
                 coords[name], coords[par], coords[gp], coords[ggp]
             )
             theta = math.pi - _angle(coords[name], coords[par], coords[gp])
@@ -304,7 +304,7 @@ def _connection_icoor(
     remote = coords[connection.partner_atom_name]
     return Icoor(
         name=connection.connection_name,
-        phi=-signed_dihedral_angle(remote, coords[parent], coords[gp], coords[ggp]),
+        phi=-_signed_dihedral_angle(remote, coords[parent], coords[gp], coords[ggp]),
         theta=math.pi - _angle(remote, coords[parent], coords[gp]),
         d=float(np.linalg.norm(remote - coords[parent])),
         parent=parent,
@@ -357,9 +357,9 @@ def _validate_bonded_cut_layout(
 def _validate_scoring_cut_layout(restype: RawResidueType, cut_bonds: Sequence[tuple]):
     """Reject cuts that break nonbonded scoring geometry assumptions."""
 
-    from tmol.ligand._chemistry_tables import get_hbond_properties
+    from tmol.ligand._chemistry_tables import _get_hbond_properties
 
-    hbond_properties = get_hbond_properties()
+    hbond_properties = _get_hbond_properties()
     atom_type_by_name = {atom.name: atom.atom_type for atom in restype.atoms}
     bad_cuts: list[str] = []
     for bond in cut_bonds:
@@ -378,14 +378,14 @@ def _validate_scoring_cut_layout(restype: RawResidueType, cut_bonds: Sequence[tu
         )
 
 
-def build_ligand_fragment_definition(  # noqa: C901
+def _build_ligand_fragment_definition(  # noqa: C901
     preparation: LigandPreparation,
     source_atom_array: struc.AtomArray,
 ) -> LigandFragmentDefinition | None:
     """Partition a fully prepared ligand according to its source annotation."""
 
     restype = preparation.residue_type
-    source_fragment_ids = fragment_ids_from_atom_array(source_atom_array)
+    source_fragment_ids = _fragment_ids_from_atom_array(source_atom_array)
     if source_fragment_ids is None:
         return None
     if np.any(source_fragment_ids == 0):
@@ -612,7 +612,7 @@ def build_ligand_fragment_definition(  # noqa: C901
     )
 
 
-def expand_fragmented_ligands(  # noqa: C901
+def _expand_fragmented_ligands(  # noqa: C901
     structure: struc.AtomArray | struc.AtomArrayStack,
     definitions: Sequence[LigandFragmentDefinition],
 ) -> tuple[struc.AtomArray | struc.AtomArrayStack, FragmentedLigandPoseMapping]:
@@ -767,7 +767,7 @@ def expand_fragmented_ligands(  # noqa: C901
     )
 
 
-def apply_fragment_connections(pose_stack, mapping: FragmentedLigandPoseMapping):
+def _apply_fragment_connections(pose_stack, mapping: FragmentedLigandPoseMapping):
     """Install fragment cut bonds and rebuild all inter-block bond separations."""
 
     resolved_blocks = []
@@ -816,7 +816,7 @@ def apply_fragment_connections(pose_stack, mapping: FragmentedLigandPoseMapping)
         ),
     )
     if not mapping.connection_pairs:
-        pose_stack, sbm = build_split_block_mapping(pose_stack, mapping)
+        pose_stack, sbm = _build_split_block_mapping(pose_stack, mapping)
         import attr as _attr
 
         return _attr.evolve(pose_stack, split_block_mapping=sbm)
@@ -824,7 +824,7 @@ def apply_fragment_connections(pose_stack, mapping: FragmentedLigandPoseMapping)
     import attr
     import torch
 
-    from tmol.pose import PoseStackBuilder
+    from tmol.pose._pose_stack_builder import PoseStackBuilder
 
     pbt = pose_stack.packed_block_types
     inter_residue_connections64 = pose_stack.inter_residue_connections64.clone()
@@ -866,11 +866,11 @@ def apply_fragment_connections(pose_stack, mapping: FragmentedLigandPoseMapping)
         inter_residue_connections64=inter_residue_connections64,
         inter_block_bondsep=inter_block_bondsep,
     )
-    result, sbm = build_split_block_mapping(result, mapping)
+    result, sbm = _build_split_block_mapping(result, mapping)
     return attr.evolve(result, split_block_mapping=sbm)
 
 
-def build_split_block_mapping(
+def _build_split_block_mapping(
     pose_stack,
     resolved_mapping: FragmentedLigandPoseMapping,
 ):
@@ -1183,7 +1183,7 @@ def _unsplit_chain_and_pdb(
     return new_chain_id, new_pdb
 
 
-def unsplit_pose_stack(pose_stack):
+def _unsplit_pose_stack(pose_stack):
     """Reconstruct an unsplit PoseStack from one containing split (fragment) blocks.
 
     Each group of split blocks sharing a ``(pose_ind, group_ind)`` in the
@@ -1202,8 +1202,8 @@ def unsplit_pose_stack(pose_stack):
     """
     import attr
     import torch
-    from tmol.pose import PoseStackBuilder
-    from tmol.utility.tensor import exclusive_cumsum2d
+    from tmol.pose._pose_stack_builder import PoseStackBuilder
+    from tmol.utility.tensor._common_operations import _exclusive_cumsum2d
 
     sbm = pose_stack.split_block_mapping
     if sbm is None or not sbm.entries:
@@ -1232,7 +1232,7 @@ def unsplit_pose_stack(pose_stack):
         (n_poses, new_max_n_blocks), dtype=torch.int32, device=device
     )
     new_n_atoms_blk[real_new] = pbt.n_atoms[new_bt64[real_new]]
-    new_bco = exclusive_cumsum2d(new_n_atoms_blk)
+    new_bco = _exclusive_cumsum2d(new_n_atoms_blk)
     new_max_n_atoms = int(torch.max(torch.sum(new_n_atoms_blk, dim=1)).item())
 
     coords_np, new_bco_np = _unsplit_build_coords(

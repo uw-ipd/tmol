@@ -15,9 +15,9 @@ import numpy as np
 from rdkit import Chem, rdBase
 from rdkit.Chem import AllChem
 
-from tmol.database.scoring import ConnectionCartRes, LengthGroup, AngleGroup
-from tmol.database.scoring._content_hash import content_hash
-from tmol.ligand._conjugate_model import iter_capped_conjugate_models
+from tmol.database.scoring._cartbonded import ConnectionCartRes, LengthGroup, AngleGroup
+from tmol.database.scoring._content_hash import _content_hash
+from tmol.ligand._conjugate_model import _iter_capped_conjugate_models
 from tmol.ligand._conjugation_patches import CONNECTION_PREFIX
 from tmol.ligand._conformer_generation import _mmff_bonds_angles
 from tmol.ligand._registry import GENERATED_LENGTH_K, GENERATED_ANGLE_K
@@ -194,7 +194,7 @@ def _connection_record(mol, props, first, second, maps, names, adjacency, ideals
 
 
 def _model_members(model, candidates_by_site):
-    from tmol.ligand._conjugate_context import model_attachment_contexts
+    from tmol.ligand._conjugate_context import _model_attachment_contexts
 
     source_local, locals_by_residue = {}, defaultdict(list)
     for local, source in enumerate(model.source_atom_indices):
@@ -224,7 +224,7 @@ def _model_members(model, candidates_by_site):
         ]
         for ri, names in sites.items()
     }
-    contexts = model_attachment_contexts(model)
+    contexts = _model_attachment_contexts(model)
     for ri, types in candidates.items():
         if any(rt.conjugation_context for rt in types):
             candidates[ri] = [
@@ -405,7 +405,7 @@ def _model_identity(model):
     arrays["bonds"] = array.bonds.as_array()
     arrays["source"] = model.source_atom_indices >= 0
     arrays["residue"] = np.unique(model.source_residue_indices, return_inverse=True)[1]
-    return content_hash(
+    return _content_hash(
         (
             Chem.MolToSmiles(model.molecule),
             tuple(
@@ -416,7 +416,7 @@ def _model_identity(model):
     )
 
 
-def generate_conjugate_connection_params(
+def _generate_conjugate_connection_params(
     atom_array,
     parameter_database,
     *,
@@ -466,7 +466,7 @@ def generate_conjugate_connection_params(
     )
     seen = set()
     for model in (
-        iter_capped_conjugate_models(atom_array, chem) if _models is None else _models
+        _iter_capped_conjugate_models(atom_array, chem) if _models is None else _models
     ):
         identity = _model_identity(model)
         if identity in seen:
@@ -507,7 +507,7 @@ def generate_conjugate_connection_params(
         "selection": "first ordered variant",
         "pka_precision": 0.1,
         "max_variants": 128,
-        "rules_sha256": content_hash(site_rules()),
+        "rules_sha256": _content_hash(site_rules()),
     }
 
     if parameter_source == "generator-ideals":

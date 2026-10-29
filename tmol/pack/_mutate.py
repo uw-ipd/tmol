@@ -1,12 +1,17 @@
 import torch
 
-from tmol.chemical import one2three
+from tmol.chemical._restypes import _one2three
 from tmol.database import ParameterDatabase
-from tmol.pose import PoseStack
-from tmol.score import ScoreFunction, beta2016_score_function
-from tmol.pack import PackerTask, PackerPalette, pack_rotamers
-from tmol.pack.rotamer import FixedAAChiSampler, IncludeCurrentSampler
-from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
+from tmol.pose._pose_stack import PoseStack
+from tmol.score._score_function import ScoreFunction
+from tmol.score import beta2016_score_function
+from tmol.pack._packer_task import PackerTask, PackerPalette
+from tmol.pack._pack_rotamers import pack_rotamers
+from tmol.pack.rotamer._fixed_aa_chi_sampler import FixedAAChiSampler
+from tmol.pack.rotamer._include_current_sampler import IncludeCurrentSampler
+from tmol.pack.rotamer.dunbrack._dunbrack_chi_sampler import (
+    create_dunbrack_sampler_from_database,
+)
 
 
 def _mutate_blocks(
@@ -77,7 +82,7 @@ def mutate_residue(
             beta2016 on the pose stack's device.
         param_db: Parameter database used to build the Dunbrack sampler;
             defaults to the score function's own database.
-        seed: Packer seed, as for :func:`~tmol.pack.pack_rotamers`.
+        seed: Packer seed, as for :func:`~tmol.pack_rotamers`.
 
     Returns:
         A new PoseStack with the requested block mutated.
@@ -99,7 +104,7 @@ def mutate_to_sequence(
     """Mutate every real block of one pose whose identity doesn't match ``sequence``.
 
     ``sequence`` is a one-letter sequence, as returned by
-    :func:`~tmol.pose.get_sequence`, for the real (non-padding) blocks of one
+    :func:`~tmol.get_sequence`, for the real (non-padding) blocks of one
     pose, in block order. Positions whose current three-letter code already
     matches their requested letter are left untouched; every differing
     position is redesigned to the requested identity in a single packing run.
@@ -112,7 +117,7 @@ def mutate_to_sequence(
             beta2016 on the pose stack's device.
         param_db: Parameter database used to build the Dunbrack sampler;
             defaults to the score function's own database.
-        seed: Packer seed, as for :func:`~tmol.pack.pack_rotamers`.
+        seed: Packer seed, as for :func:`~tmol.pack_rotamers`.
 
     Returns:
         A new PoseStack with every differing position mutated to match.
@@ -128,7 +133,7 @@ def mutate_to_sequence(
 
     name3_by_block = {}
     for block, letter in zip(real_blocks, sequence):
-        new_name3 = one2three(letter)
+        new_name3 = _one2three(letter)
         if new_name3 is None:
             raise ValueError(f"{letter!r} is not a valid one-letter amino acid code")
         current_name3 = pbt.active_block_types[int(block_type_ind[block])].name3

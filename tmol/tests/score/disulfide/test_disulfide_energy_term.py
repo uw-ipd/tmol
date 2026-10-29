@@ -1,8 +1,8 @@
 import torch
 
-from tmol.io import pose_stack_from_file
-from tmol.score.disulfide import DisulfideEnergyTerm
-from tmol.score.common import ZeroTermPoseScoringModule
+from tmol import pose_stack_from_file
+from tmol.score import DisulfideEnergyTerm
+from tmol.score.common._scoring_module import ZeroTermPoseScoringModule
 
 from tmol.tests.score.common import EnergyTermTestBase
 

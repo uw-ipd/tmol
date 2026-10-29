@@ -1,21 +1,16 @@
 import torch
 
-from tmol.types import Tensor
-from tmol.pose import PoseStack
-from tmol.score import ScoreFunction
-from tmol.pack import (
-    PackerTask,
-    PackerPalette,
-    pack_rotamers,
-)
-from tmol.pack.rotamer.dunbrack import DunbrackChiSampler
-from tmol.pack.rotamer import (
-    FixedAAChiSampler,
-    NaChiRotamerSampler,
-)
+from tmol.types._torch import Tensor
+from tmol.pose._pose_stack import PoseStack
+from tmol.score._score_function import ScoreFunction
+from tmol.pack._packer_task import PackerTask, PackerPalette
+from tmol.pack._pack_rotamers import pack_rotamers
+from tmol.pack.rotamer.dunbrack._dunbrack_chi_sampler import DunbrackChiSampler
+from tmol.pack.rotamer._fixed_aa_chi_sampler import FixedAAChiSampler
+from tmol.pack.rotamer._na_chi_sampler import NaChiRotamerSampler
 
 
-def build_missing_sidechains(
+def _build_missing_sidechains(
     pose_stack: PoseStack,
     sfxn: ScoreFunction,
     dunbrack_sampler: DunbrackChiSampler,
@@ -59,13 +54,13 @@ def build_missing_sidechains(
         no_optH: When True, skip OptH and preserve old Dunbrack-only behavior.
         has_missing_atoms: Cached value of ``block_has_missing_atoms.any()``.
             Supplying it avoids a device synchronization in repeated builds.
-        seed: Packer seed, as for :func:`~tmol.pack.pack_rotamers`.
+        seed: Packer seed, as for :func:`~tmol.pack_rotamers`.
 
     Returns:
         PoseStack with missing sidechains built and (by default) hydrogens
         placed and optimized.
     """
-    from tmol.pack.rotamer import OptHSampler
+    from tmol.pack.rotamer._opth_sampler import OptHSampler
 
     assert block_has_missing_atoms.device == pose_stack.device
 

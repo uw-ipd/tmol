@@ -37,7 +37,7 @@ def _reference_get_children(parents):
     ],
 )
 def test_get_children_matches_legacy_sorted_order(torch_device, parents):
-    from tmol.kinematics.compiled import get_children
+    from tmol.kinematics.compiled._compiled_ops import _get_children_op
 
     parents = torch.tensor(parents, dtype=torch.int32, device=torch_device)
     n_atoms = parents.shape[0]
@@ -56,7 +56,7 @@ def test_get_children_matches_legacy_sorted_order(torch_device, parents):
 
     expected = _reference_get_children(parents)
     for _ in range(3):
-        actual = get_children(
+        actual = _get_children_op(
             pose_stack_block_type,
             block_in_and_first_out,
             kfo_2_orig_mapping,
@@ -68,7 +68,7 @@ def test_get_children_matches_legacy_sorted_order(torch_device, parents):
 
 
 def test_get_children_sorts_across_jump_and_non_jump_children(torch_device):
-    from tmol.kinematics.compiled import get_children
+    from tmol.kinematics.compiled._compiled_ops import _get_children_op
 
     # Atom 1 has non-jump children 2 and 4 in block 0, plus jump child 3 in
     # block 1. The legacy second bubble-sort loop sorted the complete span, so
@@ -86,7 +86,7 @@ def test_get_children_sorts_across_jump_and_non_jump_children(torch_device):
     parents = torch.tensor([0, 0, 1, 1, 1], dtype=torch.int32, device=torch_device)
     block_type_n_conn = torch.ones(1, dtype=torch.int32, device=torch_device)
 
-    actual = get_children(
+    actual = _get_children_op(
         pose_stack_block_type,
         block_in_and_first_out,
         kfo_2_orig_mapping,

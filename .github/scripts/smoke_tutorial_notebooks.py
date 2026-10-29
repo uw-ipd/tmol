@@ -32,7 +32,7 @@ def _validate_tutorial_entrypoints(notebook, path: Path) -> None:
     if notebook.metadata.get("accelerator") != "GPU":
         raise ValueError(f"{path} does not request a Colab GPU runtime")
     colab_url = (
-        "https://colab.research.google.com/github/uw-ipd/tmol/"
+        "https://colab.research.google.com/github/RosettaCommons/tmol/"
         f"blob/{TUTORIAL_REF}/docs/tutorial/{path.name}"
     )
     if colab_url not in markdown:

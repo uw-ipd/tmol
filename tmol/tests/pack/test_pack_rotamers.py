@@ -5,41 +5,35 @@ import torch
 import math
 from types import SimpleNamespace
 
-from tmol.pose import (
+from tmol import (
     ConstraintSet,
     PoseStackBuilder,
-)
-from tmol.score import (
     ScoreFunction,
     ScoreType,
-)
-from tmol.pack.compiled import build_interaction_graph
-from tmol.pack import (
     PackerTask,
     PackerPalette,
-    SetPackerTask,
-    PackerEnergyTables,
-    run_simulated_annealing,
-    impose_top_rotamer_assignments,
     pack_rotamers,
+    atom_array_from_file,
+    pose_stack_from_atom_array,
+    pose_stack_from_file,
+    ParameterDatabase,
+    beta2016_score_function,
 )
-from tmol.pack.rotamer import (
+from tmol.pack.compiled._compiled import _build_interaction_graph
+from tmol.pack import (
+    SetPackerTask,
     build_rotamers,
     FixedAAChiSampler,
     IncludeCurrentSampler,
     OptHSampler,
+    create_dunbrack_sampler_from_database,
 )
-from tmol.io import (
-    atom_array_from_file,
-    pose_stack_from_atom_array,
-    pose_stack_from_file,
-)
-from tmol.database import ParameterDatabase
-from tmol.score import beta2016_score_function
-from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
+from tmol.pack._datatypes import PackerEnergyTables
+from tmol.pack._simulated_annealing import _run_simulated_annealing
+from tmol.pack._impose_rotamers import _impose_top_rotamer_assignments
 from tmol.tests.data import data_path
 
-from tmol.score.constraint import ConstraintEnergyTerm
+from tmol.score import ConstraintEnergyTerm
 from tmol.pack._pack_rotamers import (
     _PACKER_TASK_POSE_TENSORS,
     _interaction_graph_chunk_size,
@@ -99,7 +93,7 @@ def build_packer_energy_tables(
         neighbor_chunk_offset_offsets,
         chunk_pair_offset,
         energy2b,
-    ) = build_interaction_graph(
+    ) = _build_interaction_graph(
         bump_check,
         chunk_size,
         pbt.n_types,
@@ -182,12 +176,12 @@ def run_pack_and_assert_scores(
     bc_rot_to_orig_rot,
     bg_bg_energies,
 ):
-    scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
+    scores, rotamer_assignments = _run_simulated_annealing(packer_energy_tables)
 
     # correct for some residues being ignored as part of the background
     scores = scores + bg_bg_energies.unsqueeze(1)
 
-    new_pose_stack = impose_top_rotamer_assignments(
+    new_pose_stack = _impose_top_rotamer_assignments(
         pose_stack,
         rotamer_set,
         rotamer_for_nonmolten_block,
@@ -887,7 +881,7 @@ def test_packing_pages_shared_lk_ball_dispatch(
 
 def test_fused_ljlk_elec_empty_table_gradient(monkeypatch):
     from tmol.score import _score_function
-    from tmol.score.ljlk import potentials
+    from tmol.score.ljlk.potentials import _compiled as potentials
 
     calls = []
 
@@ -901,7 +895,7 @@ def test_fused_ljlk_elec_empty_table_gradient(monkeypatch):
         )
         return coords.new_empty((1, 0)), indices, coord_gradients
 
-    monkeypatch.setattr(potentials, "ljlk_elec_weighted_rotamer_scores", empty_scores)
+    monkeypatch.setattr(potentials, "_ljlk_elec_weighted_rotamer_scores", empty_scores)
     coords = torch.empty((0, 3), requires_grad=True)
     weights = torch.ones(4)
     empty_dispatch = torch.empty((0, 0), dtype=torch.int32)

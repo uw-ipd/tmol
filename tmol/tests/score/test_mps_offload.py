@@ -3,15 +3,20 @@
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_file
-from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-from tmol.pack.rotamer import (
+from tmol import pose_stack_from_file
+from tmol import (
+    PackerPalette,
+    PackerTask,
+    PoseStackBuilder,
+    ScoreType,
+    beta2016_score_function,
+)
+from tmol.pack import (
     FixedAAChiSampler,
     IncludeCurrentSampler,
+    SetPackerTask,
     build_rotamers,
 )
-from tmol.pose import PoseStackBuilder
-from tmol.score import ScoreType, beta2016_score_function
 from tmol.score._mps_offload import (
     OffloadedRotamerScoringModule,
     OffloadedWholePoseScoringModule,

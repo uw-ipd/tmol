@@ -3,7 +3,8 @@
 import numpy as np
 import pytest
 
-from tmol.io import assemble_input, atom_array_from_file, file_from_atom_array
+from tmol.io._assemble import _assemble_input
+from tmol import atom_array_from_file, file_from_atom_array
 from tmol.tests.data import data_path
 
 LIGAND_RES_NAME = "LG1"
@@ -33,7 +34,7 @@ def test_a_mol2_ligand_arrives_with_its_bond_orders(ligand):
 
 
 def test_joining_keeps_both_parts_whole(protein, ligand):
-    joined = assemble_input(protein, ligand)
+    joined = _assemble_input(protein, ligand)
 
     assert joined.array_length() == protein.array_length() + ligand.array_length()
     assert joined.bonds.get_bond_count() == (
@@ -55,12 +56,12 @@ def test_the_written_cif_parses_back_into_the_same_ligand(
     path = tmp_path / "complex.cif"
     if route == "text":
         path.write_text(
-            file_from_atom_array(assemble_input(protein, ligand), format="cif")
+            file_from_atom_array(_assemble_input(protein, ligand), format="cif")
         )
     else:
         assert (
             file_from_atom_array(
-                assemble_input(protein, ligand), path=path, format="cif"
+                _assemble_input(protein, ligand), path=path, format="cif"
             )
             == path
         )

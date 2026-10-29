@@ -7,12 +7,12 @@ import pytest
 import torch
 
 from tmol.chemical import ResidueTypeSet
-from tmol.io import (
+from tmol.io._pose_stack_from_sequence import (
     EXTENDED_BACKBONE_TORSIONS,
-    create_pose_stack_from_sequences,
-    extended_pose_stack_from_sequences,
+    _create_pose_stack_from_sequences,
 )
-from tmol.pose import get_named_torsions, get_torsion_names
+from tmol import extended_pose_stack_from_sequences, get_torsion_names
+from tmol.pose import get_named_torsions
 
 LIGAND_SMILES = "CCO"
 
@@ -149,7 +149,7 @@ def test_extended_pose_stack_device(torch_device):
 
 
 def test_default_sequence_context_reuses_default_restype_set(torch_device):
-    _, context = create_pose_stack_from_sequences(
+    _, context = _create_pose_stack_from_sequences(
         "ACD", device=torch_device, return_context=True
     )
 
@@ -212,7 +212,7 @@ RNA_GOLD_TORSION_NAMES = {
 )
 def test_get_torsion_names(seq, gold, torch_device):
     # names come from the block type, so the zero-coordinate builder suffices
-    pose_stack = create_pose_stack_from_sequences(seq, device=torch_device)
+    pose_stack = _create_pose_stack_from_sequences(seq, device=torch_device)
 
     got = {
         name: get_torsion_names(pose_stack, 0, block)
@@ -222,11 +222,11 @@ def test_get_torsion_names(seq, gold, torch_device):
 
 
 def test_get_torsion_names_non_polymer(torch_device):
-    pose_stack = create_pose_stack_from_sequences("A[HOH]", device=torch_device)
+    pose_stack = _create_pose_stack_from_sequences("A[HOH]", device=torch_device)
     assert get_torsion_names(pose_stack, 0, 0) == []
 
 
 def test_get_torsion_names_rejects_absent_block(torch_device):
-    pose_stack = create_pose_stack_from_sequences(["AAA", "AA"], device=torch_device)
+    pose_stack = _create_pose_stack_from_sequences(["AAA", "AA"], device=torch_device)
     with pytest.raises(ValueError, match="not a real block"):
         get_torsion_names(pose_stack, 1, 2)

@@ -1,17 +1,15 @@
-from tmol.io import (
-    pose_stack_from_file,
-    default_canonical_ordering,
-    default_packed_block_types,
-    pose_stack_from_canonical_form,
+from tmol import pose_stack_from_file
+from tmol.io._canonical_ordering import (
+    _default_canonical_ordering,
+    _default_packed_block_types,
+    _canonical_form_from_pdb,
 )
-from tmol.io._write_pose_stack_pdb import (
-    _atom_records_from_pose_stack,
-)
+from tmol.io._pose_stack_construction import _pose_stack_from_canonical_form
+from tmol.io._write_pose_stack_pdb import _atom_records_from_pose_stack
 from tmol.io._pdb_parsing import _to_pdb
-from tmol.io._canonical_ordering import _canonical_form_from_pdb
 
 # from tmol.chemical import find_simple_polymeric_connections
-from tmol.pose import PoseStackBuilder
+from tmol import PoseStackBuilder
 
 
 def test_atom_records_from_pose_stack_1(ubq_pdb, torch_device):
@@ -59,10 +57,10 @@ def test_atom_records_from_pose_stack_2(ubq_pdb, torch_device):
 
 
 def test_atom_records_for_multi_chain_pdb(pertuzumab_pdb, torch_device):
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
+    co = _default_canonical_ordering()
+    pbt = _default_packed_block_types(torch_device)
     canonical_form = _canonical_form_from_pdb(co, pertuzumab_pdb, torch_device)
-    pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
+    pose_stack = _pose_stack_from_canonical_form(co, pbt, *canonical_form)
 
     records = _atom_records_from_pose_stack(pose_stack)
     pdb_lines = _to_pdb(records)

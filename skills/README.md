@@ -25,6 +25,6 @@ Each skill can be vendored by copying its directory into an agent environment's
 skill search path. Environments that discover skills directly from a repository
 can point at `skills/<name>/SKILL.md`.
 
-The skill text and helper artifacts use TMol's top-level Apache-2.0 license.
+The skill text and helper artifacts use TMol's top-level BSD-3-Clause license.
 Generated signatures or benchmark reports, if required by a downstream skill
 catalog, are onboarding artifacts and are not maintained in this repository.

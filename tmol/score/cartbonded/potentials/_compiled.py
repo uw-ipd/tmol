@@ -1,6 +1,6 @@
-from tmol._load_ext import load_ops
+from tmol._load_ext import _load_ops
 
-_ops = load_ops(
+_ops = _load_ops(
     __name__,
     __file__,
     [
@@ -12,15 +12,15 @@ _ops = load_ops(
     "tmol_cartbonded",
 )
 
-cartbonded_pose_scores = _ops.cartbonded_pose_scores
-cartbonded_rotamer_scores = _ops.cartbonded_rotamer_scores
+_cartbonded_pose_scores = _ops.cartbonded_pose_scores
+_cartbonded_rotamer_scores = _ops.cartbonded_rotamer_scores
 
 
-def iter_packing_rotamer_scores(*args):
+def _iter_packing_rotamer_scores(*args):
     *score_args, topology_only = args
     op = (
         _ops.cartbonded_rotamer_scores_topology
         if topology_only
-        else cartbonded_rotamer_scores
+        else _cartbonded_rotamer_scores
     )
     yield op(*score_args)

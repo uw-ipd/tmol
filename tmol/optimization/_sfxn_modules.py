@@ -5,17 +5,17 @@ import attrs
 import numpy
 import torch
 
-from tmol.pose import PoseStack
-from tmol.score import ScoreFunction
+from tmol.pose._pose_stack import PoseStack
+from tmol.score._score_function import ScoreFunction
+from tmol.kinematics._fold_forest import FoldForest
+from tmol.kinematics._move_map import MoveMap
 from tmol.kinematics import (
-    FoldForest,
-    MoveMap,
     NodeType,
     BondDOFTypes,
     JumpDOFTypes,
     PoseStackKinematicsModule,
 )
-from tmol.kinematics.compiled import inverse_kin
+from tmol.kinematics.compiled._compiled_ops import _inverse_kin
 
 
 class CartesianSfxnNetwork(torch.nn.Module):
@@ -332,7 +332,7 @@ class KinForestSfxnNetwork(torch.nn.Module):
             (kmd.forest.id.shape[0], 3), dtype=self.kin_dtype, device=coords.device
         )
         kincoords[1:] = coords.view(-1, 3)[self._atom_idx].to(self.kin_dtype)
-        return inverse_kin(
+        return _inverse_kin(
             kincoords,
             kmd.forest.parent,
             kmd.forest.frame_x,

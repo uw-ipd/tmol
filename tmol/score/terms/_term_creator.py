@@ -1,6 +1,6 @@
 import torch
 
-from tmol.score.terms import ScoreTermFactory
+from tmol.score.terms._score_term_factory import ScoreTermFactory
 from tmol.database import ParameterDatabase
 
 
@@ -29,7 +29,7 @@ class TermCreator:
         raise NotImplementedError()
 
 
-def score_term_creator(cls):
+def _score_term_creator(cls):
     """Register a term-creator class with the global score-term factory."""
     ScoreTermFactory.factory_register(cls)
     return cls

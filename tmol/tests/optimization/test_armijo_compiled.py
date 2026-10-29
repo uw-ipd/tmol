@@ -2,11 +2,11 @@ import pytest
 import torch
 
 from tmol.optimization._armijo_compiled import (
-    armijo_classify,
-    armijo_finalize,
-    armijo_start,
-    armijo_trial,
-    armijo_update,
+    _armijo_classify,
+    _armijo_finalize,
+    _armijo_start,
+    _armijo_trial,
+    _armijo_update,
 )
 
 _LS_DONE = 0
@@ -39,8 +39,8 @@ def test_armijo_start_and_classify_match_tensor_reference(torch_device, dtype):
     expected_accepted = torch.where(took, expected_alpha, torch.zeros_like(alpha0))
     expected_phi_accepted = torch.where(took, phi, phi0)
 
-    alpha = armijo_start(searching, alpha0)
-    accepted, phi_accepted, status, active = armijo_classify(
+    alpha = _armijo_start(searching, alpha0)
+    accepted, phi_accepted, status, active = _armijo_classify(
         searching,
         alpha,
         phi,
@@ -126,8 +126,8 @@ def test_armijo_trial_and_update_match_tensor_reference(torch_device, dtype):
     expected_phi_accepted = torch.where(expected_failed, phi0, expected_phi_accepted)
     expected_status = torch.where(expected_failed, _LS_FAILED, expected_status)
 
-    trial = armijo_trial(status, alpha, accepted, factor)
-    next_accepted, next_phi_accepted, next_status, failed, active = armijo_update(
+    trial = _armijo_trial(status, alpha, accepted, factor)
+    next_accepted, next_phi_accepted, next_status, failed, active = _armijo_update(
         status,
         trial,
         accepted,
@@ -169,7 +169,9 @@ def test_armijo_finalize_matches_tensor_reference(torch_device, dtype):
     expected_step = torch.where(expected_failed, retry, accepted)
     expected_step = torch.where(searching, expected_step, start)
 
-    step, failed = armijo_finalize(status, derphi0, accepted, start, searching, minstep)
+    step, failed = _armijo_finalize(
+        status, derphi0, accepted, start, searching, minstep
+    )
 
     torch.testing.assert_close(step, expected_step)
     torch.testing.assert_close(failed, expected_failed, rtol=0, atol=0)

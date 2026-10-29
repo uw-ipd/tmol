@@ -4,7 +4,7 @@ import numpy
 import pytest
 import torch
 
-from tmol.kinematics.compiled import forward_only_op, inverse_kin
+from tmol.kinematics.compiled._compiled_ops import _forward_only_op, _inverse_kin
 from tmol.pack.rotamer._conjugated_chi_sampler import (
     ConjugatedChiSampler,
     _fold_group_conformers,
@@ -12,7 +12,7 @@ from tmol.pack.rotamer._conjugated_chi_sampler import (
     _KINEMATICS_BATCH_ATOMS,
 )
 from tmol.pack.rotamer._single_residue_kinforest import (
-    construct_single_residue_kinforest,
+    _construct_single_residue_kinforest,
 )
 from tmol.tests.pack.test_conjugated_group_packing import FIXTURES, _pose
 
@@ -58,7 +58,7 @@ def test_group_and_member_batches_match_scalar_calls(fixture, dtype, torch_devic
                 continue
             expected = torch.stack(
                 [
-                    forward_only_op(d, nodes, scans, gens, tree)[1:][original_order]
+                    _forward_only_op(d, nodes, scans, gens, tree)[1:][original_order]
                     for d in dofs
                 ]
             )
@@ -67,7 +67,7 @@ def test_group_and_member_batches_match_scalar_calls(fixture, dtype, torch_devic
                 bt = pose.packed_block_types.active_block_types[
                     int(pose.block_type_ind[group.pose, block])
                 ]
-                construct_single_residue_kinforest(bt)
+                _construct_single_residue_kinforest(bt)
                 mkf = bt.rotamer_kinforest
                 member_tree = _single_tree(mkf, torch_device)
                 member = folded[:, int(offsets[owner]) : int(offsets[owner + 1])]
@@ -77,7 +77,7 @@ def test_group_and_member_batches_match_scalar_calls(fixture, dtype, torch_devic
                 for coordinates in member:
                     kco = torch.cat([coordinates.new_zeros((1, 3)), coordinates[order]])
                     expected_dofs.append(
-                        inverse_kin(
+                        _inverse_kin(
                             kco,
                             member_tree[:, 2],
                             member_tree[:, 3],
@@ -105,20 +105,21 @@ def test_group_and_member_batches_match_scalar_calls(fixture, dtype, torch_devic
 
 @pytest.mark.parametrize("fixture", ["biotin", "free", "cycle", "external"])
 def test_reused_sampler_keeps_real_pose_groups_independent(torch_device, fixture):
-    from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-    from tmol.pack.rotamer import FixedAAChiSampler, build_rotamers
-    from tmol.pack.rotamer._conjugated_groups import add_conjugated_group_sampler
-    from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
-    from tmol.pose import PoseStackBuilder
+    from tmol import PackerPalette, PackerTask
+    from tmol.pack import SetPackerTask
+    from tmol.pack import FixedAAChiSampler, build_rotamers
+    from tmol.pack.rotamer._conjugated_groups import _add_conjugated_group_sampler
+    from tmol.pack import create_dunbrack_sampler_from_database
+    from tmol import PoseStackBuilder
     from tmol.pose._conjugated_groups import (
-        find_conjugated_groups,
-        lockstep_group_for_block,
+        _find_conjugated_groups,
+        _lockstep_group_for_block,
     )
 
     if fixture == "biotin":
         first, context = _pose(FIXTURES["biotin"], torch_device)
     else:
-        from tmol.io import pose_stack_from_atom_array
+        from tmol import pose_stack_from_atom_array
         from tmol.tests.pack.rotamer.test_group_constraints import crosslinked_lysines
 
         first, context = pose_stack_from_atom_array(
@@ -130,7 +131,7 @@ def test_reused_sampler_keeps_real_pose_groups_independent(torch_device, fixture
             return_context=True,
         )
     second = first.clone()
-    group = find_conjugated_groups(first)[0]
+    group = _find_conjugated_groups(first)[0]
     bt = first.packed_block_types.active_block_types[
         int(first.block_type_ind[0, group.anchor])
     ]
@@ -147,7 +148,7 @@ def test_reused_sampler_keeps_real_pose_groups_independent(torch_device, fixture
         task = PackerTask(pose, PackerPalette())
         task.add_conformer_sampler(library)
         task.add_conformer_sampler(FixedAAChiSampler())
-        add_conjugated_group_sampler(task, pose, sampler=shared)
+        _add_conjugated_group_sampler(task, pose, sampler=shared)
         task.restrict_to_repacking()
         return build_rotamers(
             pose,
@@ -181,6 +182,6 @@ def test_reused_sampler_keeps_real_pose_groups_independent(torch_device, fixture
             rtol=2e-5,
             atol=2e-5,
         )
-    ids = lockstep_group_for_block(batch, rotamers)
+    ids = _lockstep_group_for_block(batch, rotamers)
     for pose in range(2):
         assert bool((ids[pose, list(group.blocks)] == pose).all())

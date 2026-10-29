@@ -4,15 +4,15 @@ import attr
 import pytest
 import torch
 
-from tmol.io import default_packed_block_types
-from tmol.pack.rotamer import NaChiRotamerSampler, OptHSampler
+from tmol.io._canonical_ordering import _default_packed_block_types
+from tmol.pack import NaChiRotamerSampler, OptHSampler
 
 
 @pytest.mark.parametrize("kind", ["na", "opth"])
 def test_changing_budget_rebuilds_both_annotation_levels(
     kind, default_database, torch_device
 ):
-    pbt = default_packed_block_types(torch_device)
+    pbt = _default_packed_block_types(torch_device)
     sampler = (
         NaChiRotamerSampler.from_database(default_database, torch_device)
         if kind == "na"
@@ -38,7 +38,7 @@ def test_changing_budget_rebuilds_both_annotation_levels(
 
 
 def test_changing_flip_setting_updates_buildable_types(torch_device):
-    pbt = default_packed_block_types(torch_device)
+    pbt = _default_packed_block_types(torch_device)
     indices = torch.tensor(
         [i for i, bt in enumerate(pbt.active_block_types) if bt.name == "ASN"],
         device=torch_device,
@@ -52,7 +52,7 @@ def test_changing_flip_setting_updates_buildable_types(torch_device):
 def test_na_element_assignments_are_part_of_annotation_identity(
     default_database, torch_device
 ):
-    pbt = default_packed_block_types(torch_device)
+    pbt = _default_packed_block_types(torch_device)
     sampler = NaChiRotamerSampler.from_database(default_database, torch_device)
     initial = sampler.annotate_packed_block_types(pbt)
     assert bool(torch.any(initial["ring"] >= 0))

@@ -7,7 +7,7 @@ import attr
 import pytest
 import torch
 
-from tmol.score.dunbrack import DunbrackParamResolver
+from tmol.score.dunbrack._params import DunbrackParamResolver
 
 
 def private_database(database, label):

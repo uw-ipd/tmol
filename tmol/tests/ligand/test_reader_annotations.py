@@ -6,7 +6,7 @@ import pytest
 
 from tmol.ligand._detect import (
     _component_types_from_annotations,
-    polymer_entity_residues,
+    _polymer_entity_residues,
 )
 
 
@@ -30,10 +30,10 @@ def test_annotations_supply_types_and_polymer_membership():
         "CAP": "NON-POLYMER",
         "LIG": "NON-POLYMER",
     }
-    assert polymer_entity_residues(array) == frozenset({"ZZZ", "CAP"})
+    assert _polymer_entity_residues(array) == frozenset({"ZZZ", "CAP"})
     # A numbering proxy must not reclassify an explicitly non-polymer ligand.
     array.set_annotation("label_seq_id", np.array(["1", "1", "2", "3"]))
-    assert polymer_entity_residues(array) == frozenset({"ZZZ", "CAP"})
+    assert _polymer_entity_residues(array) == frozenset({"ZZZ", "CAP"})
 
 
 def test_conflicting_type_annotations_require_explicit_resolution():
@@ -46,5 +46,5 @@ def test_conflicting_type_annotations_require_explicit_resolution():
 
 def test_unannotated_reader_retains_unknown_membership():
     array = struc.AtomArray(1)
-    assert polymer_entity_residues(array) is None
+    assert _polymer_entity_residues(array) is None
     assert _component_types_from_annotations(array) == {}

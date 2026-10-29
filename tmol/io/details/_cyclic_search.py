@@ -3,7 +3,7 @@
 import torch
 
 
-def find_cyclic_closures(
+def _find_cyclic_closures(
     canonical_ordering,
     chain_id,
     res_types,

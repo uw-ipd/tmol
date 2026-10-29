@@ -11,7 +11,7 @@ void bind(pybind11::module& m) {
   using namespace pybind11::literals;
 
   m.def(
-      "interpolate",
+      "_interpolate",
       &interpolate<Real>,
       "x"_a,
       "x0"_a,
@@ -21,7 +21,7 @@ void bind(pybind11::module& m) {
       "p1"_a,
       "dpdx1"_a);
   m.def(
-      "interpolate_dt",
+      "_interpolate_dt",
       &interpolate_dt<Real>,
       "t"_a,
       "p0"_a,
@@ -29,7 +29,7 @@ void bind(pybind11::module& m) {
       "p1"_a,
       "dp1"_a);
   m.def(
-      "interpolate_dx",
+      "_interpolate_dx",
       &interpolate_dx<Real>,
       "x"_a,
       "x0"_a,
@@ -39,7 +39,7 @@ void bind(pybind11::module& m) {
       "p1"_a,
       "dpdx1"_a);
   m.def(
-      "interpolate_t",
+      "_interpolate_t",
       &interpolate_t<Real>,
       "t"_a,
       "p0"_a,
@@ -47,7 +47,7 @@ void bind(pybind11::module& m) {
       "p1"_a,
       "dp1"_a);
   m.def(
-      "interpolate_to_zero",
+      "_interpolate_to_zero",
       &interpolate_to_zero<Real>,
       "x"_a,
       "x0"_a,
@@ -55,7 +55,7 @@ void bind(pybind11::module& m) {
       "dpdx0"_a,
       "x1"_a);
   m.def(
-      "interpolate_to_zero_V_dV",
+      "_interpolate_to_zero_V_dV",
       &interpolate_to_zero_V_dV<Real>,
       "x"_a,
       "x0"_a,
@@ -63,13 +63,13 @@ void bind(pybind11::module& m) {
       "dpdx0"_a,
       "x1"_a);
   m.def(
-      "interpolate_to_zero_dt",
+      "_interpolate_to_zero_dt",
       &interpolate_to_zero_dt<Real>,
       "t"_a,
       "p0"_a,
       "dp0"_a);
   m.def(
-      "interpolate_to_zero_dx",
+      "_interpolate_to_zero_dx",
       &interpolate_to_zero_dx<Real>,
       "x"_a,
       "x0"_a,
@@ -77,7 +77,7 @@ void bind(pybind11::module& m) {
       "dpdx0"_a,
       "x1"_a);
   m.def(
-      "interpolate_to_zero_t",
+      "_interpolate_to_zero_t",
       &interpolate_to_zero_t<Real>,
       "t"_a,
       "p0"_a,

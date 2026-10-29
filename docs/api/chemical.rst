@@ -1,22 +1,10 @@
 Chemical Types
 ==============
 
-Public chemical database and residue-type objects.
+Public residue-type objects. :class:`tmol.PatchedChemicalDatabase` is
+imported from the top-level package and documented in :doc:`top_level`.
 
 .. automodule:: tmol.chemical
    :members:
    :imported-members:
    :show-inheritance:
-
-Public constants and aliases
-----------------------------
-
-.. hlist::
-   :columns: 2
-
-   * ``BOND_TYPE_FROM_STR``
-   * ``IcoorIndex``
-   * ``MAX_PATHS_FROM_CONNECTION``
-   * ``MAX_SIG_BOND_SEPARATION``
-   * ``UnresolvedAtomID``
-   * ``uaid_t``

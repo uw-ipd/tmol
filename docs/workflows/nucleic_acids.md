@@ -7,9 +7,7 @@ proteins. Load a Biotite structure with the default parameter database, then
 build the score function from that same database:
 
 ```python
-from tmol.database import ParameterDatabase
-from tmol.io import pose_stack_from_atom_array
-from tmol.score import beta2016_score_function
+from tmol import ParameterDatabase, pose_stack_from_atom_array, beta2016_score_function
 
 param_db = ParameterDatabase.get_default()
 pose_stack = pose_stack_from_atom_array(structure, device, param_db=param_db)
@@ -25,10 +23,8 @@ ordinary all-atom nonbonded terms, and nucleic-acid cartbonded parameters.
 Use `NaChiRotamerSampler` with an explicit block mask:
 
 ```python
-from tmol.pack import pack_rotamers
-from tmol.pack import PackerPalette, PackerTask
-from tmol.pack.rotamer import IncludeCurrentSampler
-from tmol.pack.rotamer import NaChiRotamerSampler
+from tmol import pack_rotamers, PackerPalette, PackerTask
+from tmol.pack import IncludeCurrentSampler, NaChiRotamerSampler
 
 task = PackerTask(pose_stack, PackerPalette())
 task.restrict_to_repacking()

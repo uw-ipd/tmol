@@ -4,7 +4,7 @@ import numpy as np
 from biotite.structure import get_residue_starts
 from biotite.structure.io.pdb import PDBFile
 
-from tmol.io import atom_array_from_file
+from tmol import atom_array_from_file
 from tmol.io._atomworks_reader import (
     _polymer_from_backbone_bonds,
     _read_pdb,

@@ -1,11 +1,11 @@
 import numpy
 
-from tmol.kinematics import (
-    mark_polymeric_bonds_in_foldforest_edges,
-    bfs_proper_forest,
-    validate_fold_forest,
-    EdgeType,
+from tmol.kinematics._check_fold_forest import (
+    _mark_polymeric_bonds_in_foldforest_edges,
+    _bfs_proper_forest,
+    _validate_fold_forest,
 )
+from tmol import EdgeType
 
 
 def test_mark_polymeric_bonds_in_foldforest_edges_1():
@@ -21,7 +21,7 @@ def test_mark_polymeric_bonds_in_foldforest_edges_1():
     edges[:, 1, 2] = 0
 
     polymeric_connection_in_edge, count_bad_edges, bad_edges = (
-        mark_polymeric_bonds_in_foldforest_edges(3, 11, n_res_per_tree, edges)
+        _mark_polymeric_bonds_in_foldforest_edges(3, 11, n_res_per_tree, edges)
     )
 
     polymeric_connections_gold = numpy.zeros((3, 11, 11), dtype=numpy.int64)
@@ -79,7 +79,7 @@ def test_mark_polymeric_bonds_in_foldforest_edges_2():
     edges[2, 1, 2] = 4
     n_res_per_tree = numpy.array([8, 11, 5], dtype=numpy.int64)
 
-    polymeric_connection_in_edge, _1, _2 = mark_polymeric_bonds_in_foldforest_edges(
+    polymeric_connection_in_edge, _1, _2 = _mark_polymeric_bonds_in_foldforest_edges(
         3, 11, n_res_per_tree, edges
     )
 
@@ -138,7 +138,7 @@ def test_mark_polymeric_bonds_in_foldforest_edges_3():
 
     n_res_per_tree = numpy.array([8, 11, 5], dtype=numpy.int64)
 
-    polymeric_connection_in_edge, _1, _2 = mark_polymeric_bonds_in_foldforest_edges(
+    polymeric_connection_in_edge, _1, _2 = _mark_polymeric_bonds_in_foldforest_edges(
         3, 11, n_res_per_tree, edges
     )
 
@@ -203,7 +203,7 @@ def test_bfs_proper_forest_1():
     for pid, r1, r2 in edges:
         connections[pid, r1, r2] = 1
 
-    cycles_detected, missing = bfs_proper_forest(roots, n_res_per_tree, connections)
+    cycles_detected, missing = _bfs_proper_forest(roots, n_res_per_tree, connections)
 
     numpy.testing.assert_equal(numpy.zeros((3, 2), dtype=numpy.int64), cycles_detected)
     numpy.testing.assert_equal(numpy.zeros((3, 11), dtype=numpy.int64), missing)
@@ -241,7 +241,7 @@ def test_bfs_proper_forest_2():
     for pid, r1, r2 in edges:
         connections[pid, r1, r2] = 1
 
-    cycles_detected, missing = bfs_proper_forest(roots, n_res_per_tree, connections)
+    cycles_detected, missing = _bfs_proper_forest(roots, n_res_per_tree, connections)
 
     cycles_detected_gold = numpy.zeros((3, 2), dtype=numpy.int64)
     cycles_detected_gold[0, 0] = 1
@@ -288,7 +288,7 @@ def test_validate_fold_forest_1():
         count_pose_edges[pid] += 1
 
     try:
-        validate_fold_forest(n_res_per_tree, edges)
+        _validate_fold_forest(n_res_per_tree, edges)
     except ValueError as verr:
         print(verr)
         assert verr is None
@@ -323,7 +323,7 @@ def test_validate_fold_forest_2():
 
     threw = False
     try:
-        validate_fold_forest(n_res_per_tree, edges)
+        _validate_fold_forest(n_res_per_tree, edges)
     except ValueError as verr:
         assert verr.args[0] == "FOLD FOREST ERROR: Block 6 unreachable in pose 1"
         threw = True
@@ -360,7 +360,7 @@ def test_validate_fold_forest_2b():
 
     threw = False
     try:
-        validate_fold_forest(n_res_per_tree, edges)
+        _validate_fold_forest(n_res_per_tree, edges)
     except ValueError as verr:
         assert verr.args[0] == "FOLD FOREST ERROR: Block 4 unreachable in pose 1"
         threw = True
@@ -402,7 +402,7 @@ def test_validate_fold_forest_2c():
 
     threw = False
     try:
-        validate_fold_forest(n_res_per_tree, edges)
+        _validate_fold_forest(n_res_per_tree, edges)
     except ValueError as verr:
         # print(verr)
         assert (
@@ -442,7 +442,7 @@ def test_validate_fold_forest_3():
 
     threw = False
     try:
-        validate_fold_forest(n_res_per_tree, edges)
+        _validate_fold_forest(n_res_per_tree, edges)
     except ValueError as verr:
         threw = True
         gold_error = (
@@ -483,7 +483,7 @@ def test_validate_fold_forest_4():
 
     threw = False
     try:
-        validate_fold_forest(n_res_per_tree, edges)
+        _validate_fold_forest(n_res_per_tree, edges)
     except ValueError as verr:
         assert (
             verr.args[0]
@@ -523,7 +523,7 @@ def test_validate_fold_forest_5():
 
     threw = False
     try:
-        validate_fold_forest(n_res_per_tree, edges)
+        _validate_fold_forest(n_res_per_tree, edges)
     except ValueError as verr:
         # print(verr)
         assert (
@@ -564,7 +564,7 @@ def test_validate_fold_forest_6():
 
     threw = False
     try:
-        validate_fold_forest(n_res_per_tree, edges)
+        _validate_fold_forest(n_res_per_tree, edges)
     except ValueError as verr:
         # print(verr)
         assert (
@@ -605,7 +605,7 @@ def test_validate_fold_forest_7():
 
     threw = False
     try:
-        validate_fold_forest(n_res_per_tree, edges)
+        _validate_fold_forest(n_res_per_tree, edges)
     except ValueError as verr:
         # print(verr)
         assert (
@@ -646,7 +646,7 @@ def test_validate_fold_forest_7b():
 
     threw = False
     try:
-        validate_fold_forest(n_res_per_tree, edges)
+        _validate_fold_forest(n_res_per_tree, edges)
     except ValueError as verr:
         # print(verr)
         assert (

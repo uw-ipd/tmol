@@ -5,9 +5,9 @@ import torch
 
 @pytest.fixture(scope="session")
 def in_place_heap():
-    from tmol._load_ext import load_module
+    from tmol._load_ext import _load_module
 
-    return load_module(
+    return _load_module(
         __name__,
         __file__,
         "in_place_heap.cpp",

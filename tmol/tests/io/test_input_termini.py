@@ -4,12 +4,11 @@ import numpy as np
 import pytest
 import torch
 
-from tmol.database import ParameterDatabase
-from tmol.io import atom_array_from_file, pose_stack_from_atom_array
+from tmol import ParameterDatabase, atom_array_from_file, pose_stack_from_atom_array
 from tmol.io._input_termini import (
     EXPLICIT_TERMINI,
-    validate_connection_hydrogens,
-    with_stated_termini,
+    _validate_connection_hydrogens,
+    _with_stated_termini,
 )
 from tmol.tests.data import data_path
 from tmol.tests.io.test_protonation import _hydrogens_on
@@ -107,7 +106,7 @@ def test_supplied_terminus_does_not_remove_an_explicit_covalent_bond():
     n = np.flatnonzero((structure.res_id == 132) & (structure.atom_name == "N"))[0]
     structure.bonds.add_bond(int(c), int(n), 1)
     with pytest.raises(ValueError, match="Stated terminus.*ALA/N -- A:130:SER/C"):
-        with_stated_termini(structure, ParameterDatabase.get_default().chemical)
+        _with_stated_termini(structure, ParameterDatabase.get_default().chemical)
 
 
 def test_nonterminal_hydrogens_do_not_close_polymer_connections():
@@ -115,7 +114,7 @@ def test_nonterminal_hydrogens_do_not_close_polymer_connections():
 
     structure = atom_array_from_ccd_code("SER")
     structure = structure[~np.isin(structure.atom_name, ("H2", "H3", "OXT", "HXT"))]
-    marked = with_stated_termini(structure, ParameterDatabase.get_default().chemical)
+    marked = _with_stated_termini(structure, ParameterDatabase.get_default().chemical)
     if EXPLICIT_TERMINI in marked.get_annotation_categories():
         assert not marked.get_annotation(EXPLICIT_TERMINI).any()
 
@@ -128,7 +127,7 @@ def test_stated_termini_use_database_residue_aliases(bonds_given):
     if not bonds_given:
         structure.bonds = None
     original = structure.copy()
-    marked = with_stated_termini(structure, ParameterDatabase.get_default().chemical)
+    marked = _with_stated_termini(structure, ParameterDatabase.get_default().chemical)
     assert (marked.get_annotation(EXPLICIT_TERMINI) == 3).all()
     np.testing.assert_array_equal(marked.res_name, original.res_name)
     np.testing.assert_array_equal(marked.coord, original.coord)
@@ -173,7 +172,9 @@ def test_connection_hydrogen_capacity_includes_charged_terminal_forms():
 
     structure = _short_gap()
     structure = structure[structure.res_id == 132]
-    structure = with_stated_termini(structure, ParameterDatabase.get_default().chemical)
+    structure = _with_stated_termini(
+        structure, ParameterDatabase.get_default().chemical
+    )
     n = int(np.flatnonzero(structure.atom_name == "N")[0])
     hydrogen = structure[structure.atom_name == "H1"].copy()
     for count in (3, 4):
@@ -181,14 +182,14 @@ def test_connection_hydrogen_capacity_includes_charged_terminal_forms():
         structure = struc.concatenate([structure, hydrogen])
         structure.bonds.add_bond(n, len(structure) - 1, struc.BondType.SINGLE)
         if count == 3:
-            validate_connection_hydrogens(
+            _validate_connection_hydrogens(
                 structure, ParameterDatabase.get_default().chemical
             )
         else:
             with pytest.raises(
                 ValueError, match="supplied 4, database forms support at most 3"
             ):
-                validate_connection_hydrogens(
+                _validate_connection_hydrogens(
                     structure, ParameterDatabase.get_default().chemical
                 )
 
@@ -206,7 +207,7 @@ def test_terminal_name_requires_chemical_identity(renamed):
     else:
         structure.atom_name[structure.atom_name == "OG"] = "OXT"
     original = structure.copy()
-    marked = with_stated_termini(structure, ParameterDatabase.get_default().chemical)
+    marked = _with_stated_termini(structure, ParameterDatabase.get_default().chemical)
     if EXPLICIT_TERMINI in marked.get_annotation_categories():
         assert not marked.get_annotation(EXPLICIT_TERMINI).any()
     np.testing.assert_array_equal(marked.coord, original.coord)
@@ -214,7 +215,7 @@ def test_terminal_name_requires_chemical_identity(renamed):
 
 
 def test_generated_polymer_terminal_names_respect_supplied_parents(torch_device):
-    from tmol.io import atom_array_from_pose_stack
+    from tmol import atom_array_from_pose_stack
 
     structure = atom_array_from_file(
         data_path("sweep_regressions", "terminal_name_collision_1a8i.pdb")
@@ -243,7 +244,7 @@ def test_generated_polymer_terminal_names_respect_supplied_parents(torch_device)
             original.bonds.remove_bond(h, o)
         elif mode == "absent":
             original.bonds = None
-        marked = with_stated_termini(
+        marked = _with_stated_termini(
             original, context.parameter_database.chemical, context.canonical_ordering
         )
         if EXPLICIT_TERMINI in marked.get_annotation_categories():
@@ -289,7 +290,7 @@ def test_terminal_oxygen_coordinated_to_metal_still_closes_port():
     structure = struc.concatenate([structure, metal])
     oxygen = int(np.flatnonzero(structure.atom_name == "OXT")[0])
     structure.bonds.add_bond(oxygen, len(structure) - 1, struc.BondType.COORDINATION)
-    marked = with_stated_termini(structure, ParameterDatabase.get_default().chemical)
+    marked = _with_stated_termini(structure, ParameterDatabase.get_default().chemical)
     assert (marked.get_annotation(EXPLICIT_TERMINI)[:-1] == 2).all()
     np.testing.assert_array_equal(marked.bonds.as_array(), structure.bonds.as_array())
 

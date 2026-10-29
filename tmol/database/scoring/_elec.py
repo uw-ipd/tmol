@@ -1,6 +1,6 @@
 import attr
 import cattr
-from tmol.database._yaml import load_yaml, existing_paths
+from tmol.database._yaml import _load_yaml, _existing_paths
 
 from typing import Tuple
 
@@ -36,9 +36,9 @@ class ElecDatabase:
 
     @classmethod
     def from_file(cls, path, generated=()):
-        raw = load_yaml(path)
-        for extra in existing_paths(generated):
-            more = load_yaml(extra)
+        raw = _load_yaml(path)
+        for extra in _existing_paths(generated):
+            more = _load_yaml(extra)
             for section in ("atom_charge_parameters", "atom_cp_reps_parameters"):
                 raw[section].extend(more.get(section, []))
         return cattr.structure(raw, cls)

@@ -4,10 +4,10 @@ import attr
 import pytest
 import torch
 
-from tmol.database import inject_residue_params
-from tmol.io import extended_pose_stack_from_sequences
-from tmol.score._annotation_cache import cached_annotation
-from tmol.score.cartbonded import CartBondedEnergyTerm
+from tmol.database import _inject_residue_params
+from tmol import extended_pose_stack_from_sequences
+from tmol.score._annotation_cache import _cached_annotation
+from tmol.score import CartBondedEnergyTerm
 
 
 def setup(term, pose):
@@ -105,7 +105,7 @@ def test_eviction_bounds_annotations_and_preserves_rendered_modules(
     ownership_mask = None
     for i in range(5):
         row = attr.evolve(original.length_parameters[0], x0=1.0 + 0.2 * i)
-        changed = inject_residue_params(
+        changed = _inject_residue_params(
             default_database,
             [],
             cartbonded_params={
@@ -128,7 +128,7 @@ def test_eviction_bounds_annotations_and_preserves_rendered_modules(
     assert len(pbt._cartbonded_annotation) <= 2
     assert all(len(bt._cartbonded_annotation) <= 2 for bt in pbt.active_block_types)
     assert (
-        cached_annotation(
+        _cached_annotation(
             pbt, "_cartbonded_annotation", terms[0]._packed_annotation_key
         )
         is None

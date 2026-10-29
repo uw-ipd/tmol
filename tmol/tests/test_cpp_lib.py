@@ -1,13 +1,13 @@
 """Tests for precompiled extension load error messages."""
 
-from tmol._cpp_lib import extension_load_error_details
+from tmol._cpp_lib import _extension_load_error_details
 
 
 def test_glibcxx_error_mentions_libstdc():
     exc = OSError(
         "/lib/x86_64-linux-gnu/libstdc++.so.6: version `GLIBCXX_3.4.32' not found"
     )
-    details = extension_load_error_details(exc)
+    details = _extension_load_error_details(exc)
     assert "libstdc++" in details
     assert "TMOL_DISABLE_WHEEL_FETCH" in details
     assert "TMOL_JIT_FALLBACK" in details
@@ -16,14 +16,14 @@ def test_glibcxx_error_mentions_libstdc():
 
 def test_glibc_error_mentions_build_from_source():
     exc = OSError("/lib64/libc.so.6: version `GLIBC_2.32' not found")
-    details = extension_load_error_details(exc)
+    details = _extension_load_error_details(exc)
     assert "glibc" in details.lower()
     assert "TMOL_DISABLE_WHEEL_FETCH" in details
 
 
 def test_generic_error_mentions_wheel_tags():
     exc = OSError("undefined symbol: some_missing_op")
-    details = extension_load_error_details(exc)
+    details = _extension_load_error_details(exc)
     assert "PyTorch >=2.11, and the CUDA major" in details
 
 
@@ -59,8 +59,8 @@ def test_native_boundary_gradients(torch_device):
 def test_native_boundary_saved_input_version(ubq_pdb, torch_device):
     import pytest
     import torch
-    from tmol.io import pose_stack_from_file
-    from tmol.score import beta2016_score_function
+    from tmol import pose_stack_from_file
+    from tmol import beta2016_score_function
 
     pose = pose_stack_from_file(
         ubq_pdb,

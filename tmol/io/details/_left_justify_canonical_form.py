@@ -1,17 +1,13 @@
 import torch
 import numpy
-from tmol.types import (
-    Tensor,
-    NDArray,
-)
+from tmol.types._torch import Tensor
+from tmol.types._array import NDArray
 from typing import Optional
-from tmol.score.common import (
-    condense_torch_inds,
-)
-from tmol.pose import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
+from tmol.score.common._stack_condense import _condense_torch_inds
+from tmol.pose._pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
 
 
-def left_justify_residue_indices(res_types, rows, res_columns):
+def _left_justify_residue_indices(res_types, rows, res_columns):
     """Rewrite a pose-indexed table's residue columns to left-justified indices."""
     is_real = res_types != -1
     old_2_new = torch.full(
@@ -34,7 +30,7 @@ def left_justify_residue_indices(res_types, rows, res_columns):
     return rewritten
 
 
-def left_justify_canonical_form(
+def _left_justify_canonical_form(
     chain_id: Tensor[torch.int32][:, :],
     res_types: Tensor[torch.int32][:, :],
     coords: Tensor[torch.float32][:, :, :, 3],
@@ -51,7 +47,7 @@ def left_justify_canonical_form(
 ):
     old_res_types = res_types
     old_res_types_real = res_types != -1
-    cinds = condense_torch_inds(old_res_types_real, res_types.device)
+    cinds = _condense_torch_inds(old_res_types_real, res_types.device)
     good_cinds = cinds[cinds >= 0].view(-1)
     nz_cinds = torch.nonzero(cinds >= 0, as_tuple=False)
     np_nz_cinds = nz_cinds.cpu().numpy()
@@ -78,7 +74,7 @@ def left_justify_canonical_form(
         atom_is_present = lj(atom_is_present, 0)
 
     def lj_res_index_list(rows, res_columns):
-        return left_justify_residue_indices(old_res_types, rows, res_columns)
+        return _left_justify_residue_indices(old_res_types, rows, res_columns)
 
     if disulfides is not None:
         disulfides = lj_res_index_list(disulfides, (1, 2))

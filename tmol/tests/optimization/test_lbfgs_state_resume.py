@@ -3,7 +3,7 @@ import copy
 import pytest
 import torch
 
-from tmol.optimization import LBFGS_Armijo
+from tmol.optimization._lbfgs_armijo import LBFGS_Armijo
 
 
 @pytest.mark.parametrize(

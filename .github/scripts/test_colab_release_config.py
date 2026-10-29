@@ -47,14 +47,15 @@ def test_colab_uses_a_released_version_and_current_tutorials():
         == "native"
     )
     assert "install_tutorial_source" not in source
-    assert "git+https://github.com/uw-ipd/tmol.git" not in source
+    assert "git+https://github.com/RosettaCommons/tmol.git" not in source
     assert "CMAKE_CUDA_ARCHITECTURES" not in source
     assert "_tmol_tutorial_visualize.py" not in source
     for notebook_path in sorted((ROOT / "docs/tutorial").glob("[0-9][0-9]_*.ipynb")):
         notebook = notebook_path.read_text(encoding="utf-8")
         assert "install_tutorial_source" not in notebook
         assert (
-            f"/uw-ipd/tmol/blob/master/docs/tutorial/{notebook_path.name}" in notebook
+            f"/RosettaCommons/tmol/blob/master/docs/tutorial/{notebook_path.name}"
+            in notebook
         )
         assert "kdidi/sphinx-docs-refactor" not in notebook
 

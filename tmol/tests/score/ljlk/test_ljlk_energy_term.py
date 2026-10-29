@@ -1,9 +1,8 @@
 import pytest
 import torch
 
-from tmol.score.ljlk import LJLKEnergyTerm
-from tmol.score.elec import ElecEnergyTerm
-from tmol.pose import PackedBlockTypes
+from tmol.score import LJLKEnergyTerm, ElecEnergyTerm
+from tmol import PackedBlockTypes
 
 from tmol.tests.score.common import EnergyTermTestBase, pose_stack_from_pdb_and_resnums
 

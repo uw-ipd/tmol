@@ -6,14 +6,10 @@ import pytest
 import torch
 import yaml
 
-from tmol.database.scoring import (
-    AngleGroup,
-    CartBondedDatabase,
-    ConnectionCartRes,
-    LengthGroup,
-)
-from tmol.score.cartbonded import CartBondedEnergyTerm
-from tmol.score.cartbonded._connection_parameters import compile_connection_parameters
+from tmol.database.scoring._cartbonded import AngleGroup, ConnectionCartRes, LengthGroup
+from tmol.database.scoring import CartBondedDatabase
+from tmol.score import CartBondedEnergyTerm
+from tmol.score.cartbonded._connection_parameters import _compile_connection_parameters
 from tmol.tests.score.common import pose_stack_from_pdb_and_resnums
 
 
@@ -212,7 +208,7 @@ def test_invalid_connection_records_raise_before_native_scoring(
     elif problem == "unknown_connection":
         rows = (attr.evolve(record, connection1="absent"),)
     with pytest.raises(ValueError):
-        compile_connection_parameters(rows, pose.packed_block_types, 0)
+        _compile_connection_parameters(rows, pose.packed_block_types, 0)
 
 
 def test_connection_records_survive_database_serialization(
@@ -261,9 +257,10 @@ def test_connection_records_survive_database_serialization(
 def test_rotamer_connection_pairs_and_gradients(
     ubq_pdb, default_database, torch_device, dun_sampler
 ):
-    from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-    from tmol.pack.rotamer import build_rotamers
-    from tmol.pose import PoseStackBuilder
+    from tmol import PackerPalette, PackerTask
+    from tmol.pack import SetPackerTask
+    from tmol.pack import build_rotamers
+    from tmol import PoseStackBuilder
 
     single = pose_stack_from_pdb_and_resnums(ubq_pdb, torch_device, [(24, 26)])
     record = peptide_record(single)
@@ -343,7 +340,7 @@ def test_rotamer_connection_pairs_and_gradients(
 def test_packing_uses_explicit_connection_parameters(
     ubq_pdb, default_database, torch_device, dun_sampler
 ):
-    from tmol.pack import PackerPalette, PackerTask
+    from tmol import PackerPalette, PackerTask
     from tmol.tests.pack.test_conjugated_group_packing import _pack_and_check_score
 
     pose = pose_stack_from_pdb_and_resnums(ubq_pdb, torch_device, [(24, 26)])
@@ -380,9 +377,9 @@ def test_identical_connection_types_require_exchange_symmetry(
     )
     if asymmetric:
         with pytest.raises(ValueError, match="exchange-symmetric"):
-            compile_connection_parameters((record,), pbt, 0)
+            _compile_connection_parameters((record,), pbt, 0)
     else:
-        keys, spans, paths, values = compile_connection_parameters(
+        keys, spans, paths, values = _compile_connection_parameters(
             (record, reverse_record(record)), pbt, 0
         )
         assert keys.shape == (2, 5)
@@ -393,7 +390,7 @@ def test_identical_connection_types_require_exchange_symmetry(
 def test_connection_records_are_scoped_in_a_mixed_pose_batch(
     ubq_pdb, default_database, torch_device
 ):
-    from tmol.pose import PoseStackBuilder
+    from tmol import PoseStackBuilder
 
     matched = pose_stack_from_pdb_and_resnums(ubq_pdb, torch_device, [(24, 26)])
     unmatched = pose_stack_from_pdb_and_resnums(ubq_pdb, torch_device, [(1, 3)])
@@ -432,8 +429,8 @@ def test_connection_records_are_scoped_in_a_mixed_pose_batch(
 def test_cartesian_minimization_restores_explicit_connection_length(
     ubq_pdb, default_database, torch_device
 ):
-    from tmol.optimization import run_cart_min
-    from tmol.score import ScoreFunction, ScoreType
+    from tmol import run_cart_min
+    from tmol import ScoreFunction, ScoreType
 
     pose = pose_stack_from_pdb_and_resnums(ubq_pdb, torch_device, [(24, 26)])
     record = peptide_record(pose)
@@ -476,11 +473,11 @@ def test_cartesian_minimization_restores_explicit_connection_length(
 def test_public_injection_retains_connection_records_when_residue_rows_change(
     ubq_pdb, default_database, torch_device
 ):
-    from tmol.database import inject_residue_params
+    from tmol.database import _inject_residue_params
 
     pose = pose_stack_from_pdb_and_resnums(ubq_pdb, torch_device, [(24, 26)])
     record = peptide_record(pose)
-    first = inject_residue_params(
+    first = _inject_residue_params(
         default_database, residue_types=[], connection_params=(record,)
     )
     before = scoring_term(pose, first).render_block_pair_scoring_module(pose)
@@ -491,7 +488,7 @@ def test_public_injection_retains_connection_records_when_residue_rows_change(
             attr.evolve(row, K=row.K + 1) for row in old_ala.length_parameters
         ),
     )
-    second = inject_residue_params(
+    second = _inject_residue_params(
         first, residue_types=[], cartbonded_params={"ALA": changed_ala}
     )
     assert second.scoring.cartbonded.connection_params == (record,)

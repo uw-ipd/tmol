@@ -1,12 +1,11 @@
 import pytest
 import torch
-from tmol import pose_stack_from_file
-from tmol.score.constraint import (
+from tmol import pose_stack_from_file, PoseStackBuilder
+from tmol.score import (
     constrain_all_ca,
     constrain_closest_interchain_ca_pair,
     create_mainchain_coordinate_constraints,
 )
-from tmol.pose import PoseStackBuilder
 
 
 def test_create_mainchain_coordinate_constraints(

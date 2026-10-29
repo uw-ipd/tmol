@@ -4,8 +4,8 @@ import attr
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_file
-from tmol.score.hbond import HBondEnergyTerm
+from tmol import pose_stack_from_file
+from tmol.score import HBondEnergyTerm
 
 
 @pytest.mark.parametrize("empty", ["donor", "acceptor", "both"])

@@ -108,7 +108,7 @@ _PREPARABLE = ("vww", "sah")
 
 def _load_ligand_array(stem: str, variant: str):
     """Load a fixture ligand CIF into a single biotite ``AtomArray``."""
-    from tmol.io import atom_array_from_file
+    from tmol import atom_array_from_file
 
     return atom_array_from_file(FIXTURE_DIR / f"{stem}.{variant}.cif")
 
@@ -140,12 +140,12 @@ def test_cif_smiles_matches_reference(stem: str, variant: str) -> None:
 def test_mapped_smiles_preserves_heavy_atom_source_order(stem: str) -> None:
     """Explicit input hydrogens do not suppress heavy-atom map numbers."""
     from tmol.ligand import ligand_smiles_from_atom_array
-    from tmol.ligand._openbabel_compat import source_atom_order_from_mapped_smiles
+    from tmol.ligand._openbabel_compat import _source_atom_order_from_mapped_smiles
 
     code, _ = _LIGANDS[stem]
     arr = _load_ligand_array(stem, "bonds_present")
     smiles = ligand_smiles_from_atom_array(arr, res_name=code, with_atom_map=True)
-    source_order = source_atom_order_from_mapped_smiles(smiles)
+    source_order = _source_atom_order_from_mapped_smiles(smiles)
     expected = tuple(i for i, element in enumerate(arr.element) if element != "H")
     assert source_order is not None
     assert sorted(source_order) == sorted(expected)
@@ -155,7 +155,7 @@ def test_mapped_smiles_preserves_heavy_atom_source_order(stem: str) -> None:
 @pytest.mark.parametrize("variant", _VARIANTS)
 def test_prepare_ligand_from_cif_registers_residue(stem: str, variant: str) -> None:
     """The CIF helper prepares and registers the ligand for both variants."""
-    from tmol.database import ParameterDatabase
+    from tmol import ParameterDatabase
     from tmol.ligand import prepare_ligand_from_cif
 
     code, _ = _LIGANDS[stem]
@@ -180,7 +180,7 @@ def test_cif_to_params_golden(stem: str, variant: str) -> None:
     """
     from collections import Counter
 
-    from tmol.database import ParameterDatabase
+    from tmol import ParameterDatabase
     from tmol.ligand import prepare_ligand_from_cif
 
     code, _ = _LIGANDS[stem]
@@ -203,9 +203,9 @@ def test_cif_ligand_pose_scores_finite(variant: str, torch_device) -> None:
     """End-to-end: a ligand-only CIF scores to a finite total via the new path."""
     import torch
 
-    from tmol.database import ParameterDatabase
-    from tmol.io import pose_stack_from_atom_array
-    from tmol.score import beta2016_score_function
+    from tmol import ParameterDatabase
+    from tmol import pose_stack_from_atom_array
+    from tmol import beta2016_score_function
 
     arr = _load_ligand_array("vww", variant)
     pose_stack, context = pose_stack_from_atom_array(
@@ -233,7 +233,7 @@ def test_fused_purine_ligand_uses_openbabel_charges(variant: str) -> None:
     charge fallback (which would re-introduce the kekulization failure) and
     confirms the OpenBabel charges are carried through to the prepared residue.
     """
-    from tmol.database import ParameterDatabase
+    from tmol import ParameterDatabase
     from tmol.ligand import prepare_ligand_from_cif
 
     param_db, _ = prepare_ligand_from_cif(

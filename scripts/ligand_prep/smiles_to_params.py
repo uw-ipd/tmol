@@ -18,9 +18,11 @@ Writes <out_prefix>.tmol .
 
 import argparse
 
-from tmol.ligand import _params_io as params_io
-from tmol.ligand import prepare_single_ligand
-from tmol.ligand._detect import nonstandard_residue_info_from_smiles_via_mol2
+from tmol.ligand import (
+    _params_io as params_io,
+    prepare_single_ligand,
+    nonstandard_residue_info_from_smiles_via_mol2,
+)
 
 
 def main() -> None:

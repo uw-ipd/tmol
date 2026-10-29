@@ -11,12 +11,9 @@ import numpy as np
 import pytest
 import torch
 
-from tmol.ligand import (
-    FRAGMENT_ID_ANNOTATION,
-    load_params_file,
-    unsplit_pose_stack,
-)
+from tmol.ligand import FRAGMENT_ID_ANNOTATION, load_params_file
 from tmol.ligand._fragmentation import (
+    _unsplit_pose_stack,
     _unsplit_build_coords,
     _unsplit_chain_and_pdb,
     _unsplit_connections,
@@ -24,7 +21,8 @@ from tmol.ligand._fragmentation import (
     _unsplit_old_to_new,
     _unsplit_per_pose_blocks,
 )
-from tmol.pose import PoseStackBuilder, SplitBlockEntry, SplitBlockMapping
+from tmol import PoseStackBuilder
+from tmol.pose._split_block_mapping import SplitBlockEntry, SplitBlockMapping
 
 DATA_DIR = Path(__file__).parent.parent / "data" / "protein_ligand_test"
 TARGET = "ace"
@@ -131,8 +129,8 @@ def _annotate_at_cuts(structure, preparation, cuts):
 
 
 def _build(structure, params_path, torch_device, *, fragmented):
-    from tmol.database import ParameterDatabase
-    from tmol.io import pose_stack_from_atom_array
+    from tmol import ParameterDatabase
+    from tmol import pose_stack_from_atom_array
 
     pose, context = pose_stack_from_atom_array(
         structure,
@@ -217,9 +215,9 @@ def test_fragment_definition_connections_icoors_and_mapping(torch_device):
 def test_fragmented_ligand_export_restores_original_residue(torch_device):
     import attr
 
-    from tmol.io import atom_array_from_pose_stack
+    from tmol import atom_array_from_pose_stack
     from tmol.io._write_pose_stack_pdb import _atom_records_from_pose_stack
-    from tmol.ligand import recombine_fragmented_ligands
+    from tmol import recombine_fragmented_ligands
 
     structure, params_path, preparation = _load_fixture()
     annotated = _annotate_at_bridge(structure, preparation)
@@ -270,7 +268,7 @@ def test_fragmented_ligand_export_restores_original_residue(torch_device):
 
 
 def test_fragmentation_uses_ligand_already_in_parameter_database(torch_device):
-    from tmol.io import pose_stack_from_atom_array
+    from tmol import pose_stack_from_atom_array
 
     structure, params_path, preparation = _load_fixture()
     _, whole_context, _ = _build(structure, params_path, torch_device, fragmented=False)
@@ -294,10 +292,8 @@ def test_fragmentation_uses_ligand_already_in_parameter_database(torch_device):
 
 
 def test_fragmented_ligand_preserves_atom37_routing(torch_device):
-    from tmol.io import (
-        pose_stack_from_atom37_and_topology,
-        prepare_atom37_pose_builder,
-    )
+    from tmol.io import pose_stack_from_atom37_and_topology
+    from tmol.io import prepare_atom37_pose_builder
 
     structure, params_path, preparation = _load_fixture()
     annotated = _annotate_at_bridge(structure, preparation)
@@ -339,7 +335,7 @@ def test_fragmented_ligand_preserves_atom37_routing(torch_device):
 
 
 def test_fragment_interactions_validate_inputs(torch_device):
-    from tmol.score import calculate_fragment_interactions
+    from tmol import calculate_fragment_interactions
 
     structure, params_path, preparation = _load_fixture()
     annotated = _annotate_at_bridge(structure, preparation)
@@ -362,7 +358,8 @@ def test_fragment_interactions_validate_inputs(torch_device):
 
 
 def test_duplicate_ligand_names_require_same_fragment_layout():
-    from tmol.ligand import LigandPreparationError, prepare_ligands
+    from tmol.ligand import LigandPreparationError
+    from tmol.ligand import prepare_ligands
 
     structure, params_path, preparation = _load_fixture()
     annotated = _annotate_at_bridge(structure, preparation)
@@ -380,7 +377,8 @@ def test_duplicate_ligand_names_require_same_fragment_layout():
 
 
 def test_prepare_ligands_rejects_too_small_fragment():
-    from tmol.ligand import LigandPreparationError, prepare_ligands
+    from tmol.ligand import LigandPreparationError
+    from tmol.ligand import prepare_ligands
 
     structure, params_path, _ = _load_fixture("egfr")
     annotated = structure.copy()
@@ -402,7 +400,8 @@ def test_prepare_ligands_rejects_too_small_fragment():
 
 
 def test_prepare_ligands_rejects_unassigned_fragment_atoms_public_path():
-    from tmol.ligand import LigandPreparationError, prepare_ligands
+    from tmol.ligand import LigandPreparationError
+    from tmol.ligand import prepare_ligands
 
     structure, params_path, _ = _load_fixture("egfr")
     annotated = structure.copy()
@@ -425,7 +424,7 @@ def test_prepare_ligands_rejects_unassigned_fragment_atoms_public_path():
 
 
 def test_fragment_validation_rejects_unsupported_layouts():
-    from tmol.ligand import (
+    from tmol.ligand._fragmentation import (
         _fragment_atom_tree,
         _validate_bonded_cut_layout,
         _validate_scoring_cut_layout,
@@ -453,7 +452,7 @@ def test_fragment_validation_rejects_unsupported_layouts():
 
 
 def test_fragment_mapping_is_stable_for_atom_array_stack(torch_device):
-    from tmol.io import pose_stack_from_atom_array
+    from tmol import pose_stack_from_atom_array
 
     structure, params_path, preparation = _load_fixture()
     annotated = _annotate_at_bridge(structure, preparation)
@@ -484,10 +483,7 @@ def test_fragment_mapping_is_stable_for_atom_array_stack(torch_device):
 
 
 def test_pose_stack_builder_preserves_fragment_mapping(torch_device):
-    from tmol.score import (
-        beta2016_score_function,
-        calculate_fragment_interactions,
-    )
+    from tmol import beta2016_score_function, calculate_fragment_interactions
 
     structure, params_path, preparation = _load_fixture()
     annotated = _annotate_at_bridge(structure, preparation)
@@ -542,10 +538,7 @@ def test_fragmented_ligand_minimize_and_pack_e2e(torch_device):
         build_coord_mask_for_mask_and_interacting_atoms,
         calculate_block_pair_ddg,
     )
-    from tmol.score import (
-        beta2016_score_function,
-        calculate_fragment_interactions,
-    )
+    from tmol import beta2016_score_function, calculate_fragment_interactions
 
     structure, params_path, preparation = _load_fixture()
     annotated = _annotate_at_bridge(structure, preparation)
@@ -604,10 +597,7 @@ def test_fragmented_ligand_ddg_and_total_pose_parity(
     target, fragmentation, torch_device
 ):
     from tmol.ops import calculate_block_pair_ddg
-    from tmol.score import (
-        beta2016_score_function,
-        calculate_fragment_interactions,
-    )
+    from tmol import beta2016_score_function, calculate_fragment_interactions
 
     structure, params_path, preparation = _load_fixture(target)
     annotated = (
@@ -820,7 +810,7 @@ def _build_fragmented(torch_device):
 
 def _make_unsplit_intermediates(pose):
     """Compute the intermediate data structures that unsplit_pose_stack builds internally."""
-    from tmol.utility.tensor import exclusive_cumsum2d
+    from tmol.utility.tensor._common_operations import _exclusive_cumsum2d
 
     sbm = pose.split_block_mapping
     pbt = pose.packed_block_types
@@ -843,7 +833,7 @@ def _make_unsplit_intermediates(pose):
         (n_poses, new_max_n_blocks), dtype=torch.int32, device=device
     )
     n_atoms_blk[real_new] = pbt.n_atoms[new_bt64[real_new]]
-    new_bco = exclusive_cumsum2d(n_atoms_blk)
+    new_bco = _exclusive_cumsum2d(n_atoms_blk)
     new_max_n_atoms = int(torch.max(torch.sum(n_atoms_blk, dim=1)).item())
     old_to_new = _unsplit_old_to_new(per_pose, pose, sbs, el)
 
@@ -1172,7 +1162,7 @@ def test_unsplit_pose_stack_no_split_mapping_is_noop(torch_device):
     structure, params_path, _ = _load_fixture()
     pose, _, _ = _build(structure, params_path, torch_device, fragmented=False)
     assert pose.split_block_mapping is None
-    result = unsplit_pose_stack(pose)
+    result = _unsplit_pose_stack(pose)
     assert result.split_block_mapping is None
     assert result.n_poses == pose.n_poses
 
@@ -1181,7 +1171,7 @@ def test_unsplit_pose_stack_block_count_decreases_by_one(torch_device):
     """Two fragment blocks collapse into one original block, reducing the count by 1."""
     pose, _ = _build_fragmented(torch_device)
     n_before = int(torch.sum(pose.block_type_ind >= 0).item())
-    result = unsplit_pose_stack(pose)
+    result = _unsplit_pose_stack(pose)
     n_after = int(torch.sum(result.block_type_ind >= 0).item())
     assert n_after == n_before - 1
 
@@ -1189,7 +1179,7 @@ def test_unsplit_pose_stack_block_count_decreases_by_one(torch_device):
 def test_unsplit_pose_stack_original_block_type_restored(torch_device):
     """The original ligand type (LG1) is present; fragment types (LG1.1, LG1.2) are gone."""
     pose, _ = _build_fragmented(torch_device)
-    result = unsplit_pose_stack(pose)
+    result = _unsplit_pose_stack(pose)
     pbt = result.packed_block_types
     names = {
         pbt.active_block_types[int(result.block_type_ind[0, b])].name
@@ -1204,14 +1194,14 @@ def test_unsplit_pose_stack_original_block_type_restored(torch_device):
 def test_unsplit_pose_stack_clears_split_block_mapping(torch_device):
     """The result always has split_block_mapping=None."""
     pose, _ = _build_fragmented(torch_device)
-    result = unsplit_pose_stack(pose)
+    result = _unsplit_pose_stack(pose)
     assert result.split_block_mapping is None
 
 
 def test_unsplit_pose_stack_fragment_atom_coords_preserved(torch_device):
     """Every atom in the unsplit ligand block carries coordinates from its fragment."""
     pose, _ = _build_fragmented(torch_device)
-    result = unsplit_pose_stack(pose)
+    result = _unsplit_pose_stack(pose)
 
     pbt_r = result.packed_block_types
     lig_block = next(
@@ -1242,7 +1232,7 @@ def test_unsplit_pose_stack_fragment_atom_coords_preserved(torch_device):
 
 def test_unsplit_pose_stack_two_pose_stack(torch_device):
     """A two-pose fragmented stack is correctly unsplit pose-independently."""
-    from tmol.io import pose_stack_from_atom_array
+    from tmol import pose_stack_from_atom_array
 
     structure, params_path, preparation = _load_fixture()
     annotated = _annotate_at_bridge(structure, preparation)
@@ -1252,7 +1242,7 @@ def test_unsplit_pose_stack_two_pose_stack(torch_device):
         stack, torch_device, context=context, no_optH=True
     )
     assert len(fragmented) == 2
-    result = unsplit_pose_stack(fragmented)
+    result = _unsplit_pose_stack(fragmented)
     assert len(result) == 2
     assert result.split_block_mapping is None
     pbt = result.packed_block_types

@@ -2,13 +2,16 @@
 
 import torch
 
-from tmol import pose_stack_from_file
-from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-from tmol.pack.rotamer import FixedAAChiSampler, IncludeCurrentSampler, build_rotamers
-from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
-from tmol.pose import PoseStackBuilder
-from tmol.score.cartbonded import CartBondedEnergyTerm
-from tmol.score.cartbonded.potentials import cartbonded_rotamer_scores
+from tmol import pose_stack_from_file, PackerPalette, PackerTask, PoseStackBuilder
+from tmol.pack import (
+    SetPackerTask,
+    FixedAAChiSampler,
+    IncludeCurrentSampler,
+    build_rotamers,
+    create_dunbrack_sampler_from_database,
+)
+from tmol.score import CartBondedEnergyTerm
+from tmol.score.cartbonded.potentials._compiled import _cartbonded_rotamer_scores
 
 
 def test_cpu_aggregate_rotamer_scores_match_serial(ubq_pdb, default_database):
@@ -46,11 +49,11 @@ def test_cpu_aggregate_rotamer_scores_match_serial(ubq_pdb, default_database):
     previous_threads = torch.get_num_threads()
     try:
         torch.set_num_threads(1)
-        expected, indices = cartbonded_rotamer_scores(coords, *tail)
+        expected, indices = _cartbonded_rotamer_scores(coords, *tail)
         assert indices.shape[1] >= 256  # Exercise parallel-dispatch eligibility.
         torch.set_num_threads(4)
         for _ in range(4):
-            actual, _ = cartbonded_rotamer_scores(coords, *tail)
+            actual, _ = _cartbonded_rotamer_scores(coords, *tail)
             torch.testing.assert_close(actual, expected, rtol=0, atol=0)
     finally:
         torch.set_num_threads(previous_threads)

@@ -6,12 +6,10 @@ import attr
 import pytest
 import torch
 
-from tmol.database.scoring._dunbrack_libraries import (
-    DunbrackRotamerLibrary,
-    DunMappingParams,
-)
-from tmol.database.scoring._mirrored_dunbrack import mirror_rotameric_data
-from tmol.score.dunbrack import DunbrackParamResolver
+from tmol.database.scoring import DunbrackRotamerLibrary
+from tmol.database.scoring._dunbrack_libraries import DunMappingParams
+from tmol.database.scoring._mirrored_dunbrack import _mirror_rotameric_data
+from tmol.score.dunbrack._params import DunbrackParamResolver
 
 LEGACY_BINARY = Path(__file__).parents[3] / "database/default/scoring/dunbrack.bin"
 
@@ -38,8 +36,8 @@ def test_double_reflection_restores_all_library_data(
             backbone_dihedral_start=original.backbone_dihedral_start
             + torch.tensor([1.25, -2.0]),
         )
-    mirrored = mirror_rotameric_data(original)
-    restored = mirror_rotameric_data(mirrored)
+    mirrored = _mirror_rotameric_data(original)
+    restored = _mirror_rotameric_data(mirrored)
     assert mirrored.backbone_is_mirrored is True
     assert restored.backbone_is_mirrored is False
     for field in attr.fields(type(original)):
@@ -68,7 +66,7 @@ def test_reflection_follows_renamed_libraries_through_serialization(
     reflected = attr.evolve(
         ordinary,
         table_name="private_rotamers",
-        rotameric_data=mirror_rotameric_data(ordinary.rotameric_data),
+        rotameric_data=_mirror_rotameric_data(ordinary.rotameric_data),
     )
     # An unmirrored name beginning with d must not imply reflection either.
     original = attr.evolve(ordinary, table_name="different_original")
@@ -123,7 +121,7 @@ def test_mirrored_mean_coefficients_use_the_reflected_angular_branch(default_dat
         rotameric_data=attr.evolve(ordinary.rotameric_data, rotamer_means=means),
     )
     mirrored = attr.evolve(
-        source, rotameric_data=mirror_rotameric_data(source.rotameric_data)
+        source, rotameric_data=_mirror_rotameric_data(source.rotameric_data)
     )
     left, _, _ = DunbrackParamResolver._calculate_rot_mean_coeffs(
         [source], torch.device("cpu")

@@ -2,24 +2,20 @@ import attr
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_file
-from tmol.pose import PoseStackBuilder
-from tmol.optimization import (
-    LBFGS_Armijo,
-    CartesianSfxnNetwork,
-    KinForestSfxnNetwork,
-    build_kinforest_network,
-)
-from tmol.score import (
+from tmol import (
+    pose_stack_from_file,
+    PoseStackBuilder,
     ScoreFunction,
     ScoreType,
     beta2016_score_function,
-)
-from tmol.kinematics import (
     FoldForest,
     MoveMap,
-    PoseStackKinematicsModule,
 )
+from tmol.optimization._lbfgs_armijo import LBFGS_Armijo
+from tmol.optimization._sfxn_modules import CartesianSfxnNetwork
+from tmol.optimization import KinForestSfxnNetwork
+from tmol.optimization._minimizers import _build_kinforest_network
+from tmol.kinematics import PoseStackKinematicsModule
 
 
 def test_cart_minimize_w_pose_and_sfxn_smoke(ubq_pdb, default_database, torch_device):
@@ -134,7 +130,7 @@ def test_kin_network_reset_reuses_topology_and_updates_weights(
     pose_stack, sfxn, ff, mm = _kin_network_inputs(
         ubq_pdb, default_database, torch_device
     )
-    network = build_kinforest_network(
+    network = _build_kinforest_network(
         pose_stack, sfxn, ff, mm, cuda_graph=torch_device.type == "cuda"
     )
     assert [p for p in network.parameters()] == [network.masked_dofs]
@@ -145,7 +141,7 @@ def test_kin_network_reset_reuses_topology_and_updates_weights(
     sfxn.set_weight(ScoreType.fa_ljatr, 0.5)
     assert network._reset(sfxn, updated_pose, ff, mm)
     actual = _score_and_gradient(network)
-    expected = _score_and_gradient(build_kinforest_network(updated_pose, sfxn, ff, mm))
+    expected = _score_and_gradient(_build_kinforest_network(updated_pose, sfxn, ff, mm))
 
     torch.testing.assert_close(network.full_coords, updated_pose.coords)
     torch.testing.assert_close(actual[0], expected[0])
@@ -165,8 +161,8 @@ def test_kin_network_cuda_graph_matches_eager(ubq_pdb, default_database, torch_d
 
     device = torch_device
     pose_stack, sfxn, ff, mm = _kin_network_inputs(ubq_pdb, default_database, device)
-    graphed = build_kinforest_network(pose_stack, sfxn, ff, mm, cuda_graph="both")
-    eager = build_kinforest_network(pose_stack, sfxn, ff, mm)
+    graphed = _build_kinforest_network(pose_stack, sfxn, ff, mm, cuda_graph="both")
+    eager = _build_kinforest_network(pose_stack, sfxn, ff, mm)
     assert set(graphed._cuda_graphs) == {"forward", "autograd"}
 
     generator = torch.Generator(device=device).manual_seed(0)

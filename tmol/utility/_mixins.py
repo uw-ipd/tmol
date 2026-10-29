@@ -6,12 +6,12 @@ from toolz.dicttoolz import merge
 QualifiedName = NewType("QualifiedName", str)
 
 
-def qualified_name(obj: Union[Type, Callable]) -> QualifiedName:
+def _qualified_name(obj: Union[Type, Callable]) -> QualifiedName:
     """The fully qualified <module>.<name> for a class/function."""
     return f"{obj.__module__}.{obj.__qualname__}"
 
 
-def gather_superclass_properies(
+def _gather_superclass_properies(
     obj: Any, property_name: str
 ) -> Dict[QualifiedName, Any]:
     """Gather property values from all base classes of an object.
@@ -26,12 +26,12 @@ def gather_superclass_properies(
     for base_class in obj.__class__.__mro__:
         prop = base_class.__dict__.get(property_name, None)
         if prop:
-            vals[qualified_name(base_class)] = prop.fget(obj)
+            vals[_qualified_name(base_class)] = prop.fget(obj)
 
     return vals
 
 
-def cooperative_superclass_factory(cls, factory_func_name, *args, **kwargs):
+def _cooperative_superclass_factory(cls, factory_func_name, *args, **kwargs):
     """Gather class factory components from subclasses and create object.
 
     Traverses a class __mro__ in *reverse* order accumulating __init__

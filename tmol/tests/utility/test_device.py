@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from tmol.utility._device import synchronize_device
+from tmol.utility._device import _synchronize_device
 
 
 def test_synchronize_device_is_a_cpu_noop(
@@ -12,7 +12,7 @@ def test_synchronize_device_is_a_cpu_noop(
 
     monkeypatch.setattr(torch.cuda, "synchronize", unexpected_synchronize)
 
-    synchronize_device(torch.device("cpu"))
+    _synchronize_device(torch.device("cpu"))
 
 
 def test_synchronize_device_targets_a_concrete_cuda_device(
@@ -22,6 +22,6 @@ def test_synchronize_device_targets_a_concrete_cuda_device(
     monkeypatch.setattr(torch.cuda, "current_device", lambda: 2)
     monkeypatch.setattr(torch.cuda, "synchronize", synchronized.append)
 
-    synchronize_device(torch.device("cuda"))
+    _synchronize_device(torch.device("cuda"))
 
     assert synchronized == [torch.device("cuda", 2)]

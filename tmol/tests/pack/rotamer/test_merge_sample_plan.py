@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from tmol.pack.rotamer._build_rotamers import merge_conformer_samples
+from tmol.pack.rotamer._build_rotamers import _merge_conformer_samples
 
 
 def samples_from_counts(rows, device):
@@ -38,7 +38,7 @@ def test_merge_preserves_source_rows_and_empty_slots(
     if mixed_indices:
         counts0, indices, extra = samples[0]
         samples[0] = (counts0, indices.long(), extra)
-    merged_counts, sampler_ids, gbts, masks, destinations = merge_conformer_samples(
+    merged_counts, sampler_ids, gbts, masks, destinations = _merge_conformer_samples(
         samples
     )
     # Independent record enumeration, ordered by type, then sampler, then row.
@@ -91,4 +91,4 @@ def test_merge_rejects_a_plan_it_cannot_scatter(
         {},
     )
     with pytest.raises(ValueError, match=match):
-        merge_conformer_samples([sample])
+        _merge_conformer_samples([sample])

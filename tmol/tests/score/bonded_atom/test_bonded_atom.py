@@ -1,13 +1,13 @@
 import torch
 
-from tmol.io import pose_stack_from_file
-from tmol.score import BondDependentTerm
+from tmol import pose_stack_from_file
+from tmol.score._bond_dependent_term import BondDependentTerm
 
 
 def test_bonded_atom_two_iterations(ubq_pdb, default_database, torch_device):
-    from tmol._load_ext import load_module
+    from tmol._load_ext import _load_module
 
-    compiled = load_module(
+    compiled = _load_module(
         __name__,
         __file__,
         ["test_cpu.cpp", "test.pybind.cpp", "test_cuda.cu"],

@@ -4,7 +4,7 @@ import attr
 import pandas
 import pytest
 
-from tmol.score.dunbrack import DunbrackParamResolver
+from tmol.score.dunbrack._params import DunbrackParamResolver
 from tmol.tests.score.dunbrack.test_empty_libraries import select_libraries
 
 

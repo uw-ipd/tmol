@@ -3,20 +3,16 @@ import attr
 
 from typing import TYPE_CHECKING, Any, Union
 
-from tmol.types import (
-    Tensor,
-    validate_args,
-)
+from tmol.types._torch import Tensor
+from tmol.types._functional import _validate_args
 from tmol.chemical import RefinedResidueType
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
-from tmol.kinematics import KinForest
-from tmol.pack.rotamer import ConformerSample, ConformerSampler
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
+from tmol.kinematics._datatypes import KinForest
+from tmol.pack.rotamer._conformer_sampler import ConformerSample, ConformerSampler
 
 if TYPE_CHECKING:
-    from tmol.pack import PackerTask
+    from tmol.pack._packer_task import PackerTask
 
 
 @attr.s(auto_attribs=True)
@@ -28,22 +24,22 @@ class ChiSampler(ConformerSampler):
         """Return the stable name used for chi-sampler annotations."""
         raise NotImplementedError()
 
-    @validate_args
+    @_validate_args
     def annotate_residue_type(self, rt: RefinedResidueType) -> None:
         """Attach optional sampler metadata to one residue type."""
         pass
 
-    @validate_args
+    @_validate_args
     def annotate_packed_block_types(self, packed_block_types: PackedBlockTypes) -> None:
         """Attach optional sampler metadata to packed block types."""
         pass
 
-    @validate_args
+    @_validate_args
     def defines_rotamers_for_rt(self, rt: RefinedResidueType) -> bool:
         """Return whether this sampler supports a residue type."""
         raise NotImplementedError()
 
-    @validate_args
+    @_validate_args
     def first_sc_atoms_for_rt(self, rt_name: str) -> tuple[str, ...]:
         """Return side-chain roots used to transfer main-chain geometry."""
         raise NotImplementedError()
@@ -97,7 +93,7 @@ class ChiSampler(ConformerSampler):
         sample_dict: dict[str, Any],
         conf_dofs_kto: Tensor[torch.float32][:, 9],
     ) -> None:
-        copy_dofs_from_orig_to_rotamers_for_sampler(
+        _copy_dofs_from_orig_to_rotamers_for_sampler(
             pose_stack,
             task,
             id(self),
@@ -116,7 +112,7 @@ class ChiSampler(ConformerSampler):
         if chi.shape[0] == 0:
             return
 
-        assign_chi_dofs_from_samples(
+        _assign_chi_dofs_from_samples(
             pose_stack.packed_block_types,
             block_type_ind_for_conformer,
             conf_inds_for_sampler,
@@ -129,8 +125,8 @@ class ChiSampler(ConformerSampler):
         )
 
 
-@validate_args
-def copy_dofs_from_orig_to_rotamers_for_sampler(
+@_validate_args
+def _copy_dofs_from_orig_to_rotamers_for_sampler(
     poses: PoseStack,
     task,
     sampler_name: Union[str, int],
@@ -143,7 +139,7 @@ def copy_dofs_from_orig_to_rotamers_for_sampler(
     orig_dofs_kto: Tensor[torch.float32][:, 9],
     rot_dofs_kto: Tensor[torch.float32][:, 9],
 ) -> None:
-    dst, src = create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler(
+    dst, src = _create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler(
         poses,
         task,
         sampler_name,
@@ -164,7 +160,7 @@ def copy_dofs_from_orig_to_rotamers_for_sampler(
     )
 
 
-def create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler(
+def _create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler(
     poses: PoseStack,
     task: "PackerTask",  # noqa F821
     sampler_name: Union[str, int],
@@ -222,8 +218,8 @@ def create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler(
     return target_local[present], source_local[present]
 
 
-@validate_args
-def assign_chi_dofs_from_samples(
+@_validate_args
+def _assign_chi_dofs_from_samples(
     pbt: PackedBlockTypes,
     block_type_ind_for_rot: Tensor[torch.int64][:],
     conf_inds_for_sampler: Tensor[torch.int64][:],

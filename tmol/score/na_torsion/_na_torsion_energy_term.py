@@ -2,30 +2,28 @@ import numpy
 import torch
 
 from .._energy_term import EnergyTerm
-from .._annotation_cache import AnnotationKey, cached_annotation, store_annotation
+from .._annotation_cache import AnnotationKey, _cached_annotation, _store_annotation
 
 from tmol.database import ParameterDatabase
 from tmol.chemical import RefinedResidueType
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
 from ._params import (
     NaTorsionParams,
-    block_type_params,
-    polymer_index,
+    _block_type_params,
+    _polymer_index,
     TORSION_NAMES,
     TORSION_IND,
     SYN_MEAN,
 )
 from ._potentials import (
-    bi_bii_weight,
-    blended_devsq,
-    dihedral,
+    _bi_bii_weight,
+    _blended_devsq,
+    _dihedral,
     pucker_weights,
-    syn_weight,
-    triple_bin_weights,
-    wrap_degrees,
+    _syn_weight,
+    _triple_bin_weights,
+    _wrap_degrees,
 )
 
 N_TORSION = len(TORSION_NAMES)
@@ -69,14 +67,14 @@ class NaTorsionEnergyTerm(EnergyTerm):
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(NaTorsionEnergyTerm, self).setup_block_type(block_type)
-        cached = cached_annotation(
+        cached = _cached_annotation(
             block_type, "_na_torsion_annotation", self._block_annotation_key
         )
         if cached is not None:
             return cached
-        params = block_type_params(block_type, self.element_for_atom_type)
+        params = _block_type_params(block_type, self.element_for_atom_type)
         setattr(block_type, "na_torsion_params", params)
-        return store_annotation(
+        return _store_annotation(
             block_type,
             "_na_torsion_annotation",
             self._block_annotation_key,
@@ -86,7 +84,7 @@ class NaTorsionEnergyTerm(EnergyTerm):
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(NaTorsionEnergyTerm, self).setup_packed_block_types(packed_block_types)
-        cached = cached_annotation(
+        cached = _cached_annotation(
             packed_block_types,
             "_na_torsion_annotation",
             self._packed_annotation_key,
@@ -115,7 +113,7 @@ class NaTorsionEnergyTerm(EnergyTerm):
             "na_torsion_down",
             to_t(numpy.array([params["down"] for params in block_params])),
         )
-        return store_annotation(
+        return _store_annotation(
             packed_block_types,
             "_na_torsion_annotation",
             self._packed_annotation_key,
@@ -139,7 +137,7 @@ class NaTorsionEnergyTerm(EnergyTerm):
 
     def setup_poses(self, poses: PoseStack):
         super(NaTorsionEnergyTerm, self).setup_poses(poses)
-        cached = cached_annotation(
+        cached = _cached_annotation(
             poses, "_na_torsion_annotation", self._pose_annotation_key
         )
         if cached is not None:
@@ -159,7 +157,7 @@ class NaTorsionEnergyTerm(EnergyTerm):
         )
         poses.na_torsion_pose_params = params
         poses.na_torsion_has_na = bool(params[1].any())
-        return store_annotation(
+        return _store_annotation(
             poses,
             "_na_torsion_annotation",
             self._pose_annotation_key,
@@ -168,10 +166,10 @@ class NaTorsionEnergyTerm(EnergyTerm):
         )
 
     def get_pose_score_term_function(self):
-        return eval_na_torsion_for_pose
+        return _eval_na_torsion_for_pose
 
     def get_rotamer_score_term_function(self):
-        return eval_na_torsion_for_rotamers
+        return _eval_na_torsion_for_rotamers
 
     def _pose_has_na(self, pose_stack):
         if hasattr(pose_stack, "na_torsion_has_na"):
@@ -309,7 +307,7 @@ def _resolve_uaids(
     return pose, offset + local, ok
 
 
-def eval_na_torsion_for_pose(
+def _eval_na_torsion_for_pose(
     # common args
     rot_coords,
     _rot_coord_offset,
@@ -368,9 +366,9 @@ def eval_na_torsion_for_pose(
         return _finish((zero, zero), output_block_pair_energies)
 
     if rot_coords.is_cuda and not output_block_pair_energies:
-        from .potentials import na_torsion_pose_score
+        from .potentials._compiled import _na_torsion_pose_score
 
-        return na_torsion_pose_score(
+        return _na_torsion_pose_score(
             rot_coords,
             pose_base,
             pose_is_na,
@@ -422,7 +420,7 @@ def eval_na_torsion_for_pose(
         pucker_temperature,
         bin_blend_sdev,
     )
-    poly = polymer_index(pose_base)
+    poly = _polymer_index(pose_base)
     harmonic = (
         weight_bb[poly] * e_bb + weight_chi[poly] * e_chi + weight_sugar[poly] * e_sugar
     )
@@ -524,7 +522,7 @@ def _pose_subterms(
     return tuple(energy.reshape(shape) for energy in energies)
 
 
-def na_torsion_subterms(
+def _na_torsion_subterms(
     rot_coords,
     block_type_ind_for_rot,
     bt_base,
@@ -619,8 +617,8 @@ def _subterm_energies(
     is_na = base >= 0
     # DNA and RNA share the functional form and nothing else; every table below
     # that is not per-base is gathered on this index
-    poly = polymer_index(base)
-    tors = dihedral(xyz[..., 0, :], xyz[..., 1, :], xyz[..., 2, :], xyz[..., 3, :])
+    poly = _polymer_index(base)
+    tors = _dihedral(xyz[..., 0, :], xyz[..., 1, :], xyz[..., 2, :], xyz[..., 3, :])
     tors = torch.where(tor_ok, tors, torch.zeros_like(tors)) % 360.0
     zero = torch.zeros(tors.shape[:-1], dtype=dtype, device=tors.device)
 
@@ -638,22 +636,22 @@ def _subterm_energies(
     bin_w = {}
     for tor in (ALPHA, GAMMA):
         ang = tors[..., tor]
-        w = triple_bin_weights(ang, means[:, tor, :3], bin_blend_sdev)
+        w = _triple_bin_weights(ang, means[:, tor, :3], bin_blend_sdev)
         bin_w[tor] = w
         e_bb = e_bb + torch.where(
             tor_ok[..., tor],
-            blended_devsq(ang, means[:, tor, :3], w) / sdev_bb[:, tor] ** 2,
+            _blended_devsq(ang, means[:, tor, :3], w) / sdev_bb[:, tor] ** 2,
             zero,
         )
 
-    w_bi = bi_bii_weight(tors[..., EPSILON], tors[..., ZETA])
+    w_bi = _bi_bii_weight(tors[..., EPSILON], tors[..., ZETA])
     both = tor_ok[..., EPSILON] & tor_ok[..., ZETA]
     for tor in (EPSILON, ZETA):
         ang = tors[..., tor]
         w = torch.stack([w_bi, 1.0 - w_bi], dim=-1)
         e_bb = e_bb + torch.where(
             both,
-            blended_devsq(ang, means[:, tor, :2], w) / sdev_bb[:, tor] ** 2,
+            _blended_devsq(ang, means[:, tor, :2], w) / sdev_bb[:, tor] ** 2,
             zero,
         )
 
@@ -665,7 +663,7 @@ def _subterm_energies(
     ang = tors[..., BETA]
     e_bb = e_bb + torch.where(
         tor_ok[..., BETA],
-        blended_devsq(
+        _blended_devsq(
             ang, means[:, BETA, :2], torch.stack([w_beta, 1.0 - w_beta], dim=-1)
         )
         / sdev_bb[:, BETA] ** 2,
@@ -674,11 +672,11 @@ def _subterm_energies(
 
     # --- chi ----------------------------------------------------------------
     chi = tors[..., CHI]
-    w_syn = syn_weight(chi)
-    dev_pucker = wrap_degrees(
+    w_syn = _syn_weight(chi)
+    dev_pucker = _wrap_degrees(
         chi.unsqueeze(-1) - chi_means.to(dtype)[base.clamp_min(0)]
     )
-    dev_syn = wrap_degrees(chi - SYN_MEAN).unsqueeze(-1)
+    dev_syn = _wrap_degrees(chi - SYN_MEAN).unsqueeze(-1)
     w_syn1 = w_syn.unsqueeze(-1)
     e_chi = (pucker * ((1.0 - w_syn1) * dev_pucker**2 + w_syn1 * dev_syn**2)).sum(
         -1
@@ -688,7 +686,7 @@ def _subterm_energies(
     # --- sugar --------------------------------------------------------------
     e_sugar = zero
     for slot, tor in enumerate(SUGAR_SLOTS):
-        dev = wrap_degrees(
+        dev = _wrap_degrees(
             tors[..., tor].unsqueeze(-1) - sugar_means.to(dtype)[poly][:, :, slot]
         )
         e_sugar = e_sugar + torch.where(
@@ -850,7 +848,7 @@ def _rotamer_indices(
     )
 
 
-def eval_na_torsion_for_rotamers(
+def _eval_na_torsion_for_rotamers(
     # common args
     rot_coords,
     rot_coord_offset,
@@ -920,9 +918,9 @@ def eval_na_torsion_for_rotamers(
         base = rotamer_base
         is_na = rotamer_is_na
         if rot_coords.is_cuda and not rot_coords.requires_grad:
-            from .potentials import na_torsion_pose_score
+            from .potentials._compiled import _na_torsion_pose_score
 
-            score = na_torsion_pose_score(
+            score = _na_torsion_pose_score(
                 rot_coords,
                 base.unsqueeze(1),
                 is_na.unsqueeze(1),
@@ -980,7 +978,7 @@ def eval_na_torsion_for_rotamers(
                 pucker_temperature,
                 bin_blend_sdev,
             )
-            poly = polymer_index(base)
+            poly = _polymer_index(base)
             harmonic = (
                 weight_bb[poly] * e_bb
                 + weight_chi[poly] * e_chi

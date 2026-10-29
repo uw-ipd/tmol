@@ -12,24 +12,31 @@ import numpy
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_atom_array
-from tmol.io import atom_array_from_file
-from tmol.pack import PackerTask, PackerPalette, pack_rotamers
+from tmol import (
+    pose_stack_from_atom_array,
+    atom_array_from_file,
+    PackerTask,
+    PackerPalette,
+    pack_rotamers,
+    beta2016_score_function,
+)
 from tmol.pack._impose_rotamers import (
-    chosen_rotamer_for_block,
-    impose_top_rotamer_assignments,
+    _chosen_rotamer_for_block,
+    _impose_top_rotamer_assignments,
 )
 from tmol.pack._pack_rotamers import _calculate_packer_energies
-from tmol.pack._packer_task import SetPackerTask
-from tmol.pack import run_simulated_annealing
-from tmol.pack.rotamer import FixedAAChiSampler, build_rotamers
-from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
-from tmol.pack.rotamer._conjugated_groups import (
-    add_conjugated_group_sampler,
-    find_conjugated_groups,
-    write_group_members,
+from tmol.pack import (
+    SetPackerTask,
+    FixedAAChiSampler,
+    build_rotamers,
+    create_dunbrack_sampler_from_database,
 )
-from tmol.score import beta2016_score_function
+from tmol.pack._simulated_annealing import _run_simulated_annealing
+from tmol.pack.rotamer._conjugated_groups import (
+    _add_conjugated_group_sampler,
+    _write_group_members,
+)
+from tmol.pose._conjugated_groups import _find_conjugated_groups
 from tmol.tests.data import data_path
 
 FIXTURES = {
@@ -55,7 +62,7 @@ def _task(pose_stack, param_db, device):
     task = PackerTask(pose_stack, PackerPalette())
     task.add_conformer_sampler(create_dunbrack_sampler_from_database(param_db, device))
     task.add_conformer_sampler(FixedAAChiSampler())
-    sampler = add_conjugated_group_sampler(task, pose_stack)
+    sampler = _add_conjugated_group_sampler(task, pose_stack)
     task.restrict_to_repacking()
     return task, sampler
 
@@ -97,7 +104,7 @@ def test_every_member_of_a_group_gets_the_same_rotamers(fixture, torch_device):
     pose_stack, rotamer_set = build_rotamers(
         pose_stack, SetPackerTask.from_packer_task(task), param_db.chemical
     )
-    groups = find_conjugated_groups(pose_stack)
+    groups = _find_conjugated_groups(pose_stack)
     assert groups, "the fixture is supposed to have a conjugated group"
 
     for group in groups:
@@ -125,7 +132,7 @@ def test_a_group_is_sampled_as_the_product_of_its_parts(torch_device):
     for rt in pbt.active_block_types:
         sampler.library_sampler.annotate_residue_type(rt)
     sampler.library_sampler.annotate_packed_block_types(pbt)
-    groups = find_conjugated_groups(pose_stack)
+    groups = _find_conjugated_groups(pose_stack)
     anchor_chi = sampler.anchor_library_chi(pose_stack, set_task, groups)
     enumerated = sampler.group_conformers(pose_stack, anchor_chi)
     assert enumerated, "the fixture is supposed to have a sampled group"
@@ -166,7 +173,7 @@ def test_the_bond_survives_packing(fixture, torch_device):
     param_db = ctx.parameter_database
     sfxn = beta2016_score_function(torch_device, param_db=param_db)
 
-    groups = find_conjugated_groups(pose_stack)
+    groups = _find_conjugated_groups(pose_stack)
     before = _linkage_lengths(pose_stack, groups)
 
     task, _ = _task(pose_stack, param_db, torch_device)
@@ -217,10 +224,10 @@ def _pack_and_check_score(pose_stack, param_db, torch_device, task=None):
     if default_task:
         assert collapse is not None, "the group should have been folded together"
 
-    scores, assignments = run_simulated_annealing(tables)
+    scores, assignments = _run_simulated_annealing(tables)
     # blocks treated as background are left out of the packer's tables
     scores = scores + bg_bg_energies.unsqueeze(1)
-    new_pose_stack = impose_top_rotamer_assignments(
+    new_pose_stack = _impose_top_rotamer_assignments(
         pose_stack,
         rotamer_set,
         rotamer_for_nonmolten_block,
@@ -230,11 +237,11 @@ def _pack_and_check_score(pose_stack, param_db, torch_device, task=None):
         assignments,
     )
     if collapse is not None:
-        new_pose_stack = write_group_members(
+        new_pose_stack = _write_group_members(
             new_pose_stack,
             rotamer_set,
             collapse,
-            chosen_rotamer_for_block(
+            _chosen_rotamer_for_block(
                 pose_stack,
                 rotamer_for_nonmolten_block,
                 n_molten_blocks_per_pose,
@@ -265,22 +272,22 @@ def test_default_relax_samples_general_chemistry(
 ):
     """Default FastRelax samples attached groups and nucleic acids coherently."""
     import tmol.pack._pack_rotamers as packing
-    from tmol.kinematics import CartesianMoveMap, FoldForest
-    from tmol.optimization import run_cart_min
-    from tmol.relax import fast_relax
+    from tmol import CartesianMoveMap, FoldForest
+    from tmol import run_cart_min
+    from tmol import fast_relax
 
     if chemistry != "dna":
         pose, context = _pose(FIXTURES.get(chemistry, chemistry), torch_device)
         database = context.parameter_database
     else:
-        from tmol.io import pose_stack_from_file
+        from tmol import pose_stack_from_file
 
         pose = pose_stack_from_file(
             dna_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
         )
         database = default_database
     score = beta2016_score_function(torch_device, param_db=database)
-    groups = find_conjugated_groups(pose)
+    groups = _find_conjugated_groups(pose)
     initial = _linkage_lengths(pose, groups)
     build = packing.build_rotamers
     sampled = []

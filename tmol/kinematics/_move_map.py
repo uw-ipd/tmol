@@ -1,10 +1,10 @@
 import attrs
 import torch
 
-from tmol.types import Tensor
+from tmol.types._torch import Tensor
 
-from tmol.pose import PoseStack
-from tmol.kinematics import (
+from tmol.pose._pose_stack import PoseStack
+from tmol.kinematics._datatypes import (
     KinematicModuleData,
     n_movable_bond_dof_types,
     n_movable_jump_dof_types,
@@ -18,21 +18,21 @@ class CartesianMoveMap:
     """Move map for Cartesian-space minimization.
 
     A lightweight wrapper around a coordinate mask that can be passed as the
-    ``move_map`` argument to :func:`~tmol.relax._fast_relax.fast_relax` when
+    ``move_map`` argument to :func:`~tmol.fast_relax` when
     using a Cartesian ``min_fn`` (e.g. one built around
-    :func:`~tmol.optimization._minimizers.run_cart_min`).
+    :func:`~tmol.run_cart_min`).
 
     Unlike the full :class:`MoveMap`, which describes freedom in internal
     (torsion/jump) DOF space, ``CartesianMoveMap`` works directly in atomic
     Cartesian space.  The ``min_fn`` is responsible for extracting
     ``coord_mask`` and passing it to
-    :class:`~tmol.optimization._sfxn_modules.CartesianSfxnNetwork`.
+    ``CartesianSfxnNetwork``.
 
     Args:
         coord_mask: Boolean tensor of shape ``[n_poses, max_n_atoms]``
             indicating which atoms are free to move.  ``None`` means all
             atoms are free to move (the default behaviour of
-            :class:`~tmol.optimization._sfxn_modules.CartesianSfxnNetwork`).
+            ``CartesianSfxnNetwork``).
     """
 
     coord_mask: torch.Tensor | None = None
@@ -448,12 +448,12 @@ class MinimizerMap:
         kmd: KinematicModuleData,
         mm: MoveMap,
     ) -> None:
-        from tmol.kinematics.compiled import minimizer_map_from_movemap
+        from tmol.kinematics.compiled._compiled_ops import _minimizer_map_from_movemap
 
         pbt = pose_stack.packed_block_types
 
         # fmt: off
-        self.dof_mask = minimizer_map_from_movemap(
+        self.dof_mask = _minimizer_map_from_movemap(
             kmd.forest.id,
             pose_stack.max_n_pose_atoms,
             pose_stack.block_coord_offset,

@@ -1,6 +1,6 @@
 import torch
 
-from tmol.score.ref import RefEnergyTerm
+from tmol.score import RefEnergyTerm
 
 from tmol.tests.score.common import EnergyTermTestBase
 

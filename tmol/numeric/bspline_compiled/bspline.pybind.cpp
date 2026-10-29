@@ -27,12 +27,12 @@ void bind(pybind11::module& m) {
   using namespace pybind11::literals;
 
   m.def(
-      "computeCoeffs2",
+      "_computeCoeffs2",
       &ndspline_coeffs<2, 3, D, Real, Int>::computeCoeffs,
       "data"_a);
 
   m.def(
-      "interpolate2",
+      "_interpolate2",
       py::overload_cast<
           TView<Real, 2, D>,
           TView<tmol::portable::Vec<Real, 2>, 1, D> >(
@@ -41,12 +41,12 @@ void bind(pybind11::module& m) {
       "X"_a);
 
   m.def(
-      "computeCoeffs3",
+      "_computeCoeffs3",
       &ndspline_coeffs<3, 3, D, Real, Int>::computeCoeffs,
       "data"_a);
 
   m.def(
-      "interpolate3",
+      "_interpolate3",
       py::overload_cast<
           TView<Real, 3, D>,
           TView<tmol::portable::Vec<Real, 3>, 1, D> >(
@@ -55,12 +55,12 @@ void bind(pybind11::module& m) {
       "X"_a);
 
   m.def(
-      "computeCoeffs4",
+      "_computeCoeffs4",
       &ndspline_coeffs<4, 3, D, Real, Int>::computeCoeffs,
       "data"_a);
 
   m.def(
-      "interpolate4",
+      "_interpolate4",
       py::overload_cast<
           TView<Real, 4, D>,
           TView<tmol::portable::Vec<Real, 4>, 1, D> >(
@@ -74,9 +74,9 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 
   bind<tmol::Device::CPU, float, int32_t>(m);
   bind<tmol::Device::CPU, double, int32_t>(m);
-  m.def("computeCoeffs2Batch", &compute_coeffs_batch<2>, "data"_a);
-  m.def("computeCoeffs3Batch", &compute_coeffs_batch<3>, "data"_a);
-  m.def("computeCoeffs4Batch", &compute_coeffs_batch<4>, "data"_a);
+  m.def("_computeCoeffs2Batch", &compute_coeffs_batch<2>, "data"_a);
+  m.def("_computeCoeffs3Batch", &compute_coeffs_batch<3>, "data"_a);
+  m.def("_computeCoeffs4Batch", &compute_coeffs_batch<4>, "data"_a);
 }
 
 }  // namespace bspline

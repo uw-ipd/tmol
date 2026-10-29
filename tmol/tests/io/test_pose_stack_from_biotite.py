@@ -6,24 +6,23 @@ from biotite.structure.io.pdbx import CIFFile, set_structure
 import pytest
 import torch
 
-from tmol.io import (
+from tmol import (
     atom_array_from_file,
-    build_context_from_atom_array,
     file_from_atom_array,
     file_from_pose_stack,
-    canonical_form_from_biotite,
     pose_stack_from_atom_array,
     pose_stack_from_file,
     atom_array_from_pose_stack,
-    pose_stack_from_canonical_form,
+    PoseStackBuilder,
 )
+from tmol.io import build_context_from_atom_array, canonical_form_from_biotite
+from tmol.io._pose_stack_construction import _pose_stack_from_canonical_form
 from tmol.io._pose_stack_from_biotite import (
     RESIDUE_ANNOTATIONS,
     _renumbered_for_cif,
-    canonical_ordering_for_biotite,
-    packed_block_types_for_biotite_with_metals,
+    _canonical_ordering_for_biotite,
+    _packed_block_types_for_biotite_with_metals,
 )
-from tmol.pose import PoseStackBuilder
 from tmol.tests.data import data_path, load_cif
 
 _CI_CIF_CODES = [
@@ -167,7 +166,7 @@ def test_pose_stack_from_biotite_1ubq_smoke(biotite_1ubq, torch_device):
 def test_complete_protein_skips_na_sampler_setup(
     biotite_1ubq, torch_device, monkeypatch
 ):
-    from tmol.pack.rotamer import NaChiRotamerSampler
+    from tmol.pack import NaChiRotamerSampler
 
     def unexpected_na_sampler(*_args, **_kwargs):
         raise AssertionError("NA sampler is unnecessary for a complete protein")
@@ -248,7 +247,7 @@ def test_pose_stack_from_and_to_biotite_1ubq_no_opth_smoke(biotite_1ubq, torch_d
 def test_pose_stack_from_and_to_biotite_1ubq_defaults_absent_metadata(
     biotite_1ubq, torch_device
 ):
-    from tmol.pose import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
+    from tmol.pose._pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
 
     biotite_1ubq.del_annotation("occupancy")
     biotite_1ubq.del_annotation("b_factor")
@@ -303,12 +302,12 @@ def test_pose_stack_from_and_to_biotite_multiple_poses(
 def test_canonical_form_multipose_metadata_propagation(biotite_1r21, torch_device):
     import attr
     from tmol.io._pose_stack_from_biotite import (
-        biotite_from_canonical_form,
-        canonical_ordering_for_biotite,
+        _biotite_from_canonical_form,
+        _canonical_ordering_for_biotite,
     )
 
     cf = canonical_form_from_biotite(biotite_1r21, torch_device=torch_device)
-    co = canonical_ordering_for_biotite()
+    co = _canonical_ordering_for_biotite()
     assert cf.atom_b_factor is not None
     assert cf.atom_occupancy is not None
     assert cf.atom_b_factor.shape[0] == biotite_1r21.stack_depth()
@@ -321,7 +320,7 @@ def test_canonical_form_multipose_metadata_propagation(biotite_1r21, torch_devic
     missing = co.restypes_atom_index_mapping[first_type]["CB"]
     cf.coords[0, 0, missing] = float("nan")
     cf.coords.requires_grad_()
-    restored = biotite_from_canonical_form(cf, co)
+    restored = _biotite_from_canonical_form(cf, co)
     assert restored.stack_depth() == biotite_1r21.stack_depth()
     assert set(restored.chain_id) == {"long_author_chain"}
     assert restored.ins_code[0] == "A"
@@ -345,9 +344,9 @@ def test_canonical_form_multipose_metadata_propagation(biotite_1r21, torch_devic
         changed = getattr(cf, field).copy()
         changed[1, 0, 0] += 1
         with pytest.raises(ValueError, match="different metadata"):
-            biotite_from_canonical_form(attr.evolve(cf, **{field: changed}), co)
+            _biotite_from_canonical_form(attr.evolve(cf, **{field: changed}), co)
     empty = attr.evolve(cf, coords=torch.full_like(cf.coords, float("nan")))
-    empty_array = biotite_from_canonical_form(empty, co)
+    empty_array = _biotite_from_canonical_form(empty, co)
     assert empty_array.array_length() == 0
     empty_canonical = canonical_form_from_biotite(empty_array, torch_device, co=co)
     assert empty_canonical.res_types.shape == (biotite_1r21.stack_depth(), 0)
@@ -402,7 +401,7 @@ def test_ligand_proton_chi_samples_build_finite_coords(torch_device):
     import biotite.structure.io.pdbx
     from atomworks.io.utils.io_utils import read_any
 
-    from tmol.database import ParameterDatabase
+    from tmol import ParameterDatabase
 
     cif_path = (
         pathlib.Path(__file__).resolve().parents[1]
@@ -448,11 +447,12 @@ def test_ligand_proton_chi_samples_build_finite_coords(torch_device):
     )
     torch.testing.assert_close(rebuilt.coords, pose_stack.coords, rtol=0, atol=0)
 
-    from tmol.io import canonical_form_from_pose_stack, pose_stack_from_canonical_form
+    from tmol.io._pose_stack_deconstruction import _canonical_form_from_pose_stack
+    from tmol.io._pose_stack_construction import _pose_stack_from_canonical_form
 
-    canonical = canonical_form_from_pose_stack(context.canonical_ordering, pose_stack)
+    canonical = _canonical_form_from_pose_stack(context.canonical_ordering, pose_stack)
     canonical.coords.requires_grad_()
-    trusted = pose_stack_from_canonical_form(
+    trusted = _pose_stack_from_canonical_form(
         context.canonical_ordering,
         context.packed_block_types,
         **canonical.as_dict(),
@@ -474,7 +474,7 @@ def test_ligand_build_from_mol2_bond_orders(torch_device):
     # the carboxylate oxygens.
     import pathlib
 
-    from tmol.database import ParameterDatabase
+    from tmol import ParameterDatabase
     from tmol.ligand import nonstandard_residue_info_from_mol2
 
     mol2_path = (
@@ -531,8 +531,8 @@ def test_a_capped_peptide_builds_a_pose_stack(stem, torch_device):
     read a name off of, and for NH2 the residue is too small to frame its own
     hydrogens. Both are resolved against the chain it sits in.
     """
-    from tmol.database import ParameterDatabase
-    from tmol.io import atom_array_from_file, pose_stack_from_atom_array
+    from tmol import ParameterDatabase
+    from tmol import atom_array_from_file, pose_stack_from_atom_array
     from tmol.tests.data import data_path
 
     structure = atom_array_from_file(data_path("ncaa_fixtures") / f"{stem}.cif")
@@ -559,9 +559,9 @@ def test_a_capped_peptide_builds_a_pose_stack(stem, torch_device):
 
 def test_an_amide_cap_places_its_hydrogens_in_the_amide_plane(torch_device):
     """NH2's hydrogens have no in-residue reference; the partner supplies it."""
-    from tmol.database import ParameterDatabase
-    from tmol.io import atom_array_from_file, pose_stack_from_atom_array
-    from tmol.io._pose_stack_from_biotite import atom_array_from_pose_stack
+    from tmol import ParameterDatabase
+    from tmol import atom_array_from_file, pose_stack_from_atom_array
+    from tmol import atom_array_from_pose_stack
     from tmol.tests.data import data_path
 
     structure = atom_array_from_file(
@@ -730,7 +730,7 @@ def test_an_excised_residue_leaves_the_others_their_residue_metadata(path):
     # without ligand preparation the bonded ACE cap can be neither built nor dropped
     structure = structure[~numpy.isin(structure.res_name, ("HOH", "ACE"))]
     device = torch.device("cpu")
-    co = canonical_ordering_for_biotite()
+    co = _canonical_ordering_for_biotite()
     cf = canonical_form_from_biotite(structure, device, co=co)
     labels = list(zip(cf.chain_labels[0], cf.res_labels[0]))
     by_label = {
@@ -740,8 +740,8 @@ def test_an_excised_residue_leaves_the_others_their_residue_metadata(path):
     }
     cf.res_types[0, 5] = -1
     cf.covalent_bonds = cf.covalent_bonds[(cf.covalent_bonds[:, [1, 3]] != 5).all(1)]
-    pbt = packed_block_types_for_biotite_with_metals(device)
-    info = pose_stack_from_canonical_form(co, pbt, *cf).pdb_info
+    pbt = _packed_block_types_for_biotite_with_metals(device)
+    info = _pose_stack_from_canonical_form(co, pbt, *cf).pdb_info
 
     n = len(labels) - 1
     kept = list(zip(info.chain_labels[0, :n], info.residue_labels[0, :n]))

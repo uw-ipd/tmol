@@ -3,15 +3,12 @@ import torch
 import pickle
 import pytest
 
-from tmol.pose import PoseStackBuilder
-from tmol.pack import (
-    PackerEnergyTables,
-    run_simulated_annealing,
-)
-from tmol.pack.compiled import build_interaction_graph
-from tmol.pack.rotamer import RotamerSet
-from tmol.utility import exclusive_cumsum1d
-from tmol.io import pose_stack_from_file
+from tmol import PoseStackBuilder, pose_stack_from_file
+from tmol.pack._datatypes import PackerEnergyTables
+from tmol.pack._simulated_annealing import _run_simulated_annealing
+from tmol.pack.compiled._compiled import _build_interaction_graph
+from tmol.pack import RotamerSet
+from tmol.utility._cumsum import _exclusive_cumsum1d
 
 
 @pytest.fixture
@@ -61,7 +58,7 @@ def construct_faux_rotamer_set_and_sparse_energies_table_from_ig(ig, pdb_fname, 
     n_rots_for_pose = torch.full((1,), n_rots_total, dtype=torch.int64)
     rot_offset_for_pose = torch.zeros((1,), dtype=torch.int64)
     n_rots_for_block = n_rots[None, :]
-    rot_offset_for_block = _ti64(exclusive_cumsum1d(n_rots)[None, :])
+    rot_offset_for_block = _ti64(_exclusive_cumsum1d(n_rots)[None, :])
     pose_for_rot = torch.zeros((n_rots_total,), dtype=torch.int64)
 
     rot_is_start_for_block = torch.zeros((n_rots_total), dtype=torch.int64)
@@ -159,7 +156,7 @@ def construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(  # noq
     rot_offset_for_pose = torch.zeros((2,), dtype=torch.int64)
     rot_offset_for_pose[1] = n_rots_for_pose[0]
     n_rots_for_block = n_rots
-    rot_offset_for_block = _ti64(exclusive_cumsum1d(n_rots.ravel())).reshape(
+    rot_offset_for_block = _ti64(_exclusive_cumsum1d(n_rots.ravel())).reshape(
         n_rots.shape
     )
     # print("rot_offset_for_block[:, 25]", rot_offset_for_block[:, 25])
@@ -411,7 +408,7 @@ def test_csr_interaction_graph_exact_reference(torch_device, interacting_blocks)
                 sparse_values.append(value)
                 expected[(block1, block2, local1, local2)] = value
 
-    result = build_interaction_graph(
+    result = _build_interaction_graph(
         False,
         2,
         1,
@@ -519,7 +516,7 @@ def test_build_interaction_graph(ubq_ig, torch_device):
         neighbor_chunk_offset_offsets,
         chunk_pair_offset,
         energy2b,
-    ) = build_interaction_graph(
+    ) = _build_interaction_graph(
         True,
         chunk_size,
         torch.max(rotamer_set.block_type_ind_for_rot) + 1,
@@ -678,7 +675,7 @@ def test_build_multi_pose_interaction_graph(ubq_ig, torch_device):
         neighbor_chunk_offset_offsets,
         chunk_pair_offset,
         energy2b,
-    ) = build_interaction_graph(
+    ) = _build_interaction_graph(
         True,
         chunk_size,
         torch.max(rotamer_set.block_type_ind_for_rot) + 1,
@@ -837,7 +834,7 @@ def test_run_single_pose_simA(ubq_ig, torch_device):
         neighbor_chunk_offset_offsets,
         chunk_pair_offset,
         energy2b,
-    ) = build_interaction_graph(
+    ) = _build_interaction_graph(
         False,
         chunk_size,
         torch.max(rotamer_set.block_type_ind_for_rot) + 1,
@@ -874,7 +871,7 @@ def test_run_single_pose_simA(ubq_ig, torch_device):
         energy2b=energy2b,
     )
 
-    scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
+    scores, rotamer_assignments = _run_simulated_annealing(packer_energy_tables)
 
     n_traj = 1 if torch_device == torch.device("cpu") else 312
     assert scores.shape == (1, n_traj)
@@ -915,7 +912,7 @@ def test_run_two_poses_simA(ubq_ig, torch_device):
         neighbor_chunk_offset_offsets,
         chunk_pair_offset,
         energy2b,
-    ) = build_interaction_graph(
+    ) = _build_interaction_graph(
         False,
         chunk_size,
         torch.max(rotamer_set.block_type_ind_for_rot) + 1,
@@ -954,7 +951,7 @@ def test_run_two_poses_simA(ubq_ig, torch_device):
         energy2b=energy2b,
     )
 
-    scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
+    scores, rotamer_assignments = _run_simulated_annealing(packer_energy_tables)
 
     n_traj = 1 if torch_device == torch.device("cpu") else 312
     assert scores.shape == (2, n_traj)
@@ -979,7 +976,7 @@ def test_no_bump_graph_takes_more_blocks_than_a_block_pair_table_indexes(
     assert n_blocks * n_blocks > 2**31 - 1
 
     def build(bump_check):
-        return build_interaction_graph(
+        return _build_interaction_graph(
             bump_check,
             16,
             1,

@@ -11,17 +11,17 @@ _converters = []
 
 
 @singledispatch
-def get_converter(type_annotation):
+def _get_converter(type_annotation):
     """Return the registered value converter for a type annotation."""
     for pred, conv in _converters:
         if pred(type_annotation):
             return conv(type_annotation)
 
-    return constructor_convert(type_annotation)
+    return _constructor_convert(type_annotation)
 
 
 @toolz.curry
-def constructor_convert(type_annotation, value):
+def _constructor_convert(type_annotation, value):
     """Convert a value by calling the annotated type when necessary."""
     if isinstance(value, type_annotation):
         return value
@@ -29,26 +29,26 @@ def constructor_convert(type_annotation, value):
 
 
 @toolz.curry
-def validate_convert(type_annotation, value):
+def _validate_convert(type_annotation, value):
     """Validate a value against an annotation and return it unchanged."""
-    validators.get_validator(type_annotation)(value)
+    validators._get_validator(type_annotation)(value)
 
     return value
 
 
 @toolz.curry
-def union_convert(union_annotation, value):
+def _union_convert(union_annotation, value):
     """Convert a value using the first compatible member of a union."""
     for subtype in union_annotation.__args__:
         try:
-            validators.get_validator(subtype)(value)
+            validators._get_validator(subtype)(value)
             return value
         except (TypeError, ValueError):
             pass
 
     for subtype in union_annotation.__args__:
         try:
-            return get_converter(subtype)(value)
+            return _get_converter(subtype)(value)
         except (TypeError, ValueError):
             pass
 
@@ -57,10 +57,10 @@ def union_convert(union_annotation, value):
     )
 
 
-def register_converter(type_predicate, converter):
+def _register_converter(type_predicate, converter):
     """Register a converter factory for annotations matching a predicate."""
     _converters.append((type_predicate, converter))
 
 
-register_converter(is_union_type, union_convert)
-register_converter(is_tuple_type, validate_convert)
+_register_converter(is_union_type, _union_convert)
+_register_converter(is_tuple_type, _validate_convert)

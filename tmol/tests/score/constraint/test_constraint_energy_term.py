@@ -6,10 +6,9 @@ import pytest
 import sys
 import types
 
-from tmol.pose import ConstraintSet
-from tmol.score.constraint import ConstraintEnergyTerm
+from tmol import ConstraintSet, pose_stack_from_file, ScoreFunction, ScoreType
+from tmol.score import ConstraintEnergyTerm
 from tmol.tests.score.common import EnergyTermTestBase
-from tmol import pose_stack_from_file, ScoreFunction, ScoreType
 
 
 def add_test_constraints_to_pose_stack(pose_stack):
@@ -150,7 +149,7 @@ def _circularharmonic_from_angles(monkeypatch, angles, x0, sd=0.5, offset=1.25):
     def get_torsion_angle(atoms):
         return atoms[:, 0, 0]
 
-    compiled.get_torsion_angle = get_torsion_angle
+    compiled._get_torsion_angle = get_torsion_angle
     monkeypatch.setitem(sys.modules, module_name, compiled)
 
     atoms = torch.zeros((len(angles), 4, 3), dtype=torch.float64)

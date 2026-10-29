@@ -1,9 +1,9 @@
 from tmol.score.terms import *  # noqa: F401, F403
-from tmol.score.terms import ScoreTermFactory
+from tmol.score import ScoreTermFactory
 
 import pytest
 
-from tmol.score import ScoreType
+from tmol import ScoreType
 
 
 @pytest.mark.parametrize("score_type", [ScoreType.fa_ljrep, ScoreType.omega])

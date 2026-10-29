@@ -1,7 +1,7 @@
 import torch
 
 # from tmol.score.hbond.potentials import hbond_pose_scores
-from tmol.score.common import convert_float64
+from tmol.score.common._convert_float64 import _convert_float64
 
 
 class _CoordinateIndependentScore(torch.autograd.Function):
@@ -98,7 +98,7 @@ class TermScoringModule(torch.nn.Module):
             return self._static_tail_f32
         if self._static_tail_f64 is None:
             tail_f64 = list(self._static_tail_f32[:-1])
-            convert_float64(tail_f64)
+            _convert_float64(tail_f64)
             self._static_tail_f64 = tuple(tail_f64) + (self._static_tail_f32[-1],)
         return self._static_tail_f64
 
@@ -201,10 +201,10 @@ class TermWholePoseScoringModule(TermPoseScoringModule):
 
     def build_compact_block_neighbors(self, coords, reach):
         """Build a common compact list of conservative block-neighbor pairs."""
-        from tmol.score.ljlk.potentials import build_compact_block_neighbors
+        from tmol.score.ljlk.potentials._compiled import _build_compact_block_neighbors
 
         flat = coords.detach().flatten(start_dim=0, end_dim=-2)
-        return build_compact_block_neighbors(
+        return _build_compact_block_neighbors(
             flat,
             self.common_parameters[0],
             self.common_parameters[3],

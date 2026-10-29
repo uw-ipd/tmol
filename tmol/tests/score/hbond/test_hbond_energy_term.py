@@ -2,20 +2,19 @@ import numpy
 import pytest
 import torch
 
-from tmol.io import (
+from tmol import (
     atom_array_from_file,
     pose_stack_from_atom_array,
     pose_stack_from_file,
-)
-from tmol.optimization import run_cart_min
-from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-from tmol.pack.rotamer import IncludeCurrentSampler, build_rotamers
-from tmol.pose import PoseStackBuilder
-from tmol.score.hbond import HBondEnergyTerm
-from tmol.score import (
+    run_cart_min,
+    PackerPalette,
+    PackerTask,
+    PoseStackBuilder,
     ScoreFunction,
     ScoreType,
 )
+from tmol.pack import SetPackerTask, IncludeCurrentSampler, build_rotamers
+from tmol.score import HBondEnergyTerm
 from tmol.tests.data import data_path
 from tmol.tests.score.common import EnergyTermTestBase
 
