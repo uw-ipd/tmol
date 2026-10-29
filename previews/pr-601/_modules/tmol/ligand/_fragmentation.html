@@ -49,7 +49,8 @@
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/ligand/_fragmentation';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <script src="../../../_static/tmol-explorers.js?v=089c5f52"></script>
-    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/ligand/_fragmentation.html" />
+    <script async="async" defer="defer" src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
+    <link rel="canonical" href="https://rosettacommons.github.io/tmol/latest/_modules/tmol/ligand/_fragmentation.html" />
     <link rel="icon" href="../../../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
@@ -235,7 +236,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
       
@@ -360,7 +361,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
         
@@ -406,9 +407,6 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.ligand._fragmentation</span></li>
   </ul>
 </nav>
@@ -444,9 +442,9 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">struc</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_coords_from_icoors</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical._ideal_coords</span><span class="w"> </span><span class="kn">import</span> <span class="n">_build_coords_from_icoors</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">Connection</span><span class="p">,</span> <span class="n">Icoor</span><span class="p">,</span> <span class="n">RawResidueType</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._icoor_tree</span><span class="w"> </span><span class="kn">import</span> <span class="n">signed_dihedral_angle</span><span class="p">,</span> <span class="n">vertex_angle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._icoor_tree</span><span class="w"> </span><span class="kn">import</span> <span class="n">_signed_dihedral_angle</span><span class="p">,</span> <span class="n">_vertex_angle</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">LigandPreparation</span>
 
 <span class="n">FRAGMENT_ID_ANNOTATION</span> <span class="o">=</span> <span class="s2">"tmol_fragment_id"</span>
@@ -454,8 +452,6 @@
 <span class="n">MIN_FRAGMENT_HEAVY_ATOMS</span> <span class="o">=</span> <span class="mi">3</span>
 
 
-<div class="viewcode-block" id="FragmentConnection">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.FragmentConnection">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">FragmentConnection</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""One directed side of a cut bond."""</span>
@@ -467,12 +463,11 @@
     <span class="n">atom_name</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">partner_atom_name</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">bond_type</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">in_ring</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></div>
-
+    <span class="n">in_ring</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 
 
 <div class="viewcode-block" id="LigandFragmentDefinition">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.LigandFragmentDefinition">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.LigandFragmentDefinition">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">LigandFragmentDefinition</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Structure-independent definition of one fragmented ligand type."""</span>
@@ -528,7 +523,7 @@
 
 
 <div class="viewcode-block" id="recombine_fragmented_ligands">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.recombine_fragmented_ligands">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.recombine_fragmented_ligands">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">recombine_fragmented_ligands</span><span class="p">(</span>
     <span class="n">structure</span><span class="p">:</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span> <span class="o">|</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">,</span>
     <span class="n">pose_stack</span><span class="p">,</span>
@@ -569,9 +564,7 @@
 
 
 
-<div class="viewcode-block" id="fragment_ids_from_atom_array">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.fragment_ids_from_atom_array">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">fragment_ids_from_atom_array</span><span class="p">(</span><span class="n">atom_array</span><span class="p">:</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_fragment_ids_from_atom_array</span><span class="p">(</span><span class="n">atom_array</span><span class="p">:</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Return validated fragment IDs, or ``None`` when no split is requested."""</span>
 
     <span class="k">if</span> <span class="n">FRAGMENT_ID_ANNOTATION</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">get_annotation_categories</span><span class="p">():</span>
@@ -586,8 +579,7 @@
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">FRAGMENT_ID_ANNOTATION</span><span class="si">}</span><span class="s2"> values must be non-negative"</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">fragment_ids</span><span class="p">)</span><span class="o">.</span><span class="n">size</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
-    <span class="k">return</span> <span class="n">fragment_ids</span></div>
-
+    <span class="k">return</span> <span class="n">fragment_ids</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_bond_type_name</span><span class="p">(</span><span class="n">bond</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -614,7 +606,7 @@
             <span class="n">icoor_index</span><span class="p">[</span><span class="n">icoor</span><span class="o">.</span><span class="n">great_grand_parent</span><span class="p">],</span>
         <span class="p">)</span>
         <span class="n">geom</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">icoor</span><span class="o">.</span><span class="n">phi</span><span class="p">,</span> <span class="n">icoor</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">icoor</span><span class="o">.</span><span class="n">d</span><span class="p">)</span>
-    <span class="n">coords</span> <span class="o">=</span> <span class="n">build_coords_from_icoors</span><span class="p">(</span><span class="n">ancestors</span><span class="p">,</span> <span class="n">geom</span><span class="p">)</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">_build_coords_from_icoors</span><span class="p">(</span><span class="n">ancestors</span><span class="p">,</span> <span class="n">geom</span><span class="p">)</span>
     <span class="k">return</span> <span class="p">{</span>
         <span class="n">icoor</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">coords</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">icoor</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">restype</span><span class="o">.</span><span class="n">icoors</span><span class="p">)</span>
@@ -625,7 +617,7 @@
 <span class="w">    </span><span class="sd">"""Angle at vertex b, in radians; zero where the points coincide."""</span>
     <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="n">b</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">c</span> <span class="o">-</span> <span class="n">b</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mf">1e-12</span><span class="p">:</span>
         <span class="k">return</span> <span class="mf">0.0</span>
-    <span class="k">return</span> <span class="n">vertex_angle</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_vertex_angle</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_fragment_atom_tree</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
@@ -702,7 +694,7 @@
             <span class="n">theta</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">-</span> <span class="n">_angle</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="n">coords</span><span class="p">[</span><span class="n">par</span><span class="p">],</span> <span class="n">coords</span><span class="p">[</span><span class="n">gp</span><span class="p">])</span>
             <span class="n">d</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">-</span> <span class="n">coords</span><span class="p">[</span><span class="n">par</span><span class="p">]))</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">phi</span> <span class="o">=</span> <span class="o">-</span><span class="n">signed_dihedral_angle</span><span class="p">(</span>
+            <span class="n">phi</span> <span class="o">=</span> <span class="o">-</span><span class="n">_signed_dihedral_angle</span><span class="p">(</span>
                 <span class="n">coords</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="n">coords</span><span class="p">[</span><span class="n">par</span><span class="p">],</span> <span class="n">coords</span><span class="p">[</span><span class="n">gp</span><span class="p">],</span> <span class="n">coords</span><span class="p">[</span><span class="n">ggp</span><span class="p">]</span>
             <span class="p">)</span>
             <span class="n">theta</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">-</span> <span class="n">_angle</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="n">coords</span><span class="p">[</span><span class="n">par</span><span class="p">],</span> <span class="n">coords</span><span class="p">[</span><span class="n">gp</span><span class="p">])</span>
@@ -745,7 +737,7 @@
     <span class="n">remote</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="n">connection</span><span class="o">.</span><span class="n">partner_atom_name</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">Icoor</span><span class="p">(</span>
         <span class="n">name</span><span class="o">=</span><span class="n">connection</span><span class="o">.</span><span class="n">connection_name</span><span class="p">,</span>
-        <span class="n">phi</span><span class="o">=-</span><span class="n">signed_dihedral_angle</span><span class="p">(</span><span class="n">remote</span><span class="p">,</span> <span class="n">coords</span><span class="p">[</span><span class="n">parent</span><span class="p">],</span> <span class="n">coords</span><span class="p">[</span><span class="n">gp</span><span class="p">],</span> <span class="n">coords</span><span class="p">[</span><span class="n">ggp</span><span class="p">]),</span>
+        <span class="n">phi</span><span class="o">=-</span><span class="n">_signed_dihedral_angle</span><span class="p">(</span><span class="n">remote</span><span class="p">,</span> <span class="n">coords</span><span class="p">[</span><span class="n">parent</span><span class="p">],</span> <span class="n">coords</span><span class="p">[</span><span class="n">gp</span><span class="p">],</span> <span class="n">coords</span><span class="p">[</span><span class="n">ggp</span><span class="p">]),</span>
         <span class="n">theta</span><span class="o">=</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">-</span> <span class="n">_angle</span><span class="p">(</span><span class="n">remote</span><span class="p">,</span> <span class="n">coords</span><span class="p">[</span><span class="n">parent</span><span class="p">],</span> <span class="n">coords</span><span class="p">[</span><span class="n">gp</span><span class="p">]),</span>
         <span class="n">d</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">remote</span> <span class="o">-</span> <span class="n">coords</span><span class="p">[</span><span class="n">parent</span><span class="p">])),</span>
         <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span>
@@ -798,9 +790,9 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_validate_scoring_cut_layout</span><span class="p">(</span><span class="n">restype</span><span class="p">:</span> <span class="n">RawResidueType</span><span class="p">,</span> <span class="n">cut_bonds</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">]):</span>
 <span class="w">    </span><span class="sd">"""Reject cuts that break nonbonded scoring geometry assumptions."""</span>
 
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._chemistry_tables</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_hbond_properties</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._chemistry_tables</span><span class="w"> </span><span class="kn">import</span> <span class="n">_get_hbond_properties</span>
 
-    <span class="n">hbond_properties</span> <span class="o">=</span> <span class="n">get_hbond_properties</span><span class="p">()</span>
+    <span class="n">hbond_properties</span> <span class="o">=</span> <span class="n">_get_hbond_properties</span><span class="p">()</span>
     <span class="n">atom_type_by_name</span> <span class="o">=</span> <span class="p">{</span><span class="n">atom</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">atom</span><span class="o">.</span><span class="n">atom_type</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">restype</span><span class="o">.</span><span class="n">atoms</span><span class="p">}</span>
     <span class="n">bad_cuts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">bond</span> <span class="ow">in</span> <span class="n">cut_bonds</span><span class="p">:</span>
@@ -819,14 +811,14 @@
         <span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">build_ligand_fragment_definition</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_ligand_fragment_definition</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
     <span class="n">preparation</span><span class="p">:</span> <span class="n">LigandPreparation</span><span class="p">,</span>
     <span class="n">source_atom_array</span><span class="p">:</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LigandFragmentDefinition</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Partition a fully prepared ligand according to its source annotation."""</span>
 
     <span class="n">restype</span> <span class="o">=</span> <span class="n">preparation</span><span class="o">.</span><span class="n">residue_type</span>
-    <span class="n">source_fragment_ids</span> <span class="o">=</span> <span class="n">fragment_ids_from_atom_array</span><span class="p">(</span><span class="n">source_atom_array</span><span class="p">)</span>
+    <span class="n">source_fragment_ids</span> <span class="o">=</span> <span class="n">_fragment_ids_from_atom_array</span><span class="p">(</span><span class="n">source_atom_array</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">source_fragment_ids</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">source_fragment_ids</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
@@ -1053,9 +1045,7 @@
     <span class="p">)</span>
 
 
-<div class="viewcode-block" id="expand_fragmented_ligands">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.expand_fragmented_ligands">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">expand_fragmented_ligands</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_expand_fragmented_ligands</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
     <span class="n">structure</span><span class="p">:</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span> <span class="o">|</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">,</span>
     <span class="n">definitions</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">LigandFragmentDefinition</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span> <span class="o">|</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">,</span> <span class="n">FragmentedLigandPoseMapping</span><span class="p">]:</span>
@@ -1207,13 +1197,10 @@
         <span class="n">FragmentedLigandPoseMapping</span><span class="p">(</span>
             <span class="n">blocks</span><span class="o">=</span><span class="n">blocks</span><span class="p">,</span> <span class="n">connection_pairs</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">connection_pairs</span><span class="p">)</span>
         <span class="p">),</span>
-    <span class="p">)</span></div>
+    <span class="p">)</span>
 
 
-
-<div class="viewcode-block" id="apply_fragment_connections">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.apply_fragment_connections">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">apply_fragment_connections</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">mapping</span><span class="p">:</span> <span class="n">FragmentedLigandPoseMapping</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_apply_fragment_connections</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">mapping</span><span class="p">:</span> <span class="n">FragmentedLigandPoseMapping</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Install fragment cut bonds and rebuild all inter-block bond separations."""</span>
 
     <span class="n">resolved_blocks</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1262,7 +1249,7 @@
         <span class="p">),</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">mapping</span><span class="o">.</span><span class="n">connection_pairs</span><span class="p">:</span>
-        <span class="n">pose_stack</span><span class="p">,</span> <span class="n">sbm</span> <span class="o">=</span> <span class="n">build_split_block_mapping</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">mapping</span><span class="p">)</span>
+        <span class="n">pose_stack</span><span class="p">,</span> <span class="n">sbm</span> <span class="o">=</span> <span class="n">_build_split_block_mapping</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">mapping</span><span class="p">)</span>
         <span class="kn">import</span><span class="w"> </span><span class="nn">attr</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">_attr</span>
 
         <span class="k">return</span> <span class="n">_attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">split_block_mapping</span><span class="o">=</span><span class="n">sbm</span><span class="p">)</span>
@@ -1270,7 +1257,7 @@
     <span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStackBuilder</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack_builder</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStackBuilder</span>
 
     <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
     <span class="n">inter_residue_connections64</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections64</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
@@ -1312,14 +1299,11 @@
         <span class="n">inter_residue_connections64</span><span class="o">=</span><span class="n">inter_residue_connections64</span><span class="p">,</span>
         <span class="n">inter_block_bondsep</span><span class="o">=</span><span class="n">inter_block_bondsep</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">result</span><span class="p">,</span> <span class="n">sbm</span> <span class="o">=</span> <span class="n">build_split_block_mapping</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">mapping</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">split_block_mapping</span><span class="o">=</span><span class="n">sbm</span><span class="p">)</span></div>
+    <span class="n">result</span><span class="p">,</span> <span class="n">sbm</span> <span class="o">=</span> <span class="n">_build_split_block_mapping</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">mapping</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">split_block_mapping</span><span class="o">=</span><span class="n">sbm</span><span class="p">)</span>
 
 
-
-<div class="viewcode-block" id="build_split_block_mapping">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.build_split_block_mapping">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">build_split_block_mapping</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_split_block_mapping</span><span class="p">(</span>
     <span class="n">pose_stack</span><span class="p">,</span>
     <span class="n">resolved_mapping</span><span class="p">:</span> <span class="n">FragmentedLigandPoseMapping</span><span class="p">,</span>
 <span class="p">):</span>
@@ -1416,8 +1400,7 @@
             <span class="p">)</span>
         <span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">pose_stack</span><span class="p">,</span> <span class="n">SplitBlockMapping</span><span class="p">(</span><span class="n">entries</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">entries</span><span class="p">))</span></div>
-
+    <span class="k">return</span> <span class="n">pose_stack</span><span class="p">,</span> <span class="n">SplitBlockMapping</span><span class="p">(</span><span class="n">entries</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">entries</span><span class="p">))</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_unsplit_group_entries</span><span class="p">(</span><span class="n">sbm</span><span class="p">):</span>
@@ -1633,9 +1616,7 @@
     <span class="k">return</span> <span class="n">new_chain_id</span><span class="p">,</span> <span class="n">new_pdb</span>
 
 
-<div class="viewcode-block" id="unsplit_pose_stack">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.unsplit_pose_stack">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">unsplit_pose_stack</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_unsplit_pose_stack</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Reconstruct an unsplit PoseStack from one containing split (fragment) blocks.</span>
 
 <span class="sd">    Each group of split blocks sharing a ``(pose_ind, group_ind)`` in the</span>
@@ -1654,8 +1635,8 @@
 <span class="sd">    """</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStackBuilder</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.tensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">exclusive_cumsum2d</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack_builder</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStackBuilder</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.tensor._common_operations</span><span class="w"> </span><span class="kn">import</span> <span class="n">_exclusive_cumsum2d</span>
 
     <span class="n">sbm</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">split_block_mapping</span>
     <span class="k">if</span> <span class="n">sbm</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">sbm</span><span class="o">.</span><span class="n">entries</span><span class="p">:</span>
@@ -1684,7 +1665,7 @@
         <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">new_max_n_blocks</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
     <span class="p">)</span>
     <span class="n">new_n_atoms_blk</span><span class="p">[</span><span class="n">real_new</span><span class="p">]</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">[</span><span class="n">new_bt64</span><span class="p">[</span><span class="n">real_new</span><span class="p">]]</span>
-    <span class="n">new_bco</span> <span class="o">=</span> <span class="n">exclusive_cumsum2d</span><span class="p">(</span><span class="n">new_n_atoms_blk</span><span class="p">)</span>
+    <span class="n">new_bco</span> <span class="o">=</span> <span class="n">_exclusive_cumsum2d</span><span class="p">(</span><span class="n">new_n_atoms_blk</span><span class="p">)</span>
     <span class="n">new_max_n_atoms</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">new_n_atoms_blk</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
 
     <span class="n">coords_np</span><span class="p">,</span> <span class="n">new_bco_np</span> <span class="o">=</span> <span class="n">_unsplit_build_coords</span><span class="p">(</span>
@@ -1736,8 +1717,7 @@
         <span class="n">chain_id64</span><span class="o">=</span><span class="n">new_chain_id</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
         <span class="n">pdb_info</span><span class="o">=</span><span class="n">new_pdb_info</span><span class="p">,</span>
         <span class="n">split_block_mapping</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="p">)</span></div>
-
+    <span class="p">)</span>
 </pre></div>
 
                 </article>

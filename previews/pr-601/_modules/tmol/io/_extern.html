@@ -49,7 +49,8 @@
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/io/_extern';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <script src="../../../_static/tmol-explorers.js?v=089c5f52"></script>
-    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/io/_extern.html" />
+    <script async="async" defer="defer" src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
+    <link rel="canonical" href="https://rosettacommons.github.io/tmol/latest/_modules/tmol/io/_extern.html" />
     <link rel="icon" href="../../../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
@@ -235,7 +236,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
       
@@ -360,7 +361,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
         
@@ -406,9 +407,6 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.io._extern</span></li>
   </ul>
 </nav>
@@ -430,14 +428,11 @@
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
 
 
-<div class="viewcode-block" id="fetch_pdb">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.fetch_pdb">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">fetch_pdb</span><span class="p">(</span><span class="n">pdbid</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_fetch_pdb</span><span class="p">(</span><span class="n">pdbid</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Download a PDB-format structure from the RCSB Protein Data Bank."""</span>
     <span class="k">return</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
         <span class="s2">"https://files.rcsb.org/download/</span><span class="si">%s</span><span class="s2">.pdb"</span> <span class="o">%</span> <span class="nb">str</span><span class="o">.</span><span class="n">upper</span><span class="p">(</span><span class="n">pdbid</span><span class="p">)</span>
-    <span class="p">)</span><span class="o">.</span><span class="n">text</span></div>
-
+    <span class="p">)</span><span class="o">.</span><span class="n">text</span>
 
 
 <div class="viewcode-block" id="fetch_cif">

@@ -49,7 +49,8 @@
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/database';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <script src="../../_static/tmol-explorers.js?v=089c5f52"></script>
-    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/database.html" />
+    <script async="async" defer="defer" src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
+    <link rel="canonical" href="https://rosettacommons.github.io/tmol/latest/_modules/tmol/database.html" />
     <link rel="icon" href="../../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -235,7 +236,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
       
@@ -360,7 +361,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
         
@@ -406,9 +407,6 @@
     
     <li class="breadcrumb-item"><a href="../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.database</span></li>
   </ul>
 </nav>
@@ -439,30 +437,30 @@
     <span class="n">AtomType</span><span class="p">,</span>
     <span class="n">ChemicalDatabase</span><span class="p">,</span>
     <span class="n">RawResidueType</span><span class="p">,</span>
-    <span class="n">l_base_name</span><span class="p">,</span>
+    <span class="n">_l_base_name</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">._patched_chemdb</span><span class="w"> </span><span class="kn">import</span> <span class="n">PatchedChemicalDatabase</span>  <span class="c1"># noqa: F401</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.scoring</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoringDatabase</span>  <span class="c1"># noqa: F401</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.scoring._elec</span><span class="w"> </span><span class="kn">import</span> <span class="n">PartialCharges</span>  <span class="c1"># noqa: F401</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.scoring._cartbonded</span><span class="w"> </span><span class="kn">import</span> <span class="n">CartRes</span><span class="p">,</span> <span class="n">ConnectionCartRes</span>  <span class="c1"># noqa: F401</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">.scoring._mirrored_dunbrack</span><span class="w"> </span><span class="kn">import</span> <span class="n">with_mirrored_libraries</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.scoring._mirrored_dunbrack</span><span class="w"> </span><span class="kn">import</span> <span class="n">_with_mirrored_libraries</span>
 
 
 <div class="viewcode-block" id="ParameterDatabase">
-<a class="viewcode-back" href="../../api/database.html#tmol.database.ParameterDatabase">[docs]</a>
+<a class="viewcode-back" href="../../api/top_level.html#tmol.ParameterDatabase">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ParameterDatabase</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Immutable chemical and scoring parameter container used by tmol.</span>
 
 <span class="sd">    The process-global accessor ``get_default()`` returns a shared read-only</span>
 <span class="sd">    instance.  To add ligand or custom residue data, use</span>
-<span class="sd">    :func:`inject_residue_params` which returns a **new** database.</span>
+<span class="sd">    :func:`_inject_residue_params` which returns a **new** database.</span>
 <span class="sd">    """</span>
 
     <span class="n">__default</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="ParameterDatabase.get_default">
-<a class="viewcode-back" href="../../api/database.html#tmol.database.ParameterDatabase.get_default">[docs]</a>
+<a class="viewcode-back" href="../../api/top_level.html#tmol.ParameterDatabase.get_default">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_default</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"ParameterDatabase"</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return the process-global cached parameter database (read-only)."""</span>
@@ -477,7 +475,7 @@
     <span class="n">chemical</span><span class="p">:</span> <span class="n">PatchedChemicalDatabase</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
 
 <div class="viewcode-block" id="ParameterDatabase.from_file">
-<a class="viewcode-back" href="../../api/database.html#tmol.database.ParameterDatabase.from_file">[docs]</a>
+<a class="viewcode-back" href="../../api/top_level.html#tmol.ParameterDatabase.from_file">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"ParameterDatabase"</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Load chemical and scoring parameters rooted at ``path``."""</span>
@@ -489,20 +487,20 @@
         <span class="c1">#    torsions; the mirrored libraries are built here rather than stored,</span>
         <span class="c1">#    since which residues need them is a property of the chemical database</span>
         <span class="n">d_names</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="n">l_base_name</span><span class="p">(</span><span class="n">residue</span><span class="p">):</span> <span class="n">residue</span><span class="o">.</span><span class="n">name</span>
+            <span class="n">_l_base_name</span><span class="p">(</span><span class="n">residue</span><span class="p">):</span> <span class="n">residue</span><span class="o">.</span><span class="n">name</span>
             <span class="k">for</span> <span class="n">residue</span> <span class="ow">in</span> <span class="n">patched_chemdb</span><span class="o">.</span><span class="n">residues</span>
             <span class="k">if</span> <span class="n">residue</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">residue</span><span class="o">.</span><span class="n">base_name</span>
             <span class="ow">and</span> <span class="n">residue</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">sidechain_chirality</span> <span class="o">==</span> <span class="s2">"d"</span>
         <span class="p">}</span>
         <span class="k">if</span> <span class="n">d_names</span><span class="p">:</span>
             <span class="n">scoring</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
-                <span class="n">scoring</span><span class="p">,</span> <span class="n">dun</span><span class="o">=</span><span class="n">with_mirrored_libraries</span><span class="p">(</span><span class="n">scoring</span><span class="o">.</span><span class="n">dun</span><span class="p">,</span> <span class="n">d_names</span><span class="p">)</span>
+                <span class="n">scoring</span><span class="p">,</span> <span class="n">dun</span><span class="o">=</span><span class="n">_with_mirrored_libraries</span><span class="p">(</span><span class="n">scoring</span><span class="o">.</span><span class="n">dun</span><span class="p">,</span> <span class="n">d_names</span><span class="p">)</span>
             <span class="p">)</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">scoring</span><span class="o">=</span><span class="n">scoring</span><span class="p">,</span> <span class="n">chemical</span><span class="o">=</span><span class="n">patched_chemdb</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="ParameterDatabase.with_symmetric_gly">
-<a class="viewcode-back" href="../../api/database.html#tmol.database.ParameterDatabase.with_symmetric_gly">[docs]</a>
+<a class="viewcode-back" href="../../api/top_level.html#tmol.ParameterDatabase.with_symmetric_gly">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">with_symmetric_gly</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"ParameterDatabase"</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""A copy with symmetric glycine backbone tables and C-alpha hydrogens.</span>
 
@@ -543,9 +541,9 @@
                 <span class="p">{</span><span class="s2">"gly"</span><span class="p">:</span> <span class="s2">"gly_symm"</span><span class="p">,</span> <span class="s2">"prepro"</span><span class="p">:</span> <span class="s2">"prepro_gly_symm"</span><span class="p">},</span>
             <span class="p">),</span>
         <span class="p">)</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">._symmetric_gly</span><span class="w"> </span><span class="kn">import</span> <span class="n">symmetric_gly_geometry</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">._symmetric_gly</span><span class="w"> </span><span class="kn">import</span> <span class="n">_symmetric_gly_geometry</span>
 
-        <span class="n">chemical</span><span class="p">,</span> <span class="n">cartbonded</span> <span class="o">=</span> <span class="n">symmetric_gly_geometry</span><span class="p">(</span>
+        <span class="n">chemical</span><span class="p">,</span> <span class="n">cartbonded</span> <span class="o">=</span> <span class="n">_symmetric_gly_geometry</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">chemical</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">cartbonded</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
@@ -561,7 +559,7 @@
 
 
 <div class="viewcode-block" id="ParameterDatabase.create_stable_subset">
-<a class="viewcode-back" href="../../api/database.html#tmol.database.ParameterDatabase.create_stable_subset">[docs]</a>
+<a class="viewcode-back" href="../../api/top_level.html#tmol.ParameterDatabase.create_stable_subset">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">create_stable_subset</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">desired_names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">desired_variants</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"ParameterDatabase"</span><span class="p">:</span>
@@ -619,9 +617,7 @@
 
 
 
-<div class="viewcode-block" id="inject_residue_params">
-<a class="viewcode-back" href="../../api/database.html#tmol.database.inject_residue_params">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">inject_residue_params</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_inject_residue_params</span><span class="p">(</span>
     <span class="n">param_db</span><span class="p">:</span> <span class="n">ParameterDatabase</span><span class="p">,</span>
     <span class="n">residue_types</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">RawResidueType</span><span class="p">],</span>
     <span class="n">atom_types</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">AtomType</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -693,19 +689,10 @@
         <span class="n">cartbonded</span><span class="o">=</span><span class="n">new_cart</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">param_db</span><span class="p">,</span> <span class="n">scoring</span><span class="o">=</span><span class="n">new_scoring</span><span class="p">,</span> <span class="n">chemical</span><span class="o">=</span><span class="n">new_patched</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">param_db</span><span class="p">,</span> <span class="n">scoring</span><span class="o">=</span><span class="n">new_scoring</span><span class="p">,</span> <span class="n">chemical</span><span class="o">=</span><span class="n">new_patched</span><span class="p">)</span>
 
 
-
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="s2">"AtomType"</span><span class="p">,</span>
-    <span class="s2">"ChemicalDatabase"</span><span class="p">,</span>
-    <span class="s2">"ParameterDatabase"</span><span class="p">,</span>
-    <span class="s2">"PatchedChemicalDatabase"</span><span class="p">,</span>
-    <span class="s2">"RawResidueType"</span><span class="p">,</span>
-    <span class="s2">"ScoringDatabase"</span><span class="p">,</span>
-    <span class="s2">"inject_residue_params"</span><span class="p">,</span>
-<span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[]</span>
 </pre></div>
 
                 </article>

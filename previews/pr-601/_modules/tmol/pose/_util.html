@@ -49,7 +49,8 @@
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/pose/_util';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <script src="../../../_static/tmol-explorers.js?v=089c5f52"></script>
-    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/pose/_util.html" />
+    <script async="async" defer="defer" src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
+    <link rel="canonical" href="https://rosettacommons.github.io/tmol/latest/_modules/tmol/pose/_util.html" />
     <link rel="icon" href="../../../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
@@ -235,7 +236,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
       
@@ -360,7 +361,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
         
@@ -406,9 +407,6 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.pose._util</span></li>
   </ul>
 </nav>
@@ -440,13 +438,13 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">three2one</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical._restypes</span><span class="w"> </span><span class="kn">import</span> <span class="n">_three2one</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.numeric</span><span class="w"> </span><span class="kn">import</span> <span class="n">coord_dihedrals</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
 
 
 <div class="viewcode-block" id="get_sequence">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.get_sequence">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.pose.get_sequence">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_sequence</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">pose</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""One-letter sequence of one pose's real (non-padding) blocks.</span>
 
@@ -457,12 +455,12 @@
     <span class="n">real</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">[</span><span class="n">pose</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span>
     <span class="n">type_inds</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">real</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
     <span class="n">block_types</span> <span class="o">=</span> <span class="p">[</span><span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">type_inds</span><span class="p">]</span>
-    <span class="k">return</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">three2one</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">name3</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"X"</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">block_types</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_three2one</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">name3</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"X"</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">block_types</span><span class="p">)</span></div>
 
 
 
 <div class="viewcode-block" id="get_ligand_mask">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.get_ligand_mask">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.pose.get_ligand_mask">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_ligand_mask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Boolean mask shaped ``[n_poses, max_n_blocks]``, true where a block is a</span>
 <span class="sd">    ligand (or any other non-polymer residue, such as an ion). Padding blocks</span>
@@ -545,7 +543,7 @@
 
 
 <div class="viewcode-block" id="block_for_residue_label">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.block_for_residue_label">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.pose.block_for_residue_label">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">block_for_residue_label</span><span class="p">(</span>
     <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">pose_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">residue_id</span><span class="p">:</span> <span class="nb">str</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
@@ -580,7 +578,7 @@
 
 
 <div class="viewcode-block" id="blocks_for_residue_labels">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.blocks_for_residue_labels">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.pose.blocks_for_residue_labels">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">blocks_for_residue_labels</span><span class="p">(</span>
     <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
     <span class="n">pose_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -604,7 +602,7 @@
 
 
 <div class="viewcode-block" id="atom_for_residue_label">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.atom_for_residue_label">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.pose.atom_for_residue_label">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">atom_for_residue_label</span><span class="p">(</span>
     <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">pose_ind</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">chain_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">res_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">atom_id</span><span class="p">:</span> <span class="nb">str</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
@@ -653,7 +651,7 @@
 
 
 <div class="viewcode-block" id="constraint_atoms_for_labels">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.constraint_atoms_for_labels">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.pose.constraint_atoms_for_labels">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">constraint_atoms_for_labels</span><span class="p">(</span>
     <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
     <span class="n">atoms</span><span class="p">,</span>
@@ -682,7 +680,7 @@
 
 
 <div class="viewcode-block" id="get_torsion_names">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.get_torsion_names">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.pose.get_torsion_names">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_torsion_names</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">pose</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">block</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Names of the torsions defined on a block's type, in database order."""</span>
     <span class="n">bt_ind</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">])</span>

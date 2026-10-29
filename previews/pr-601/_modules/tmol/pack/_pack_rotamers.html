@@ -49,7 +49,8 @@
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/pack/_pack_rotamers';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <script src="../../../_static/tmol-explorers.js?v=089c5f52"></script>
-    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/pack/_pack_rotamers.html" />
+    <script async="async" defer="defer" src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
+    <link rel="canonical" href="https://rosettacommons.github.io/tmol/latest/_modules/tmol/pack/_pack_rotamers.html" />
     <link rel="icon" href="../../../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
@@ -235,7 +236,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
       
@@ -360,7 +361,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
         
@@ -406,9 +407,6 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.pack._pack_rotamers</span></li>
   </ul>
 </nav>
@@ -435,24 +433,24 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">PoseStackBuilder</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreFunction</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack_builder</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStackBuilder</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score._score_function</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreFunction</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">PackerTask</span><span class="p">,</span>
-    <span class="n">SetPackerTask</span><span class="p">,</span>
-    <span class="n">PackerEnergyTables</span><span class="p">,</span>
-    <span class="n">run_simulated_annealing</span><span class="p">,</span>
-    <span class="n">impose_top_rotamer_assignments</span><span class="p">,</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack._packer_task</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackerTask</span><span class="p">,</span> <span class="n">SetPackerTask</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack._datatypes</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackerEnergyTables</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack._simulated_annealing</span><span class="w"> </span><span class="kn">import</span> <span class="n">_run_simulated_annealing</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack._impose_rotamers</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">_impose_top_rotamer_assignments</span><span class="p">,</span>
+    <span class="n">_chosen_rotamer_for_block</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack._impose_rotamers</span><span class="w"> </span><span class="kn">import</span> <span class="n">chosen_rotamer_for_block</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_rotamers</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility._device</span><span class="w"> </span><span class="kn">import</span> <span class="n">synchronize_device</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._conjugated_groups</span><span class="w"> </span><span class="kn">import</span> <span class="n">write_group_members</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._build_rotamers</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_rotamers</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility._device</span><span class="w"> </span><span class="kn">import</span> <span class="n">_synchronize_device</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._conjugated_groups</span><span class="w"> </span><span class="kn">import</span> <span class="n">_write_group_members</span>
 
 
 <div class="viewcode-block" id="pack_rotamers">
-<a class="viewcode-back" href="../../../api/pack.html#tmol.pack.pack_rotamers">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.pack_rotamers">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">pack_rotamers</span><span class="p">(</span>
     <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
     <span class="n">sfxn</span><span class="p">:</span> <span class="n">ScoreFunction</span><span class="p">,</span>
@@ -518,7 +516,7 @@
         <span class="k">return</span> <span class="n">combined_pose_stack</span>
 
     <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-        <span class="n">synchronize_device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">_synchronize_device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
 
     <span class="n">task</span> <span class="o">=</span> <span class="n">SetPackerTask</span><span class="o">.</span><span class="n">from_packer_task</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
@@ -526,7 +524,7 @@
 
     <span class="n">pose_stack</span><span class="p">,</span> <span class="n">rotamer_set</span> <span class="o">=</span> <span class="n">build_rotamers</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">chem_db</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-        <span class="n">synchronize_device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">_synchronize_device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="n">end_time1</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
 
     <span class="p">(</span>
@@ -542,14 +540,14 @@
     <span class="p">)</span> <span class="o">=</span> <span class="n">_calculate_packer_energies</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="n">rotamer_set</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-        <span class="n">synchronize_device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">_synchronize_device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="n">end_time4</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
 
     <span class="n">_</span><span class="p">,</span> <span class="n">rotamer_assignments</span> <span class="o">=</span> <span class="n">_anneal_on</span><span class="p">(</span>
         <span class="n">packer_energy_tables</span><span class="p">,</span> <span class="n">anneal_device</span><span class="p">,</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-        <span class="n">synchronize_device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">_synchronize_device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="n">end_time5</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
 
     <span class="n">assignment_context</span> <span class="o">=</span> <span class="p">(</span>
@@ -558,7 +556,7 @@
         <span class="k">else</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">nullcontext</span><span class="p">()</span>
     <span class="p">)</span>
     <span class="k">with</span> <span class="n">assignment_context</span><span class="p">:</span>
-        <span class="n">new_pose_stack</span> <span class="o">=</span> <span class="n">impose_top_rotamer_assignments</span><span class="p">(</span>
+        <span class="n">new_pose_stack</span> <span class="o">=</span> <span class="n">_impose_top_rotamer_assignments</span><span class="p">(</span>
             <span class="n">pose_stack</span><span class="p">,</span>
             <span class="n">rotamer_set</span><span class="p">,</span>
             <span class="n">rotamer_for_nonmolten_block</span><span class="p">,</span>
@@ -569,7 +567,7 @@
         <span class="p">)</span>
     <span class="k">if</span> <span class="n">collapse</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># the packer chose for the representative; its group moves with it</span>
-        <span class="n">assignment</span> <span class="o">=</span> <span class="n">chosen_rotamer_for_block</span><span class="p">(</span>
+        <span class="n">assignment</span> <span class="o">=</span> <span class="n">_chosen_rotamer_for_block</span><span class="p">(</span>
             <span class="n">pose_stack</span><span class="p">,</span>
             <span class="n">rotamer_for_nonmolten_block</span><span class="p">,</span>
             <span class="n">n_molten_blocks_per_pose</span><span class="p">,</span>
@@ -577,11 +575,11 @@
             <span class="n">bc_rot_to_orig_rot</span><span class="p">,</span>
             <span class="n">rotamer_assignments</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:],</span>
         <span class="p">)</span>
-        <span class="n">new_pose_stack</span> <span class="o">=</span> <span class="n">write_group_members</span><span class="p">(</span>
+        <span class="n">new_pose_stack</span> <span class="o">=</span> <span class="n">_write_group_members</span><span class="p">(</span>
             <span class="n">new_pose_stack</span><span class="p">,</span> <span class="n">rotamer_set</span><span class="p">,</span> <span class="n">collapse</span><span class="p">,</span> <span class="n">assignment</span>
         <span class="p">)</span>
     <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-        <span class="n">synchronize_device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">_synchronize_device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="n">end_time6</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
@@ -767,11 +765,11 @@
         <span class="k">if</span> <span class="n">mps_offload_enabled</span><span class="p">():</span>
             <span class="n">anneal_device</span> <span class="o">=</span> <span class="s2">"mps"</span>
     <span class="k">if</span> <span class="n">anneal_device</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">run_simulated_annealing</span><span class="p">(</span><span class="n">energy_tables</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_run_simulated_annealing</span><span class="p">(</span><span class="n">energy_tables</span><span class="p">)</span>
 
     <span class="n">anneal_device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">anneal_device</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">anneal_device</span> <span class="o">==</span> <span class="n">pose_device</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">run_simulated_annealing</span><span class="p">(</span><span class="n">energy_tables</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_run_simulated_annealing</span><span class="p">(</span><span class="n">energy_tables</span><span class="p">)</span>
 
     <span class="c1"># Not TensorGroup.to: the table group carries plain ints beside its</span>
     <span class="c1"># tensors, which that method rejects.</span>
@@ -783,7 +781,7 @@
             <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
         <span class="p">},</span>
     <span class="p">)</span>
-    <span class="n">scores</span><span class="p">,</span> <span class="n">assignments</span> <span class="o">=</span> <span class="n">run_simulated_annealing</span><span class="p">(</span><span class="n">moved</span><span class="p">)</span>
+    <span class="n">scores</span><span class="p">,</span> <span class="n">assignments</span> <span class="o">=</span> <span class="n">_run_simulated_annealing</span><span class="p">(</span><span class="n">moved</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">scores</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pose_device</span><span class="p">),</span> <span class="n">assignments</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pose_device</span><span class="p">)</span>
 
 
@@ -797,10 +795,10 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_calculate_packer_energies</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="n">rotamer_set</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_interaction_graph</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.compiled._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">_build_interaction_graph</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._conjugated_groups</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-        <span class="n">collapse_group_energies</span><span class="p">,</span>
-        <span class="n">collapse_group_rotamers</span><span class="p">,</span>
+        <span class="n">_collapse_group_energies</span><span class="p">,</span>
+        <span class="n">_collapse_group_rotamers</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
@@ -881,10 +879,10 @@
     <span class="c1">#    members onto a representative so the packer cannot pick a conformer</span>
     <span class="c1">#    for one that disagrees with its neighbour</span>
     <span class="n">groups</span> <span class="o">=</span> <span class="n">rotamer_set</span><span class="o">.</span><span class="n">correlated_groups</span>
-    <span class="n">collapsed</span> <span class="o">=</span> <span class="n">collapse_group_rotamers</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">rotamer_set</span><span class="p">,</span> <span class="n">groups</span><span class="p">)</span>
+    <span class="n">collapsed</span> <span class="o">=</span> <span class="n">_collapse_group_rotamers</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">rotamer_set</span><span class="p">,</span> <span class="n">groups</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">collapsed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">collapse</span><span class="p">,</span> <span class="n">group_of_rot</span><span class="p">,</span> <span class="n">conformer_of_rot</span> <span class="o">=</span> <span class="n">collapsed</span>
-        <span class="n">energies</span> <span class="o">=</span> <span class="n">collapse_group_energies</span><span class="p">(</span>
+        <span class="n">energies</span> <span class="o">=</span> <span class="n">_collapse_group_energies</span><span class="p">(</span>
             <span class="n">energies</span><span class="p">,</span> <span class="n">collapse</span><span class="p">,</span> <span class="n">group_of_rot</span><span class="p">,</span> <span class="n">conformer_of_rot</span>
         <span class="p">)</span>
         <span class="n">energy_indices</span> <span class="o">=</span> <span class="n">energies</span><span class="o">.</span><span class="n">indices</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
@@ -909,7 +907,7 @@
         <span class="n">rot_offset_for_pose</span> <span class="o">=</span> <span class="n">rotamer_set</span><span class="o">.</span><span class="n">rot_offset_for_pose</span>
 
     <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-        <span class="n">synchronize_device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">_synchronize_device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="n">end_time2</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
 
     <span class="n">chunk_size</span> <span class="o">=</span> <span class="n">_interaction_graph_chunk_size</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
@@ -937,7 +935,7 @@
             <span class="n">device_entries</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="n">graph_inputs</span><span class="p">,</span> <span class="n">verbose</span>
         <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">graph_result</span> <span class="o">=</span> <span class="n">build_interaction_graph</span><span class="p">(</span>
+        <span class="n">graph_result</span> <span class="o">=</span> <span class="n">_build_interaction_graph</span><span class="p">(</span>
             <span class="n">task</span><span class="o">.</span><span class="n">bump_check</span><span class="p">,</span>
             <span class="n">chunk_size</span><span class="p">,</span>
             <span class="o">*</span><span class="n">graph_inputs</span><span class="p">,</span>
@@ -965,7 +963,7 @@
         <span class="n">energy2b</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">=</span> <span class="n">graph_result</span>
     <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-        <span class="n">synchronize_device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">_synchronize_device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="n">end_time3</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">collapse</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -1022,14 +1020,14 @@
 <span class="sd">    the CPU builder leaves them; the one- and two-body energy tables stay on</span>
 <span class="sd">    the GPU, where the annealer reads them.</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.compiled</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-        <span class="n">accumulate_interaction_graph_entries</span><span class="p">,</span>
-        <span class="n">build_interaction_graph</span><span class="p">,</span>
-        <span class="n">finalize_interaction_graph_chunk_topology</span><span class="p">,</span>
-        <span class="n">finalize_interaction_graph_topology</span><span class="p">,</span>
-        <span class="n">initialize_interaction_graph_topology</span><span class="p">,</span>
-        <span class="n">note_interaction_graph_chunk_topology</span><span class="p">,</span>
-        <span class="n">note_interaction_graph_topology</span><span class="p">,</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.compiled._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">_accumulate_interaction_graph_entries</span><span class="p">,</span>
+        <span class="n">_build_interaction_graph</span><span class="p">,</span>
+        <span class="n">_finalize_interaction_graph_chunk_topology</span><span class="p">,</span>
+        <span class="n">_finalize_interaction_graph_topology</span><span class="p">,</span>
+        <span class="n">_initialize_interaction_graph_topology</span><span class="p">,</span>
+        <span class="n">_note_interaction_graph_chunk_topology</span><span class="p">,</span>
+        <span class="n">_note_interaction_graph_topology</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="p">(</span>
@@ -1048,7 +1046,7 @@
 
     <span class="c1"># The empty build fixes the kept/fixed rotamer numbering on the host.</span>
     <span class="n">base</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
-        <span class="n">build_interaction_graph</span><span class="p">(</span>
+        <span class="n">_build_interaction_graph</span><span class="p">(</span>
             <span class="kc">False</span><span class="p">,</span>
             <span class="n">chunk_size</span><span class="p">,</span>
             <span class="o">*</span><span class="n">graph_inputs</span><span class="p">,</span>
@@ -1058,7 +1056,7 @@
             <span class="n">verbose</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="p">)</span>
-    <span class="n">block_adjacency</span><span class="p">,</span> <span class="n">orig_block_to_molten</span> <span class="o">=</span> <span class="n">initialize_interaction_graph_topology</span><span class="p">(</span>
+    <span class="n">block_adjacency</span><span class="p">,</span> <span class="n">orig_block_to_molten</span> <span class="o">=</span> <span class="n">_initialize_interaction_graph_topology</span><span class="p">(</span>
         <span class="n">n_rots_for_block</span><span class="p">,</span> <span class="n">base</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="n">empty_values</span>
     <span class="p">)</span>
 
@@ -1074,7 +1072,7 @@
     <span class="c1"># Pass one: which molten blocks interact.</span>
     <span class="n">block_adjacency</span> <span class="o">=</span> <span class="n">up</span><span class="p">(</span><span class="n">block_adjacency</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">indices</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">entries</span><span class="p">:</span>
-        <span class="p">(</span><span class="n">block_adjacency</span><span class="p">,)</span> <span class="o">=</span> <span class="n">note_interaction_graph_topology</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">block_adjacency</span><span class="p">,)</span> <span class="o">=</span> <span class="n">_note_interaction_graph_topology</span><span class="p">(</span>
             <span class="n">block_ind_for_rot_d</span><span class="p">,</span>
             <span class="n">orig_block_to_molten_d</span><span class="p">,</span>
             <span class="n">block_adjacency</span><span class="p">,</span>
@@ -1082,7 +1080,7 @@
             <span class="n">values</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="n">chunk_topology</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
-        <span class="n">finalize_interaction_graph_topology</span><span class="p">(</span>
+        <span class="n">_finalize_interaction_graph_topology</span><span class="p">(</span>
             <span class="n">chunk_size</span><span class="p">,</span> <span class="n">base</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="n">block_adjacency</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <span class="n">empty_values</span>
         <span class="p">)</span>
     <span class="p">)</span>
@@ -1093,7 +1091,7 @@
     <span class="n">neighbor_blocks_d</span> <span class="o">=</span> <span class="n">up</span><span class="p">(</span><span class="n">chunk_topology</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
     <span class="n">chunk_adjacency</span> <span class="o">=</span> <span class="n">up</span><span class="p">(</span><span class="n">chunk_topology</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
     <span class="k">for</span> <span class="n">indices</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">entries</span><span class="p">:</span>
-        <span class="p">(</span><span class="n">chunk_adjacency</span><span class="p">,)</span> <span class="o">=</span> <span class="n">note_interaction_graph_chunk_topology</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">chunk_adjacency</span><span class="p">,)</span> <span class="o">=</span> <span class="n">_note_interaction_graph_chunk_topology</span><span class="p">(</span>
             <span class="n">chunk_size</span><span class="p">,</span>
             <span class="n">n_rots_for_block_d</span><span class="p">,</span>
             <span class="n">rot_offset_for_block_d</span><span class="p">,</span>
@@ -1108,7 +1106,7 @@
             <span class="n">values</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="n">base</span><span class="p">[</span><span class="mi">11</span><span class="p">],</span> <span class="n">base</span><span class="p">[</span><span class="mi">12</span><span class="p">],</span> <span class="n">base</span><span class="p">[</span><span class="mi">13</span><span class="p">]</span> <span class="o">=</span> <span class="n">chunk_topology</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span>
-    <span class="n">base</span><span class="p">[</span><span class="mi">14</span><span class="p">],</span> <span class="n">base</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span> <span class="o">=</span> <span class="n">finalize_interaction_graph_chunk_topology</span><span class="p">(</span>
+    <span class="n">base</span><span class="p">[</span><span class="mi">14</span><span class="p">],</span> <span class="n">base</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span> <span class="o">=</span> <span class="n">_finalize_interaction_graph_chunk_topology</span><span class="p">(</span>
         <span class="n">chunk_size</span><span class="p">,</span>
         <span class="n">base</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
         <span class="n">chunk_topology</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
@@ -1129,7 +1127,7 @@
     <span class="n">neighbor_chunk_offset_offsets_d</span> <span class="o">=</span> <span class="n">up</span><span class="p">(</span><span class="n">base</span><span class="p">[</span><span class="mi">13</span><span class="p">])</span>
     <span class="n">chunk_offsets_d</span> <span class="o">=</span> <span class="n">up</span><span class="p">(</span><span class="n">base</span><span class="p">[</span><span class="mi">14</span><span class="p">])</span>
     <span class="k">for</span> <span class="n">indices</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">entries</span><span class="p">:</span>
-        <span class="n">bg_bg_energies</span><span class="p">,</span> <span class="n">energy1b</span><span class="p">,</span> <span class="n">energy2b</span> <span class="o">=</span> <span class="n">accumulate_interaction_graph_entries</span><span class="p">(</span>
+        <span class="n">bg_bg_energies</span><span class="p">,</span> <span class="n">energy1b</span><span class="p">,</span> <span class="n">energy2b</span> <span class="o">=</span> <span class="n">_accumulate_interaction_graph_entries</span><span class="p">(</span>
             <span class="n">chunk_size</span><span class="p">,</span>
             <span class="n">n_rots_for_block_d</span><span class="p">,</span>
             <span class="n">rot_offset_for_block_d</span><span class="p">,</span>
@@ -1168,14 +1166,14 @@
 <span class="sd">    each bounded page from retaining autograd state for the whole candidate</span>
 <span class="sd">    set, which otherwise accumulates across FastRelax packing stages.</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.compiled</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-        <span class="n">accumulate_interaction_graph_entries</span><span class="p">,</span>
-        <span class="n">build_interaction_graph</span><span class="p">,</span>
-        <span class="n">finalize_interaction_graph_chunk_topology</span><span class="p">,</span>
-        <span class="n">finalize_interaction_graph_topology</span><span class="p">,</span>
-        <span class="n">initialize_interaction_graph_topology</span><span class="p">,</span>
-        <span class="n">note_interaction_graph_chunk_topology</span><span class="p">,</span>
-        <span class="n">note_interaction_graph_topology</span><span class="p">,</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.compiled._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">_accumulate_interaction_graph_entries</span><span class="p">,</span>
+        <span class="n">_build_interaction_graph</span><span class="p">,</span>
+        <span class="n">_finalize_interaction_graph_chunk_topology</span><span class="p">,</span>
+        <span class="n">_finalize_interaction_graph_topology</span><span class="p">,</span>
+        <span class="n">_initialize_interaction_graph_topology</span><span class="p">,</span>
+        <span class="n">_note_interaction_graph_chunk_topology</span><span class="p">,</span>
+        <span class="n">_note_interaction_graph_topology</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="p">(</span>
@@ -1194,7 +1192,7 @@
     <span class="c1"># Empty no-bump construction establishes the canonical kept/fixed rotamer</span>
     <span class="c1"># numbering without retaining any score layout.</span>
     <span class="n">base</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
-        <span class="n">build_interaction_graph</span><span class="p">(</span>
+        <span class="n">_build_interaction_graph</span><span class="p">(</span>
             <span class="kc">False</span><span class="p">,</span>
             <span class="n">chunk_size</span><span class="p">,</span>
             <span class="n">max_n_block_types</span><span class="p">,</span>
@@ -1214,7 +1212,7 @@
             <span class="n">verbose</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="p">)</span>
-    <span class="n">block_adjacency</span><span class="p">,</span> <span class="n">orig_block_to_molten</span> <span class="o">=</span> <span class="n">initialize_interaction_graph_topology</span><span class="p">(</span>
+    <span class="n">block_adjacency</span><span class="p">,</span> <span class="n">orig_block_to_molten</span> <span class="o">=</span> <span class="n">_initialize_interaction_graph_topology</span><span class="p">(</span>
         <span class="n">n_rots_for_block</span><span class="p">,</span>
         <span class="n">base</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
         <span class="n">empty_values</span><span class="p">,</span>
@@ -1225,7 +1223,7 @@
     <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">rotamer_scoring_module</span><span class="o">.</span><span class="n">_iter_weighted_sparse_entries</span><span class="p">(</span>
         <span class="n">coords</span><span class="p">,</span> <span class="n">retain_shared_dispatch</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">topology_only</span><span class="o">=</span><span class="kc">True</span>
     <span class="p">):</span>
-        <span class="p">(</span><span class="n">block_adjacency</span><span class="p">,)</span> <span class="o">=</span> <span class="n">note_interaction_graph_topology</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">block_adjacency</span><span class="p">,)</span> <span class="o">=</span> <span class="n">_note_interaction_graph_topology</span><span class="p">(</span>
             <span class="n">block_ind_for_rot</span><span class="p">,</span>
             <span class="n">orig_block_to_molten</span><span class="p">,</span>
             <span class="n">block_adjacency</span><span class="p">,</span>
@@ -1235,7 +1233,7 @@
         <span class="k">del</span> <span class="n">indices</span><span class="p">,</span> <span class="n">values</span>
 
     <span class="n">chunk_topology</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
-        <span class="n">finalize_interaction_graph_topology</span><span class="p">(</span>
+        <span class="n">_finalize_interaction_graph_topology</span><span class="p">(</span>
             <span class="n">chunk_size</span><span class="p">,</span>
             <span class="n">base</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
             <span class="n">block_adjacency</span><span class="p">,</span>
@@ -1248,7 +1246,7 @@
     <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">rotamer_scoring_module</span><span class="o">.</span><span class="n">_iter_weighted_sparse_entries</span><span class="p">(</span>
         <span class="n">coords</span><span class="p">,</span> <span class="n">retain_shared_dispatch</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">topology_only</span><span class="o">=</span><span class="kc">True</span>
     <span class="p">):</span>
-        <span class="p">(</span><span class="n">chunk_topology</span><span class="p">[</span><span class="mi">4</span><span class="p">],)</span> <span class="o">=</span> <span class="n">note_interaction_graph_chunk_topology</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">chunk_topology</span><span class="p">[</span><span class="mi">4</span><span class="p">],)</span> <span class="o">=</span> <span class="n">_note_interaction_graph_chunk_topology</span><span class="p">(</span>
             <span class="n">chunk_size</span><span class="p">,</span>
             <span class="n">n_rots_for_block</span><span class="p">,</span>
             <span class="n">rot_offset_for_block</span><span class="p">,</span>
@@ -1265,7 +1263,7 @@
         <span class="k">del</span> <span class="n">indices</span><span class="p">,</span> <span class="n">values</span>
 
     <span class="n">base</span><span class="p">[</span><span class="mi">11</span><span class="p">],</span> <span class="n">base</span><span class="p">[</span><span class="mi">12</span><span class="p">],</span> <span class="n">base</span><span class="p">[</span><span class="mi">13</span><span class="p">]</span> <span class="o">=</span> <span class="n">chunk_topology</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span>
-    <span class="n">base</span><span class="p">[</span><span class="mi">14</span><span class="p">],</span> <span class="n">base</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span> <span class="o">=</span> <span class="n">finalize_interaction_graph_chunk_topology</span><span class="p">(</span>
+    <span class="n">base</span><span class="p">[</span><span class="mi">14</span><span class="p">],</span> <span class="n">base</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span> <span class="o">=</span> <span class="n">_finalize_interaction_graph_chunk_topology</span><span class="p">(</span>
         <span class="n">chunk_size</span><span class="p">,</span>
         <span class="n">base</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
         <span class="n">chunk_topology</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
@@ -1282,7 +1280,7 @@
     <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">rotamer_scoring_module</span><span class="o">.</span><span class="n">_iter_weighted_sparse_entries</span><span class="p">(</span>
         <span class="n">coords</span><span class="p">,</span> <span class="n">retain_shared_dispatch</span><span class="o">=</span><span class="kc">False</span>
     <span class="p">):</span>
-        <span class="n">base</span><span class="p">[</span><span class="mi">9</span><span class="p">],</span> <span class="n">base</span><span class="p">[</span><span class="mi">10</span><span class="p">],</span> <span class="n">base</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span> <span class="o">=</span> <span class="n">accumulate_interaction_graph_entries</span><span class="p">(</span>
+        <span class="n">base</span><span class="p">[</span><span class="mi">9</span><span class="p">],</span> <span class="n">base</span><span class="p">[</span><span class="mi">10</span><span class="p">],</span> <span class="n">base</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span> <span class="o">=</span> <span class="n">_accumulate_interaction_graph_entries</span><span class="p">(</span>
             <span class="n">chunk_size</span><span class="p">,</span>
             <span class="n">n_rots_for_block</span><span class="p">,</span>
             <span class="n">rot_offset_for_block</span><span class="p">,</span>

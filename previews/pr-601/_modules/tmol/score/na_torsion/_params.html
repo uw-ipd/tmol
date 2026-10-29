@@ -49,7 +49,8 @@
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/score/na_torsion/_params';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <script src="../../../../_static/tmol-explorers.js?v=089c5f52"></script>
-    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/score/na_torsion/_params.html" />
+    <script async="async" defer="defer" src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
+    <link rel="canonical" href="https://rosettacommons.github.io/tmol/latest/_modules/tmol/score/na_torsion/_params.html" />
     <link rel="icon" href="../../../../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../../../../genindex.html" />
     <link rel="search" title="Search" href="../../../../search.html" />
@@ -235,7 +236,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
       
@@ -360,7 +361,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
         
@@ -407,9 +408,6 @@
     <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
     
     
-    <li class="breadcrumb-item"><a href="../../../tmol.html" class="nav-link">tmol</a></li>
-    
-    
     <li class="breadcrumb-item"><a href="../../score.html" class="nav-link">tmol.score</a></li>
     
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.score.na_torsion._params</span></li>
@@ -437,10 +435,8 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.scoring</span><span class="w"> </span><span class="kn">import</span> <span class="n">NaTorsionDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_device</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.weak_identity_cache</span><span class="w"> </span><span class="kn">import</span> <span class="n">WeakIdentityLRU</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">Tensor</span><span class="p">,</span>
-    <span class="n">ValidateAttrs</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._attrs</span><span class="w"> </span><span class="kn">import</span> <span class="n">ValidateAttrs</span>
 
 <span class="c1"># torsions this term reads, by chemical-layer name; order fixes tensor layout</span>
 <span class="n">BACKBONE_TORSIONS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"alpha"</span><span class="p">,</span> <span class="s2">"beta"</span><span class="p">,</span> <span class="s2">"gamma"</span><span class="p">,</span> <span class="s2">"delta"</span><span class="p">,</span> <span class="s2">"epsilon"</span><span class="p">,</span> <span class="s2">"zeta"</span><span class="p">)</span>
@@ -516,9 +512,7 @@
 
 
 
-<div class="viewcode-block" id="block_type_params">
-<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.na_torsion.block_type_params">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">block_type_params</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="n">element_for_atom_type</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_block_type_params</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="n">element_for_atom_type</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Per-block-type indices this term needs, shared by scoring and packing.</span>
 
 <span class="sd">    base is -1 for anything this term does not handle. A nucleotide whose sugar</span>
@@ -546,19 +540,16 @@
         <span class="k">if</span> <span class="p">(</span><span class="n">ring</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">()</span> <span class="ow">or</span> <span class="p">(</span><span class="n">uaids</span><span class="p">[</span><span class="n">REQUIRED_TORSIONS</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
             <span class="n">base</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
     <span class="n">down</span> <span class="o">=</span> <span class="n">block_type</span><span class="o">.</span><span class="n">connection_to_cidx</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"down"</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">base</span><span class="o">=</span><span class="n">base</span><span class="p">,</span> <span class="n">uaids</span><span class="o">=</span><span class="n">uaids</span><span class="p">,</span> <span class="n">ring</span><span class="o">=</span><span class="n">ring</span><span class="p">,</span> <span class="n">down</span><span class="o">=</span><span class="n">down</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">base</span><span class="o">=</span><span class="n">base</span><span class="p">,</span> <span class="n">uaids</span><span class="o">=</span><span class="n">uaids</span><span class="p">,</span> <span class="n">ring</span><span class="o">=</span><span class="n">ring</span><span class="p">,</span> <span class="n">down</span><span class="o">=</span><span class="n">down</span><span class="p">)</span>
 
 
-
-<div class="viewcode-block" id="scored_torsion_bonds">
-<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.na_torsion.scored_torsion_bonds">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">scored_torsion_bonds</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="n">element_for_atom_type</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_scored_torsion_bonds</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="n">element_for_atom_type</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Central bonds, as index pairs, of the torsions this term scores.</span>
 
 <span class="sd">    Empty for anything the term does not handle. Another term that would</span>
 <span class="sd">    otherwise constrain the same rotation reads this to stay off it.</span>
 <span class="sd">    """</span>
-    <span class="n">params</span> <span class="o">=</span> <span class="n">block_type_params</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="n">element_for_atom_type</span><span class="p">)</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">_block_type_params</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="n">element_for_atom_type</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s2">"base"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">frozenset</span><span class="p">()</span>
     <span class="n">bonds</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
@@ -567,8 +558,7 @@
         <span class="n">second</span><span class="p">,</span> <span class="n">third</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">torsion</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">torsion</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
         <span class="k">if</span> <span class="n">second</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">third</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">bonds</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="nb">frozenset</span><span class="p">((</span><span class="n">second</span><span class="p">,</span> <span class="n">third</span><span class="p">)))</span>
-    <span class="k">return</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">bonds</span><span class="p">)</span></div>
-
+    <span class="k">return</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">bonds</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_circular_mean</span><span class="p">(</span><span class="n">degrees</span><span class="p">):</span>
@@ -584,16 +574,11 @@
     <span class="k">return</span> <span class="p">(</span><span class="n">mean</span> <span class="o">*</span> <span class="p">(</span><span class="mf">180.0</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">pi</span><span class="p">))</span> <span class="o">%</span> <span class="mf">360.0</span>
 
 
-<div class="viewcode-block" id="polymer_index">
-<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.na_torsion.polymer_index">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">polymer_index</span><span class="p">(</span><span class="n">base</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_polymer_index</span><span class="p">(</span><span class="n">base</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""0 for DNA, 1 for RNA. Non-nucleotides (base &lt; 0) fall to 0 and are masked."""</span>
-    <span class="k">return</span> <span class="n">base</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">//</span> <span class="n">N_BASE_PER_POLYMER</span></div>
+    <span class="k">return</span> <span class="n">base</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">//</span> <span class="n">N_BASE_PER_POLYMER</span>
 
 
-
-<div class="viewcode-block" id="NaTorsionParams">
-<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.na_torsion.NaTorsionParams">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">NaTorsionParams</span><span class="p">(</span><span class="n">ValidateAttrs</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Device-resident nucleic-acid torsion distributions and well energies."""</span>
@@ -727,8 +712,7 @@
             <span class="n">weight_sugar</span><span class="o">=</span><span class="n">scalar</span><span class="p">(</span><span class="s2">"weight_sugar"</span><span class="p">),</span>
             <span class="n">pucker_temperature</span><span class="o">=</span><span class="n">shared</span><span class="o">.</span><span class="n">pucker_temperature</span><span class="p">,</span>
             <span class="n">bin_blend_sdev</span><span class="o">=</span><span class="n">shared</span><span class="o">.</span><span class="n">bin_blend_sdev</span><span class="p">,</span>
-        <span class="p">)</span></div>
-
+        <span class="p">)</span>
 </pre></div>
 
                 </article>

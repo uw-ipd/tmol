@@ -175,10 +175,10 @@ Some PyTorch builds pin NVIDIA cuSPARSELt wheels whose internal platform tag
 is `manylinux2014_sbsa` instead of `aarch64`. Installation succeeds, but
 `python -m pip check` reports that cuSPARSELt is unsupported. If you encounter
 this error, use the metadata repair supplied with the
-[TMol release](https://github.com/uw-ipd/tmol/releases):
+[TMol release](https://github.com/RosettaCommons/tmol/releases):
 
 ```bash
-curl -fLO https://github.com/uw-ipd/tmol/releases/download/v0.2.0/repair_cuda13_arm64_metadata.py
+curl -fLO https://github.com/RosettaCommons/tmol/releases/download/v0.2.0/repair_cuda13_arm64_metadata.py
 python repair_cuda13_arm64_metadata.py
 python -m pip check
 ```

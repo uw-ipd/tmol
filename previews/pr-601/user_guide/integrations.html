@@ -50,7 +50,8 @@
     <script>DOCUMENTATION_OPTIONS.pagename = 'user_guide/integrations';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <script src="../_static/tmol-explorers.js?v=089c5f52"></script>
-    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/user_guide/integrations.html" />
+    <script async="async" defer="defer" src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
+    <link rel="canonical" href="https://rosettacommons.github.io/tmol/latest/user_guide/integrations.html" />
     <link rel="icon" href="../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -238,7 +239,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
       
@@ -365,7 +366,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
         
@@ -490,8 +491,7 @@ atoms at NaN:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">tmol</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_file</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_file</span><span class="p">,</span> <span class="n">beta2016_score_function</span>
 
 <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cuda"</span> <span class="k">if</span> <span class="n">tmol</span><span class="o">.</span><span class="n">has_cuda</span><span class="p">()</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">"cpu"</span><span class="p">)</span>
 <span class="n">pose_stack</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="n">pose_stack_from_file</span><span class="p">(</span>
@@ -516,16 +516,18 @@ preparation, strict errors and reusable parameter bundles.</p>
 </section>
 <section id="direct-prediction-tensors">
 <h2>Direct prediction tensors<a class="headerlink" href="#direct-prediction-tensors" title="Link to this heading">#</a></h2>
-<p>Canonical proteins in AtomWorks’ <code class="docutils literal notranslate"><span class="pre">UNIFIED_ATOM37_ENCODING</span></code> can use
-<code class="docutils literal notranslate"><span class="pre">pose_stack_from_canonical_aa_atom37(coords,</span> <span class="pre">residue_type,</span> <span class="pre">chain_iid)</span></code> directly. Coordinates
-have shape <code class="docutils literal notranslate"><span class="pre">[batch,</span> <span class="pre">residues,</span> <span class="pre">37,</span> <span class="pre">3]</span></code>; token IDs and chain IDs have shape
-<code class="docutils literal notranslate"><span class="pre">[batch,</span> <span class="pre">residues]</span></code>. The function uses AtomWorks’ token order and atom names.
-Tensor shape alone does not identify an encoding.</p>
-<p>For atom14 or another named layout, map the predictor’s token IDs and atom
-names into <code class="docutils literal notranslate"><span class="pre">CanonicalForm</span></code>, then call <code class="docutils literal notranslate"><span class="pre">pose_stack_from_canonical_form()</span></code>. The
+<p>Prediction tensors go through <code class="docutils literal notranslate"><span class="pre">tmol.io.pose_stack_from_atom37()</span></code>. Build the
+predictor’s slot layout once with <code class="docutils literal notranslate"><span class="pre">tmol.io.atom37_slot_map_for_ordering()</span></code>,
+naming the atom that occupies each slot of each residue type; this works for
+AtomWorks’ <code class="docutils literal notranslate"><span class="pre">UNIFIED_ATOM37_ENCODING</span></code>, atom14, or any other named layout.
+Coordinates have shape <code class="docutils literal notranslate"><span class="pre">[batch,</span> <span class="pre">residues,</span> <span class="pre">slots,</span> <span class="pre">3]</span></code>; residue-type indices and
+chain IDs have shape <code class="docutils literal notranslate"><span class="pre">[batch,</span> <span class="pre">residues]</span></code>. Residue-type indices refer to the
+canonical ordering of the context from <code class="docutils literal notranslate"><span class="pre">tmol.io.build_context_from_atom_array()</span></code>,
+so translate the predictor’s token IDs into that ordering first. Tensor shape
+alone does not identify an encoding.</p>
+<p>The
 <a class="reference download internal" download="" href="../_downloads/35b95a8461606a5e7799f8c158de4f01/model_input_example.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">executable</span> <span class="pre">model-input</span> <span class="pre">tutorial</span></code></a>
-implements OpenFold and RoseTTAFold2 examples using this shared contract. It
-shows final-recycle selection, explicit masks, batched scoring and gradients,
+implements OpenFold and RoseTTAFold2 examples. It shows final-recycle selection, explicit masks, batched scoring and gradients,
 and both preservation and rebuilding of RF2’s supplied hydrogen slots. Those
 model-specific mappings belong in the caller; TMol has no separate OpenFold or
 RF2 constructor.</p>
@@ -561,8 +563,8 @@ ligands and conjugated residues need no <code class="docutils literal notranslat
 per (ordering, layout) pair from the residue-type table; omit it to use the
 standard Atom37 layout, which covers the canonical amino acids.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">AtomArray</span></code> entry points below remain the way to <em>derive</em> these tensors
-when chemistry has to be read from a structure. Everything ends in the same
-constructor, <code class="docutils literal notranslate"><span class="pre">pose_stack_from_canonical_form_and_context()</span></code>.</p>
+when chemistry has to be read from a structure. Both routes build the pose with
+the same internal constructor.</p>
 </section>
 <section id="differentiable-atomworks-atom37-coordinates">
 <h2>Differentiable AtomWorks Atom37 coordinates<a class="headerlink" href="#differentiable-atomworks-atom37-coordinates" title="Link to this heading">#</a></h2>
@@ -577,7 +579,7 @@ steps:</p>
     <span class="n">build_context_from_atom_array</span><span class="p">,</span>
     <span class="n">prepare_atom37_pose_builder</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
 
 <span class="c1"># atom_array is the AtomWorks-produced topology. atom37_slots is a per-atom</span>
 <span class="c1"># integer array from the same unified encoding; use -1 for an unmapped atom.</span>

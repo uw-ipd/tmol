@@ -22,6 +22,7 @@ import logging
 import subprocess
 import sys
 import tempfile
+import warnings
 from importlib import import_module
 from pathlib import Path
 from urllib.request import urlretrieve
@@ -40,9 +41,30 @@ logging.getLogger("atomworks.constants").addFilter(
         )
     )
 )
+# Load-time notices that are routine for the tutorial structures (dropped
+# solvent/additives, terminal-residue guesses, JIT CUDA_HOME). Also installed at
+# import time, since the star import already loads tmol and its compiled ops.
+for _name in (
+    "torch.utils.cpp_extension",
+    "tmol.io._pose_stack_from_biotite",
+    "tmol.ligand._polymer_profile",
+):
+    logging.getLogger(_name).addFilter(lambda record: record.levelno >= logging.ERROR)
+for _message in (
+    "Renumbering chain",
+    "Keeping one residue per site",
+    "Sparse invariant checks are implicitly disabled",
+):
+    warnings.filterwarnings("ignore", message=_message)
+# biotite's PDB writer uses numpy's deprecated chararray.
+warnings.filterwarnings(
+    "ignore",
+    message=".*Use an ndarray with a string or bytes dtype instead",
+    category=DeprecationWarning,
+)
 
 TUTORIAL_REF = "master"
-RAW_BASE = f"https://raw.githubusercontent.com/uw-ipd/tmol/{TUTORIAL_REF}"
+RAW_BASE = f"https://raw.githubusercontent.com/RosettaCommons/tmol/{TUTORIAL_REF}"
 # Advance only after the release wheels have been published and exercised.
 # The source project's next version may not have downloadable wheels yet.
 TMOL_RELEASE = "0.2.0"
@@ -203,7 +225,7 @@ def setup(seed: int = SEED):
     import torch
     from openbabel import openbabel
 
-    from tmol.database import ParameterDatabase
+    from tmol import ParameterDatabase
 
     # OpenBabel prints its own warnings (odd valences, stereo perception, charge
     # model fallbacks, ...) straight to stderr via a native logger, not Python's
@@ -311,9 +333,26 @@ def view_constraints(
 # (``_ALIASES`` covers the few that are modules or need renaming). They resolve on
 # first use, so importing this module stays cheap.
 _EXPORTS = {
-    "tmol.database": ("ParameterDatabase",),
-    "tmol.io": ("fetch_cif", "file_from_pose_stack", "pose_stack_from_file"),
-    "tmol.kinematics": ("BondDOFTypes", "PoseStackKinematicsModule", "torsion_labels"),
+    "tmol": (
+        "ConstraintSet",
+        "PackerPalette",
+        "PackerTask",
+        "ParameterDatabase",
+        "PoseStackBuilder",
+        "ScoreFunction",
+        "ScoreType",
+        "beta2016_score_function",
+        "file_from_pose_stack",
+        "pack_rotamers",
+        "pose_stack_from_file",
+    ),
+    "tmol.io": ("fetch_cif",),
+    "tmol.kinematics": (
+        "BondDOFTypes",
+        "PoseStackKinematicsModule",
+        "set_named_torsions",
+        "torsion_labels",
+    ),
     "tmol.ligand": ("smiles_from_pose_stack",),
     "tmol.ops": (
         "block_energies",
@@ -326,18 +365,20 @@ _EXPORTS = {
         "select_from_pose_stack",
     ),
     "tmol.optimization": ("KinForestSfxnNetwork",),
-    "tmol.pack": ("PackerPalette", "PackerTask", "pack_rotamers"),
-    "tmol.pack.rotamer": ("FixedAAChiSampler", "IncludeCurrentSampler", "OptHSampler"),
-    "tmol.pack.rotamer.dunbrack": ("create_dunbrack_sampler_from_database",),
+    "tmol.pack": (
+        "FixedAAChiSampler",
+        "IncludeCurrentSampler",
+        "OptHSampler",
+        "create_dunbrack_sampler_from_database",
+    ),
     "tmol.pose": (
-        "ConstraintSet",
-        "PoseStackBuilder",
         "atom_label",
+        "get_named_torsions",
+        "get_polymer_type_mask",
         "metal_blocks",
         "residue_label",
     ),
-    "tmol.score": ("ScoreFunction", "ScoreType", "beta2016_score_function"),
-    "tmol.score.constraint": (
+    "tmol.score": (
         "ConstraintEnergyTerm",
         "constrain_all_ca",
         "constrain_closest_interchain_ca_pair",

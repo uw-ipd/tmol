@@ -49,7 +49,8 @@
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/kinematics/_datatypes';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <script src="../../../_static/tmol-explorers.js?v=089c5f52"></script>
-    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/kinematics/_datatypes.html" />
+    <script async="async" defer="defer" src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
+    <link rel="canonical" href="https://rosettacommons.github.io/tmol/latest/_modules/tmol/kinematics/_datatypes.html" />
     <link rel="icon" href="../../../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
@@ -235,7 +236,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
       
@@ -360,7 +361,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
         
@@ -406,9 +407,6 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.kinematics._datatypes</span></li>
   </ul>
 </nav>
@@ -432,13 +430,11 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">attrs</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">Tensor</span><span class="p">,</span>
-    <span class="n">TensorGroup</span><span class="p">,</span>
-    <span class="n">NDArray</span><span class="p">,</span>
-    <span class="n">ConvertAttrs</span><span class="p">,</span>
-    <span class="n">convert_args</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._tensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">TensorGroup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._array</span><span class="w"> </span><span class="kn">import</span> <span class="n">NDArray</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._attrs</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConvertAttrs</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._functional</span><span class="w"> </span><span class="kn">import</span> <span class="n">_convert_args</span>
 
 
 <div class="viewcode-block" id="NodeType">
@@ -452,8 +448,6 @@
 
 
 
-<div class="viewcode-block" id="KinForest">
-<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.KinForest">[docs]</a>
 <span class="nd">@attrs</span><span class="o">.</span><span class="n">define</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">KinForest</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">,</span> <span class="n">ConvertAttrs</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""A collection of atom-level kinematic trees, each of which can be processed</span>
@@ -525,10 +519,8 @@
     <span class="n">frame_y</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][</span><span class="o">...</span><span class="p">]</span>
     <span class="n">frame_z</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][</span><span class="o">...</span><span class="p">]</span>
 
-<div class="viewcode-block" id="KinForest.node">
-<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.KinForest.node">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="nd">@convert_args</span>
+    <span class="nd">@_convert_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">node</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -546,35 +538,25 @@
             <span class="n">frame_x</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">([</span><span class="n">frame_x</span><span class="p">]),</span>
             <span class="n">frame_y</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">([</span><span class="n">frame_y</span><span class="p">]),</span>
             <span class="n">frame_z</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">([</span><span class="n">frame_z</span><span class="p">]),</span>
-        <span class="p">)</span></div>
+        <span class="p">)</span>
 
-
-<div class="viewcode-block" id="KinForest.root_node">
-<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.KinForest.root_node">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">root_node</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""The global/root kinematic node at KinForest[0]."""</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">node</span><span class="p">(</span>
             <span class="nb">id</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">doftype</span><span class="o">=</span><span class="n">NodeType</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">frame_x</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">frame_y</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">frame_z</span><span class="o">=</span><span class="mi">0</span>
-        <span class="p">)</span></div>
-</div>
+        <span class="p">)</span>
 
 
-
-<div class="viewcode-block" id="KinForestScanData">
-<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.KinForestScanData">[docs]</a>
 <span class="nd">@attrs</span><span class="o">.</span><span class="n">define</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">KinForestScanData</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">,</span> <span class="n">ConvertAttrs</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Node, scan-start, and generation-start tensors for a kinematic scan."""</span>
 
     <span class="n">nodes</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">]</span>
     <span class="n">scans</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">]</span>
-    <span class="n">gens</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">]</span></div>
+    <span class="n">gens</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">]</span>
 
 
-
-<div class="viewcode-block" id="KinematicModuleData">
-<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.KinematicModuleData">[docs]</a>
 <span class="nd">@attrs</span><span class="o">.</span><span class="n">define</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">KinematicModuleData</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Topology and traversal tensors required by a pose kinematics module."""</span>
@@ -588,12 +570,9 @@
     <span class="n">block_in_and_first_out</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">][:,</span> <span class="p">:]</span>
     <span class="n">keep_atom_fixed</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:]</span>
     <span class="n">pose_stack_atom_for_jump</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">][:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">]</span>
-    <span class="n">pose_stack_atom_for_root_jump</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">][:,</span> <span class="mi">2</span><span class="p">]</span></div>
+    <span class="n">pose_stack_atom_for_root_jump</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">][:,</span> <span class="mi">2</span><span class="p">]</span>
 
 
-
-<div class="viewcode-block" id="KinDOF">
-<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.KinDOF">[docs]</a>
 <span class="nd">@attrs</span><span class="o">.</span><span class="n">define</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">KinDOF</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">,</span> <span class="n">ConvertAttrs</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Internal coordinate data.</span>
@@ -616,8 +595,7 @@
         <span class="k">return</span> <span class="n">JumpDOF</span><span class="p">(</span><span class="n">raw</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">raw</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">9</span><span class="p">])</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">clone</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">KinDOF</span><span class="p">(</span><span class="n">raw</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">raw</span><span class="o">.</span><span class="n">clone</span><span class="p">())</span></div>
-
+        <span class="k">return</span> <span class="n">KinDOF</span><span class="p">(</span><span class="n">raw</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">raw</span><span class="o">.</span><span class="n">clone</span><span class="p">())</span>
 
 
 <div class="viewcode-block" id="BondDOFTypes">
@@ -655,8 +633,6 @@
 <span class="n">n_movable_jump_dof_types</span> <span class="o">=</span> <span class="mi">6</span>
 
 
-<div class="viewcode-block" id="BondDOF">
-<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.BondDOF">[docs]</a>
 <span class="nd">@attrs</span><span class="o">.</span><span class="n">define</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">BondDOF</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">,</span> <span class="n">ConvertAttrs</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""A bond dof view of KinDOF."""</span>
@@ -677,12 +653,9 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">phi_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">BondDOFTypes</span><span class="o">.</span><span class="n">phi_c</span><span class="p">]</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">BondDOFTypes</span><span class="o">.</span><span class="n">phi_c</span><span class="p">]</span>
 
 
-
-<div class="viewcode-block" id="JumpDOF">
-<a class="viewcode-back" href="../../../api/kinematics.html#tmol.kinematics.JumpDOF">[docs]</a>
 <span class="nd">@attrs</span><span class="o">.</span><span class="n">define</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">JumpDOF</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">,</span> <span class="n">ConvertAttrs</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""A jump dof view of KinDOF."""</span>
@@ -723,8 +696,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">RBgamma</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">JumpDOFTypes</span><span class="o">.</span><span class="n">RBgamma</span><span class="p">]</span></div>
-
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">JumpDOFTypes</span><span class="o">.</span><span class="n">RBgamma</span><span class="p">]</span>
 
 
 <span class="nd">@attrs</span><span class="o">.</span><span class="n">define</span>

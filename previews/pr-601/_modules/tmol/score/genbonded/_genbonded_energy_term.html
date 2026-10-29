@@ -49,7 +49,8 @@
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/score/genbonded/_genbonded_energy_term';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <script src="../../../../_static/tmol-explorers.js?v=089c5f52"></script>
-    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/score/genbonded/_genbonded_energy_term.html" />
+    <script async="async" defer="defer" src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
+    <link rel="canonical" href="https://rosettacommons.github.io/tmol/latest/_modules/tmol/score/genbonded/_genbonded_energy_term.html" />
     <link rel="icon" href="../../../../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../../../../genindex.html" />
     <link rel="search" title="Search" href="../../../../search.html" />
@@ -235,7 +236,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
       
@@ -360,7 +361,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
         
@@ -405,9 +406,6 @@
     </li>
     
     <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
-    
-    
-    <li class="breadcrumb-item"><a href="../../../tmol.html" class="nav-link">tmol</a></li>
     
     
     <li class="breadcrumb-item"><a href="../../score.html" class="nav-link">tmol.score</a></li>
@@ -457,33 +455,29 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">AtomTypeDependentTerm</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score._atom_type_dependent_term</span><span class="w"> </span><span class="kn">import</span> <span class="n">AtomTypeDependentTerm</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score._annotation_cache</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AnnotationKey</span><span class="p">,</span>
-    <span class="n">cached_annotation</span><span class="p">,</span>
-    <span class="n">store_annotation</span><span class="p">,</span>
+    <span class="n">_cached_annotation</span><span class="p">,</span>
+    <span class="n">_store_annotation</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.scoring._genbonded</span><span class="w"> </span><span class="kn">import</span> <span class="n">_bond_btidx</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.genbonded.potentials</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.genbonded.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">genbonded_pose_scores</span><span class="p">,</span>
     <span class="n">genbonded_rotamer_scores</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">BondType</span><span class="p">,</span> <span class="n">RefinedResidueType</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">MAX_PATHS_FROM_CONNECTION</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">PackedBlockTypes</span><span class="p">,</span>
-    <span class="n">PoseStack</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.common</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">make_hashtable_keys_values</span><span class="p">,</span>
-    <span class="n">add_to_hashtable</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.na_torsion</span><span class="w"> </span><span class="kn">import</span> <span class="n">scored_torsion_bonds</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.backbone_torsion</span><span class="w"> </span><span class="kn">import</span> <span class="n">omega_connection</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical._restypes</span><span class="w"> </span><span class="kn">import</span> <span class="n">BondType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical._constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">MAX_PATHS_FROM_CONNECTION</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._packed_block_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackedBlockTypes</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.common._hash_util</span><span class="w"> </span><span class="kn">import</span> <span class="n">_make_hashtable_keys_values</span><span class="p">,</span> <span class="n">_add_to_hashtable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.na_torsion._params</span><span class="w"> </span><span class="kn">import</span> <span class="n">_scored_torsion_bonds</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.backbone_torsion._params</span><span class="w"> </span><span class="kn">import</span> <span class="n">_omega_connection</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.weak_identity_cache</span><span class="w"> </span><span class="kn">import</span> <span class="n">WeakIdentityLRU</span>
 
 <span class="c1"># Maximum hierarchy depth for any atom type (concrete -&gt; class -&gt; X).</span>
@@ -530,7 +524,7 @@
 
 
 <div class="viewcode-block" id="GenBondedEnergyTerm">
-<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.genbonded.GenBondedEnergyTerm">[docs]</a>
+<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.GenBondedEnergyTerm">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">GenBondedEnergyTerm</span><span class="p">(</span><span class="n">AtomTypeDependentTerm</span><span class="p">):</span>
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
 
@@ -670,7 +664,8 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">resolve_torsion_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_type</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">,</span> <span class="n">torsions</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""For each torsion tuple (i,j,k,l), look up its genbonded parameters.</span>
 
-<span class="sd">        Returns (kept_torsions, params) where:</span>
+<span class="sd">        Returns (kept_torsions, params) where::</span>
+
 <span class="sd">          kept_torsions : filtered list of (i,j,k,l) tuples that had a DB match</span>
 <span class="sd">          params        : numpy float32 array of shape (N_kept, 5):</span>
 <span class="sd">                          columns [k1, k2, k3, k4, offset]</span>
@@ -691,7 +686,7 @@
         <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_torsion_params_cache</span>
         <span class="n">rosetta_typed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_database</span><span class="o">.</span><span class="n">rosetta_typed</span>
-        <span class="n">na_bonds</span> <span class="o">=</span> <span class="n">scored_torsion_bonds</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_element_for_atom_type</span><span class="p">)</span>
+        <span class="n">na_bonds</span> <span class="o">=</span> <span class="n">_scored_torsion_bonds</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_element_for_atom_type</span><span class="p">)</span>
         <span class="n">linear</span> <span class="o">=</span> <span class="n">_linear_centers</span><span class="p">(</span><span class="n">block_type</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">last</span> <span class="ow">in</span> <span class="n">torsions</span><span class="p">:</span>
@@ -819,7 +814,7 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_block_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_type</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">GenBondedEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_block_type</span><span class="p">(</span><span class="n">block_type</span><span class="p">)</span>
-        <span class="n">previous</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span>
+        <span class="n">previous</span> <span class="o">=</span> <span class="n">_cached_annotation</span><span class="p">(</span>
             <span class="n">block_type</span><span class="p">,</span> <span class="s2">"_genbonded_annotation"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_block_annotation_key</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">previous</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -887,7 +882,7 @@
             <span class="n">annotation</span><span class="p">,</span>
         <span class="p">):</span>
             <span class="nb">setattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">_store_annotation</span><span class="p">(</span>
             <span class="n">block_type</span><span class="p">,</span>
             <span class="s2">"_genbonded_annotation"</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_block_annotation_key</span><span class="p">,</span>
@@ -907,7 +902,7 @@
         <span class="bp">self</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">GenBondedEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_packed_block_types</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">)</span>
-        <span class="n">previous</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span>
+        <span class="n">previous</span> <span class="o">=</span> <span class="n">_cached_annotation</span><span class="p">(</span>
             <span class="n">packed_block_types</span><span class="p">,</span>
             <span class="s2">"_genbonded_annotation"</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_packed_annotation_key</span><span class="p">,</span>
@@ -998,7 +993,7 @@
                     <span class="n">conn_bond_bins</span><span class="p">[</span><span class="n">bt_idx</span><span class="p">,</span> <span class="n">conn</span><span class="p">,</span> <span class="n">path</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">_bond_btidx</span><span class="p">(</span>
                         <span class="n">bt</span><span class="o">.</span><span class="n">bond_to_type</span><span class="p">[</span><span class="n">bond</span><span class="p">],</span> <span class="n">bt</span><span class="o">.</span><span class="n">bond_to_ringness</span><span class="p">[</span><span class="n">bond</span><span class="p">]</span>
                     <span class="p">)</span>
-            <span class="n">omega_conn</span> <span class="o">=</span> <span class="n">omega_connection</span><span class="p">(</span><span class="n">bt</span><span class="p">)</span>
+            <span class="n">omega_conn</span> <span class="o">=</span> <span class="n">_omega_connection</span><span class="p">(</span><span class="n">bt</span><span class="p">)</span>
             <span class="k">if</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">omega_conn</span> <span class="o">&lt;</span> <span class="n">n_conns</span><span class="p">:</span>
                 <span class="n">conn_scored_elsewhere</span><span class="p">[</span><span class="n">bt_idx</span><span class="p">,</span> <span class="n">omega_conn</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
 
@@ -1046,7 +1041,7 @@
         <span class="p">)</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">_PACKED_FIELDS</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
             <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">_store_annotation</span><span class="p">(</span>
             <span class="n">packed_block_types</span><span class="p">,</span>
             <span class="s2">"_genbonded_annotation"</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_packed_annotation_key</span><span class="p">,</span>
@@ -1096,7 +1091,7 @@
                 <span class="n">offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_offset</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">k1</span><span class="p">,</span> <span class="n">entry</span><span class="o">.</span><span class="n">k2</span><span class="p">,</span> <span class="n">entry</span><span class="o">.</span><span class="n">k3</span><span class="p">,</span> <span class="n">entry</span><span class="o">.</span><span class="n">k4</span><span class="p">)</span>
             <span class="n">hash_values</span><span class="p">[</span><span class="n">rank</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">k1</span><span class="p">,</span> <span class="n">entry</span><span class="o">.</span><span class="n">k2</span><span class="p">,</span> <span class="n">entry</span><span class="o">.</span><span class="n">k3</span><span class="p">,</span> <span class="n">entry</span><span class="o">.</span><span class="n">k4</span><span class="p">,</span> <span class="n">offset</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">rank</span> <span class="ow">in</span> <span class="n">keys</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">add_to_hashtable</span><span class="p">(</span><span class="n">hash_keys</span><span class="p">,</span> <span class="n">hash_values</span><span class="p">,</span> <span class="n">rank</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">hash_values</span><span class="p">[</span><span class="n">rank</span><span class="p">])</span>
+            <span class="n">_add_to_hashtable</span><span class="p">(</span><span class="n">hash_keys</span><span class="p">,</span> <span class="n">hash_values</span><span class="p">,</span> <span class="n">rank</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">hash_values</span><span class="p">[</span><span class="n">rank</span><span class="p">])</span>
 
         <span class="c1"># Inter-block impropers are keyed by center type followed by an ordered</span>
         <span class="c1"># permutation of the three neighbor types. Store all six permutations;</span>
@@ -1104,7 +1099,7 @@
         <span class="c1"># without special-casing unordered neighbors.</span>
         <span class="n">n_improper_entries</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gen_database</span><span class="o">.</span><span class="n">impropers</span><span class="p">)</span> <span class="o">*</span> <span class="mi">6</span>
         <span class="k">if</span> <span class="n">n_improper_entries</span><span class="p">:</span>
-            <span class="n">improper_hash_keys</span><span class="p">,</span> <span class="n">improper_hash_values</span> <span class="o">=</span> <span class="n">make_hashtable_keys_values</span><span class="p">(</span>
+            <span class="n">improper_hash_keys</span><span class="p">,</span> <span class="n">improper_hash_values</span> <span class="o">=</span> <span class="n">_make_hashtable_keys_values</span><span class="p">(</span>
                 <span class="n">n_improper_entries</span><span class="p">,</span> <span class="n">SCALE</span><span class="p">,</span> <span class="n">key_len</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">value_len</span><span class="o">=</span><span class="mi">5</span>
             <span class="p">)</span>
             <span class="n">improper_val_idx</span> <span class="o">=</span> <span class="mi">0</span>
@@ -1120,7 +1115,7 @@
                         <span class="o">*</span><span class="p">(</span><span class="n">type_to_idx</span><span class="p">[</span><span class="n">neighbor</span><span class="p">]</span> <span class="k">for</span> <span class="n">neighbor</span> <span class="ow">in</span> <span class="n">neighbors</span><span class="p">),</span>
                     <span class="p">)</span>
                     <span class="n">values</span> <span class="o">=</span> <span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">k</span><span class="p">,</span> <span class="n">entry</span><span class="o">.</span><span class="n">delta</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
-                    <span class="n">add_to_hashtable</span><span class="p">(</span>
+                    <span class="n">_add_to_hashtable</span><span class="p">(</span>
                         <span class="n">improper_hash_keys</span><span class="p">,</span>
                         <span class="n">improper_hash_values</span><span class="p">,</span>
                         <span class="n">improper_val_idx</span><span class="p">,</span>
@@ -1160,10 +1155,10 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_packing_rotamer_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.genbonded.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-            <span class="n">iter_packing_rotamer_scores</span><span class="p">,</span>
+            <span class="n">_iter_packing_rotamer_scores</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">iter_packing_rotamer_scores</span>
+        <span class="k">return</span> <span class="n">_iter_packing_rotamer_scores</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_rotamer_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">genbonded_rotamer_scores</span>

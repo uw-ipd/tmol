@@ -49,7 +49,8 @@
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/score/dunbrack/_dunbrack_energy_term';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <script src="../../../../_static/tmol-explorers.js?v=089c5f52"></script>
-    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/score/dunbrack/_dunbrack_energy_term.html" />
+    <script async="async" defer="defer" src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
+    <link rel="canonical" href="https://rosettacommons.github.io/tmol/latest/_modules/tmol/score/dunbrack/_dunbrack_energy_term.html" />
     <link rel="icon" href="../../../../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../../../../genindex.html" />
     <link rel="search" title="Search" href="../../../../search.html" />
@@ -235,7 +236,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
       
@@ -360,7 +361,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
         
@@ -407,9 +408,6 @@
     <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
     
     
-    <li class="breadcrumb-item"><a href="../../../tmol.html" class="nav-link">tmol</a></li>
-    
-    
     <li class="breadcrumb-item"><a href="../../score.html" class="nav-link">tmol.score</a></li>
     
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.score.dunbrack._dunbrack_energy_term</span></li>
@@ -436,18 +434,16 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.._energy_term</span><span class="w"> </span><span class="kn">import</span> <span class="n">EnergyTerm</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">.._annotation_cache</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnnotationKey</span><span class="p">,</span> <span class="n">cached_annotation</span><span class="p">,</span> <span class="n">store_annotation</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.._annotation_cache</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnnotationKey</span><span class="p">,</span> <span class="n">_cached_annotation</span><span class="p">,</span> <span class="n">_store_annotation</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.dunbrack</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.dunbrack._params</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">DunbrackParamResolver</span><span class="p">,</span>
     <span class="n">ScoringDunbrackDatabaseView</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">PackedBlockTypes</span><span class="p">,</span>
-    <span class="n">PoseStack</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._packed_block_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackedBlockTypes</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">count</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">dataclasses</span>
@@ -490,7 +486,7 @@
 
 
 <div class="viewcode-block" id="DunbrackEnergyTerm">
-<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.dunbrack.DunbrackEnergyTerm">[docs]</a>
+<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.DunbrackEnergyTerm">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">DunbrackEnergyTerm</span><span class="p">(</span><span class="n">EnergyTerm</span><span class="p">):</span>
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>  <span class="c1"># = attr.ib()</span>
 
@@ -540,11 +536,11 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_block_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_type</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">DunbrackEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_block_type</span><span class="p">(</span><span class="n">block_type</span><span class="p">)</span>
 
-        <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="n">_cached_annotation</span><span class="p">(</span>
             <span class="n">block_type</span><span class="p">,</span> <span class="s2">"_dunbrack_annotation"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotation_key</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">cached</span> <span class="o">=</span> <span class="n">store_annotation</span><span class="p">(</span>
+            <span class="n">cached</span> <span class="o">=</span> <span class="n">_store_annotation</span><span class="p">(</span>
                 <span class="n">block_type</span><span class="p">,</span>
                 <span class="s2">"_dunbrack_annotation"</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_annotation_key</span><span class="p">,</span>
@@ -636,7 +632,7 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_packed_block_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">DunbrackEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_packed_block_types</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">)</span>
 
-        <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="n">_cached_annotation</span><span class="p">(</span>
             <span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"_dunbrack_packed_annotation"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotation_key</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -650,7 +646,7 @@
                 <span class="p">)</span>
                 <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span><span class="n">DunbrackBlockAttrs</span><span class="p">)</span>
             <span class="p">]</span>
-            <span class="n">store_annotation</span><span class="p">(</span>
+            <span class="n">_store_annotation</span><span class="p">(</span>
                 <span class="n">packed_block_types</span><span class="p">,</span>
                 <span class="s2">"_dunbrack_packed_annotation"</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_annotation_key</span><span class="p">,</span>
@@ -688,16 +684,16 @@
         <span class="nb">super</span><span class="p">(</span><span class="n">DunbrackEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_poses</span><span class="p">(</span><span class="n">poses</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_pose_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.dunbrack.potentials</span><span class="w"> </span><span class="kn">import</span> <span class="n">dunbrack_pose_scores</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.dunbrack.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">_dunbrack_pose_scores</span>
 
-        <span class="k">return</span> <span class="n">dunbrack_pose_scores</span>
+        <span class="k">return</span> <span class="n">_dunbrack_pose_scores</span>
 
     <span class="n">score_only_in_no_grad</span> <span class="o">=</span> <span class="kc">True</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_rotamer_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.dunbrack.potentials</span><span class="w"> </span><span class="kn">import</span> <span class="n">dunbrack_rotamer_scores</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.dunbrack.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">_dunbrack_rotamer_scores</span>
 
-        <span class="k">return</span> <span class="n">dunbrack_rotamer_scores</span>
+        <span class="k">return</span> <span class="n">_dunbrack_rotamer_scores</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_score_term_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">):</span>
         <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>

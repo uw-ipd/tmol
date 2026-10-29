@@ -49,7 +49,8 @@
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/io/_pose_stack_from_atom37';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <script src="../../../_static/tmol-explorers.js?v=089c5f52"></script>
-    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/io/_pose_stack_from_atom37.html" />
+    <script async="async" defer="defer" src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
+    <link rel="canonical" href="https://rosettacommons.github.io/tmol/latest/_modules/tmol/io/_pose_stack_from_atom37.html" />
     <link rel="icon" href="../../../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
@@ -235,7 +236,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
       
@@ -360,7 +361,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
         
@@ -406,9 +407,6 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.io._pose_stack_from_atom37</span></li>
   </ul>
 </nav>
@@ -447,7 +445,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._build_context</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseBuildContext</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._canonical_form</span><span class="w"> </span><span class="kn">import</span> <span class="n">CanonicalForm</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._canonical_ordering</span><span class="w"> </span><span class="kn">import</span> <span class="n">CanonicalOrdering</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._pose_stack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
 
 
 <div class="viewcode-block" id="atom37_slot_map_for_ordering">
@@ -522,9 +520,7 @@
     <span class="p">)</span>
 
 
-<div class="viewcode-block" id="canonical_form_from_atom37">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.canonical_form_from_atom37">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">canonical_form_from_atom37</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_canonical_form_from_atom37</span><span class="p">(</span>
     <span class="n">atom37_coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">res_types</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">chain_id</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
@@ -632,8 +628,7 @@
         <span class="n">res_not_connected</span><span class="o">=</span><span class="n">res_not_connected</span><span class="p">,</span>
         <span class="n">cyclic_bonds</span><span class="o">=</span><span class="n">cyclic_bonds</span><span class="p">,</span>
         <span class="n">covalent_bonds</span><span class="o">=</span><span class="n">covalent_bonds</span><span class="p">,</span>
-    <span class="p">)</span></div>
-
+    <span class="p">)</span>
 
 
 <div class="viewcode-block" id="pose_stack_from_atom37">
@@ -686,10 +681,10 @@
     <span class="c1"># Imported here because the module defining the shared constructor is</span>
     <span class="c1"># loaded after this one.</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._pose_stack_from_biotite</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-        <span class="n">pose_stack_from_canonical_form_and_context</span><span class="p">,</span>
+        <span class="n">_pose_stack_from_canonical_form_and_context</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="n">canonical_form</span> <span class="o">=</span> <span class="n">canonical_form_from_atom37</span><span class="p">(</span>
+    <span class="n">canonical_form</span> <span class="o">=</span> <span class="n">_canonical_form_from_atom37</span><span class="p">(</span>
         <span class="n">atom37_coords</span><span class="p">,</span>
         <span class="n">res_types</span><span class="p">,</span>
         <span class="n">chain_id</span><span class="p">,</span>
@@ -700,7 +695,7 @@
         <span class="n">covalent_bonds</span><span class="o">=</span><span class="n">covalent_bonds</span><span class="p">,</span>
         <span class="n">res_not_connected</span><span class="o">=</span><span class="n">res_not_connected</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="k">return</span> <span class="n">pose_stack_from_canonical_form_and_context</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">_pose_stack_from_canonical_form_and_context</span><span class="p">(</span>
         <span class="n">canonical_form</span><span class="p">,</span>
         <span class="n">context</span><span class="p">,</span>
         <span class="n">no_optH</span><span class="o">=</span><span class="n">no_optH</span><span class="p">,</span>

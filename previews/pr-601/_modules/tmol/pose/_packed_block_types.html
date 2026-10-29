@@ -49,7 +49,8 @@
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/pose/_packed_block_types';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <script src="../../../_static/tmol-explorers.js?v=089c5f52"></script>
-    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/pose/_packed_block_types.html" />
+    <script async="async" defer="defer" src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
+    <link rel="canonical" href="https://rosettacommons.github.io/tmol/latest/_modules/tmol/pose/_packed_block_types.html" />
     <link rel="icon" href="../../../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
@@ -235,7 +236,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
       
@@ -360,7 +361,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
         
@@ -406,9 +407,6 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.pose._packed_block_types</span></li>
   </ul>
 </nav>
@@ -435,15 +433,12 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sequence</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types._torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">MAX_PATHS_FROM_CONNECTION</span><span class="p">,</span>
-    <span class="n">RefinedResidueType</span><span class="p">,</span>
-    <span class="n">ResidueTypeSet</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">PatchedChemicalDatabase</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility._device</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_device</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical._constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">MAX_PATHS_FROM_CONNECTION</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span><span class="p">,</span> <span class="n">ResidueTypeSet</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database._patched_chemdb</span><span class="w"> </span><span class="kn">import</span> <span class="n">PatchedChemicalDatabase</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_device</span>
 
 <span class="c1"># The per-block connection capacity of the ljlk, elec, hbond and lk_ball</span>
 <span class="c1"># kernels' shared-memory tiles (MAX_N_CONN in their .hh files).</span>
@@ -451,7 +446,7 @@
 
 
 <div class="viewcode-block" id="PackedBlockTypes">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PackedBlockTypes">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.PackedBlockTypes">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">PackedBlockTypes</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""A class to aggregate the properties for a collection of residue types.</span>
@@ -543,7 +538,7 @@
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">)</span>
 
 <div class="viewcode-block" id="PackedBlockTypes.from_restype_list">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PackedBlockTypes.from_restype_list">[docs]</a>
+<a class="viewcode-back" href="../../../api/top_level.html#tmol.PackedBlockTypes.from_restype_list">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_restype_list</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
@@ -885,9 +880,7 @@
 
 
 
-<div class="viewcode-block" id="annotate_packed_block_types_w_dslf_conn_inds">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.annotate_packed_block_types_w_dslf_conn_inds">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">annotate_packed_block_types_w_dslf_conn_inds</span><span class="p">(</span><span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_annotate_packed_block_types_w_dslf_conn_inds</span><span class="p">(</span><span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Annotate each block type with its disulfide connection index, or -1."""</span>
     <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"canonical_dslf_conn_ind"</span><span class="p">):</span>
         <span class="k">return</span>
@@ -898,13 +891,10 @@
     <span class="n">canonical_dslf_conn_ind</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
         <span class="n">canonical_dslf_conn_ind</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span>
     <span class="p">)</span>
-    <span class="nb">setattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"canonical_dslf_conn_ind"</span><span class="p">,</span> <span class="n">canonical_dslf_conn_ind</span><span class="p">)</span></div>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"canonical_dslf_conn_ind"</span><span class="p">,</span> <span class="n">canonical_dslf_conn_ind</span><span class="p">)</span>
 
 
-
-<div class="viewcode-block" id="annotate_packed_block_types_w_kinematic_conns">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.annotate_packed_block_types_w_kinematic_conns">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">annotate_packed_block_types_w_kinematic_conns</span><span class="p">(</span><span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_annotate_packed_block_types_w_kinematic_conns</span><span class="p">(</span><span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Mark, per block type, which connections carry motion between blocks."""</span>
     <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"kinematic_conn"</span><span class="p">):</span>
         <span class="k">return</span>
@@ -916,11 +906,10 @@
         <span class="n">pbt</span><span class="p">,</span>
         <span class="s2">"kinematic_conn"</span><span class="p">,</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">kinematic_conn</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
-    <span class="p">)</span></div>
+    <span class="p">)</span>
 
 
-
-<span class="k">def</span><span class="w"> </span><span class="nf">annotate_packed_block_types_w_conjugation_conns</span><span class="p">(</span><span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_annotate_packed_block_types_w_conjugation_conns</span><span class="p">(</span><span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Mark, per block type, which connections are conjugations.</span>
 
 <span class="sd">    A kinematic connection other than the polymer up or down joins a residue to</span>
@@ -930,7 +919,7 @@
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"conjugation_conn"</span><span class="p">):</span>
         <span class="k">return</span>
-    <span class="n">annotate_packed_block_types_w_kinematic_conns</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
+    <span class="n">_annotate_packed_block_types_w_kinematic_conns</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
     <span class="n">kinematic</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">kinematic_conn</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
 
     <span class="n">conjugation_conn</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_conn</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>

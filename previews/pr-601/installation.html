@@ -50,7 +50,8 @@
     <script>DOCUMENTATION_OPTIONS.pagename = 'installation';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <script src="_static/tmol-explorers.js?v=089c5f52"></script>
-    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/installation.html" />
+    <script async="async" defer="defer" src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
+    <link rel="canonical" href="https://rosettacommons.github.io/tmol/latest/installation.html" />
     <link rel="icon" href="_static/favicon.ico"/>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -238,7 +239,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
       
@@ -365,7 +366,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
         
@@ -612,8 +613,8 @@ has not been verified.</p>
 is <code class="docutils literal notranslate"><span class="pre">manylinux2014_sbsa</span></code> instead of <code class="docutils literal notranslate"><span class="pre">aarch64</span></code>. Installation succeeds, but
 <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">check</span></code> reports that cuSPARSELt is unsupported. If you encounter
 this error, use the metadata repair supplied with the
-<a class="reference external" href="https://github.com/uw-ipd/tmol/releases">TMol release</a>:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>-fLO<span class="w"> </span>https://github.com/uw-ipd/tmol/releases/download/v0.2.0/repair_cuda13_arm64_metadata.py
+<a class="reference external" href="https://github.com/RosettaCommons/tmol/releases">TMol release</a>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>-fLO<span class="w"> </span>https://github.com/RosettaCommons/tmol/releases/download/v0.2.0/repair_cuda13_arm64_metadata.py
 python<span class="w"> </span>repair_cuda13_arm64_metadata.py
 python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>check
 </pre></div>

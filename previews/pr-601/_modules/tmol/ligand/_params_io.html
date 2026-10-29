@@ -49,7 +49,8 @@
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/ligand/_params_io';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <script src="../../../_static/tmol-explorers.js?v=089c5f52"></script>
-    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/ligand/_params_io.html" />
+    <script async="async" defer="defer" src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
+    <link rel="canonical" href="https://rosettacommons.github.io/tmol/latest/_modules/tmol/ligand/_params_io.html" />
     <link rel="icon" href="../../../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
@@ -235,7 +236,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
       
@@ -360,7 +361,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
         
@@ -406,9 +407,6 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.ligand._params_io</span></li>
   </ul>
 </nav>
@@ -430,7 +428,7 @@
 <span></span><span class="sd">"""Write ligand params files in tmol's ``.tmol`` format.</span>
 
 <span class="sd">Single home for ligand params I/O. :func:`write_params_file` serializes a</span>
-<span class="sd">:class:`~tmol.ligand._registry.LigandPreparation`; the tmol reader is</span>
+<span class="sd">``LigandPreparation``; the tmol reader is</span>
 <span class="sd">re-exported from :mod:`tmol.ligand._params_file`.</span>
 <span class="sd">"""</span>
 
@@ -444,10 +442,8 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RawResidueType</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._params_file</span><span class="w"> </span><span class="kn">import</span> <span class="n">TMOL_FORMAT_VERSION</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.scoring</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">CartRes</span><span class="p">,</span>
-    <span class="n">PartialCharges</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.scoring._cartbonded</span><span class="w"> </span><span class="kn">import</span> <span class="n">CartRes</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.scoring._elec</span><span class="w"> </span><span class="kn">import</span> <span class="n">PartialCharges</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">LigandPreparation</span>
@@ -676,7 +672,7 @@
 <span class="w">    </span><span class="sd">"""Write a ligand ``LigandPreparation`` as a tmol ``.tmol`` file.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        preparation: A :class:`~tmol.ligand._registry.LigandPreparation` (its</span>
+<span class="sd">        preparation: A ``LigandPreparation`` (its</span>
 <span class="sd">            ``residue_type`` / ``partial_charges`` / ``cartbonded_params`` are</span>
 <span class="sd">            used), or a list of them.</span>
 <span class="sd">        path: Output file, holding every supplied residue.</span>

@@ -50,7 +50,8 @@
     <script>DOCUMENTATION_OPTIONS.pagename = 'user_guide/optimization';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <script src="../_static/tmol-explorers.js?v=089c5f52"></script>
-    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/user_guide/optimization.html" />
+    <script async="async" defer="defer" src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
+    <link rel="canonical" href="https://rosettacommons.github.io/tmol/latest/user_guide/optimization.html" />
     <link rel="icon" href="../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -238,7 +239,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
       
@@ -365,7 +366,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
         
@@ -486,7 +487,7 @@ rigid-body degrees of freedom. FastRelax alternates packing and minimization.</p
 <section id="cartesian-minimization">
 <h2>Cartesian minimization<a class="headerlink" href="#cartesian-minimization" title="Link to this heading">#</a></h2>
 <p>Use <code class="docutils literal notranslate"><span class="pre">run_cart_min()</span></code> to optimize coordinates directly:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_cart_min</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_cart_min</span>
 
 <span class="n">minimized_pose_stack</span> <span class="o">=</span> <span class="n">run_cart_min</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">)</span>
 </pre></div>
@@ -504,8 +505,8 @@ rigid-body degrees of freedom. FastRelax alternates packing and minimization.</p
 score function gives the constraint term a nonzero weight. This helper returns a
 new pose with harmonic coordinate restraints targeting a copy of each residue
 type’s declared main-chain atom coordinates:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.constraint</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_mainchain_coordinate_constraints</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreType</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_mainchain_coordinate_constraints</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreType</span>
 
 <span class="n">constrained_pose</span> <span class="o">=</span> <span class="n">create_mainchain_coordinate_constraints</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
 <span class="n">sfxn</span><span class="o">.</span><span class="n">set_weight</span><span class="p">(</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">constraint</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
@@ -520,8 +521,8 @@ four-atom torsions.</p>
 </section>
 <section id="missing-side-chains-and-hydrogens">
 <h2>Missing side chains and hydrogens<a class="headerlink" href="#missing-side-chains-and-hydrogens" title="Link to this heading">#</a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">pose_stack_from_atom_array()</span></code> automatically routes blocks with missing heavy
-atoms through <code class="docutils literal notranslate"><span class="pre">build_missing_sidechains()</span></code>. By default it also optimizes
+<p><code class="docutils literal notranslate"><span class="pre">pose_stack_from_atom_array()</span></code> automatically rebuilds the missing heavy atoms
+of incomplete side chains by packing them. By default it also optimizes
 supported hydrogen positions and NHQ flips. Pass <code class="docutils literal notranslate"><span class="pre">no_optH=True</span></code> to preserve
 finite supplied protein hydrogens and build only missing atoms.</p>
 <p>For standard residues and the default parameter database, TMol automatically
@@ -542,9 +543,7 @@ an error. These starting conformers are not recovered experimental coordinates.<
 <section id="kinematic-minimization">
 <h2>Kinematic minimization<a class="headerlink" href="#kinematic-minimization" title="Link to this heading">#</a></h2>
 <p>Kinematic minimization optimizes internal degrees of freedom over a fold forest:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics</span><span class="w"> </span><span class="kn">import</span> <span class="n">FoldForest</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics</span><span class="w"> </span><span class="kn">import</span> <span class="n">MoveMap</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_kin_min</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol</span><span class="w"> </span><span class="kn">import</span> <span class="n">FoldForest</span><span class="p">,</span> <span class="n">MoveMap</span><span class="p">,</span> <span class="n">run_kin_min</span>
 
 <span class="n">fold_forest</span> <span class="o">=</span> <span class="n">FoldForest</span><span class="o">.</span><span class="n">reasonable_fold_forest</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
 <span class="n">move_map</span> <span class="o">=</span> <span class="n">MoveMap</span><span class="o">.</span><span class="n">from_pose_stack</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
@@ -565,9 +564,7 @@ as above.</p>
 <h2>Relax<a class="headerlink" href="#relax" title="Link to this heading">#</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">fast_relax()</span></code> combines repacking and minimization over a schedule of
 score-function weights:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics</span><span class="w"> </span><span class="kn">import</span> <span class="n">CartesianMoveMap</span><span class="p">,</span> <span class="n">FoldForest</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackerPalette</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.relax</span><span class="w"> </span><span class="kn">import</span> <span class="n">fast_relax</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol</span><span class="w"> </span><span class="kn">import</span> <span class="n">CartesianMoveMap</span><span class="p">,</span> <span class="n">FoldForest</span><span class="p">,</span> <span class="n">PackerPalette</span><span class="p">,</span> <span class="n">fast_relax</span>
 
 <span class="n">palette</span> <span class="o">=</span> <span class="n">PackerPalette</span><span class="p">()</span>
 <span class="n">move_map</span> <span class="o">=</span> <span class="n">CartesianMoveMap</span><span class="p">()</span>  <span class="c1"># coord_mask=None allows all atom coordinates</span>

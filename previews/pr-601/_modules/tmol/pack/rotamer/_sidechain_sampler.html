@@ -49,7 +49,8 @@
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/pack/rotamer/_sidechain_sampler';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <script src="../../../../_static/tmol-explorers.js?v=089c5f52"></script>
-    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/pack/rotamer/_sidechain_sampler.html" />
+    <script async="async" defer="defer" src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
+    <link rel="canonical" href="https://rosettacommons.github.io/tmol/latest/_modules/tmol/pack/rotamer/_sidechain_sampler.html" />
     <link rel="icon" href="../../../../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../../../../genindex.html" />
     <link rel="search" title="Search" href="../../../../search.html" />
@@ -235,7 +236,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
       
@@ -360,7 +361,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
         
@@ -406,9 +407,6 @@
     
     <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.pack.rotamer._sidechain_sampler</span></li>
   </ul>
 </nav>
@@ -432,12 +430,12 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._conformer_sampler</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConformerSampler</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._conjugated_groups</span><span class="w"> </span><span class="kn">import</span> <span class="n">add_conjugated_group_sampler</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._conjugated_groups</span><span class="w"> </span><span class="kn">import</span> <span class="n">_add_conjugated_group_sampler</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._fixed_aa_chi_sampler</span><span class="w"> </span><span class="kn">import</span> <span class="n">FixedAAChiSampler</span>
 
 
 <div class="viewcode-block" id="SidechainSampler">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.SidechainSampler">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.SidechainSampler">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">SidechainSampler</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Every sampler needed to move an ordinary protein side chain.</span>
@@ -456,11 +454,13 @@
     <span class="n">samplers</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">ConformerSampler</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
 
 <div class="viewcode-block" id="SidechainSampler.from_database">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.SidechainSampler.from_database">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.SidechainSampler.from_database">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_database</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">database</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"SidechainSampler"</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Bundle the rotamer-library and fixed-chi samplers for ``database``."""</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.dunbrack</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_dunbrack_sampler_from_database</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.dunbrack._dunbrack_chi_sampler</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+            <span class="n">create_dunbrack_sampler_from_database</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="p">(</span>
@@ -471,7 +471,7 @@
 
 
 <div class="viewcode-block" id="SidechainSampler.expand_into_task">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.SidechainSampler.expand_into_task">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.SidechainSampler.expand_into_task">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">expand_into_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Register each bundled sampler on ``task``."""</span>
         <span class="k">for</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="p">:</span>
@@ -481,7 +481,7 @@
 
 
 <div class="viewcode-block" id="ConjugatedSCSampler">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.ConjugatedSCSampler">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.ConjugatedSCSampler">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ConjugatedSCSampler</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Sample side chains while keeping covalently linked groups together.</span>
@@ -502,12 +502,12 @@
     <span class="n">sidechain</span><span class="p">:</span> <span class="n">SidechainSampler</span>
 
 <div class="viewcode-block" id="ConjugatedSCSampler.expand_into_task">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.ConjugatedSCSampler.expand_into_task">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.ConjugatedSCSampler.expand_into_task">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">expand_into_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Register the side-chain bundle, then group conjugated residues."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sidechain</span><span class="o">.</span><span class="n">expand_into_task</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
         <span class="c1"># Runs after the bundle so the group sampler can find the library.</span>
-        <span class="n">add_conjugated_group_sampler</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">task</span><span class="o">.</span><span class="n">pose_stack</span><span class="p">)</span></div>
+        <span class="n">_add_conjugated_group_sampler</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">task</span><span class="o">.</span><span class="n">pose_stack</span><span class="p">)</span></div>
 </div>
 
 </pre></div>

@@ -6,7 +6,7 @@ For build requirements and platform support, see {doc}`installation
 ## Local setup
 
 ```bash
-git clone https://github.com/uw-ipd/tmol.git
+git clone https://github.com/RosettaCommons/tmol.git
 cd tmol
 python -m pip install "torch>=2.14" "scikit-build-core>=0.10" "cmake>=3.24,<4" "pybind11>=2.12" ninja packaging
 python -m pip install --no-build-isolation -e ".[dev]"

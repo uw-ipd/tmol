@@ -49,7 +49,8 @@
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/ligand/_detect';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <script src="../../../_static/tmol-explorers.js?v=089c5f52"></script>
-    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/ligand/_detect.html" />
+    <script async="async" defer="defer" src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
+    <link rel="canonical" href="https://rosettacommons.github.io/tmol/latest/_modules/tmol/ligand/_detect.html" />
     <link rel="icon" href="../../../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
@@ -235,7 +236,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
       
@@ -360,7 +361,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
         
@@ -406,9 +407,6 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.ligand._detect</span></li>
   </ul>
 </nav>
@@ -450,9 +448,9 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">rdkit</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chem</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">rdkit.Chem</span><span class="w"> </span><span class="kn">import</span> <span class="n">RWMol</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">CanonicalOrdering</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._input_repair</span><span class="w"> </span><span class="kn">import</span> <span class="n">_infer_oxyacid_bonds</span><span class="p">,</span> <span class="n">normalize_radical_oxygens</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._mol2_names</span><span class="w"> </span><span class="kn">import</span> <span class="n">apply_disambiguated_mol2_names</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._canonical_ordering</span><span class="w"> </span><span class="kn">import</span> <span class="n">CanonicalOrdering</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._input_repair</span><span class="w"> </span><span class="kn">import</span> <span class="n">_infer_oxyacid_bonds</span><span class="p">,</span> <span class="n">_normalize_radical_oxygens</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._mol2_names</span><span class="w"> </span><span class="kn">import</span> <span class="n">_apply_disambiguated_mol2_names</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
@@ -462,6 +460,8 @@
 <span class="n">_FORMAL_CHARGE_SPECIFIED_ANNOTATION</span> <span class="o">=</span> <span class="s2">"tmol_formal_charge_specified"</span>
 
 
+<div class="viewcode-block" id="NonStandardResidueInfo">
+<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.NonStandardResidueInfo">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">NonStandardResidueInfo</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Detected non-standard residue requiring preparation.</span>
@@ -497,7 +497,7 @@
 <span class="sd">            ``partial_charges`` on the mol2 / SMILES-via-mol2 path.</span>
 <span class="sd">        original_single_bonds: Optional set of ``frozenset({name_a, name_b})``</span>
 <span class="sd">            pairs that the source mol2 records as literal single (order ``'1'``)</span>
-<span class="sd">            bonds, keyed by disambiguated atom name. ``build_chi_topology`` uses</span>
+<span class="sd">            bonds, keyed by disambiguated atom name. ``_build_chi_topology`` uses</span>
 <span class="sd">            these to honor the mol2 bond order (Rosetta-faithful) instead of</span>
 <span class="sd">            RDKit's post-kekulization order. Only set on the mol2 / SMILES-via-</span>
 <span class="sd">            mol2 paths; ``None`` elsewhere.</span>
@@ -523,7 +523,8 @@
     <span class="c1"># why this residue's chemistry cannot be trusted, or None</span>
     <span class="n">chemistry_problem</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="c1"># {own connection atom: {(partner residue name, partner atom name)}}</span>
-    <span class="n">connection_partners</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">hash</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">connection_partners</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">hash</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_missing_declared_atoms</span><span class="p">(</span><span class="n">residue</span><span class="p">):</span>
@@ -625,9 +626,7 @@
     <span class="p">)</span>
 
 
-<div class="viewcode-block" id="get_chem_comp_type">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.get_chem_comp_type">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">get_chem_comp_type</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_chem_comp_type</span><span class="p">(</span>
     <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">chem_comp_types</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""The chemical component type the input file declares for a residue.</span>
@@ -643,13 +642,10 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">chem_comp_types</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
     <span class="n">declared</span> <span class="o">=</span> <span class="n">chem_comp_types</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">res_name</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span>
-    <span class="k">return</span> <span class="n">declared</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="k">if</span> <span class="n">declared</span> <span class="k">else</span> <span class="kc">None</span></div>
+    <span class="k">return</span> <span class="n">declared</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="k">if</span> <span class="n">declared</span> <span class="k">else</span> <span class="kc">None</span>
 
 
-
-<div class="viewcode-block" id="chem_comp_types_from_cif">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.chem_comp_types_from_cif">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">chem_comp_types_from_cif</span><span class="p">(</span><span class="n">cif_path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_chem_comp_types_from_cif</span><span class="p">(</span><span class="n">cif_path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Read the _chem_comp.type of every component declared by a CIF file.</span>
 
 <span class="sd">    A file that does not number its residues along a polymer sequence can still</span>
@@ -672,8 +668,7 @@
             <span class="n">comp_type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">comp_type</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
             <span class="k">if</span> <span class="n">comp_id</span> <span class="ow">and</span> <span class="n">comp_type</span> <span class="ow">and</span> <span class="n">comp_type</span> <span class="o">!=</span> <span class="s2">"?"</span><span class="p">:</span>
                 <span class="n">types</span><span class="p">[</span><span class="n">comp_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">comp_type</span>
-    <span class="k">return</span> <span class="n">types</span></div>
-
+    <span class="k">return</span> <span class="n">types</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_strip_metals</span><span class="p">(</span><span class="n">mol</span><span class="p">:</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">:</span>
@@ -890,7 +885,7 @@
 <span class="sd">    partial charges, avoiding lossy rdkit&lt;-&gt;biotite round-trips.</span>
 <span class="sd">    """</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">nonstandard_residue_info_from_mol2_block</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">_nonstandard_residue_info_from_mol2_block</span><span class="p">(</span>
             <span class="n">Path</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">(),</span> <span class="n">res_name</span><span class="o">=</span><span class="n">res_name</span>
         <span class="p">)</span>
     <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
@@ -898,18 +893,20 @@
 
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">nonstandard_residue_info_from_file</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_nonstandard_residue_info_from_file</span><span class="p">(</span>
     <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span> <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NonStandardResidueInfo</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""``NonStandardResidueInfo`` from a MOL2 or an SDF/MOL file (PDBbind 3GE7)."""</span>
     <span class="n">sdf</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">".sdf"</span><span class="p">,</span> <span class="s2">".mol"</span><span class="p">)</span>
     <span class="n">read</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">nonstandard_residue_info_from_sdf</span> <span class="k">if</span> <span class="n">sdf</span> <span class="k">else</span> <span class="n">nonstandard_residue_info_from_mol2</span>
+        <span class="n">_nonstandard_residue_info_from_sdf</span>
+        <span class="k">if</span> <span class="n">sdf</span>
+        <span class="k">else</span> <span class="n">nonstandard_residue_info_from_mol2</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="n">read</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="n">res_name</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">nonstandard_residue_info_from_sdf</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_nonstandard_residue_info_from_sdf</span><span class="p">(</span>
     <span class="n">sdf_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
     <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NonStandardResidueInfo</span><span class="p">:</span>
@@ -923,14 +920,14 @@
 
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._rdkit_mol</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">_SOURCE_KEKULE_PROP</span><span class="p">,</span>
-        <span class="n">normalize_non_ring_aromatic_bonds</span><span class="p">,</span>
+        <span class="n">_normalize_non_ring_aromatic_bonds</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">mol</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">Chem</span><span class="o">.</span><span class="n">SDMolSupplier</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">sdf_path</span><span class="p">),</span> <span class="n">sanitize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">removeHs</span><span class="o">=</span><span class="kc">False</span><span class="p">)))</span>
     <span class="k">if</span> <span class="n">mol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">sdf_path</span><span class="si">}</span><span class="s2">: no readable molecule"</span><span class="p">)</span>
     <span class="n">explicit_h</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">())</span>
-    <span class="n">normalize_non_ring_aromatic_bonds</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+    <span class="n">_normalize_non_ring_aromatic_bonds</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">():</span>
         <span class="n">atom</span><span class="o">.</span><span class="n">SetNoImplicit</span><span class="p">(</span><span class="n">explicit_h</span><span class="p">)</span>
     <span class="n">mol</span><span class="o">.</span><span class="n">UpdatePropertyCache</span><span class="p">(</span><span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -943,9 +940,7 @@
     <span class="p">)</span>
 
 
-<div class="viewcode-block" id="nonstandard_residue_info_from_mol2_block">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.nonstandard_residue_info_from_mol2_block">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">nonstandard_residue_info_from_mol2_block</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_nonstandard_residue_info_from_mol2_block</span><span class="p">(</span>
     <span class="n">mol2_block</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NonStandardResidueInfo</span><span class="p">:</span>
@@ -958,7 +953,7 @@
 <span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._openbabel_compat</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">OpenBabelUnavailableError</span><span class="p">,</span>
-        <span class="n">obabel_read_mol2_block</span><span class="p">,</span>
+        <span class="n">_obabel_read_mol2_block</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">mol2_block</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">"@&lt;TRIPOS&gt;MOLECULE"</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
@@ -971,7 +966,7 @@
     <span class="p">)</span>
     <span class="k">if</span> <span class="n">mol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">mol</span> <span class="o">=</span> <span class="n">obabel_read_mol2_block</span><span class="p">(</span><span class="n">mol2_block</span><span class="p">)</span>
+            <span class="n">mol</span> <span class="o">=</span> <span class="n">_obabel_read_mol2_block</span><span class="p">(</span><span class="n">mol2_block</span><span class="p">)</span>
         <span class="k">except</span> <span class="n">OpenBabelUnavailableError</span><span class="p">:</span>
             <span class="n">mol</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">mol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1006,7 +1001,7 @@
     <span class="n">rewritten</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">invalid</span> <span class="ow">and</span> <span class="n">Chem</span><span class="o">.</span><span class="n">GetFormalCharge</span><span class="p">(</span><span class="n">probe</span><span class="p">)</span> <span class="o">!=</span> <span class="n">expected_net</span>
     <span class="k">if</span> <span class="n">invalid</span> <span class="ow">or</span> <span class="n">rewritten</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">alternate</span> <span class="o">=</span> <span class="n">obabel_read_mol2_block</span><span class="p">(</span>
+            <span class="n">alternate</span> <span class="o">=</span> <span class="n">_obabel_read_mol2_block</span><span class="p">(</span>
                 <span class="n">mol2_block</span><span class="p">,</span>
                 <span class="n">net_charge</span><span class="o">=</span><span class="n">prepared_net</span><span class="p">,</span>
                 <span class="n">atom_charges</span><span class="o">=</span><span class="p">{</span><span class="o">**</span><span class="n">declared_charges</span><span class="p">,</span> <span class="o">**</span><span class="n">synthesized_charges</span><span class="p">},</span>
@@ -1053,8 +1048,7 @@
         <span class="n">res_name</span><span class="p">,</span>
         <span class="n">source</span><span class="o">=</span><span class="s2">"&lt;mol2 block&gt;"</span><span class="p">,</span>
         <span class="n">single_bond_ids</span><span class="o">=</span><span class="n">_mol2_single_bond_ids</span><span class="p">(</span><span class="n">mol2_block</span><span class="p">),</span>
-    <span class="p">)</span></div>
-
+    <span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_nonstandard_residue_info_from_mol2_mol</span><span class="p">(</span>
@@ -1075,12 +1069,12 @@
 <span class="sd">    these are mapped to disambiguated atom names and stored as</span>
 <span class="sd">    ``original_single_bonds`` so the CHI classifier can honor the mol2 bond order.</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._atom_typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">sanitize_tolerant</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._atom_typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">_sanitize_tolerant</span>
 
-    <span class="n">sanitize_tolerant</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+    <span class="n">_sanitize_tolerant</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetNumConformers</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Mol2 input has no 3D coordinates: </span><span class="si">{</span><span class="n">source</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-    <span class="n">disambiguated_names</span> <span class="o">=</span> <span class="n">apply_disambiguated_mol2_names</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+    <span class="n">disambiguated_names</span> <span class="o">=</span> <span class="n">_apply_disambiguated_mol2_names</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
     <span class="n">conf</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetConformer</span><span class="p">()</span>
     <span class="n">n_atoms</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetNumAtoms</span><span class="p">()</span>
 
@@ -1188,7 +1182,7 @@
     <span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_normalize_radical_oxygens</span><span class="p">(</span><span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_normalize_radical_oxygens_in_smiles</span><span class="p">(</span><span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Restore the formal charge on bare radical oxygens (e.g. DUD ``[O]``).</span>
 
 <span class="sd">    Some source databases write anionic oxygens (carboxylate, sulfonate,</span>
@@ -1204,7 +1198,7 @@
     <span class="n">mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="n">smiles</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">mol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">smiles</span>
-    <span class="n">fixed</span> <span class="o">=</span> <span class="n">normalize_radical_oxygens</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+    <span class="n">fixed</span> <span class="o">=</span> <span class="n">_normalize_radical_oxygens</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">smiles</span> <span class="k">if</span> <span class="n">fixed</span> <span class="ow">is</span> <span class="n">mol</span> <span class="k">else</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolToSmiles</span><span class="p">(</span><span class="n">fixed</span><span class="p">)</span>
 
 
@@ -1245,7 +1239,7 @@
 <span class="sd">    1. optionally pKa-protonate the SMILES with Dimorphite-DL (``protonate``),</span>
 <span class="sd">    2. generate a 3D mol2 with MMFF94 partial charges via OpenBabel (kept</span>
 <span class="sd">       in memory as a string — no temp file), then</span>
-<span class="sd">    3. read that mol2 with :func:`nonstandard_residue_info_from_mol2_block`.</span>
+<span class="sd">    3. read that mol2 with :func:`_nonstandard_residue_info_from_mol2_block`.</span>
 
 <span class="sd">    This never builds a biotite atom-array from an RDKit embedding and never</span>
 <span class="sd">    recomputes MMFF on a reconstructed graph — the OpenBabel MMFF94 charges</span>
@@ -1267,14 +1261,14 @@
 <span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._openbabel_compat</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">_build_charged_3d_mol2_mol</span><span class="p">,</span>
-        <span class="n">source_atom_order_from_mapped_smiles</span><span class="p">,</span>
+        <span class="n">_source_atom_order_from_mapped_smiles</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="n">smiles</span> <span class="o">=</span> <span class="n">_normalize_radical_oxygens</span><span class="p">(</span><span class="n">smiles</span><span class="p">)</span>
+    <span class="n">smiles</span> <span class="o">=</span> <span class="n">_normalize_radical_oxygens_in_smiles</span><span class="p">(</span><span class="n">smiles</span><span class="p">)</span>
     <span class="n">prep_smiles</span> <span class="o">=</span> <span class="n">_dimorphite_protonate_smiles</span><span class="p">(</span><span class="n">smiles</span><span class="p">,</span> <span class="n">ph</span><span class="p">)</span> <span class="k">if</span> <span class="n">protonate</span> <span class="k">else</span> <span class="n">smiles</span>
-    <span class="n">source_order</span> <span class="o">=</span> <span class="n">source_atom_order_from_mapped_smiles</span><span class="p">(</span><span class="n">prep_smiles</span><span class="p">)</span>
+    <span class="n">source_order</span> <span class="o">=</span> <span class="n">_source_atom_order_from_mapped_smiles</span><span class="p">(</span><span class="n">prep_smiles</span><span class="p">)</span>
     <span class="n">molecule</span> <span class="o">=</span> <span class="n">_build_charged_3d_mol2_mol</span><span class="p">(</span><span class="n">prep_smiles</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
-    <span class="n">info</span> <span class="o">=</span> <span class="n">nonstandard_residue_info_from_mol2_block</span><span class="p">(</span>
+    <span class="n">info</span> <span class="o">=</span> <span class="n">_nonstandard_residue_info_from_mol2_block</span><span class="p">(</span>
         <span class="n">molecule</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">"mol2"</span><span class="p">),</span> <span class="n">res_name</span><span class="o">=</span><span class="n">res_name</span>
     <span class="p">)</span>
     <span class="c1"># Mol2 preserves partial charges, but its atom types can lose formal charge</span>
@@ -1329,9 +1323,7 @@
     <span class="k">return</span> <span class="n">declared</span>
 
 
-<div class="viewcode-block" id="detect_nonstandard_residues">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.detect_nonstandard_residues">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">detect_nonstandard_residues</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_detect_nonstandard_residues</span><span class="p">(</span>
     <span class="n">atom_array</span><span class="p">:</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">,</span>
     <span class="n">canonical_ordering</span><span class="p">:</span> <span class="n">CanonicalOrdering</span><span class="p">,</span>
     <span class="n">chem_comp_types</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1368,7 +1360,7 @@
     <span class="p">)</span>
     <span class="n">seen</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
     <span class="n">results</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">NonStandardResidueInfo</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">polymer_names</span> <span class="o">=</span> <span class="n">polymer_entity_residues</span><span class="p">(</span><span class="n">atom_array</span><span class="p">)</span>
+    <span class="n">polymer_names</span> <span class="o">=</span> <span class="n">_polymer_entity_residues</span><span class="p">(</span><span class="n">atom_array</span><span class="p">)</span>
 
     <span class="n">cross_residue_atoms</span><span class="p">,</span> <span class="n">cross_residue_partners</span> <span class="o">=</span> <span class="n">_cross_residue_bond_atoms</span><span class="p">(</span><span class="n">atom_array</span><span class="p">)</span>
     <span class="n">covalently_linked_names</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span>
@@ -1397,7 +1389,7 @@
         <span class="n">sub</span> <span class="o">=</span> <span class="n">_representative_instance</span><span class="p">(</span>
             <span class="n">atom_array</span><span class="p">,</span> <span class="n">residue_starts</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">connections</span><span class="p">,</span> <span class="n">heavy_counts</span>
         <span class="p">)</span>
-        <span class="n">component_type</span> <span class="o">=</span> <span class="n">get_chem_comp_type</span><span class="p">(</span><span class="n">res_name</span><span class="p">,</span> <span class="n">chem_comp_types</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"UNKNOWN"</span>
+        <span class="n">component_type</span> <span class="o">=</span> <span class="n">_get_chem_comp_type</span><span class="p">(</span><span class="n">res_name</span><span class="p">,</span> <span class="n">chem_comp_types</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"UNKNOWN"</span>
         <span class="n">covalently_linked</span> <span class="o">=</span> <span class="n">res_name</span> <span class="ow">in</span> <span class="n">covalently_linked_names</span>
 
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
@@ -1441,8 +1433,7 @@
             <span class="p">)</span>
         <span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">results</span></div>
-
+    <span class="k">return</span> <span class="n">results</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_representative_instance</span><span class="p">(</span>
@@ -1483,7 +1474,7 @@
     <span class="k">return</span> <span class="n">atom_array</span><span class="p">[</span><span class="n">start</span> <span class="p">:</span> <span class="n">ends</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">residue_starts</span><span class="p">,</span> <span class="n">start</span><span class="p">)]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">with_resolved_coordinates</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_with_resolved_coordinates</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Resolve scratch geometry for parameter generation from declared chemistry.</span>
 
 <span class="sd">    Input-scoped AtomWorks templates take precedence over the bundled CCD.</span>
@@ -1525,9 +1516,7 @@
     <span class="k">return</span> <span class="n">filled</span>
 
 
-<div class="viewcode-block" id="is_polymer_linking_component_type">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.is_polymer_linking_component_type">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">is_polymer_linking_component_type</span><span class="p">(</span><span class="n">component_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_polymer_linking_component_type</span><span class="p">(</span><span class="n">component_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Whether a declared chemical-component type denotes a polymer residue.</span>
 
 <span class="sd">    Returns True for modified amino acids, nucleotides, and saccharides</span>
@@ -1537,19 +1526,16 @@
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">component_type</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">False</span>
-    <span class="k">return</span> <span class="s2">"LINKING"</span> <span class="ow">in</span> <span class="n">component_type</span> <span class="ow">or</span> <span class="s2">"SACCHARIDE"</span> <span class="ow">in</span> <span class="n">component_type</span></div>
+    <span class="k">return</span> <span class="s2">"LINKING"</span> <span class="ow">in</span> <span class="n">component_type</span> <span class="ow">or</span> <span class="s2">"SACCHARIDE"</span> <span class="ow">in</span> <span class="n">component_type</span>
 
 
-
-<div class="viewcode-block" id="polymer_entity_residues">
-<a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.polymer_entity_residues">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">polymer_entity_residues</span><span class="p">(</span><span class="n">atom_array</span><span class="p">:</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_polymer_entity_residues</span><span class="p">(</span><span class="n">atom_array</span><span class="p">:</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">"""Names of the residues the input file places in a polymer entity.</span>
 
 <span class="sd">    An mmCIF says which of its entities are polymers, and that is what</span>
 <span class="sd">    separates a chain from a ligand, a glycan or solvent -- including for a</span>
 <span class="sd">    terminal cap, which is typed NON-POLYMER despite being part of the chain.</span>
-<span class="sd">    :func:`tmol.io.atom_array_from_file` records it per atom.</span>
+<span class="sd">    :func:`tmol.atom_array_from_file` records it per atom.</span>
 
 <span class="sd">    Failing that, ``label_seq_id`` is read as a proxy: a polymer entity numbers</span>
 <span class="sd">    its residues along its sequence. It is only a proxy -- a generated file may</span>
@@ -1568,8 +1554,7 @@
     <span class="n">numbered</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">char</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">"."</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">numbered</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
         <span class="k">return</span> <span class="kc">None</span>
-    <span class="k">return</span> <span class="nb">frozenset</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">names</span><span class="p">[</span><span class="n">numbered</span><span class="p">])</span></div>
-
+    <span class="k">return</span> <span class="nb">frozenset</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">names</span><span class="p">[</span><span class="n">numbered</span><span class="p">])</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_cross_residue_bond_atoms</span><span class="p">(</span>

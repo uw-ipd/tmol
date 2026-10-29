@@ -49,7 +49,8 @@
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/ligand/_structure_to_smiles';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <script src="../../../_static/tmol-explorers.js?v=089c5f52"></script>
-    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/ligand/_structure_to_smiles.html" />
+    <script async="async" defer="defer" src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
+    <link rel="canonical" href="https://rosettacommons.github.io/tmol/latest/_modules/tmol/ligand/_structure_to_smiles.html" />
     <link rel="icon" href="../../../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
@@ -235,7 +236,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
       
@@ -360,7 +361,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
         
@@ -406,9 +407,6 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.ligand._structure_to_smiles</span></li>
   </ul>
 </nav>
@@ -444,7 +442,7 @@
 <span class="sd">bond orders would silently corrupt the generated params database.</span>
 
 <span class="sd">The SMILES is built with the shared ligand builder</span>
-<span class="sd">:func:`tmol.ligand._rdkit_mol.rdkit_mol_from_ligand_atom_array` -- the same</span>
+<span class="sd">:func:`tmol.ligand._rdkit_mol._rdkit_mol_from_ligand_atom_array` -- the same</span>
 <span class="sd">AtomArray -&gt; RDKit path the params pipeline uses -- so the derived SMILES and</span>
 <span class="sd">the prepared molecule always agree on chemistry.</span>
 <span class="sd">"""</span>
@@ -455,8 +453,8 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">biotite.structure</span><span class="w"> </span><span class="kn">import</span> <span class="n">AtomArray</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">rdkit</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chem</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._input_repair</span><span class="w"> </span><span class="kn">import</span> <span class="n">correct_carboxylate_bond_orders</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._rdkit_mol</span><span class="w"> </span><span class="kn">import</span> <span class="n">rdkit_mol_from_ligand_atom_array</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._input_repair</span><span class="w"> </span><span class="kn">import</span> <span class="n">_correct_carboxylate_bond_orders</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._rdkit_mol</span><span class="w"> </span><span class="kn">import</span> <span class="n">_rdkit_mol_from_ligand_atom_array</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
@@ -537,13 +535,13 @@
     <span class="c1"># Build from the explicit bonds</span>
     <span class="c1">#  -&gt; then apply geometry bond-order corrections for common "mistakes"</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_attempt</span><span class="p">(</span><span class="n">repair_chemistry</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">mol</span> <span class="o">=</span> <span class="n">rdkit_mol_from_ligand_atom_array</span><span class="p">(</span>
+        <span class="n">mol</span> <span class="o">=</span> <span class="n">_rdkit_mol_from_ligand_atom_array</span><span class="p">(</span>
             <span class="n">atom_array</span><span class="p">,</span>
             <span class="n">res_name</span><span class="o">=</span><span class="n">res_name</span> <span class="ow">or</span> <span class="s2">"ligand"</span><span class="p">,</span>
             <span class="n">repair_chemistry</span><span class="o">=</span><span class="n">repair_chemistry</span><span class="p">,</span>
             <span class="n">keep_hydrogens</span><span class="o">=</span><span class="n">keep_hydrogens</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">mol</span> <span class="o">=</span> <span class="n">correct_carboxylate_bond_orders</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+        <span class="n">mol</span> <span class="o">=</span> <span class="n">_correct_carboxylate_bond_orders</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">with_atom_map</span><span class="p">:</span>
             <span class="n">_tag_source_atom_map</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">atom_array</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">_mol_to_smiles</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
