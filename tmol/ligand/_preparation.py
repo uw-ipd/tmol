@@ -1835,7 +1835,7 @@ def _state_variants(
         # the name holds the heavy graph and its hydrogens: one name, one chemistry
         graph = sorted((n, h, sorted(nb)) for n, (h, nb) in state.items())
         digest = hashlib.sha1(repr(graph).encode()).hexdigest()[:6].upper()
-        name = f"{lig.res_name}_{digest}"
+        name = f"{base.residue_type.base_name}_{digest}"
         residue = attr.evolve(
             prep.residue_type,
             name=name,

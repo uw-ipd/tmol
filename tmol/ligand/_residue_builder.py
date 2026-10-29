@@ -328,9 +328,12 @@ def build_residue_type(  # noqa: C901
         virtual=(),
     )
 
+    # ':' separates patch names in a type name; the input name lives on in
+    #    name3 and io_equiv_class
+    type_name = res_name.replace(":", "_")
     return RawResidueType(
-        name=res_name,
-        base_name=res_name,
+        name=type_name,
+        base_name=type_name,
         name3=res_name,
         io_equiv_class=res_name,
         atoms=atoms,

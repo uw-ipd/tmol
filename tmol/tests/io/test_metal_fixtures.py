@@ -86,6 +86,20 @@ def test_chelated_iron_keeps_its_stated_oxidation_state(charge, name):
     assert ions == [name]
 
 
+def test_a_ligand_named_with_a_colon_coordinates_and_keeps_its_name():
+    # the reader names an unnamed ligand like L:0; ':' also separates patch names
+    structure = atom_array_from_file(FIXTURE_DIR / "heme_myoglobin_5yce.cif.zst")
+    structure.res_name[structure.res_name == "HEM"] = "L:0"
+    pose = pose_stack_from_atom_array(
+        structure, torch.device("cpu"), prepare_ligands=True, no_optH=True
+    )
+    types = pose.packed_block_types.active_block_types
+    heme = [types[i].name3 for i in pose.block_type_ind64[0].tolist()].index("L:0")
+    donors = {atom for d, atom in metal_bonds(pose).values() if d == heme}
+    assert donors == {"NA", "NB", "NC", "ND"}
+    assert "L:0" in set(atom_array_from_pose_stack(pose).res_name)
+
+
 @pytest.mark.parametrize("stem", EXPECTED)
 def test_metal_geometry_selects_the_block_type(built, stem):
     pose_stack, _ = built(stem)
