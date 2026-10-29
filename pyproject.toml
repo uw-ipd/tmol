@@ -173,9 +173,9 @@ filterwarnings = [
 ext = ".cpp,.hh,.h,.cu,.py,.yaml"
 
 # Coverage settings ------------------------------------------------------------
-# Vendored third-party ports are excluded from coverage measurement: driving
-# them to a coverage target via unit tests is not meaningful. Keep this list in
-# sync with the `ignore:` block in codecov.yml.
+# The OpenBabel compatibility layer and the offline fixture-generation script
+# are excluded from coverage measurement. Keep this list in sync with the
+# `ignore:` block in codecov.yml.
 [tool.coverage.run]
 omit = [
     "*/tmol/ligand/_openbabel_compat.py",
