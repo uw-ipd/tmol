@@ -9,7 +9,8 @@ from typing import NamedTuple
 import attr
 import torch
 
-from tmol.pose import PoseStack, select_blocks
+from tmol.pose._pose_stack import PoseStack
+from tmol.pose import select_blocks
 
 
 def has_nonpolymer_connection(

@@ -9,8 +9,9 @@ import attr
 import pytest
 import torch
 
-from tmol.pose import PoseStackBuilder
-from tmol.score import ScoreFunction, ScoreType
+from tmol.pose._pose_stack_builder import PoseStackBuilder
+from tmol.score import ScoreFunction
+from tmol.score._score_types import ScoreType
 from tmol.score.gridscore.live_hbond import build_live_hbond_data, score_ligand_hbond
 from tmol.score.gridscore.live_lk_ball import (
     build_live_lk_ball_data,

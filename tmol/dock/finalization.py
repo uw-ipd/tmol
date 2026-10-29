@@ -14,14 +14,15 @@ from tmol.dock.ga import (
     _place_ligand_in_reference,
 )
 from tmol.dock.ligand_dofs import build_ligand_docking_dofs
-from tmol.optimization import run_cart_min, run_kin_min
-from tmol.pose import ConstraintSet
+from tmol.optimization._minimizers import run_cart_min, run_kin_min
+from tmol.pose._constraint_set import ConstraintSet
 
-from tmol.pose import PoseStack, repeat_pose_stack, select_blocks
+from tmol.pose._pose_stack import PoseStack
+from tmol.pose import repeat_pose_stack, select_blocks
 from tmol.database import ParameterDatabase
 from tmol.score import beta2016_score_function
-from tmol.score.constraint import ConstraintEnergyTerm
-from tmol.score import ScoreType
+from tmol.score.constraint._constraint_energy_term import ConstraintEnergyTerm
+from tmol.score._score_types import ScoreType
 from tmol.score.gridscore._movable import (
     movable_block_mapping,
     movable_pose_stack,

@@ -16,11 +16,12 @@ from typing import Sequence
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.pose import PoseStack
-from tmol.score.elec import ElecEnergyTerm
-from tmol.score.ljlk import LJLKEnergyTerm
-from tmol.score.lk_ball import LKBallEnergyTerm
-from tmol.score import ScoreFunction, ScoreType, beta2016_score_function
+from tmol.pose._pose_stack import PoseStack
+from tmol.score.elec._elec_energy_term import ElecEnergyTerm
+from tmol.score.ljlk._ljlk_energy_term import LJLKEnergyTerm
+from tmol.score.lk_ball._lk_ball_energy_term import LKBallEnergyTerm
+from tmol.score import ScoreFunction, beta2016_score_function
+from tmol.score._score_types import ScoreType
 
 from ._common import build_cell_list, cell_grid
 from .live_lk_ball import _generate_reference_waters

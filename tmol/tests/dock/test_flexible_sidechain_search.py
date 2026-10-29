@@ -21,7 +21,7 @@ from tmol.score.gridscore.live_ligand_intra import (
     build_live_ligand_intra_data,
     score_ligand_intra,
 )
-from tmol.score import ScoreType
+from tmol.score._score_types import ScoreType
 from tmol.tests.dock.test_ligand_dof_roundtrip import _load_cdk2_pose_on_device
 from tmol.tests.dock.test_flexible_sidechain_dofs import (
     _connected_chi_blocks,

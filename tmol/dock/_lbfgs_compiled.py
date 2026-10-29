@@ -1,8 +1,8 @@
 """Fused state transitions of the pose-batched L-BFGS (see ``_batched_lbfgs``)."""
 
-from tmol._load_ext import load_ops
+from tmol._load_ext import _load_ops
 
-_ops = load_ops(
+_ops = _load_ops(
     __name__,
     __file__,
     [

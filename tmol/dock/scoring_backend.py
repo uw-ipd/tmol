@@ -20,17 +20,18 @@ from tmol.dock.ligand_dofs import (
     _sidechain_coordinate_indices,
     build_ligand_docking_dofs,
 )
-from tmol.kinematics import KinForest
-from tmol.kinematics.compiled import (
-    forward_only_op,
-    forward_with_ht_op,
-    inverse_kin,
-    kin_deriv_op,
+from tmol.kinematics._datatypes import KinForest
+from tmol.kinematics.compiled._compiled_ops import (
+    _forward_only_op,
+    _forward_with_ht_op,
+    _inverse_kin,
+    _kin_deriv_op,
 )
-from tmol.kinematics import MinimizerMap
+from tmol.kinematics._move_map import MinimizerMap
 from tmol.kinematics import PoseStackKinematicsModule
-from tmol.optimization import build_kinforest_network, run_min
-from tmol.pose import PoseStack, repeat_pose_stack
+from tmol.optimization._minimizers import _build_kinforest_network, _run_min
+from tmol.pose._pose_stack import PoseStack
+from tmol.pose import repeat_pose_stack
 from tmol.score import beta2016_score_function
 from tmol.score.gridscore import GridScorer, GridSet, build_grid
 from tmol.score.gridscore.live_hbond import LiveHBondData, build_live_hbond_data
@@ -210,7 +211,7 @@ class ContinuousBackend(ScoringBackend):
     ) -> MinimizationResult:
         """Run docking-DOF minimization and return optimizer-authored genes."""
         kin_dtype = self.kin_dtype or pose_stack.coords.dtype
-        kf_network = build_kinforest_network(
+        kf_network = _build_kinforest_network(
             pose_stack,
             self._score_function(pose_stack.device),
             docking_dofs.fold_forest,
@@ -231,7 +232,7 @@ class ContinuousBackend(ScoringBackend):
         optimizer_kwargs = {"value_only_line_search": self.value_only_line_search}
         if maxiter is not None:
             optimizer_kwargs["max_iter"] = maxiter
-        minimized = run_min(
+        minimized = _run_min(
             kf_network,
             optimizer_kwargs=optimizer_kwargs,
         )
@@ -284,7 +285,7 @@ class _LightweightGridObjective:
             kin_coords[1:] = pose_stack.coords.reshape(-1, 3)[
                 full_kmd.forest.id[1:].to(torch.int64)
             ].to(kin_dtype)
-            full_dofs = inverse_kin(
+            full_dofs = _inverse_kin(
                 kin_coords,
                 full_kmd.forest.parent,
                 full_kmd.forest.frame_x,
@@ -368,7 +369,7 @@ class _LightweightGridObjective:
 
     def _forward_only(self, masked_dofs: torch.Tensor) -> torch.Tensor:
         self._set_masked_dofs(masked_dofs)
-        return forward_only_op(
+        return _forward_only_op(
             self.full_dofs,
             self.nodes_f,
             self.scans_f,
@@ -381,7 +382,7 @@ class _LightweightGridObjective:
     ) -> tuple[torch.Tensor, torch.Tensor]:
         with torch.no_grad():
             self._set_masked_dofs(masked_dofs)
-            kin_coords, hts = forward_with_ht_op(
+            kin_coords, hts = _forward_with_ht_op(
                 self.full_dofs,
                 self.nodes_f,
                 self.scans_f,
@@ -396,7 +397,7 @@ class _LightweightGridObjective:
             coordinate_gradients[self.movable_nodes.reshape(-1)] = (
                 movable_gradients.reshape(-1, 3)
             )
-            dof_gradients = kin_deriv_op(
+            dof_gradients = _kin_deriv_op(
                 coordinate_gradients,
                 hts,
                 self.full_dofs,

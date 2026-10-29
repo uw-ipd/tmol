@@ -42,9 +42,9 @@ from tmol.dock.scoring_backend import (
     MinimizationResult,
     ScoringBackend,
 )
-from tmol.kinematics import MinimizerMap
+from tmol.kinematics._move_map import MinimizerMap
 from tmol.kinematics import PoseStackKinematicsModule
-from tmol.pose import PoseStack
+from tmol.pose._pose_stack import PoseStack
 from tmol.pose import repeat_pose_stack
 from tmol.score.gridscore._movable import (
     has_nonpolymer_connection,

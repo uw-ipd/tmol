@@ -18,7 +18,8 @@ from tmol.tests.dock.test_ligand_dof_roundtrip import (
     _ligand_block,
     _load_cdk2_pose,
 )
-from tmol.pose import PoseStack, repeat_pose_stack
+from tmol.pose._pose_stack import PoseStack
+from tmol.pose import repeat_pose_stack
 from tmol.score.gridscore._movable import (
     resolve_ligand_block,
     movable_pose_stack,

@@ -96,12 +96,12 @@ class LiveData:
 
 def derived_atom_indices(pose_stack) -> torch.Tensor:
     """Hbond base atoms ``[atom, (donor heavy, acceptor base, acceptor base0)]``."""
-    from tmol.score.hbond.potentials import gen_hbond_bases
+    from tmol.score.hbond.potentials._compiled import _gen_hbond_bases
 
     pbt = pose_stack.packed_block_types
     params = pbt.hbpbt_params
     with torch.no_grad():
-        _, derived = gen_hbond_bases(
+        _, derived = _gen_hbond_bases(
             pose_stack.coords.reshape(-1, 3).contiguous(),
             pose_stack.rot_coord_offset,
             pose_stack.first_rot_for_block,

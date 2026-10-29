@@ -8,9 +8,9 @@ from typing import Sequence
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.pose import PoseStack
-from tmol.score.common import convert_float64
-from tmol.score.lk_ball import LKBallEnergyTerm
+from tmol.pose._pose_stack import PoseStack
+from tmol.score.common._convert_float64 import _convert_float64
+from tmol.score.lk_ball._lk_ball_energy_term import LKBallEnergyTerm
 
 from ._common import (
     LiveData,
@@ -81,7 +81,7 @@ def _generate_reference_waters(
     *,
     water_distance: float | None = None,
 ) -> torch.Tensor:
-    from tmol.score.lk_ball.potentials import gen_pose_waters
+    from tmol.score.lk_ball.potentials._compiled import _gen_pose_waters
 
     pbt = pose_stack.packed_block_types
     water_gen_global_params = term._lk_ball_water_gen_global_params
@@ -126,9 +126,9 @@ def _generate_reference_waters(
         term.ljlk_param_resolver.global_params.lkb_water_tors_sp3,
         term.ljlk_param_resolver.global_params.lkb_water_tors_ring,
     ]
-    convert_float64(args)
+    _convert_float64(args)
     with torch.no_grad():
-        return gen_pose_waters(*args).detach().to(torch.float64).contiguous()
+        return _gen_pose_waters(*args).detach().to(torch.float64).contiguous()
 
 
 def _ligand_water_topology(

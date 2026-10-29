@@ -8,11 +8,12 @@ from typing import Literal
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.pose import PackedBlockTypes
-from tmol.pose import PoseStack, repeat_pose_stack
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
+from tmol.pose import repeat_pose_stack
 from tmol.score import beta2016_score_function
 from tmol.score import ScoreFunction
-from tmol.score import ScoreType
+from tmol.score._score_types import ScoreType
 
 from ._common import validate_ligand_coords
 from ._movable import movable_block_mapping, movable_pose_stack

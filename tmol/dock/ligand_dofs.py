@@ -17,12 +17,12 @@ from dataclasses import dataclass
 import numpy
 import torch
 
-from tmol.kinematics.compiled import inverse_kin
+from tmol.kinematics.compiled._compiled_ops import _inverse_kin
 from tmol.kinematics import BondDOFTypes, JumpDOFTypes, NodeType
-from tmol.kinematics import EdgeType, FoldForest
-from tmol.kinematics import MoveMap
+from tmol.kinematics._fold_forest import EdgeType, FoldForest
+from tmol.kinematics._move_map import MoveMap
 from tmol.kinematics import PoseStackKinematicsModule
-from tmol.pose import PoseStack
+from tmol.pose._pose_stack import PoseStack
 from tmol.score.gridscore._movable import (
     validated_sidechain_blocks,
 )
@@ -465,7 +465,7 @@ def _inverse_dofs(pose_stack: PoseStack, kin_module: PoseStackKinematicsModule):
         (kmd.forest.id.shape[0], 3), dtype=dtype, device=pose_stack.device
     )
     kincoords[1:] = pose_stack.coords.reshape(-1, 3)[kmd.forest.id[1:].to(torch.int64)]
-    return inverse_kin(
+    return _inverse_kin(
         kincoords,
         kmd.forest.parent,
         kmd.forest.frame_x,

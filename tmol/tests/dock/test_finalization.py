@@ -23,7 +23,7 @@ from tmol.dock.finalization import (
     _score_pose_stack,
     finalize_ga_docking,
 )
-from tmol.io import pose_stack_from_atom_array
+from tmol.io._pose_stack_from_biotite import pose_stack_from_atom_array
 from tmol.score import beta2016_score_function
 from tmol.tests.dock.test_ligand_dof_roundtrip import _load_cdk2_pose_on_device
 from tmol.tests.dock.test_ligand_dof_roundtrip import (

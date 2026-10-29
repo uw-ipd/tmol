@@ -13,7 +13,8 @@ from typing import Sequence
 
 import torch
 
-from tmol.score import ScoreFunction, ScoreType, beta2016_score_function
+from tmol.score import ScoreFunction, beta2016_score_function
+from tmol.score._score_types import ScoreType
 
 from .grid import (
     GRID_LK_BALL_FADE,

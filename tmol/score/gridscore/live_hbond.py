@@ -8,8 +8,8 @@ from typing import ClassVar, Sequence
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.pose import PoseStack
-from tmol.score.hbond import HBondEnergyTerm
+from tmol.pose._pose_stack import PoseStack
+from tmol.score.hbond._hbond_energy_term import HBondEnergyTerm
 
 from ._common import (
     LiveData,

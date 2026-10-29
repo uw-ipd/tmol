@@ -8,8 +8,8 @@ import torch
 
 from tmol.database import ParameterDatabase
 from tmol.dock.ligand_dofs import build_ligand_docking_dofs
-from tmol.io import pose_stack_from_atom_array
-from tmol.optimization import build_kinforest_network
+from tmol.io._pose_stack_from_biotite import pose_stack_from_atom_array
+from tmol.optimization._minimizers import _build_kinforest_network
 from tmol.score import ScoreFunction
 from tmol.tests.data import data_path
 from tmol.tests.ligand.test_protein_ligand_ddg import (
@@ -61,7 +61,7 @@ def _empty_score_function(param_db, device):
 
 
 def _network(pose_stack, param_db, docking_dofs, kin_dtype=torch.float64):
-    return build_kinforest_network(
+    return _build_kinforest_network(
         pose_stack,
         _empty_score_function(param_db, pose_stack.device),
         docking_dofs.fold_forest,
