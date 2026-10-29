@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Build your own model input interface &#8212; TMol</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=adb9cd23" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="_static/scripts/fontawesome.js?digest=18bd87630a240e9c25be"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
+
+    <script src="_static/documentation_options.js?v=938c9ccc"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>let toggleHintShow = 'show code';</script>
+    <script>let toggleHintHide = 'hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'model_input_example';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <script src="_static/tmol-explorers.js?v=089c5f52"></script>
+    <link rel="canonical" href="https://rosettacommons.github.io/tmol/latest/model_input_example.html" />
+    <link rel="icon" href="_static/favicon.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="GPU batching" href="workflows/gpu_batching.html" />
+    <link rel="prev" title="Model coordinate inputs" href="model_inputs.html" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.2.0" />
+  
+    
+    <script src="_static/searchtools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script src="searchindex.js"></script>
+  
+  
+  <link rel="icon" type="image/svg+xml" sizes="any" href="_static/brand/favicon.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="_static/brand/apple-touch-icon.png">
+
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="_static/tmol-logo-light.svg" class="logo__image only-light" alt="TMol documentation — Home"/>
+    <img src="_static/tmol-logo-dark.svg" class="logo__image only-dark pst-js-only" alt="TMol documentation — Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="terminology.html">
+    Glossary
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="examples_index.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="api_reference.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="terminology.html">
+    Glossary
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="examples_index.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="api_reference.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button type="button" id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="workflows/index.html">Workflow reference</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="concepts.html">Concepts</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html">Architecture</a></li>
+<li class="toctree-l3"><a class="reference internal" href="datatypes.html">Tensors and data objects</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="terminology.html">Terminology</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="playground.html">Protein score playground</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="workflows/structure_io.html">Structure I/O and visualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/integrations.html">Model and structure integrations</a></li>
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="model_inputs.html">Model coordinate inputs</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l3 current active"><a aria-current="page" class="current reference internal" href="#">Build your own model input interface</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="workflows/gpu_batching.html">GPU batching</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/cpu_threading.html">CPU threading</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/scoring.html">Scoring and analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="workflows/packing.html">Packing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/optimization.html">Minimization and FastRelax</a></li>
+<li class="toctree-l2"><a class="reference internal" href="workflows/protein_interfaces.html">Protein-interface analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/ligands.html">Ligand Preparation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="workflows/nucleic_acids.html">Nucleic acids</a></li>
+<li class="toctree-l2"><a class="reference internal" href="workflows/extending_tmol.html">Extending TMol</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/benchmarking.html">Benchmarking</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="quickstart.html" class="nav-link">Quickstart</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="workflows/index.html" class="nav-link">Workflow reference</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="model_inputs.html" class="nav-link">Model coordinate inputs</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Build your own model input interface</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="Build-your-own-model-input-interface">
+<h1>Build your own model input interface<a class="headerlink" href="#Build-your-own-model-input-interface" title="Link to this heading">#</a></h1>
+<p><a class="reference external" href="https://colab.research.google.com/github/RosettaCommons/tmol/blob/master/docs/model_input_example.ipynb">Open in Colab</a></p>
+<p>Map OpenFold-style atom14 and RoseTTAFold2 prediction tensors to TMol, score them, and differentiate back to the original coordinates. The adapter functions below are editable application code using TMol’s canonical construction and scoring APIs.</p>
+<p>Run cells in order. In Colab, select a GPU runtime; the shared setup installs published wheels matching PyTorch’s CUDA major and downloads example predictions. No compilation is needed. Locally, follow the <a class="reference internal" href="installation.html"><span class="doc">installation guide</span></a>, then run from a source checkout for the fixtures. CPU and CUDA are supported. Set <code class="docutils literal notranslate"><span class="pre">TMOL_EXAMPLE_SOURCE</span></code> to another fixture checkout or <code class="docutils literal notranslate"><span class="pre">TMOL_EXAMPLE_DEVICE</span></code> to select a device explicitly.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">google.colab</span>  <span class="c1"># noqa: F401</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">IN_COLAB</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">IN_COLAB</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="k">if</span> <span class="n">IN_COLAB</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">urllib.request</span><span class="w"> </span><span class="kn">import</span> <span class="n">urlretrieve</span>
+
+    <span class="n">urlretrieve</span><span class="p">(</span>
+        <span class="s2">"https://raw.githubusercontent.com/RosettaCommons/tmol/"</span>
+        <span class="s2">"master/docs/tutorial/notebook_setup.py"</span><span class="p">,</span>
+        <span class="s2">"notebook_setup.py"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">notebook_setup</span>
+
+    <span class="n">notebook_setup</span><span class="o">.</span><span class="n">setup_colab</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="s2">"tmol/tests/data/openfold/openfold_ubq_and_sumo.pt"</span><span class="p">,</span>
+            <span class="s2">"tmol/tests/data/rosettafold2/ubiquitin.pt"</span><span class="p">,</span>
+            <span class="s2">"tmol/tests/data/rosettafold2/input_layout.json"</span><span class="p">,</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+<span class="n">repo</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"TMOL_EXAMPLE_SOURCE"</span><span class="p">,</span> <span class="s2">"."</span><span class="p">))</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">"OMP_NUM_THREADS"</span><span class="p">,</span> <span class="s2">"2"</span><span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<section id="1.-Describe-a-coordinate-layout-once">
+<h2>1. Describe a coordinate layout once<a class="headerlink" href="#1.-Describe-a-coordinate-layout-once" title="Link to this heading">#</a></h2>
+<p>A slot count does not specify atom order or residue-token numbering. Supply ordered residue names and named slots for each residue. AtomWorks supplies common atom14/atom37 definitions; check the token order against your predictor version.</p>
+<p>This builder takes <code class="docutils literal notranslate"><span class="pre">[batch,</span> <span class="pre">residues,</span> <span class="pre">atoms,</span> <span class="pre">3]</span></code> float32 tensors. <code class="docutils literal notranslate"><span class="pre">chain_id=-1</span></code> means a padded residue; NaN triplets or an observation mask mean missing atoms of a real residue. Torch indexed assignment preserves gradients from supplied coordinates. The example caches the mappings, while canonical pose construction still runs for each call. It expects the heavy atoms required for construction; it does not implement missing-sidechain packing.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tmol</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._canonical_form</span><span class="w"> </span><span class="kn">import</span> <span class="n">CanonicalForm</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._canonical_ordering</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">_default_canonical_ordering</span><span class="p">,</span>
+    <span class="n">_default_packed_block_types</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._pose_stack_construction</span><span class="w"> </span><span class="kn">import</span> <span class="n">_pose_stack_from_canonical_form</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
+
+<span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+        <span class="s2">"TMOL_EXAMPLE_DEVICE"</span><span class="p">,</span>
+        <span class="s2">"cuda"</span> <span class="k">if</span> <span class="n">tmol</span><span class="o">.</span><span class="n">has_cuda</span><span class="p">()</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">"cpu"</span><span class="p">,</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"PyTorch:"</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">,</span> <span class="s2">"device:"</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">prepare_named_layout</span><span class="p">(</span><span class="n">sequence</span><span class="p">,</span> <span class="n">chain_id</span><span class="p">,</span> <span class="n">residue_names</span><span class="p">,</span> <span class="n">atom_names</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Prepare a model's fixed sequence/layout once; bind coordinates in Torch.</span>
+
+<span class="sd">    This example uses the default protein database. General chemistry callers</span>
+<span class="sd">    should use the ordering and packed types from their PoseBuildContext.</span>
+<span class="sd">    Padding is explicitly identified by chain_id == -1.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">sequence</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">chain_id</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">sequence</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"sequence and chain_id must have shape [batch, residues]"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">sequence</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"sequence must contain integer token IDs"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">chain_id</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"chain_id must contain integer chain IDs"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">sequence</span><span class="o">.</span><span class="n">device</span> <span class="o">!=</span> <span class="n">chain_id</span><span class="o">.</span><span class="n">device</span> <span class="ow">or</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">chain_id</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"chain IDs must share the sequence device and use -1 for padding"</span>
+        <span class="p">)</span>
+    <span class="n">present</span> <span class="o">=</span> <span class="n">chain_id</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">present</span> <span class="o">&amp;</span> <span class="p">((</span><span class="n">sequence</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">sequence</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">residue_names</span><span class="p">)))):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"An observed residue has an unknown token ID"</span><span class="p">)</span>
+    <span class="n">sequence</span> <span class="o">=</span> <span class="n">sequence</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
+    <span class="n">sequence</span><span class="p">[</span><span class="o">~</span><span class="n">present</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">chain_id</span> <span class="o">=</span> <span class="n">chain_id</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">ordering</span> <span class="o">=</span> <span class="n">_default_canonical_ordering</span><span class="p">()</span>
+    <span class="n">packed_types</span> <span class="o">=</span> <span class="n">_default_packed_block_types</span><span class="p">(</span><span class="n">sequence</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">restype_map</span><span class="p">,</span> <span class="n">atom_map</span><span class="p">,</span> <span class="n">real_atoms</span> <span class="o">=</span> <span class="n">ordering</span><span class="o">.</span><span class="n">create_src_2_tmol_mappings</span><span class="p">(</span>
+        <span class="n">residue_names</span><span class="p">,</span> <span class="n">atom_names</span><span class="p">,</span> <span class="n">sequence</span><span class="o">.</span><span class="n">device</span>
+    <span class="p">)</span>
+    <span class="n">restypes</span> <span class="o">=</span> <span class="n">restype_map</span><span class="p">[</span><span class="n">sequence</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">present</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">restypes</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"A residue needs a chemical definition before construction"</span><span class="p">)</span>
+    <span class="n">restypes</span><span class="p">[</span><span class="o">~</span><span class="n">present</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">real</span> <span class="o">=</span> <span class="n">real_atoms</span><span class="p">[</span><span class="n">sequence</span><span class="p">]</span> <span class="o">&amp;</span> <span class="n">present</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">pose</span><span class="p">,</span> <span class="n">residue</span><span class="p">,</span> <span class="n">slot</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">real</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">target_atom</span> <span class="o">=</span> <span class="n">atom_map</span><span class="p">[</span><span class="n">sequence</span><span class="p">][</span><span class="n">real</span><span class="p">]</span>
+    <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">sequence</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">real</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="mi">3</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">build</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">!=</span> <span class="n">shape</span> <span class="ow">or</span> <span class="n">coords</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Expected float32 coordinates shaped </span><span class="si">{</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">coords</span><span class="o">.</span><span class="n">device</span> <span class="o">!=</span> <span class="n">sequence</span><span class="o">.</span><span class="n">device</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Coordinates and prepared mapping must share a device"</span><span class="p">)</span>
+        <span class="n">source</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">residue</span><span class="p">,</span> <span class="n">slot</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">observed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">observed</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">or</span> <span class="n">observed</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">"observed must be a boolean mask over coordinate slots"</span>
+                <span class="p">)</span>
+            <span class="n">source</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                <span class="n">observed</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">residue</span><span class="p">,</span> <span class="n">slot</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">source</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="s2">"nan"</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="n">valid</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">source</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">source</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">bool</span><span class="p">(</span><span class="n">valid</span><span class="o">.</span><span class="n">all</span><span class="p">()):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"Supply finite coordinate triplets or all-NaN missing atoms"</span>
+            <span class="p">)</span>
+        <span class="n">canonical</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">new_full</span><span class="p">(</span>
+            <span class="p">(</span><span class="o">*</span><span class="n">sequence</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">ordering</span><span class="o">.</span><span class="n">max_n_canonical_atoms</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="s2">"nan"</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">canonical</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">residue</span><span class="p">,</span> <span class="n">target_atom</span><span class="p">]</span> <span class="o">=</span> <span class="n">source</span>
+        <span class="n">form</span> <span class="o">=</span> <span class="n">CanonicalForm</span><span class="p">(</span>
+            <span class="n">chain_id</span><span class="o">=</span><span class="n">chain_id</span><span class="p">,</span>
+            <span class="n">res_types</span><span class="o">=</span><span class="n">restypes</span><span class="p">,</span>
+            <span class="n">coords</span><span class="o">=</span><span class="n">canonical</span><span class="p">,</span>
+            <span class="n">chain_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">res_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">residue_insertion_codes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">atom_occupancy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">atom_b_factor</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">disulfides</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">res_not_connected</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">_pose_stack_from_canonical_form</span><span class="p">(</span><span class="n">ordering</span><span class="p">,</span> <span class="n">packed_types</span><span class="p">,</span> <span class="o">*</span><span class="n">form</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">build</span>
+<br/></pre></div>
+</div>
+</div>
+</section>
+<section id="2.-OpenFold-style-atom14-output">
+<h2>2. OpenFold-style atom14 output<a class="headerlink" href="#2.-OpenFold-style-atom14-output" title="Link to this heading">#</a></h2>
+<p>Read the final structure-module coordinates, sequence tokens, chain IDs and atom-existence mask from a saved prediction. These dictionary keys describe this example’s output format. Adapt them to your predictor; no OpenFold package or tmol-specific OpenFold interface is needed.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">openfold_example</span><span class="p">(</span><span class="n">prediction</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Adapt this predictor's token IDs, final atom14 coordinates and chain mask."""</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.ml.encoding_definitions</span><span class="w"> </span><span class="kn">import</span> <span class="n">AF2_ATOM14_ENCODING</span>
+
+    <span class="c1"># This token order is part of the predictor's contract, independent of shape.</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">AF2_ATOM14_ENCODING</span><span class="o">.</span><span class="n">token_atoms</span><span class="p">)[:</span><span class="mi">20</span><span class="p">]</span>
+    <span class="n">builder</span> <span class="o">=</span> <span class="n">prepare_named_layout</span><span class="p">(</span>
+        <span class="n">prediction</span><span class="p">[</span><span class="s2">"aatype"</span><span class="p">],</span>
+        <span class="n">prediction</span><span class="p">[</span><span class="s2">"chain_index"</span><span class="p">],</span>
+        <span class="n">names</span><span class="p">,</span>
+        <span class="n">AF2_ATOM14_ENCODING</span><span class="o">.</span><span class="n">token_atoms</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">builder</span><span class="p">(</span>
+        <span class="n">prediction</span><span class="p">[</span><span class="s2">"positions"</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">observed</span><span class="o">=</span><span class="n">prediction</span><span class="p">[</span><span class="s2">"atom14_atom_exists"</span><span class="p">]</span><span class="o">.</span><span class="n">bool</span><span class="p">()</span>
+    <span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._pose_stack_deconstruction</span><span class="w"> </span><span class="kn">import</span> <span class="n">_canonical_form_from_pose_stack</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">check_and_score</span><span class="p">(</span><span class="n">pose</span><span class="p">,</span> <span class="n">input_coords</span><span class="p">,</span> <span class="n">expected_ca</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Check identity and differentiate the score into supplied coordinates."""</span>
+    <span class="n">ordering</span> <span class="o">=</span> <span class="n">_default_canonical_ordering</span><span class="p">()</span>
+    <span class="n">canonical</span> <span class="o">=</span> <span class="n">_canonical_form_from_pose_stack</span><span class="p">(</span><span class="n">ordering</span><span class="p">,</span> <span class="n">pose</span><span class="p">)</span>
+    <span class="n">ca_slot</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="n">ordering</span><span class="o">.</span><span class="n">restypes_atom_index_mapping</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"CA"</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">ordering</span><span class="o">.</span><span class="n">restype_io_equiv_classes</span>
+        <span class="p">],</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">batch</span><span class="p">,</span> <span class="n">residue</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">canonical</span><span class="o">.</span><span class="n">res_types</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">observed_ca</span> <span class="o">=</span> <span class="n">canonical</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span>
+        <span class="n">batch</span><span class="p">,</span> <span class="n">residue</span><span class="p">,</span> <span class="n">ca_slot</span><span class="p">[</span><span class="n">canonical</span><span class="o">.</span><span class="n">res_types</span><span class="p">[</span><span class="n">batch</span><span class="p">,</span> <span class="n">residue</span><span class="p">]]</span>
+    <span class="p">]</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_close</span><span class="p">(</span><span class="n">observed_ca</span><span class="p">,</span> <span class="n">expected_ca</span><span class="p">[</span><span class="n">batch</span><span class="p">,</span> <span class="n">residue</span><span class="p">],</span> <span class="n">rtol</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">pose</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="n">pose</span><span class="o">.</span><span class="n">real_atoms</span><span class="p">])</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+    <span class="n">module</span> <span class="o">=</span> <span class="n">beta2016_score_function</span><span class="p">(</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">pose</span><span class="p">)</span>
+    <span class="n">energy</span> <span class="o">=</span> <span class="n">module</span><span class="p">(</span><span class="n">pose</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="p">(</span><span class="n">gradient</span><span class="p">,)</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">energy</span><span class="p">,</span> <span class="n">input_coords</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">energy</span><span class="p">)</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">gradient</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">gradient</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">energy</span><span class="o">.</span><span class="n">detach</span><span class="p">()),</span> <span class="n">gradient</span>
+
+
+<span class="n">prediction</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+    <span class="n">repo</span> <span class="o">/</span> <span class="s2">"tmol/tests/data/openfold/openfold_ubq_and_sumo.pt"</span><span class="p">,</span>
+    <span class="n">map_location</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+    <span class="n">weights_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">openfold_coords</span> <span class="o">=</span> <span class="n">prediction</span><span class="p">[</span><span class="s2">"positions"</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">()</span>
+<span class="n">prediction</span><span class="p">[</span><span class="s2">"positions"</span><span class="p">]</span> <span class="o">=</span> <span class="n">openfold_coords</span>
+<span class="n">openfold_pose</span> <span class="o">=</span> <span class="n">openfold_example</span><span class="p">(</span><span class="n">prediction</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">openfold_pose</span><span class="o">.</span><span class="n">n_poses</span> <span class="o">==</span> <span class="mi">2</span>
+<span class="n">openfold_energy</span><span class="p">,</span> <span class="n">openfold_gradient</span> <span class="o">=</span> <span class="n">check_and_score</span><span class="p">(</span>
+    <span class="n">openfold_pose</span><span class="p">,</span> <span class="n">openfold_coords</span><span class="p">,</span> <span class="n">openfold_coords</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">]</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"OpenFold-style batch energy:"</span><span class="p">,</span> <span class="n">openfold_energy</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Coordinate-gradient norm:"</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">openfold_gradient</span><span class="o">.</span><span class="n">norm</span><span class="p">()))</span>
+<br/></pre></div>
+</div>
+</div>
+</section>
+<section id="3.-RF2-style-output-and-hydrogen-policy">
+<h2>3. RF2-style output and hydrogen policy<a class="headerlink" href="#3.-RF2-style-output-and-hydrogen-policy" title="Link to this heading">#</a></h2>
+<p>Use <code class="docutils literal notranslate"><span class="pre">num2aa</span></code> and <code class="docutils literal notranslate"><span class="pre">aa2long</span></code> from the RF2 version that produced the tensor. The legacy prediction below has 27 slots; other RF2-family versions can use different layouts. The saved layout is example data, not a library interface.</p>
+<p>Choose <code class="docutils literal notranslate"><span class="pre">hydrogens=&quot;preserve&quot;</span></code> to keep supplied nonterminal H coordinates, or <code class="docutils literal notranslate"><span class="pre">&quot;rebuild&quot;</span></code> to mark all supplied H missing. Both rebuild a generic N-terminal amide H using the appropriate terminal model. Rebuilt slots have zero input gradient. Supplied coordinates keep their gradient connection.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">rf2_example</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="n">residue_names</span><span class="p">,</span> <span class="n">atom_names</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">hydrogens</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Use num2aa/aa2long from the RF2 version that produced this prediction.</span>
+
+<span class="sd">    ``hydrogens='preserve'`` retains supplied nonterminal H coordinates;</span>
+<span class="sd">    ``'rebuild'`` marks all supplied H as missing. The generic amide H at each</span>
+<span class="sd">    chain's N terminus is always rebuilt as the appropriate terminal hydrogens.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">hydrogens</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"preserve"</span><span class="p">,</span> <span class="s2">"rebuild"</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Choose hydrogens='preserve' or 'rebuild'"</span><span class="p">)</span>
+    <span class="n">sequence</span> <span class="o">=</span> <span class="n">prediction</span><span class="p">[</span><span class="s2">"seq"</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">prediction</span><span class="p">[</span><span class="s2">"xyz"</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">lengths</span> <span class="o">=</span> <span class="n">prediction</span><span class="p">[</span><span class="s2">"chainlens"</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">length</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">length</span> <span class="ow">in</span> <span class="n">lengths</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">sum</span><span class="p">(</span><span class="n">lengths</span><span class="p">)</span> <span class="o">!=</span> <span class="n">sequence</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Positive chain lengths must cover the entire sequence"</span><span class="p">)</span>
+    <span class="n">chain_id</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">lengths</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">lengths</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">name</span><span class="p">:</span> <span class="p">[</span><span class="n">atom</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">if</span> <span class="n">atom</span> <span class="k">else</span> <span class="s2">""</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">row</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">residue_names</span><span class="p">,</span> <span class="n">atom_names</span><span class="p">)</span>
+    <span class="p">}</span>
+    <span class="n">builder</span> <span class="o">=</span> <span class="n">prepare_named_layout</span><span class="p">(</span><span class="n">sequence</span><span class="p">,</span> <span class="n">chain_id</span><span class="p">,</span> <span class="n">residue_names</span><span class="p">,</span> <span class="n">names</span><span class="p">)</span>
+    <span class="n">hydrogen_slots</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="p">[</span><span class="n">atom</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">"123"</span><span class="p">)</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"H"</span><span class="p">)</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">names</span><span class="p">[</span><span class="n">name</span><span class="p">]]</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">residue_names</span>
+        <span class="p">],</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">amide_h</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+        <span class="p">[[</span><span class="n">atom</span> <span class="o">==</span> <span class="s2">"H"</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">names</span><span class="p">[</span><span class="n">name</span><span class="p">]]</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">residue_names</span><span class="p">],</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">nterm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">chain_id</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+    <span class="n">nterm</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">chain_id</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">!=</span> <span class="n">chain_id</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">suppressed</span> <span class="o">=</span> <span class="n">amide_h</span><span class="p">[</span><span class="n">sequence</span><span class="p">]</span> <span class="o">&amp;</span> <span class="n">nterm</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">hydrogens</span> <span class="o">==</span> <span class="s2">"rebuild"</span><span class="p">:</span>
+        <span class="n">suppressed</span> <span class="o">|=</span> <span class="n">hydrogen_slots</span><span class="p">[</span><span class="n">sequence</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">builder</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">observed</span><span class="o">=~</span><span class="n">suppressed</span><span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+
+<span class="n">rf2_prediction</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+    <span class="n">repo</span> <span class="o">/</span> <span class="s2">"tmol/tests/data/rosettafold2/ubiquitin.pt"</span><span class="p">,</span>
+    <span class="n">map_location</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+    <span class="n">weights_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">layout</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span>
+    <span class="p">(</span><span class="n">repo</span> <span class="o">/</span> <span class="s2">"tmol/tests/data/rosettafold2/input_layout.json"</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">()</span>
+<span class="p">)</span>
+<span class="n">rf2_results</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="k">for</span> <span class="n">policy</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"preserve"</span><span class="p">,</span> <span class="s2">"rebuild"</span><span class="p">):</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">rf2_prediction</span><span class="p">[</span><span class="s2">"xyz"</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">()</span>
+    <span class="n">rf2_prediction</span><span class="p">[</span><span class="s2">"xyz"</span><span class="p">]</span> <span class="o">=</span> <span class="n">coords</span>
+    <span class="n">pose</span> <span class="o">=</span> <span class="n">rf2_example</span><span class="p">(</span>
+        <span class="n">rf2_prediction</span><span class="p">,</span> <span class="n">layout</span><span class="p">[</span><span class="s2">"num2aa"</span><span class="p">],</span> <span class="n">layout</span><span class="p">[</span><span class="s2">"aa2long"</span><span class="p">],</span> <span class="n">hydrogens</span><span class="o">=</span><span class="n">policy</span>
+    <span class="p">)</span>
+    <span class="k">assert</span> <span class="n">pose</span><span class="o">.</span><span class="n">n_poses</span> <span class="o">==</span> <span class="mi">1</span>
+    <span class="n">energy</span><span class="p">,</span> <span class="n">gradient</span> <span class="o">=</span> <span class="n">check_and_score</span><span class="p">(</span><span class="n">pose</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">coords</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">policy</span> <span class="o">==</span> <span class="s2">"rebuild"</span><span class="p">:</span>
+        <span class="c1"># These saved legacy tables place hydrogens at slots 14 onward.</span>
+        <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">gradient</span><span class="p">[:,</span> <span class="mi">14</span><span class="p">:])</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="n">rf2_results</span><span class="p">[</span><span class="n">policy</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"energy"</span><span class="p">:</span> <span class="n">energy</span><span class="p">,</span> <span class="s2">"gradient_norm"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">gradient</span><span class="o">.</span><span class="n">norm</span><span class="p">())}</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">rf2_results</span><span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+</section>
+<section id="4.-Scoring-and-repeated-guidance">
+<h2>4. Scoring and repeated guidance<a class="headerlink" href="#4.-Scoring-and-repeated-guidance" title="Link to this heading">#</a></h2>
+<p>For a fixed sequence and topology, reuse the named mapping and score module. Bind new coordinate tensors entirely in Torch; do not detach or convert them to NumPy on the differentiable path. AtomWorks file parsing and chemical preparation belong before this loop. NaN completion preserves atom identity and does not itself impute finite coordinates.</p>
+<p>Discrete protonation choices, chemical topology changes and rotamer selection are outside this coordinate-gradient contract. A prepared-topology builder would also cache final topology; this small example only caches slot mappings.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.ml.encoding_definitions</span><span class="w"> </span><span class="kn">import</span> <span class="n">AF2_ATOM14_ENCODING</span>
+
+<span class="n">names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">AF2_ATOM14_ENCODING</span><span class="o">.</span><span class="n">token_atoms</span><span class="p">)[:</span><span class="mi">20</span><span class="p">]</span>
+<span class="n">bind</span> <span class="o">=</span> <span class="n">prepare_named_layout</span><span class="p">(</span>
+    <span class="n">prediction</span><span class="p">[</span><span class="s2">"aatype"</span><span class="p">],</span>
+    <span class="n">prediction</span><span class="p">[</span><span class="s2">"chain_index"</span><span class="p">],</span>
+    <span class="n">names</span><span class="p">,</span>
+    <span class="n">AF2_ATOM14_ENCODING</span><span class="o">.</span><span class="n">token_atoms</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">mask</span> <span class="o">=</span> <span class="n">prediction</span><span class="p">[</span><span class="s2">"atom14_atom_exists"</span><span class="p">]</span><span class="o">.</span><span class="n">bool</span><span class="p">()</span>
+<span class="n">coordinates</span> <span class="o">=</span> <span class="n">openfold_coords</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+<span class="n">score_module</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="n">guidance_energies</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+    <span class="n">coordinates</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">()</span>
+    <span class="n">pose</span> <span class="o">=</span> <span class="n">bind</span><span class="p">(</span><span class="n">coordinates</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">score_module</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">score_module</span> <span class="o">=</span> <span class="n">beta2016_score_function</span><span class="p">(</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span>
+            <span class="n">pose</span>
+        <span class="p">)</span>
+        <span class="n">topology</span> <span class="o">=</span> <span class="n">pose</span><span class="o">.</span><span class="n">block_type_ind</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_close</span><span class="p">(</span><span class="n">pose</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">,</span> <span class="n">topology</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">energy</span> <span class="o">=</span> <span class="n">score_module</span><span class="p">(</span><span class="n">pose</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="p">(</span><span class="n">gradient</span><span class="p">,)</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">energy</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">energy</span><span class="p">)</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">gradient</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+    <span class="n">guidance_energies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">energy</span><span class="o">.</span><span class="n">detach</span><span class="p">()))</span>
+    <span class="c1"># Stop the tape between iterations, after obtaining the current gradient.</span>
+    <span class="c1"># An application can instead use this gradient in its diffusion/search update.</span>
+    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+        <span class="n">coordinates</span> <span class="o">=</span> <span class="n">coordinates</span> <span class="o">-</span> <span class="mf">0.001</span> <span class="o">*</span> <span class="n">gradient</span> <span class="o">/</span> <span class="n">gradient</span><span class="o">.</span><span class="n">norm</span><span class="p">()</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Three guidance evaluations:"</span><span class="p">,</span> <span class="n">guidance_energies</span><span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<p><a class="reference download internal" download="" href="_downloads/35b95a8461606a5e7799f8c158de4f01/model_input_example.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">this</span> <span class="pre">notebook</span></code></a></p>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="model_inputs.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Model coordinate inputs</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="workflows/gpu_batching.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">GPU batching</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#1.-Describe-a-coordinate-layout-once">1. Describe a coordinate layout once</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#2.-OpenFold-style-atom14-output">2. OpenFold-style atom14 output</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#3.-RF2-style-output-and-hydrogen-policy">3. RF2-style output and hydrogen policy</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#4.-Scoring-and-repeated-guidance">4. Scoring and repeated guidance</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="_sources/model_input_example.ipynb.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.23.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
