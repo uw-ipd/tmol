@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.24...3.31)
 
 set(TMOL_OPS_CUDA "" CACHE STRING "Build an optional CUDA ops package: 12 or 13")
-option(TMOL_ENABLE_CUDA "Build CUDA extensions (disable for CPU-only)" OFF)
+option(TMOL_ENABLE_CUDA "Build CUDA extensions (Metal is TMOL_ENABLE_MPS)" OFF)
 set(_TMOL_NATIVE_PACKAGE tmol)
 if(TMOL_OPS_CUDA)
   if(NOT TMOL_OPS_CUDA MATCHES "^(12|13)$")
@@ -348,7 +348,7 @@ function(tmol_add_pybind_cpp_ext TARGET_NAME INSTALL_DIR EXT_NAME)
 endfunction()
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 1. Native CPU or CUDA operator module
+# 1. Native CPU, CUDA, or Metal (MPS) operator module
 # ═══════════════════════════════════════════════════════════════════════════════
 
 set(_C_SOURCES
@@ -447,7 +447,64 @@ if(TMOL_HAS_CUDA)
   )
 endif()
 
+# ── Apple Metal (MPS) backend ────────────────────────────────────────────────
+# Defaults on for macOS builds. The shaders are compiled at runtime by torch's
+# MPS shader-library API, so this needs no Metal toolchain at build time --
+# only the host preprocessor, to flatten the kernel source.
+option(TMOL_ENABLE_MPS "Build the Apple Metal (MPS) backend" ${APPLE})
+
+if(TMOL_ENABLE_MPS)
+  if(NOT APPLE)
+    message(FATAL_ERROR "TMOL_ENABLE_MPS requires an Apple platform")
+  endif()
+  include("${CMAKE_SOURCE_DIR}/cmake/TmolMetalShader.cmake")
+  set(_TMOL_GENERATED "${CMAKE_BINARY_DIR}/generated")
+
+  # <dir>/<stem> of each .metal.in, and the symbol its source is embedded as.
+  set(_TMOL_SHADERS
+    "tmol/score/elec/potentials/elec_mps_kernels|kElecMetalShaderSource"
+    "tmol/score/ljlk/potentials/ljlk_mps_kernels|kLJLKMetalShaderSource"
+    "tmol/score/ljlk/potentials/ljlk_elec_mps_kernels|kLJLKElecMetalShaderSource"
+    "tmol/pack/compiled/streaming_interaction_graph_mps_kernels|kStreamingInteractionGraphMetalShaderSource"
+    "tmol/score/lk_ball/potentials/lk_ball_mps_kernels|kLKBallMetalShaderSource"
+    "tmol/score/lk_ball/potentials/gen_pose_waters_mps_kernels|kWaterGenMetalShaderSource"
+    "tmol/score/hbond/potentials/hbond_mps_kernels|kHBondMetalShaderSource"
+    "tmol/score/hbond/potentials/gen_hbond_bases_mps_kernels|kHBondBasesMetalShaderSource"
+    "tmol/score/common/pose_total_reduce_mps_kernels|kPoseTotalReduceMetalShaderSource"
+    "tmol/pack/compiled/annealer_mps_kernels|kAnnealerMetalShaderSource"
+    "tmol/score/common/sphere_overlap_mps_kernels|kSphereOverlapMetalShaderSource"
+  )
+  foreach(_entry IN LISTS _TMOL_SHADERS)
+    string(REPLACE "|" ";" _entry "${_entry}")
+    list(GET _entry 0 _stem)
+    list(GET _entry 1 _symbol)
+    tmol_embed_metal_shader(
+      "${CMAKE_SOURCE_DIR}/${_stem}.metal.in"
+      "${_TMOL_GENERATED}/${_stem}_source.h"
+      ${_symbol}
+    )
+    list(APPEND _C_SOURCES "${_TMOL_GENERATED}/${_stem}_source.h")
+  endforeach()
+
+  list(APPEND _C_SOURCES
+    tmol/score/common/mps_launch.cpp
+    tmol/score/elec/potentials/elec_pose_score.mps.cpp
+    tmol/score/ljlk/potentials/ljlk_pose_score.mps.cpp
+    tmol/score/ljlk/potentials/ljlk_elec_pose_score.mps.cpp
+    tmol/pack/compiled/streaming_interaction_graph.mps.cpp
+    tmol/score/lk_ball/potentials/lk_ball_pose_score.mps.cpp
+    tmol/score/lk_ball/potentials/gen_pose_waters.mps.cpp
+    tmol/score/hbond/potentials/hbond_pose_score.mps.cpp
+    tmol/score/hbond/potentials/gen_hbond_bases.mps.cpp
+  )
+endif()
+
 pybind11_add_module(_C MODULE ${_C_SOURCES})
+
+if(TMOL_ENABLE_MPS)
+  target_compile_definitions(_C PRIVATE WITH_MPS)
+  target_include_directories(_C PRIVATE "${_TMOL_GENERATED}")
+endif()
 
 # Register native operators through the stable dispatcher ABI.
 set_target_properties(_C PROPERTIES

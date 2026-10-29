@@ -1,7 +1,6 @@
 #pragma once
 
-#include <Eigen/Core>
-#include <Eigen/Geometry>
+#include <tmol/utility/portable/matrix.hh>
 #include <type_traits>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
@@ -25,7 +24,6 @@
 #include <tmol/score/dunbrack/potentials/dunbrack_pose_score.hh>
 
 // Operator definitions; safe for CPU compilation
-#include <moderngpu/operators.hxx>
 
 #include <chrono>
 
@@ -36,8 +34,7 @@ namespace score {
 namespace dunbrack {
 namespace potentials {
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+using tmol::portable::Vec;
 
 template <
     template <tmol::Device> class DeviceDispatch,
@@ -261,7 +258,8 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       if (fail) {  // if the dihedral resolution failed, let's fill the cached
                    // value with -1s since we might have partially filled it
                    // above
-        dihedral_atom_inds[rotamer_index][ii] << -1, -1, -1, -1;
+        dihedral_atom_inds[rotamer_index][ii] =
+            tmol::portable::Vec<Int, 4>::Constant(-1);
       }
 
       // a terminus has no phi or no psi, so a default stands in for it. It is
@@ -597,9 +595,9 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
   auto dihedral_values = dihedral_values_t.view;
   auto dihedral_deriv_t =
       D == Device::CPU
-          ? TPack<Eigen::Matrix<Real, DIH_N_ATOMS, 3>, 2, D>::zeros(
+          ? TPack<tmol::portable::Mat<Real, DIH_N_ATOMS, 3>, 2, D>::zeros(
                 {n_rots, max_n_dih})
-          : TPack<Eigen::Matrix<Real, DIH_N_ATOMS, 3>, 2, D>::empty(
+          : TPack<tmol::portable::Mat<Real, DIH_N_ATOMS, 3>, 2, D>::empty(
                 {n_rots, max_n_dih});
   auto dihedral_deriv = dihedral_deriv_t.view;
 
@@ -669,7 +667,8 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
       if (fail) {  // if the dihedral resolution failed, let's fill the cached
                    // value with -1s since we might have partially filled it
                    // above
-        dihedral_atom_inds[rotamer_index][ii] << -1, -1, -1, -1;
+        dihedral_atom_inds[rotamer_index][ii] =
+            tmol::portable::Vec<Int, 4>::Constant(-1);
       }
 
       // a terminus has no phi or no psi, so a default stands in for it. It is
@@ -1049,7 +1048,8 @@ auto DunbrackRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       if (fail) {  // if the dihedral resolution failed, let's fill the cached
                    // value with -1s since we might have partially filled it
                    // above
-        dihedral_atom_inds[rotamer_index][ii] << -1, -1, -1, -1;
+        dihedral_atom_inds[rotamer_index][ii] =
+            tmol::portable::Vec<Int, 4>::Constant(-1);
       }
 
       // a terminus has no phi or no psi, so a default stands in for it. It is
@@ -1353,7 +1353,7 @@ auto DunbrackRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
   auto dihedral_values_t = TPack<Real, 2, D>::zeros({n_rots, max_n_dih});
   auto dihedral_values = dihedral_values_t.view;
   auto dihedral_deriv_t =
-      TPack<Eigen::Matrix<Real, DIH_N_ATOMS, 3>, 2, D>::zeros(
+      TPack<tmol::portable::Mat<Real, DIH_N_ATOMS, 3>, 2, D>::zeros(
           {n_rots, max_n_dih});
   auto dihedral_deriv = dihedral_deriv_t.view;
 
@@ -1410,7 +1410,8 @@ auto DunbrackRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
       if (fail) {  // if the dihedral resolution failed, let's fill the cached
                    // value with -1s since we might have partially filled it
                    // above
-        dihedral_atom_inds[rotamer_index][ii] << -1, -1, -1, -1;
+        dihedral_atom_inds[rotamer_index][ii] =
+            tmol::portable::Vec<Int, 4>::Constant(-1);
       }
 
       // a terminus has no phi or no psi, so a default stands in for it. It is

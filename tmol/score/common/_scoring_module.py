@@ -52,8 +52,13 @@ class ZeroTermPoseScoringModule(torch.nn.Module):
         self.register_buffer(
             "_zero_f32", torch.zeros((), dtype=torch.float32, device=device)
         )
+        # MPS has no float64, so the float64 zero lives on the host there. A
+        # float64 pose cannot reach this backend anyway -- the dispatch macros
+        # reject that dtype before any kernel runs -- so the buffer exists only
+        # to keep the dtype switch in forward() total.
+        f64_device = torch.device("cpu") if device.type == "mps" else device
         self.register_buffer(
-            "_zero_f64", torch.zeros((), dtype=torch.float64, device=device)
+            "_zero_f64", torch.zeros((), dtype=torch.float64, device=f64_device)
         )
 
     def forward(self, coords):

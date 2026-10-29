@@ -17,7 +17,8 @@
 
 TMol provides all-atom scoring, packing, minimization, and
 FastRelax in PyTorch. It batches proteins, nucleic acids, ligands, and complexes
-on CPU or CUDA, with gradients through coordinate scoring.
+on CPU or CUDA, with gradients through coordinate scoring. On Apple silicon,
+CPU runs move their heaviest work onto the GPU automatically.
 
 [Documentation](https://rosettacommons.github.io/tmol/) ·
 [Tutorials](https://rosettacommons.github.io/tmol/latest/examples_index.html) ·

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Eigen/Core>
+#include <tmol/utility/portable/matrix.hh>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
@@ -15,7 +15,7 @@ namespace ljlk {
 namespace potentials {
 
 template <typename Real, int N>
-using LJLKExternalVec = Eigen::Matrix<Real, N, 1>;
+using LJLKExternalVec = tmol::portable::Vec<Real, N>;
 
 /// Whole-pose LJ/LK + electrostatics evaluation over one precomputed compact
 /// block-neighbor list. The four unweighted score lanes remain separate so

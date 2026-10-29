@@ -1,3 +1,4 @@
+#include <tmol/utility/portable/reduce_ops.hh>
 #include <tmol/utility/tensor/native.hh>
 
 #include <tmol/score/common/device_operations.cuda.impl.cuh>
@@ -150,7 +151,8 @@ struct InteractionGraph {
         totalE += ij_energy;
       }
     }
-    totalE = reduce_shfl_and_broadcast(g, totalE, mgpu::plus_t<float>());
+    totalE =
+        reduce_shfl_and_broadcast(g, totalE, tmol::portable::plus_t<float>());
     return totalE;
   }
 };
@@ -435,8 +437,8 @@ MGPU_DEVICE float warp_wide_sim_annealing(
       }
 
       // Warp-reduce to sum delta_e across all threads
-      float const total_delta_e =
-          reduce_shfl_and_broadcast(g, delta_e, mgpu::plus_t<float>());
+      float const total_delta_e = reduce_shfl_and_broadcast(
+          g, delta_e, tmol::portable::plus_t<float>());
 
       // --- Metropolis accept/reject (thread 0 decides, broadcasts) ---
       bool accept;

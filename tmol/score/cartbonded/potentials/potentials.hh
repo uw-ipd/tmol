@@ -1,15 +1,11 @@
 #pragma once
 
-#include <cmath>
-
-#include <Eigen/Core>
-#include <Eigen/Geometry>
+#include <tmol/utility/portable/math.hh>
+#include <tmol/utility/portable/matrix.hh>
 
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/tuple.hh>
 #include <tmol/score/common/tuple_operators.hh>
-
-#include <pybind11/pybind11.h>
 
 namespace tmol {
 namespace score {
@@ -18,10 +14,9 @@ namespace potentials {
 
 using namespace tmol::score::common;
 
-#define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+#define def auto TMOL_HD
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+using tmol::portable::Vec;
 #define Real3 Vec<Real, 3>
 
 template <typename Real>
@@ -93,12 +88,12 @@ def cbtorsion_V_dV(
     Real phi3) -> tuple<Real, Vec<Real3, 4>> {
   auto torsion = dihedral_angle<Real>::V_dV(atm1, atm2, atm3, atm4);
 
-  Real E = K1 * (std::cos(1.0 * torsion.V - phi1) + 1.0)
-           + K2 * (std::cos(2.0 * torsion.V - phi2) + 1.0)
-           + K3 * (std::cos(3.0 * torsion.V - phi3) + 1.0);
-  Real dE = -1.0 * K1 * std::sin(1.0 * torsion.V - phi1)
-            - 2.0 * K2 * std::sin(2.0 * torsion.V - phi2)
-            - 3.0 * K3 * std::sin(3.0 * torsion.V - phi3);
+  Real E = K1 * (tmol::portable::math::cos(1.0 * torsion.V - phi1) + 1.0)
+           + K2 * (tmol::portable::math::cos(2.0 * torsion.V - phi2) + 1.0)
+           + K3 * (tmol::portable::math::cos(3.0 * torsion.V - phi3) + 1.0);
+  Real dE = -1.0 * K1 * tmol::portable::math::sin(1.0 * torsion.V - phi1)
+            - 2.0 * K2 * tmol::portable::math::sin(2.0 * torsion.V - phi2)
+            - 3.0 * K3 * tmol::portable::math::sin(3.0 * torsion.V - phi3);
 
   Vec<Real3, 4> dEout;
   dEout[0] = dE * torsion.dV_dI;
@@ -121,9 +116,9 @@ def cbtorsion_V(
     Real phi2,
     Real phi3) -> Real {
   Real torsion = dihedral_angle<Real>::V(atm1, atm2, atm3, atm4);
-  return K1 * (std::cos(torsion - phi1) + 1.0)
-         + K2 * (std::cos(2.0 * torsion - phi2) + 1.0)
-         + K3 * (std::cos(3.0 * torsion - phi3) + 1.0);
+  return K1 * (tmol::portable::math::cos(torsion - phi1) + 1.0)
+         + K2 * (tmol::portable::math::cos(2.0 * torsion - phi2) + 1.0)
+         + K3 * (tmol::portable::math::cos(3.0 * torsion - phi3) + 1.0);
 }
 
 template <typename Real>
@@ -144,8 +139,9 @@ def cbtorsion_V_dV_old(
   auto torsion = dihedral_angle<Real>::V_dV(atm1, atm2, atm3, atm4);
 
   Real Keff = K / (period * period);  // map spring constant to cos
-  Real E = Keff * (1.0 - std::cos(period * (torsion.V - x0)));
-  Real dE = Keff * period * std::sin(period * (torsion.V - x0));
+  Real E = Keff * (1.0 - tmol::portable::math::cos(period * (torsion.V - x0)));
+  Real dE =
+      Keff * period * tmol::portable::math::sin(period * (torsion.V - x0));
   return {
       E,
       dE * torsion.dV_dI,
@@ -170,12 +166,12 @@ def cbhxltorsion_V_dV_old(
     Real phi3) -> tuple<Real, Real3, Real3, Real3, Real3> {
   auto torsion = dihedral_angle<Real>::V_dV(atm1, atm2, atm3, atm4);
 
-  Real E = K1 * (std::cos(1.0 * torsion.V - phi1) + 1.0)
-           + K2 * (std::cos(2.0 * torsion.V - phi2) + 1.0)
-           + K3 * (std::cos(3.0 * torsion.V - phi3) + 1.0);
-  Real dE = -1.0 * K1 * std::sin(1.0 * torsion.V - phi1)
-            - 2.0 * K2 * std::sin(2.0 * torsion.V - phi2)
-            - 3.0 * K3 * std::sin(3.0 * torsion.V - phi3);
+  Real E = K1 * (tmol::portable::math::cos(1.0 * torsion.V - phi1) + 1.0)
+           + K2 * (tmol::portable::math::cos(2.0 * torsion.V - phi2) + 1.0)
+           + K3 * (tmol::portable::math::cos(3.0 * torsion.V - phi3) + 1.0);
+  Real dE = -1.0 * K1 * tmol::portable::math::sin(1.0 * torsion.V - phi1)
+            - 2.0 * K2 * tmol::portable::math::sin(2.0 * torsion.V - phi2)
+            - 3.0 * K3 * tmol::portable::math::sin(3.0 * torsion.V - phi3);
 
   return {
       E,

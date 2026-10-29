@@ -26,16 +26,23 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         # Cache of parameter tables converted to whichever coord dtype is used
         # in scoring. Avoids a per-forward .to(coords_dtype) on three tensors.
         # Keyed by dtype; stored value is a (pair_param, pair_poly, global_param) tuple.
-        # pair_poly_table is always kept at float64 — the C++ kernel templates
+        # pair_poly_table is kept at float64 — the C++ kernel templates
         # HBondPolynomials on double independently of the Real coord dtype.
+        # MPS is the exception: it has no float64 at either the tensor or the
+        # shader level, so _params.py has already packed the same coefficients
+        # as unevaluated hi + lo float32 pairs, and converting here would both
+        # fail and undo that. See params_types.hh.
         self._param_tables_by_dtype: dict = {}
 
     def _param_tables(self, coords_dtype):
         tables = self._param_tables_by_dtype.get(coords_dtype)
         if tables is None:
+            poly = self.hb_param_db.pair_poly_table
+            if poly.device.type != "mps":
+                poly = poly.to(torch.float64)
             tables = (
                 self.hb_param_db.pair_param_table.to(coords_dtype),
-                self.hb_param_db.pair_poly_table.to(torch.float64),
+                poly,
                 self.hb_param_db.global_param_table.to(coords_dtype),
             )
             self._param_tables_by_dtype[coords_dtype] = tables

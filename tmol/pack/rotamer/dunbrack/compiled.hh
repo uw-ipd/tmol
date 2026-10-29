@@ -1,7 +1,7 @@
+#include <tmol/utility/portable/matrix.hh>
 #include <tmol/utility/tensor/native.hh>
 #pragma once
 
-#include <Eigen/Core>
 #include <tuple>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
@@ -14,8 +14,7 @@ namespace pack {
 namespace rotamer {
 namespace dunbrack {
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+using tmol::portable::Vec;
 
 template <
     template <tmol::Device> class Dispatch,

@@ -106,6 +106,7 @@ def build_packer_energy_tables(
         rotamer_set.block_ind_for_rot,
         energy_indices,
         energy_values,
+        -1,  # the table is coalesced: every key distinct
         False,
     )
 

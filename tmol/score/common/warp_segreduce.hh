@@ -2,11 +2,11 @@
 
 #ifdef __CUDACC__
 
+#include <tmol/utility/portable/matrix.hh>
 #include <cooperative_groups.h>
 #include <tmol/numeric/log2.hh>
 #include <moderngpu/operators.hxx>
 #include <moderngpu/meta.hxx>
-#include <Eigen/Core>
 
 namespace tmol {
 namespace score {
@@ -55,13 +55,13 @@ struct WarpSegReduceShfl<
 
 template <typename T, int N>
 struct WarpSegReduceShfl<
-    Eigen::Matrix<T, N, 1>,
+    tmol::portable::Vec<T, N>,
     typename std::enable_if<std::is_arithmetic<T>::value>::type> {
   template <typename F>
-  static __device__ __inline__ Eigen::Matrix<T, N, 1> segreduce(
+  static __device__ __inline__ tmol::portable::Vec<T, N> segreduce(
       // cooperative_groups::coalesced_group g,
       unsigned int active,
-      Eigen::Matrix<T, N, 1> val,
+      tmol::portable::Vec<T, N> val,
       bool flag,
       F f) {
     // unsigned int const grank = g.thread_rank();
@@ -80,7 +80,7 @@ struct WarpSegReduceShfl<
     flag = __shfl_down_sync(active, flag, 1);
 
     for (int i = 1; i < 32; i *= 2) {
-      Eigen::Matrix<T, N, 1> val_i;
+      tmol::portable::Vec<T, N> val_i;
       // mgpu::iterate<N>([&](int j) {val_i[j] = g.shfl_down(val[j], i);});
       for (int j = 0; j < N; ++j) {
         // val_i[j] = g.shfl_down(val[j], i);
@@ -102,18 +102,18 @@ struct WarpSegReduceShfl<
 
 template <typename T>
 struct WarpSegReduceShfl<
-    Eigen::Matrix<T, 3, 1>,
+    tmol::portable::Vec<T, 3>,
     typename std::enable_if<std::is_arithmetic<T>::value>::type> {
   template <typename F>
-  static __device__ __inline__ Eigen::Matrix<T, 3, 1> segreduce(
-      unsigned int active, Eigen::Matrix<T, 3, 1> val, bool flag, F f) {
+  static __device__ __inline__ tmol::portable::Vec<T, 3> segreduce(
+      unsigned int active, tmol::portable::Vec<T, 3> val, bool flag, F f) {
     unsigned int limit = __popc(active);
     unsigned int mask_higher = 0xFFFFFFFF << (threadIdx.x + 1);
     unsigned int rank = __popc(active & ~mask_higher);
 
     flag = __shfl_down_sync(active, flag, 1);
 
-    Eigen::Matrix<T, 3, 1> val_i;
+    tmol::portable::Vec<T, 3> val_i;
     bool flag_i;
 
     // 1

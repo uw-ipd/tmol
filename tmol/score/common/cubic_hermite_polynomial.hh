@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Eigen/Core>
+#include <tmol/utility/portable/qualifiers.hh>
 #include <tmol/score/common/tuple.hh>
 
 namespace tmol {
@@ -9,7 +9,7 @@ namespace common {
 
 #define def                \
   template <typename Real> \
-  auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+  auto TMOL_HD
 
 def interpolate_t(Real t, Real p0, Real dp0, Real p1, Real dp1) -> Real {
   // Cubic interpolation of p on t in [0, 1].

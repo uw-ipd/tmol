@@ -183,3 +183,9 @@ def has_cuda() -> bool:
     """Whether the loaded TMol backend includes CUDA kernels (independent of GPU availability)."""
     _ensure_loaded()
     return _native.has_cuda
+
+
+def has_mps() -> bool:
+    """Whether the loaded TMol backend includes Metal kernels (independent of GPU availability)."""
+    _ensure_loaded()
+    return getattr(_native, "has_mps", False)

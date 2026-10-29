@@ -1,0 +1,76 @@
+// Metal entry point for LK-ball water generation.
+//
+// Pre-expanded by the C preprocessor at build time and compiled at runtime;
+// see cmake/TmolMetalShader.cmake. The water building itself lives in
+// gen_pose_waters_kernels.hh, compiled here from exactly the same source the
+// CPU and CUDA backends use.
+//
+// Thirty view buffers plus the metadata buffer is 31 bindings, which is the
+// per-kernel limit on Apple GPUs. Adding a view to WaterGenCtxT means packing
+// several of the small per-block-type tables into one buffer first.
+
+#include <tmol/score/common/mps_entry.hh>
+#include <tmol/score/common/device_operations.mps.impl.hh>
+#include <tmol/score/common/launch_box_macros.hh>
+#include <tmol/score/lk_ball/potentials/gen_pose_waters_ctx.hh>
+#include <tmol/score/common/mps_ctx_builder.hh>
+#include <tmol/utility/portable/metal_view.hh>
+#include <tmol/score/lk_ball/potentials/gen_pose_waters_kernels.hh>
+
+using tmol::score::common::DeviceOperations;
+using tmol::score::common::WorkgroupLane;
+using namespace tmol::score::lk_ball::potentials;
+
+LAUNCH_BOX_32
+
+typedef WorkgroupLane<tmol::Device::MPS> Lane;
+typedef WaterGenCtxT<tmol::portable::MetalView, float, int32_t> WaterCtx;
+typedef WaterGenDerivCtxT<tmol::portable::MetalView, float, int32_t> WaterDerivCtx;
+
+#define TMOL_N_SIMDS ((launch_t::sm_ptx::nt + 31) / 32)
+
+kernel void water_gen_build_waters_f32(
+    device const int64_t* meta [[buffer(0)]],
+      TMOL_MPS_BIND_30,
+    uint cta [[threadgroup_position_in_grid]],
+    uint tid [[thread_position_in_threadgroup]],
+    uint n_threads [[threads_per_threadgroup]]) {
+  static_assert(
+      WaterCtx::n_views == 30,
+      "buffer bindings here must cover every view visit_views enumerates");
+  device void* ptrs[30] = {TMOL_MPS_PTRS_30};
+  threadgroup WaterGenSharedData<float, TILE_SIZE> shared_m;
+  threadgroup float reduce_scratch[TMOL_N_SIMDS];
+  WaterCtx ctx = tmol::score::common::mps_build_ctx<WaterCtx>(ptrs, meta);
+  Lane lane(tid, n_threads, reduce_scratch);
+  water_gen_build_waters_for_rot<
+      DeviceOperations,
+      tmol::Device::MPS,
+      float,
+      int32_t,
+      launch_t>(ctx, shared_m, int(cta), lane);
+}
+
+// Backward pass: one threadgroup per rotamer, as in the forward.
+kernel void water_gen_build_water_derivs_f32(
+    device const int64_t* meta [[buffer(0)]],
+      TMOL_MPS_BIND_29,
+    uint cta [[threadgroup_position_in_grid]],
+    uint tid [[thread_position_in_threadgroup]],
+    uint n_threads [[threads_per_threadgroup]]) {
+  static_assert(
+      WaterDerivCtx::n_views == 29,
+      "buffer bindings here must cover every view visit_views enumerates");
+  device void* ptrs[29] = {TMOL_MPS_PTRS_29};
+  threadgroup WaterGenSharedData<float, TILE_SIZE> shared_m;
+  threadgroup float reduce_scratch[TMOL_N_SIMDS];
+  WaterDerivCtx ctx =
+      tmol::score::common::mps_build_ctx<WaterDerivCtx>(ptrs, meta);
+  Lane lane(tid, n_threads, reduce_scratch);
+  water_gen_build_water_derivs_for_rot<
+      DeviceOperations,
+      tmol::Device::MPS,
+      float,
+      int32_t,
+      launch_t>(ctx, shared_m, int(cta), lane);
+}

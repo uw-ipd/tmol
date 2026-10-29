@@ -1,0 +1,63 @@
+// Metal entry points for the LJ/LK term.
+//
+// Pre-expanded by the C preprocessor at build time and compiled at runtime;
+// see cmake/TmolMetalShader.cmake. The scoring itself lives in
+// ljlk_kernels.hh, compiled here from exactly the same source the CPU and
+// CUDA backends use. All this file does is what Metal demands a kernel entry
+// do and a called function cannot: declare the threadgroup storage, read the
+// thread's position from entry attributes, and name the address space of the
+// bound buffers.
+//
+// The view buffers are declared positionally and collected into an array:
+// LJLKCtxT::visit_views assigns them to fields in this order, and the host
+// binds them in that same order, so neither side repeats the field list.
+
+#include <tmol/score/common/mps_entry.hh>
+#include <tmol/score/common/device_operations.mps.impl.hh>
+#include <tmol/score/common/launch_box_macros.hh>
+#include <tmol/score/ljlk/potentials/ljlk_ctx.hh>
+#include <tmol/score/common/mps_ctx_builder.hh>
+#include <tmol/utility/portable/metal_view.hh>
+#include <tmol/score/ljlk/potentials/ljlk_kernels.hh>
+
+using tmol::score::common::DeviceOperations;
+using tmol::score::common::WorkgroupLane;
+using namespace tmol::score::ljlk::potentials;
+
+LAUNCH_BOX_32
+
+typedef WorkgroupLane<tmol::Device::MPS> Lane;
+typedef LJLKCtxT<tmol::portable::MetalView, float, int32_t, 4> PoseCtx;
+typedef LJLKCtxT<tmol::portable::MetalView, float, int32_t, 2> RotCtx;
+typedef LJLKSharedMem<float, TILE_SIZE, MAX_N_CONN, launch_t> LJLKShared;
+
+#define TMOL_N_SIMDS ((launch_t::sm_ptx::nt + 31) / 32)
+
+#define TMOL_LJLK_ENTRY(ENTRY_NAME, BODY, CTX_T)                             \
+  kernel void ENTRY_NAME(                                                    \
+      device const int64_t* meta [[buffer(0)]],                              \
+      TMOL_MPS_BIND_23, \
+      uint cta [[threadgroup_position_in_grid]],                             \
+      uint tid [[thread_position_in_threadgroup]],                           \
+      uint n_threads [[threads_per_threadgroup]]) {                          \
+    static_assert(                                                           \
+        CTX_T::n_views == 23,                                                \
+        "buffer bindings here must cover every view visit_views enumerates");\
+    device void* ptrs[23] = {TMOL_MPS_PTRS_23};                                           \
+    threadgroup LJLKShared shared;                                           \
+    threadgroup float reduce_scratch[TMOL_N_SIMDS];                          \
+    CTX_T ctx = tmol::score::common::mps_build_ctx<CTX_T>(ptrs, meta);                     \
+    Lane lane(tid, n_threads, reduce_scratch);                               \
+    /* The CPU-only per-pose accumulator has no counterpart here; an int      \
+       keeps the parameter dependent so `if constexpr` discards its branch */ \
+    BODY<DeviceOperations, tmol::Device::MPS, float, int32_t, launch_t>(      \
+        ctx, shared, int(cta), 0, lane);                                     \
+  }
+
+TMOL_LJLK_ENTRY(
+    ljlk_eval_energies_by_block_f32, ljlk_eval_energies_by_block, PoseCtx)
+TMOL_LJLK_ENTRY(ljlk_eval_energies_f32, ljlk_eval_energies, PoseCtx)
+TMOL_LJLK_ENTRY(
+    ljlk_eval_rotamer_energies_by_block_f32,
+    ljlk_eval_rotamer_energies_by_block,
+    RotCtx)

@@ -1,0 +1,151 @@
+// Metal entry points for the sphere-overlap kernels.
+//
+// Pre-expanded by the C preprocessor at build time and compiled at runtime;
+// see cmake/TmolMetalShader.cmake. The bodies live in
+// sphere_overlap_kernels.hh and are the same source the CPU and CUDA
+// backends compile.
+//
+// The view buffers are declared positionally and collected into an array:
+// each context's visit_views assigns them to fields in this order, and the
+// host binds them in that same order, so neither side repeats the field
+// list.
+
+#include <tmol/score/common/mps_entry.hh>
+#include <tmol/score/common/device_operations.mps.impl.hh>
+#include <tmol/score/common/launch_box_macros.hh>
+#include <tmol/score/common/sphere_overlap_ctx.hh>
+#include <tmol/score/common/mps_ctx_builder.hh>
+#include <tmol/utility/portable/metal_view.hh>
+#include <tmol/score/common/sphere_overlap_kernels.hh>
+
+using tmol::score::common::DeviceOperations;
+using tmol::score::common::TMOL_VIEW_META_STRIDE;
+using tmol::score::common::WorkgroupLane;
+using namespace tmol::score::common::sphere_overlap;
+
+LAUNCH_BOX_32
+
+typedef WorkgroupLane<tmol::Device::MPS> Lane;
+typedef BlockSpheresCtxT<tmol::portable::MetalView, float, int32_t> SpheresCtx;
+typedef BlockNeighborsCtxT<tmol::portable::MetalView, float, int32_t> NeighborsCtx;
+typedef RotSpheresCtxT<tmol::portable::MetalView, float, int32_t> RotSpheresCtx;
+typedef BlockSpheresFromRotCtxT<tmol::portable::MetalView, float, int32_t> BlockFromRotCtx;
+typedef RotPairListCtxT<tmol::portable::MetalView, float, int32_t> RotPairCtx;
+
+// One threadgroup per rotamer.
+kernel void compute_block_spheres_f32(
+    device const int64_t* meta [[buffer(0)]],
+      TMOL_MPS_BIND_7,
+    uint cta [[threadgroup_position_in_grid]],
+    uint tid [[thread_position_in_threadgroup]],
+    uint n_threads [[threads_per_threadgroup]]) {
+  static_assert(
+      SpheresCtx::n_views == 7,
+      "buffer bindings here must cover every view visit_views enumerates");
+  device void* ptrs[7] = {TMOL_MPS_PTRS_7};
+  // Unused by this kernel's reduction, which is a single simdgroup wide, but
+  // the lane handle carries it for the primitives that do need scratch.
+  threadgroup float reduce_scratch[1];
+  SpheresCtx ctx = tmol::score::common::mps_build_ctx<SpheresCtx>(ptrs, meta);
+  Lane lane(tid, n_threads, reduce_scratch);
+  compute_block_spheres_body<
+      DeviceOperations,
+      tmol::Device::MPS,
+      float,
+      int32_t,
+      launch_t>(ctx, int(cta), lane);
+}
+
+// One thread per candidate block pair.
+kernel void detect_block_neighbors_f32(
+    device const int64_t* meta [[buffer(0)]],
+      TMOL_MPS_BIND_3,
+    uint index [[thread_position_in_grid]]) {
+  static_assert(
+      NeighborsCtx::n_views == 3,
+      "buffer bindings here must cover every view visit_views enumerates");
+  device void* ptrs[3] = {TMOL_MPS_PTRS_3};
+  NeighborsCtx ctx = tmol::score::common::mps_build_ctx<NeighborsCtx>(ptrs, meta);
+
+
+  // The grid is rounded up to a whole number of threadgroups, so the tail
+  // threads have no pair to test.
+  int const n_pairs =
+      int(ctx.block_neighbors.size(0)) * ctx.block_pairs_per_pose;
+  if (int(index) >= n_pairs) return;
+
+  detect_block_neighbors_body<tmol::Device::MPS, float, int32_t>(
+      ctx, int(index));
+}
+
+
+// ---------------------------------------------------------------------------
+// Rotamer-pair dispatch: the list of rotamer pairs the packer has to score.
+
+// One threadgroup per rotamer.
+kernel void compute_rot_spheres_f32(
+    device const int64_t* meta [[buffer(0)]],
+      TMOL_MPS_BIND_5,
+    uint cta [[threadgroup_position_in_grid]],
+    uint tid [[thread_position_in_threadgroup]],
+    uint n_threads [[threads_per_threadgroup]]) {
+  static_assert(
+      RotSpheresCtx::n_views == 5,
+      "buffer bindings here must cover every view visit_views enumerates");
+  device void* ptrs[5] = {TMOL_MPS_PTRS_5};
+  threadgroup float reduce_scratch[1];
+  RotSpheresCtx ctx = tmol::score::common::mps_build_ctx<RotSpheresCtx>(ptrs, meta);
+  Lane lane(tid, n_threads, reduce_scratch);
+  compute_rot_spheres_body<
+      DeviceOperations,
+      tmol::Device::MPS,
+      float,
+      int32_t,
+      launch_t>(ctx, int(cta), lane);
+}
+
+// One thread per (pose, block).
+kernel void compute_block_spheres_from_rot_f32(
+    device const int64_t* meta [[buffer(0)]],
+      TMOL_MPS_BIND_4,
+    uint index [[thread_position_in_grid]]) {
+  static_assert(
+      BlockFromRotCtx::n_views == 4,
+      "buffer bindings here must cover every view visit_views enumerates");
+  device void* ptrs[4] = {TMOL_MPS_PTRS_4};
+  BlockFromRotCtx ctx = tmol::score::common::mps_build_ctx<BlockFromRotCtx>(ptrs, meta);
+
+
+  // The grid is rounded up to whole threadgroups; drop the tail.
+  if (int(index) >= int(ctx.n_rots_for_block.size(0)) * ctx.max_n_blocks) {
+    return;
+  }
+  compute_block_spheres_from_rot_body<tmol::Device::MPS, float, int32_t>(
+      ctx, int(index));
+}
+
+// The count and fill passes share a context, so they share this preamble.
+#define TMOL_ROT_PAIR_PREAMBLE()                                            \
+  device void* ptrs[10] = {TMOL_MPS_PTRS_10};        \
+  RotPairCtx ctx = tmol::score::common::mps_build_ctx<RotPairCtx>(ptrs, meta);                 \
+  if (int(index) >= int(ctx.pair_counts.size(0))) return;
+
+#define TMOL_ROT_PAIR_BUFFERS()                                             \
+  device const int64_t* meta [[buffer(0)]],                                 \
+      TMOL_MPS_BIND_10, \
+      uint index [[thread_position_in_grid]]
+
+// One thread per candidate block pair.
+kernel void rot_pair_counts_f32(TMOL_ROT_PAIR_BUFFERS()) {
+  static_assert(
+      RotPairCtx::n_views == 10,
+      "buffer bindings here must cover every view visit_views enumerates");
+  TMOL_ROT_PAIR_PREAMBLE();
+  rot_pair_counts_body<tmol::Device::MPS, float, int32_t>(ctx, int(index));
+}
+
+// One thread per candidate block pair, after the counts have been scanned.
+kernel void rot_pair_fill_f32(TMOL_ROT_PAIR_BUFFERS()) {
+  TMOL_ROT_PAIR_PREAMBLE();
+  rot_pair_fill_body<tmol::Device::MPS, float, int32_t>(ctx, int(index));
+}

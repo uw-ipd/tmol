@@ -1,0 +1,51 @@
+// Metal entry point for the hbond derived-atom pre-pass.
+//
+// Runtime shader compilation cannot resolve filesystem includes, so this file
+// is pre-expanded by the C preprocessor at build time and the flattened text
+// is handed to torch's MPS shader-library API; hence `.metal.in` rather than
+// `.metal`.
+//
+// Everything below the includes is a thin shell. The work itself lives in
+// gen_hbond_bases_kernels.hh, compiled here from exactly the same source the
+// CPU and CUDA backends use.
+
+#include <tmol/score/common/mps_entry.hh>
+#include <tmol/score/common/device_operations.mps.impl.hh>
+#include <tmol/score/common/launch_box_macros.hh>
+#include <tmol/score/hbond/potentials/gen_hbond_bases_ctx.hh>
+#include <tmol/score/common/mps_ctx_builder.hh>
+#include <tmol/utility/portable/metal_view.hh>
+#include <tmol/score/hbond/potentials/gen_hbond_bases_kernels.hh>
+
+using tmol::score::common::DeviceOperations;
+using tmol::score::common::WorkgroupLane;
+using namespace tmol::score::hbond::potentials;
+
+LAUNCH_BOX_32
+
+typedef WorkgroupLane<tmol::Device::MPS> Lane;
+typedef HBondBasesCtxT<tmol::portable::MetalView, float, int32_t> BasesCtx;
+typedef HBondBasesGenSharedData<float, HBOND_BASES_GEN_TILE_SIZE> BasesShared;
+
+#define TMOL_N_SIMDS ((launch_t::sm_ptx::nt + 31) / 32)
+
+// The view buffers are declared positionally and immediately collected into an
+// array: HBondBasesCtxT::visit_views assigns them to fields in this order and
+// the host binds them in the same order, so neither side repeats the list.
+kernel void hbond_bases_gen_f32(
+    device const int64_t* meta [[buffer(0)]],
+      TMOL_MPS_BIND_22,
+    uint cta [[threadgroup_position_in_grid]],
+    uint tid [[thread_position_in_threadgroup]],
+    uint n_threads [[threads_per_threadgroup]]) {
+  static_assert(
+      BasesCtx::n_views == 22,
+      "buffer bindings here must cover every view visit_views enumerates");
+  device void* ptrs[22] = {TMOL_MPS_PTRS_22};
+  threadgroup BasesShared shared_m;
+  threadgroup float reduce_scratch[TMOL_N_SIMDS];
+  BasesCtx ctx = tmol::score::common::mps_build_ctx<BasesCtx>(ptrs, meta);
+  Lane lane(tid, n_threads, reduce_scratch);
+  hbond_bases_gen<DeviceOperations, tmol::Device::MPS, float, int32_t,
+                  launch_t>(ctx, shared_m, int(cta), lane);
+}

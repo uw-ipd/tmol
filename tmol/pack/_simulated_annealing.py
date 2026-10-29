@@ -7,7 +7,7 @@ from tmol.types._torch import Tensor
 def _run_simulated_annealing(
     energy_tables: PackerEnergyTables,
 ) -> tuple[Tensor[torch.float32][:, :], Tensor[torch.int32][:, :, :]]:
-    """Rank rotamer assignments with GPU simulated annealing.
+    """Rank rotamer assignments by simulated annealing on the tables' device.
 
     Args:
         energy_tables: One- and two-body energies plus their rotamer layout.

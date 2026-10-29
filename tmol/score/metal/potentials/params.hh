@@ -1,44 +1,9 @@
-#include <tmol/utility/tensor/native.hh>
 #pragma once
 
-#include <Eigen/Core>
-
+#include <tmol/utility/tensor/native.hh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorUtil.h>
-
-namespace tmol {
-namespace score {
-namespace metal {
-namespace potentials {
-
-// one row per (metal block type, donor key)
-template <typename Real>
-struct MetalSiteParams {
-  Real d0;
-  Real well_depth;
-  Real radial_sd;
-  Real lateral_sd;
-};
-
-// one row per (metal block type, fan atom pair)
-template <typename Real>
-struct MetalFanParams {
-  Real l0;
-  Real sd;
-};
-
-// one row per donor key: the smallest metal-donor-metal angle a bridge takes,
-// and the width of the wall below it, both in radians
-template <typename Real>
-struct MetalBridgeParams {
-  Real floor;
-  Real width;
-};
-
-}  // namespace potentials
-}  // namespace metal
-}  // namespace score
-}  // namespace tmol
+#include "params_types.hh"
 
 namespace tmol {
 

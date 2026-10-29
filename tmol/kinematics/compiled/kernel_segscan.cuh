@@ -14,13 +14,11 @@
 namespace tmol {
 namespace kinematics {
 
-using namespace mgpu;
-
 // The per-thread code for the segmented scan
 template <int nt, int vt, typename type_t>
 struct cta_lbs_segscan_t {
-  typedef cta_segscan_t<nt, type_t> segscan_t;
-  typedef cta_reduce_t<nt, int> reduce_t;  // reduction is over indices
+  typedef mgpu::cta_segscan_t<nt, type_t> segscan_t;
+  typedef mgpu::cta_reduce_t<nt, int> reduce_t;  // reduction is over indices
 
   union storage_t {
     typename segscan_t::storage_t segscan;
@@ -31,9 +29,9 @@ struct cta_lbs_segscan_t {
   // Values must be stored in storage.values on entry.
   template <typename op_t, typename output_it>
   MGPU_DEVICE void segscan(
-      merge_range_t merge_range,
-      lbs_placement_t placement,
-      array_t<bool, vt + 1> p,
+      mgpu::merge_range_t merge_range,
+      mgpu::lbs_placement_t placement,
+      mgpu::array_t<bool, vt + 1> p,
       int tid,
       int cta,
       type_t init,
@@ -42,7 +40,7 @@ struct cta_lbs_segscan_t {
       type_t* carry_out_values,
       int* carry_out_codes,
       storage_t& storage,
-      scan_type_t type = scan_type_inc) {
+      mgpu::scan_type_t type = mgpu::scan_type_inc) {
     // scan through workunits for this thread
     int cur_item = placement.a_index;
     bool carry_in = false;
@@ -50,7 +48,7 @@ struct cta_lbs_segscan_t {
     type_t x[vt];
     bool has_head_flag = false;
     int stopindex = nt * vt + 1;
-    iterate<vt>([&](int i) {
+    mgpu::iterate<vt>([&](int i) {
       if (p[i]) {
         // This is a data node, so accumulate and advance the data ID.
         x[i] = a_shared[cur_item++];
@@ -72,11 +70,11 @@ struct cta_lbs_segscan_t {
 
     // find the first segment start in this cta
     stopindex = reduce_t().reduce(
-        tid, stopindex, storage.reduce, nt, minimum_t<int>(), false);
+        tid, stopindex, storage.reduce, nt, mgpu::minimum_t<int>(), false);
 
     // compute the carry-in for this thread
     bool has_carry_out = p[vt - 1];
-    segscan_result_t<type_t> result = segscan_t().segscan(
+    mgpu::segscan_result_t<type_t> result = segscan_t().segscan(
         tid,
         has_head_flag,
         has_carry_out,
@@ -89,9 +87,9 @@ struct cta_lbs_segscan_t {
     cur_item = placement.a_index;
     carry_in = tid > 0;
 
-    iterate<vt>([&](int i) {
+    mgpu::iterate<vt>([&](int i) {
       if (p[i]) {
-        if (type == scan_type_inc) {
+        if (type == mgpu::scan_type_inc) {
           output[cur_item] = carry_in ? op(result.scan, x[i]) : x[i];
         } else {
           output[cur_item] =
@@ -138,8 +136,8 @@ void spine_segreduce(
     int* carry_out_codes,      // output buffer
     op_t op,
     type_t init,
-    context_t& context) {
-  int num_ctas = div_up(count, nt);
+    mgpu::context_t& context) {
+  int num_ctas = mgpu::div_up(count, nt);
 
   // mem_t<type_t> carry_out(num_ctas, context);
   // mem_t<int> codes_out(num_ctas, context);
@@ -148,22 +146,22 @@ void spine_segreduce(
 
   // upward pass
   auto k_spine_up = [=] MGPU_DEVICE(int tid, int cta) {
-    typedef cta_segscan_t<nt, type_t> segscan_t;
-    typedef cta_reduce_t<nt, int> reduce_t;  // reduction is over indices
+    typedef mgpu::cta_segscan_t<nt, type_t> segscan_t;
+    typedef mgpu::cta_reduce_t<nt, int> reduce_t;  // reduction is over indices
 
     __shared__ union {
       typename segscan_t::storage_t segscan;
       typename reduce_t::storage_t reduce;
     } shared;
 
-    range_t tile = get_tile(cta, nt, count);
+    mgpu::range_t tile = mgpu::get_tile(cta, nt, count);
     int gid = tile.begin + tid;
 
     type_t value = (gid < count) ? values[gid] : init;
     bool has_head_flag = (gid < count) ? (codes[gid] & 1) : false;
     bool has_carry_out = (gid < count);
 
-    segscan_result_t<type_t> result = segscan_t().segscan(
+    mgpu::segscan_result_t<type_t> result = segscan_t().segscan(
         tid, has_head_flag, has_carry_out, value, shared.segscan, init, op);
     if (gid < count) {
       values[gid] = result.scan;
@@ -176,7 +174,7 @@ void spine_segreduce(
         stopindex,
         shared.reduce,
         min(tile.count(), (int)nt),
-        minimum_t<int>(),
+        mgpu::minimum_t<int>(),
         false);
 
     bool segment_has_head_flag = __syncthreads_or(has_head_flag);
@@ -187,7 +185,7 @@ void spine_segreduce(
       carry_out_codes[cta] = (stopindex << 1) + segment_has_head_flag;
     }
   };
-  cta_launch<nt>(k_spine_up, num_ctas, context);
+  mgpu::cta_launch<nt>(k_spine_up, num_ctas, context);
 
   // recursive call if there are > 1 ctas
   // shift our buffer pointers to use additional free space at the end
@@ -204,7 +202,7 @@ void spine_segreduce(
 
     // downward pass (not cta 0)
     auto k_spine_down = [=] MGPU_DEVICE(int tid, int cta) {
-      range_t tile = get_tile(cta + 1, nt, count);
+      mgpu::range_t tile = mgpu::get_tile(cta + 1, nt, count);
       int gid = tile.begin + tid;
 
       int seg0 = carry_out_codes[cta + 1] >> 1;
@@ -212,7 +210,7 @@ void spine_segreduce(
         values[gid] = op(carry_out_values[cta + 1], values[gid]);
       }
     };
-    cta_launch<nt>(k_spine_down, num_ctas - 1, context);
+    mgpu::cta_launch<nt>(k_spine_down, num_ctas - 1, context);
   }
 }
 
@@ -251,8 +249,8 @@ void spine_segreduce(
 //      ceil ((dest_count + num_segments) / (vt*nt)) + 1
 //
 template <
-    typename launch_arg_t = empty_t,
-    scan_type_t scan_type = scan_type_inc,
+    typename launch_arg_t = mgpu::empty_t,
+    mgpu::scan_type_t scan_type = mgpu::scan_type_inc,
     typename func_t,
     typename segments_it,
     typename output_it,
@@ -269,19 +267,19 @@ void kernel_segscan(
     int* mp_data,
     op_t op,
     type_t init,
-    context_t& context) {
-  typedef typename conditional_typedef_t<
+    mgpu::context_t& context) {
+  typedef typename mgpu::conditional_typedef_t<
       launch_arg_t,
-      launch_box_t<
-          arch_20_cta<128, 11, 8>,
-          arch_35_cta<128, 7, 5>,
-          arch_52_cta<128, 11, 8> > >::type_t launch_t;
+      mgpu::launch_box_t<
+          mgpu::arch_20_cta<128, 11, 8>,
+          mgpu::arch_35_cta<128, 7, 5>,
+          mgpu::arch_52_cta<128, 11, 8> > >::type_t launch_t;
   NVTXRange _function(__FUNCTION__);
 
   nvtx_range_push("kernel_segscan::setup");
-  cta_dim_t cta_dim = launch_t::cta_dim(context);
+  mgpu::cta_dim_t cta_dim = launch_t::cta_dim(context);
   int num_ctas = cta_dim.num_ctas(count + num_segments);
-  load_balance_partitions(
+  mgpu::load_balance_partitions(
       count, segments, num_segments, cta_dim.nv(), mp_data, context);
   nvtx_range_pop();
 
@@ -293,7 +291,7 @@ void kernel_segscan(
   auto k_scan = [=] MGPU_DEVICE(int tid, int cta) {
     typedef typename launch_t::sm_ptx params_t;
     enum { nt = params_t::nt, vt = params_t::vt, vt0 = params_t::vt0 };
-    typedef cta_load_balance_t<nt, vt> load_balance_t;
+    typedef mgpu::cta_load_balance_t<nt, vt> load_balance_t;
     typedef cta_lbs_segscan_t<nt, vt, type_t> lbs_segscan_t;
 
     __shared__ union {
@@ -308,8 +306,8 @@ void kernel_segscan(
         count, segments, num_segments, tid, cta, mp_data, shared.lbs);
 
     // Call the user-supplied functor f.
-    array_t<type_t, vt> strided_values;
-    strided_iterate<nt, vt, vt0>(
+    mgpu::array_t<type_t, vt> strided_values;
+    mgpu::strided_iterate<nt, vt, vt0>(
         [&](int i, int j) {
           int index = lbs.merge_range.a_begin + j;
           int seg = lbs.segments[i];
@@ -320,11 +318,12 @@ void kernel_segscan(
         lbs.merge_range.a_count());
 
     // Store the values back to shared memory for segmented scan
-    reg_to_shared_strided<nt, vt>(strided_values, tid, shared.mysegscan.values);
+    mgpu::reg_to_shared_strided<nt, vt>(
+        strided_values, tid, shared.mysegscan.values);
 
     // Split the flags.
-    array_t<bool, vt + 1> merge_bits;
-    iterate<vt + 1>(
+    mgpu::array_t<bool, vt + 1> merge_bits;
+    mgpu::iterate<vt + 1>(
         [&](int i) { merge_bits[i] = 0 != ((1 << i) & lbs.merge_flags); });
 
     cta_lbs_segscan_t<nt, vt, type_t>().segscan(
@@ -341,7 +340,7 @@ void kernel_segscan(
         shared.mysegscan,
         scan_type);
   };
-  cta_launch<launch_t>(k_scan, num_ctas, context);
+  mgpu::cta_launch<launch_t>(k_scan, num_ctas, context);
   nvtx_range_pop();
 
   // if there was only 1 CTA, we're done
@@ -368,7 +367,7 @@ void kernel_segscan(
   auto k_finalsweep = [=] MGPU_DEVICE(int tid, int cta) {
     typedef typename launch_t::sm_ptx params_t;
     enum { nt = params_t::nt, vt = params_t::vt, vt0 = params_t::vt0 };
-    typedef cta_load_balance_t<nt, vt> load_balance_t;
+    typedef mgpu::cta_load_balance_t<nt, vt> load_balance_t;
 
     __shared__ union {
       typename load_balance_t::storage_t lbs;
@@ -381,7 +380,7 @@ void kernel_segscan(
     // scan through workunits for this thread
     int seg0 = codes_data[cta + 1] >> 1;
     int cur_item = lbs.placement.a_index;
-    iterate<vt>([&](int i) {
+    mgpu::iterate<vt>([&](int i) {
       if (((1 << i) & lbs.merge_flags) != 0) {
         // this is a data node
         if (vt * tid + i < seg0) {
@@ -391,7 +390,7 @@ void kernel_segscan(
       }
     });
   };
-  cta_launch<launch_t>(k_finalsweep, num_ctas - 1, context);
+  mgpu::cta_launch<launch_t>(k_finalsweep, num_ctas - 1, context);
   nvtx_range_pop();
   // std::cout << std::flush;
 }

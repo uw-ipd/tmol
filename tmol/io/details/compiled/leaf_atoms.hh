@@ -1,5 +1,7 @@
 #pragma once
 
+#include <tmol/utility/portable/math.hh>
+#include <tmol/utility/portable/matrix.hh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/score/common/uaid_util.hh>
 
@@ -8,8 +10,7 @@ namespace io {
 namespace details {
 namespace compiled {
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+using tmol::portable::Vec;
 
 template <typename Int, typename Real, tmol::Device Dev>
 struct select_leaf_ancestors {
@@ -21,12 +22,12 @@ struct select_leaf_ancestors {
     Real theta;
     Real phi;
 
-    static anc_and_geom EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE empty() {
+    static anc_and_geom TMOL_HD empty() {
       return {Int(-1), Int(-1), Int(-1), Real(0), Real(0), Real(0)};
     }
   };
 
-  static auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE find_ancestors(
+  static auto TMOL_HD find_ancestors(
       int pose_ind,
       int block_ind,
       int atom_ind,

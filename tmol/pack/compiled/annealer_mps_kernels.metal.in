@@ -1,0 +1,53 @@
+// Metal entry point for simulated annealing.
+//
+// Pre-expanded by the C preprocessor at build time and compiled at runtime;
+// see cmake/TmolMetalShader.cmake. The annealing itself lives in
+// annealer_kernels.hh, compiled here from the same source the CPU and CUDA
+// backends use. All this file does is what Metal demands a kernel entry do
+// and a called function cannot: read the thread's position from entry
+// attributes, name the address space of the bound buffers, and declare the
+// reduction scratch.
+//
+// One workgroup per trajectory; the three funnel phases share this entry and
+// are selected by the phase scalar, because they differ only in how a
+// trajectory is seeded and whether it tracks a best assignment.
+
+#include <tmol/score/common/mps_entry.hh>
+#include <tmol/score/common/device_operations.mps.impl.hh>
+#include <tmol/score/common/launch_box_macros.hh>
+#include <tmol/pack/compiled/annealer_ctx.hh>
+#include <tmol/score/common/mps_ctx_builder.hh>
+#include <tmol/utility/portable/metal_view.hh>
+#include <tmol/pack/compiled/annealer_kernels.hh>
+
+using tmol::score::common::DeviceOperations;
+using tmol::score::common::WorkgroupLane;
+using namespace tmol::pack::compiled;
+
+LAUNCH_BOX_32
+
+typedef WorkgroupLane<tmol::Device::MPS> Lane;
+typedef AnnealerCtxT<tmol::portable::MetalView, float, int32_t> Ctx;
+
+#define TMOL_N_SIMDS ((launch_t::sm_ptx::nt + 31) / 32)
+
+kernel void annealer_run_f32(
+    device const int64_t* meta [[buffer(0)]],
+      TMOL_MPS_BIND_18,
+    uint cta [[threadgroup_position_in_grid]],
+    uint tid [[thread_position_in_threadgroup]],
+    uint n_threads [[threads_per_threadgroup]]) {
+  static_assert(
+      Ctx::n_views == 18,
+      "buffer bindings here must cover every view visit_views enumerates");
+  device void* ptrs[18] = {TMOL_MPS_PTRS_18};
+  threadgroup float reduce_scratch[TMOL_N_SIMDS];
+  Ctx ctx = tmol::score::common::mps_build_ctx<Ctx>(ptrs, meta);
+  Lane lane(tid, n_threads, reduce_scratch);
+  annealer_run_trajectory<
+      DeviceOperations,
+      tmol::Device::MPS,
+      float,
+      int32_t,
+      launch_t::sm_ptx::nt>(ctx, int(cta), lane);
+}

@@ -436,6 +436,7 @@ def test_csr_interaction_graph_exact_reference(torch_device, interacting_blocks)
             0, 1
         ),
         torch.tensor(sparse_values, dtype=torch.float32, device=torch_device),
+        -1,  # the table is coalesced: every key distinct
         False,
     )
     (
@@ -528,6 +529,7 @@ def test_build_interaction_graph(ubq_ig, torch_device):
         rotamer_set.block_ind_for_rot,
         sparse_indices,
         energies,
+        -1,  # the table is coalesced: every key distinct
         False,
     )
     chunk_pair_offset_for_block_pair = dense_block_pair_offsets(
@@ -686,6 +688,7 @@ def test_build_multi_pose_interaction_graph(ubq_ig, torch_device):
         rotamer_set.block_ind_for_rot,
         sparse_indices,
         energies,
+        -1,  # the table is coalesced: every key distinct
         False,
     )
     chunk_pair_offset_for_block_pair = dense_block_pair_offsets(
@@ -844,6 +847,7 @@ def test_run_single_pose_simA(ubq_ig, torch_device):
         rotamer_set.block_ind_for_rot,
         sparse_indices,
         energies,
+        -1,  # the table is coalesced: every key distinct
         False,
     )
     orig_n_res = rotamer_set.n_rots_for_block.shape[1]
@@ -921,6 +925,7 @@ def test_run_two_poses_simA(ubq_ig, torch_device):
         rotamer_set.block_ind_for_rot,
         sparse_indices,
         energies,
+        -1,  # the table is coalesced: every key distinct
         False,
     )
     orig_n_res = rotamer_set.n_rots_for_block.shape[1]
@@ -984,6 +989,7 @@ def test_no_bump_graph_takes_more_blocks_than_a_block_pair_table_indexes(
             torch.arange(n_blocks, dtype=torch.int32, device=torch_device),
             torch.empty((3, 0), dtype=torch.int32, device=torch_device),
             torch.empty(0, dtype=torch.float32, device=torch_device),
+            -1,  # the table is coalesced: every key distinct
             False,
         )
 

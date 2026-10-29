@@ -1,0 +1,42 @@
+// Metal entry points for the streaming interaction-graph builder.
+//
+// Pre-expanded by the C preprocessor at build time and compiled at runtime;
+// see cmake/TmolMetalShader.cmake. The bodies live in
+// streaming_interaction_graph_kernels.hh, shared with the CPU and CUDA
+// builds. Each entry runs one table entry per thread.
+
+#include <tmol/score/common/mps_entry.hh>
+#include <tmol/score/common/device_operations.mps.impl.hh>
+#include <tmol/score/common/mps_ctx_builder.hh>
+#include <tmol/pack/compiled/streaming_interaction_graph_kernels.hh>
+
+using tmol::score::common::DeviceOperations;
+using namespace tmol::pack::compiled;
+
+typedef InteractionGraphEntryCtxT<tmol::portable::MetalView, float, int64_t>
+    EntryCtx;
+
+#define TMOL_IG_ENTRY(ENTRY_NAME, ...)                                        \
+  kernel void ENTRY_NAME(                                                     \
+      device const int64_t* meta [[buffer(0)]],                               \
+      TMOL_MPS_BIND_18, \
+      uint index [[thread_position_in_grid]]) {                               \
+    static_assert(                                                            \
+        EntryCtx::n_views == 18,                                              \
+        "buffer bindings here must cover every view visit_views enumerates"); \
+    device void* ptrs[18] = {TMOL_MPS_PTRS_18};    \
+    EntryCtx ctx = tmol::score::common::mps_build_ctx<EntryCtx>(ptrs, meta);  \
+    /* The grid is rounded up to whole threadgroups; the tail has no entry. */ \
+    if (int64_t(index) >= ctx.sparse_inds.size(1)) return;                    \
+    __VA_ARGS__(ctx, int(index));                                             \
+  }
+
+TMOL_IG_ENTRY(
+    ig_note_block_pairs_f32,
+    ig_note_block_pair<DeviceOperations, tmol::Device::MPS>)
+TMOL_IG_ENTRY(
+    ig_note_chunk_pairs_f32,
+    ig_note_chunk_pair<DeviceOperations, tmol::Device::MPS>)
+TMOL_IG_ENTRY(
+    ig_accumulate_entries_f32,
+    ig_accumulate_entry<tmol::Device::MPS, float>)

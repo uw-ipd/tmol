@@ -1,3 +1,4 @@
+#include <tmol/utility/portable/matrix.hh>
 #include <pybind11/pybind11.h>
 #include <torch/extension.h>
 
@@ -16,7 +17,7 @@ void bind(pybind11::module& m) {
   using namespace pybind11::literals;
   using namespace tmol;
   using namespace tmol::score::common;
-  typedef Eigen::Matrix<Real, 3, 1> Real3;
+  typedef tmol::portable::Vec<Real, 3> Real3;
 
   m.def(
       "distance_V",

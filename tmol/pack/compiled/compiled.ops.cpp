@@ -9,6 +9,9 @@
 #include <tmol/score/common/device_operations.hh>
 
 #include "annealer.hh"
+#ifdef WITH_MPS
+#include "annealer.mps.impl.hh"
+#endif
 #include "simulated_annealing.hh"
 #include "streaming_interaction_graph.hh"
 
@@ -32,6 +35,7 @@ std::vector<Tensor> build_interaction_graph(
     Tensor block_ind_for_rot,
     Tensor sparse_inds,
     Tensor sparse_energies,
+    int64_t const n_unique_entries,
     int64_t const verbose) {
   nvtx_range_push("pack_build_ig");
 
@@ -79,6 +83,7 @@ std::vector<Tensor> build_interaction_graph(
               TCAST(block_ind_for_rot),
               TCAST(sparse_inds),
               TCAST(sparse_energies),
+              n_unique_entries,
               verbose);
 
         max_n_bump_checked_rotamers_per_pose = std::get<0>(result).tensor;
@@ -146,7 +151,7 @@ std::vector<Tensor> note_interaction_graph_topology(
     Tensor block_adjacency,
     Tensor sparse_inds,
     Tensor energy_template) {
-  TMOL_DISPATCH_FLOATING_DEVICE(
+  TMOL_DISPATCH_FLOATING_DEVICE_MPS(
       energy_template.options(), "pack_note_ig_topology", ([&] {
         constexpr tmol::Device Dev = device_t;
         StreamingInteractionGraph<
@@ -206,7 +211,7 @@ std::vector<Tensor> note_interaction_graph_chunk_topology(
     Tensor chunk_adjacency,
     Tensor sparse_inds,
     Tensor energy_template) {
-  TMOL_DISPATCH_FLOATING_DEVICE(
+  TMOL_DISPATCH_FLOATING_DEVICE_MPS(
       energy_template.options(), "pack_note_ig_chunk_topology", ([&] {
         constexpr tmol::Device Dev = device_t;
         StreamingInteractionGraph<
@@ -281,7 +286,7 @@ std::vector<Tensor> accumulate_interaction_graph_entries(
     Tensor energy2b,
     Tensor sparse_inds,
     Tensor sparse_energies) {
-  TMOL_DISPATCH_FLOATING_DEVICE(
+  TMOL_DISPATCH_FLOATING_DEVICE_MPS(
       sparse_energies.options(), "pack_accumulate_ig_entries", ([&] {
         constexpr tmol::Device Dev = device_t;
         StreamingInteractionGraph<
@@ -330,6 +335,31 @@ std::vector<Tensor> anneal(
   nvtx_range_push("pack_anneal");
   tmol::native::Tensor scores;
   tmol::native::Tensor rotamer_assignments;
+
+#ifdef WITH_MPS
+  // The Metal annealer is reached directly rather than through
+  // AnnealerDispatch: it has to read its own scores back between rounds of
+  // the funnel to rank them, and an MPS tensor's data pointer is an opaque
+  // buffer handle, so only a tensor can make that trip.
+  if (energy1b.is_mps()) {
+    auto result = anneal_mps(
+        max_n_rotamers_per_pose,
+        pose_n_res,
+        pose_n_rotamers,
+        pose_rotamer_offset,
+        n_rotamers_for_res,
+        oneb_offsets,
+        res_for_rot,
+        chunk_size,
+        neighbor_row_offsets,
+        neighbor_blocks,
+        neighbor_chunk_offset_offsets,
+        chunk_offsets,
+        energy1b,
+        energy2b);
+    return {std::get<0>(result), std::get<1>(result)};
+  }
+#endif
 
   TMOL_DISPATCH_FLOATING_DEVICE(energy1b.options(), "pack_anneal", ([&] {
                                   constexpr tmol::Device Dev = device_t;

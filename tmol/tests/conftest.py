@@ -1,3 +1,5 @@
+import pytest
+
 from .database import (  # noqa: F401
     default_database,
     default_unpatched_chemical_database,
@@ -70,6 +72,17 @@ from .pose import (  # noqa: F401
     distinct_pose_stacks,
     stack_of_distinct_poses,
 )
+
+
+@pytest.fixture(autouse=True)
+def _cpu_tests_stay_on_cpu(monkeypatch):
+    """Keep CPU tests on the host scorers they were written against.
+
+    On Apple silicon a CPU ScoreFunction otherwise offloads part of its work
+    to Metal (tmol.score._mps_offload), which the CPU-path tests are not
+    about. The offload's own tests turn it back on.
+    """
+    monkeypatch.setenv("TMOL_MPS_OFFLOAD", "0")
 
 
 def pytest_collection_modifyitems(session, config, items):

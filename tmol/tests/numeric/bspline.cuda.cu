@@ -1,3 +1,4 @@
+#include <tmol/utility/portable/matrix.hh>
 #include <pybind11/pybind11.h>
 #include <torch/extension.h>
 
@@ -13,11 +14,11 @@ namespace {
 template <std::size_t N, typename Real>
 std::tuple<at::Tensor, at::Tensor> interpolate_cuda(
     tmol::TView<Real, N, tmol::Device::CUDA> coeffs,
-    tmol::TView<Eigen::Matrix<Real, N, 1>, 1, tmol::Device::CUDA> points) {
+    tmol::TView<tmol::portable::Vec<Real, N>, 1, tmol::Device::CUDA> points) {
   auto values_t =
       tmol::TPack<Real, 1, tmol::Device::CUDA>::empty({points.size(0)});
   auto derivatives_t =
-      tmol::TPack<Eigen::Matrix<Real, N, 1>, 1, tmol::Device::CUDA>::empty(
+      tmol::TPack<tmol::portable::Vec<Real, N>, 1, tmol::Device::CUDA>::empty(
           {points.size(0)});
   // Capture the views, not the packs: a TPack holds an at::Tensor, which a
   // device lambda cannot take by value. Same shape as geom.cu.

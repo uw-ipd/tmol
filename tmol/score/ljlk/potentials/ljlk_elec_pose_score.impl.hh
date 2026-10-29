@@ -1,10 +1,12 @@
 #pragma once
 
+#include <tmol/utility/portable/array.hh>
+#include <tmol/utility/portable/reduce_ops.hh>
+#include <tmol/utility/portable/math.hh>
+#include <tmol/utility/portable/matrix.hh>
 #include <cmath>
 #include <type_traits>
 #include <vector>
-
-#include <moderngpu/operators.hxx>
 
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/count_pair.hh>
@@ -16,6 +18,13 @@
 #include <tmol/score/common/upper_triangle_indices.hh>
 #include <tmol/score/elec/potentials/potentials.hh>
 #include <tmol/score/ljlk/potentials/ljlk.hh>
+
+#include <tmol/score/common/tview_binder.hh>
+#include <tmol/score/ljlk/potentials/ljlk_elec_ctx.hh>
+#include <tmol/score/common/mps_launch.hh>
+#ifdef WITH_MPS
+#include <tmol/score/ljlk/potentials/ljlk_elec_mps_kernels_source.h>
+#endif
 
 #include "ljlk_elec_pose_score.hh"
 
@@ -116,24 +125,25 @@ template <
     bool compute_scores,
     typename Real,
     tmol::Device D>
-TMOL_DEVICE_FUNC std::array<Real, compute_scores ? 4 : 0> score_atom_pair(
+TMOL_DEVICE_FUNC tmol::portable::array<Real, compute_scores ? 4 : 0>
+score_atom_pair(
     int atom1,
     int atom2,
     int start1,
     int start2,
     ScoringData<Real> const& data,
-    Eigen::Matrix<Real, 3, 1> const& delta,
+    tmol::portable::Vec<Real, 3> const& delta,
     Real dist2,
     int ljlk_separation,
     int elec_separation,
-    TView<Eigen::Matrix<Real, 3, 1>, 2, D> dV_dcoords,
+    TView<tmol::portable::Vec<Real, 3>, 2, D> dV_dcoords,
     TView<Real, 1, D> score_weights,
     Real derivative_scale) {
   if (ljlk_separation < 4 && elec_separation < 4) {
     return {};
   }
-  using Real3 = Eigen::Matrix<Real, 3, 1>;
-  Real const dist = std::sqrt(dist2);
+  using Real3 = tmol::portable::Vec<Real, 3>;
+  Real const dist = tmol::portable::math::sqrt(dist2);
   auto const& p1 = data.r1.ljlk_params[atom1];
   auto const& p2 = data.r2.ljlk_params[atom2];
 
@@ -273,7 +283,7 @@ TMOL_DEVICE_FUNC void store_score_totals(
   // round once on output. Atom-pair arithmetic and derivatives retain Real.
   if constexpr (weighted) {
     Real const total = DeviceOperations<D>::template reduce_in_workgroup<nt>(
-        data.total_weighted, shared, mgpu::plus_t<Real>());
+        data.total_weighted, shared, tmol::portable::plus_t<Real>());
     if (tid == 0) {
       if constexpr (rotamer_pairs) {
         output[0][0][0][data.output_ind] = total;
@@ -284,13 +294,13 @@ TMOL_DEVICE_FUNC void store_score_totals(
   } else {
     Real const totals[4] = {
         DeviceOperations<D>::template reduce_in_workgroup<nt>(
-            data.total_ljatr, shared, mgpu::plus_t<Real>()),
+            data.total_ljatr, shared, tmol::portable::plus_t<Real>()),
         DeviceOperations<D>::template reduce_in_workgroup<nt>(
-            data.total_ljrep, shared, mgpu::plus_t<Real>()),
+            data.total_ljrep, shared, tmol::portable::plus_t<Real>()),
         DeviceOperations<D>::template reduce_in_workgroup<nt>(
-            data.total_lk, shared, mgpu::plus_t<Real>()),
+            data.total_lk, shared, tmol::portable::plus_t<Real>()),
         DeviceOperations<D>::template reduce_in_workgroup<nt>(
-            data.total_elec, shared, mgpu::plus_t<Real>())};
+            data.total_elec, shared, tmol::portable::plus_t<Real>())};
     if (tid == 0) {
       for (int score_type = 0; score_type < 4; ++score_type) {
         accumulate<D, double>::add(
@@ -348,12 +358,12 @@ auto ljlk_elec_forward_impl(
     Int n_valid_rots = -1)
     -> std::tuple<TPack<Real, 4, D>, TPack<LJLKExternalVec<Real, 3>, 2, D>> {
   using namespace ljlk_elec_detail;
-  using Real3 = Eigen::Matrix<Real, 3, 1>;
+  using Real3 = tmol::portable::Vec<Real, 3>;
   static_assert(!require_gradient || !rotamer_pairs || weighted);
   // Rotamer backward only needs coordinate derivatives; its score table is
   // discarded by autograd.
   constexpr bool compute_scores = !require_gradient || !rotamer_pairs;
-  using PairScores = std::array<Real, compute_scores ? 4 : 0>;
+  using PairScores = tmol::portable::array<Real, compute_scores ? 4 : 0>;
 
   int const n_atoms = rot_coords.size(0);
   int const n_poses = first_rot_for_block.size(0);
@@ -713,7 +723,7 @@ auto ljlk_elec_forward_impl(
             int const first_atom2 = same_tile ? atom1 + 1 : 0;
             for (int atom2 = first_atom2; atom2 < n_atoms2; ++atom2) {
               auto pair_scores = pair_score(start1, start2, atom1, atom2, data);
-              common::for_<std::tuple_size_v<PairScores>>([&](auto term) {
+              common::for_<PairScores::size()>([&](auto term) {
                 scores[term.value] += pair_scores[term.value];
               });
             }
@@ -726,7 +736,7 @@ auto ljlk_elec_forward_impl(
                 D,
                 tile_size,
                 score_nt,
-                std::tuple_size_v<PairScores>,
+                PairScores::size(),
                 Real,
                 Int>::
                 eval_intrares_atom_pairs(tid, start1, start2, pair_score, data);
@@ -737,7 +747,7 @@ auto ljlk_elec_forward_impl(
                 D,
                 tile_size,
                 score_nt,
-                std::tuple_size_v<PairScores>,
+                PairScores::size(),
                 Real,
                 Int>::
                 eval_interres_atom_pair(tid, start1, start2, pair_score, data);
@@ -1249,7 +1259,58 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
   assert(
       output_gradients.size(0) == 0
       || output_gradients.size(0) == rotamer_dispatch_indices.view.size(1));
-  auto empty_compact_block_neighbors = TPack<Int, 1, D>::empty({0});
+  if constexpr (D == tmol::Device::MPS) {
+    // Metal runs the packing variant only: weighted energies, no gradient.
+    // The kernel body is ljlk_elec_kernels.hh, reached through a named entry
+    // point because Metal has nowhere for the lambda below to live.
+    if (output_gradients.size(0) != 0) {
+      throw std::runtime_error(
+          "tmol: the fused LJ/LK-elec rotamer backward has no Metal kernel");
+    }
+    int64_t const n_pairs = rotamer_dispatch_indices.view.size(1);
+    auto output_t = TPack<Real, 4, D>::empty({1, 1, 1, n_pairs});
+    LJLKElecRotCtxT<
+        tmol::score::common::TViewBinder<D>::template View,
+        Real,
+        Int>
+        ctx;
+    ctx.rot_coords = rot_coords;
+    ctx.rot_coord_offset = rot_coord_offset;
+    ctx.block_ind_for_rot = block_ind_for_rot;
+    ctx.block_type_ind_for_rot = block_type_ind_for_rot;
+    ctx.pose_stack_near_blocks = pose_stack_near_blocks;
+    ctx.pose_stack_inter_block_bondsep = pose_stack_inter_block_bondsep;
+    ctx.dispatch_indices = rotamer_dispatch_indices.view;
+    ctx.block_type_n_atoms = block_type_n_atoms;
+    ctx.block_type_atom_types = block_type_atom_types;
+    ctx.block_type_n_interblock_bonds = block_type_n_interblock_bonds;
+    ctx.block_type_atoms_forming_chemical_bonds =
+        block_type_atoms_forming_chemical_bonds;
+    ctx.block_type_ljlk_path_distance = block_type_ljlk_path_distance;
+    ctx.block_type_all_atoms_ligand_typed = block_type_all_atoms_ligand_typed;
+    ctx.ljlk_type_params = ljlk_type_params;
+    ctx.ljlk_global_params = ljlk_global_params;
+    ctx.block_type_partial_charge = block_type_partial_charge;
+    ctx.block_type_elec_inter_repr_path_distance =
+        block_type_elec_inter_repr_path_distance;
+    ctx.block_type_elec_intra_repr_path_distance =
+        block_type_elec_intra_repr_path_distance;
+    ctx.elec_global_params = elec_global_params;
+    ctx.score_weights = score_weights;
+    ctx.output = output_t.view;
+    if (n_pairs > 0) {
+      tmol::score::common::mps_launch_if<D>(
+          TMOL_MPS_SOURCE(kLJLKElecMetalShaderSource),
+          "ljlk_elec_eval_weighted_rotamer_energies_f32",
+          ctx,
+          n_pairs,
+          true);
+    }
+    auto empty_gradients_t =
+        TPack<LJLKExternalVec<Real, 3>, 2, D>::empty({1, 0});
+    return {output_t, empty_gradients_t, rotamer_dispatch_indices};
+  } else {
+    auto empty_compact_block_neighbors = TPack<Int, 1, D>::empty({0});
 #define TMOL_LJLK_ELEC_WEIGHTED_ROTAMER_ARGS                                  \
   mgr, rot_coords, rot_coord_offset, pose_ind_for_atom, first_rot_for_block,  \
       first_rot_block_type, block_ind_for_rot, pose_ind_for_rot,              \
@@ -1264,10 +1325,21 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
       block_type_elec_intra_repr_path_distance, elec_global_params,           \
       empty_compact_block_neighbors.view, rotamer_dispatch_indices.view,      \
       score_weights, output_gradients
-  if (shared_dispatch_indices.size(0) == 3) {
-    if (output_gradients.size(0) == 0) {
+    if (shared_dispatch_indices.size(0) == 3) {
+      if (output_gradients.size(0) == 0) {
+        auto result = ljlk_elec_forward_impl<
+            false,
+            true,
+            true,
+            DeviceOperations,
+            D,
+            Real,
+            Int>(TMOL_LJLK_ELEC_WEIGHTED_ROTAMER_ARGS);
+        return {
+            std::get<0>(result), std::get<1>(result), rotamer_dispatch_indices};
+      }
       auto result = ljlk_elec_forward_impl<
-          false,
+          true,
           true,
           true,
           DeviceOperations,
@@ -1278,20 +1350,16 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
           std::get<0>(result), std::get<1>(result), rotamer_dispatch_indices};
     }
     auto result = ljlk_elec_forward_impl<
-        true,
+        false,
         true,
         true,
         DeviceOperations,
         D,
         Real,
         Int>(TMOL_LJLK_ELEC_WEIGHTED_ROTAMER_ARGS);
+#undef TMOL_LJLK_ELEC_WEIGHTED_ROTAMER_ARGS
     return {std::get<0>(result), std::get<1>(result), rotamer_dispatch_indices};
   }
-  auto result =
-      ljlk_elec_forward_impl<false, true, true, DeviceOperations, D, Real, Int>(
-          TMOL_LJLK_ELEC_WEIGHTED_ROTAMER_ARGS);
-#undef TMOL_LJLK_ELEC_WEIGHTED_ROTAMER_ARGS
-  return {std::get<0>(result), std::get<1>(result), rotamer_dispatch_indices};
 }
 
 template <

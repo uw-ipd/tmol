@@ -64,6 +64,7 @@ Build settings:
 | `TMOL_BUILD_TESTS` | `OFF` | Build test-only extensions. |
 | `TMOL_NVCC_THREADS` | `4` | Threads per `nvcc` invocation. |
 | `TMOL_ENABLE_CUDA` | `OFF` | Enable CUDA in a development build; CUDA operator packages enable it automatically. |
+| `TMOL_ENABLE_MPS` | `ON` on Apple | Build the Metal (MPS) kernels that CPU scoring offloads to the Apple GPU. Shaders compile at runtime, so no Metal toolchain is needed. |
 | `TMOL_STABLE_HEADERS` | build-time Torch include directory | Optional PyTorch 2.14+ headers when testing production modules against an older runtime; test helpers retain that runtime's headers. |
 | `MAX_JOBS` | auto | Maximum parallel build jobs. |
 

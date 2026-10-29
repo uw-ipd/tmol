@@ -1,12 +1,10 @@
+#include <tmol/utility/portable/reduce_ops.hh>
 #include <tmol/tests/score/common/warp_segreduce.hh>
 #include <tmol/score/common/warp_segreduce.hh>
 
 #include <moderngpu/transform.hxx>
 
 #include <cooperative_groups.h>
-
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
 
 tmol::TPack<float, 1, tmol::Device::CUDA> gpu_warp_segreduce_full(
     tmol::TView<float, 1, tmol::Device::CUDA> values,
@@ -16,11 +14,10 @@ tmol::TPack<float, 1, tmol::Device::CUDA> gpu_warp_segreduce_full(
   int const n_cta = n_vals / 32;
   assert(n_cta * 32 == n_vals);
 
-  using namespace mgpu;
-  typedef launch_box_t<
-      arch_20_cta<32, 1>,
-      arch_35_cta<32, 1>,
-      arch_52_cta<32, 1>>
+  typedef mgpu::launch_box_t<
+      mgpu::arch_20_cta<32, 1>,
+      mgpu::arch_35_cta<32, 1>,
+      mgpu::arch_52_cta<32, 1>>
       launch_t;
 
   auto output_t = tmol::TPack<float, 1, tmol::Device::CUDA>::zeros({n_vals});
@@ -53,11 +50,10 @@ tmol::TPack<Vec<float, 3>, 1, tmol::Device::CUDA> gpu_warp_segreduce_full_vec3(
   int const n_cta = n_vals / 32;
   assert(n_cta * 32 == n_vals);
 
-  using namespace mgpu;
-  typedef launch_box_t<
-      arch_20_cta<32, 1>,
-      arch_35_cta<32, 1>,
-      arch_52_cta<32, 1>>
+  typedef mgpu::launch_box_t<
+      mgpu::arch_20_cta<32, 1>,
+      mgpu::arch_35_cta<32, 1>,
+      mgpu::arch_52_cta<32, 1>>
       launch_t;
 
   auto output_t =
@@ -93,11 +89,10 @@ gpu_warp_segreduce_vec3_benchmark(
   int const n_cta = n_vals / 32;
   assert(n_cta * 32 == n_vals);
 
-  using namespace mgpu;
-  typedef launch_box_t<
-      arch_20_cta<32, 1>,
-      arch_35_cta<32, 1>,
-      arch_52_cta<32, 1>>
+  typedef mgpu::launch_box_t<
+      mgpu::arch_20_cta<32, 1>,
+      mgpu::arch_35_cta<32, 1>,
+      mgpu::arch_52_cta<32, 1>>
       launch_t;
 
   auto output_t =
@@ -141,11 +136,10 @@ tmol::TPack<float, 1, tmol::Device::CUDA> gpu_warp_segreduce_partial(
   int const n_cta = n_vals / 32;
   assert(n_cta * 32 == n_vals);
 
-  using namespace mgpu;
-  typedef launch_box_t<
-      arch_20_cta<32, 1>,
-      arch_35_cta<32, 1>,
-      arch_52_cta<32, 1>>
+  typedef mgpu::launch_box_t<
+      mgpu::arch_20_cta<32, 1>,
+      mgpu::arch_35_cta<32, 1>,
+      mgpu::arch_52_cta<32, 1>>
       launch_t;
 
   auto output_t = tmol::TPack<float, 1, tmol::Device::CUDA>::zeros({n_vals});

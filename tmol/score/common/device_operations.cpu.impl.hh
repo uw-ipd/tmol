@@ -1,3 +1,5 @@
+#include <tmol/utility/portable/reduce_ops.hh>
+#include <tmol/utility/portable/math.hh>
 #include <tmol/utility/tensor/native.hh>
 #pragma once
 
@@ -8,6 +10,7 @@ error_this_should_not_be_compiled();  // nvcc should not include this file
 #include <algorithm>
 
 #include "device_operations.hh"
+#include "workgroup_lane.hh"
 #include "counting.hh"
 #include <tmol/utility/tensor/context_manager.hh>
 
@@ -61,17 +64,15 @@ struct DeviceOperations<tmol::Device::CPU> {
     });
   }
 
-  static EIGEN_DEVICE_FUNC void store_idempotent(
-      int32_t& target, int32_t value) {
+  static TMOL_HD void store_idempotent(int32_t& target, int32_t value) {
     __atomic_store_n(&target, value, __ATOMIC_RELAXED);
   }
 
-  static EIGEN_DEVICE_FUNC void store_idempotent(
-      int64_t& target, int64_t value) {
+  static TMOL_HD void store_idempotent(int64_t& target, int64_t value) {
     __atomic_store_n(&target, value, __ATOMIC_RELAXED);
   }
 
-  static EIGEN_DEVICE_FUNC void bitwise_or(int32_t& target, int32_t value) {
+  static TMOL_HD void bitwise_or(int32_t& target, int32_t value) {
     __atomic_fetch_or(&target, value, __ATOMIC_RELAXED);
   }
 
@@ -139,37 +140,39 @@ struct DeviceOperations<tmol::Device::CPU> {
     foreach_grouped_workgroup<launch_t>(mgr, n_poses, workgroups_per_pose, f);
   }
 
-  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  template <tmol::portable::scan_type scan_type, typename T, typename OP>
   static void scan(ContextManager&, T* src, T* dst, int n, OP op) {
     if (n <= 0) {
       return;
     }
     T last_val = src[0];
-    if (scan_type == mgpu::scan_type_inc) {
+    if (scan_type == tmol::portable::scan_type::inclusive) {
       dst[0] = last_val;
     }
     for (int i = 1; i < n; ++i) {
       T i_val = src[i];
       T next_val = op(last_val, i_val);
-      dst[i] = (scan_type == mgpu::scan_type_exc) ? last_val : next_val;
+      dst[i] = (scan_type == tmol::portable::scan_type::exclusive) ? last_val
+                                                                   : next_val;
       last_val = next_val;
     }
   }
 
-  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  template <tmol::portable::scan_type scan_type, typename T, typename OP>
   static T scan_and_return_total(
       ContextManager&, T* src, T* dst, int n, OP op) {
     if (n == 0) {
       return T(0);
     }
     T last_val = src[0];
-    if (scan_type == mgpu::scan_type_inc) {
+    if (scan_type == tmol::portable::scan_type::inclusive) {
       dst[0] = last_val;
     }
     for (int i = 1; i < n; ++i) {
       T i_val = src[i];
       T next_val = op(last_val, i_val);
-      dst[i] = (scan_type == mgpu::scan_type_exc) ? last_val : next_val;
+      dst[i] = (scan_type == tmol::portable::scan_type::exclusive) ? last_val
+                                                                   : next_val;
       last_val = next_val;
     }
     return last_val;
@@ -219,7 +222,11 @@ struct DeviceOperations<tmol::Device::CPU> {
   // than, e.g., a boolean tensor indicating the start of each segment.
   // The identity value (e.g. 0) must be given because pre-initialization is not
   // always possible. seg_starts_inds must be sorted in ascending order.
-  template <mgpu::scan_type_t scan_type, typename T, typename Int, typename OP>
+  template <
+      tmol::portable::scan_type scan_type,
+      typename T,
+      typename Int,
+      typename OP>
   static auto segmented_scan(
       ContextManager&,
       T* src,
@@ -239,7 +246,8 @@ struct DeviceOperations<tmol::Device::CPU> {
         count_seg++;
       }
       T next_val = op(last_val, i_val);
-      dst[i] = (scan_type == mgpu::scan_type_exc) ? last_val : next_val;
+      dst[i] = (scan_type == tmol::portable::scan_type::exclusive) ? last_val
+                                                                   : next_val;
       last_val = next_val;
     }
     return dst_t;
@@ -263,48 +271,81 @@ struct DeviceOperations<tmol::Device::CPU> {
     }
   }
 
-  template <int N_T, int WIDTH, typename T>
+  template <
+      int N_T,
+      int WIDTH,
+      typename T,
+      tmol::Device LaneD = tmol::Device::CPU>
   static void copy_contiguous_data(
-      T* __restrict__ dst, T* __restrict__ src, int n) {
+      T* __restrict__ dst,
+      T* __restrict__ src,
+      int n,
+      WorkgroupLane<LaneD> = {}) {
     for (int i = 0; i < n; ++i) {
       dst[i] = src[i];
     }
   }
 
-  template <int N_T, int WIDTH, typename TD, typename TS>
+  template <
+      int N_T,
+      int WIDTH,
+      typename TD,
+      typename TS,
+      tmol::Device LaneD = tmol::Device::CPU>
   static void copy_contiguous_data_and_cast(
-      TD* __restrict__ dst, TS* __restrict__ src, int n) {
+      TD* __restrict__ dst,
+      TS* __restrict__ src,
+      int n,
+      WorkgroupLane<LaneD> = {}) {
     for (int i = 0; i < n; ++i) {
       dst[i] = static_cast<TD>(src[i]);
     }
   }
 
-  template <int N_T, typename Func>
-  static void for_each_in_workgroup(Func f) {
+  // The trailing lane handle is empty here and so may be omitted; it exists
+  // because the Metal backend has no implicit way to learn a thread's index.
+  // See workgroup_lane.hh.
+  template <int N_T, typename Func, tmol::Device LaneD = tmol::Device::CPU>
+  static void for_each_in_workgroup(Func f, WorkgroupLane<LaneD> = {}) {
     for (int i = 0; i < N_T; ++i) {
       f(i);
     }
   }
 
   // No op on 1-core CPU
-  template <int N_T, typename T, typename S, typename OP>
-  static T reduce_in_workgroup(T val, S, OP) {
+  template <
+      int N_T,
+      typename T,
+      typename S,
+      typename OP,
+      tmol::Device LaneD = tmol::Device::CPU>
+  static T reduce_in_workgroup(T val, S, OP, WorkgroupLane<LaneD> = {}) {
     return val;
   }
 
-  template <int N_T, typename T, typename OP>
-  static T shuffle_reduce_in_workgroup(T val, OP) {
+  template <
+      int N_T,
+      typename T,
+      typename OP,
+      tmol::Device LaneD = tmol::Device::CPU>
+  static T shuffle_reduce_in_workgroup(T val, OP, WorkgroupLane<LaneD> = {}) {
     return val;
   }
 
   // See comments for shuffle_reduce_in_workgroup above
-  template <int N_T, typename T, typename OP>
-  static T shuffle_reduce_and_broadcast_in_workgroup(T val, OP op) {
+  template <
+      int N_T,
+      typename T,
+      typename OP,
+      tmol::Device LaneD = tmol::Device::CPU>
+  static T shuffle_reduce_and_broadcast_in_workgroup(
+      T val, OP op, WorkgroupLane<LaneD> = {}) {
     return val;
   }
 
   // No op on 1-core CPU
-  static void synchronize_workgroup() {}
+  template <tmol::Device LaneD = tmol::Device::CPU>
+  static void synchronize_workgroup(WorkgroupLane<LaneD> = {}) {}
 
   // No op on 1-core CPU
   static void synchronize_device() {}

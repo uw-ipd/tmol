@@ -1,10 +1,10 @@
 #pragma once
 
-#include <Eigen/Core>
-
+#include <tmol/score/common/device_operations_fwd.hh>
+#include <tmol/utility/portable/reduce_ops.hh>
+#include <tmol/utility/portable/math.hh>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorAccessor.h>
-#include <moderngpu/scan_types.hxx>  // CPU-friendly
 #include <tmol/utility/tensor/context_manager.hh>
 
 namespace tmol {
@@ -28,11 +28,9 @@ struct DeviceOperations {
       ContextManager& mgr, int n_groups, int items_per_group, Func f);
 
   /// Store a value that concurrent callbacks may write identically.
-  static EIGEN_DEVICE_FUNC void store_idempotent(
-      int32_t& target, int32_t value);
-  static EIGEN_DEVICE_FUNC void store_idempotent(
-      int64_t& target, int64_t value);
-  static EIGEN_DEVICE_FUNC void bitwise_or(int32_t& target, int32_t value);
+  static TMOL_HD void store_idempotent(int32_t& target, int32_t value);
+  static TMOL_HD void store_idempotent(int64_t& target, int64_t value);
+  static TMOL_HD void bitwise_or(int32_t& target, int32_t value);
 
   template <typename Int, typename Func>
   static void foreach_combination_triple(
@@ -61,12 +59,12 @@ struct DeviceOperations {
 
   // Note that dst[0] should be initialized to the identity value (e.g. 0) if
   // scan_type is exclusive.
-  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  template <tmol::portable::scan_type scan_type, typename T, typename OP>
   static void scan(ContextManager& mgr, T* src, T* dst, int n, OP op);
 
   // Note that dst[0] should be initialized to the identity value (e.g. 0) if
   // scan_type is exclusive.a
-  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  template <tmol::portable::scan_type scan_type, typename T, typename OP>
   static T scan_and_return_total(
       ContextManager& mgr, T* src, T* dst, int n, OP op);
 
@@ -94,7 +92,11 @@ struct DeviceOperations {
   // than, e.g., a boolean tensor indicating the start of each segment.
   // The identity value (e.g. 0) must be given because pre-initialization is not
   // always possible. seg_starts_inds must be sorted in ascending order.
-  template <mgpu::scan_type_t scan_type, typename T, typename Int, typename OP>
+  template <
+      tmol::portable::scan_type scan_type,
+      typename T,
+      typename Int,
+      typename OP>
   static auto segmented_scan(
       ContextManager& mgr,
       T* src,

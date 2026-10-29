@@ -322,8 +322,14 @@ def test_fused_ljlk_elec_preserves_term_lanes_weights_and_gradients(
         fused.weights[ScoreType.fa_lk.value] = 1.25
         fused.weights[ScoreType.fa_elec.value] = 0.0
     weighted_lanes = fused(pose.coords, sum_terms=False, apply_weights=True)
-    torch.testing.assert_close(weighted_lanes, fused_lanes.detach() * fused.weights)
-    torch.testing.assert_close(fused(pose.coords), weighted_lanes.sum(dim=0))
+    # The weighted kernel accumulates in a different float32 order than
+    # weighting the unweighted lanes afterwards; match the lane tolerance above.
+    torch.testing.assert_close(
+        weighted_lanes, fused_lanes.detach() * fused.weights, atol=2e-5, rtol=2e-5
+    )
+    torch.testing.assert_close(
+        fused(pose.coords), weighted_lanes.sum(dim=0), atol=2e-5, rtol=2e-5
+    )
 
     # Compact weighted fusion intentionally has no weight backward. If callers
     # make the score-function weights trainable, retain the canonical lanes so
@@ -781,20 +787,25 @@ def test_packed_block_setup_is_reused_and_cross_score_function_safe(
     sfxn.set_weight(ScoreType.ref, 1.0)
     term = sfxn.all_terms()[0]
     original = term.setup_block_type
-    calls = 0
+    set_up = set()
 
-    def counted(block_type):
-        nonlocal calls
-        calls += 1
+    # Record which block types are set up, not how often: a term's
+    # setup_packed_block_types may re-read its own cached per-block
+    # annotation, and whether that cache is already warm depends on which
+    # tests ran first.
+    def recorded(block_type):
+        set_up.add(id(block_type))
         return original(block_type)
 
-    monkeypatch.setattr(term, "setup_block_type", counted)
-    sfxn.pre_work_initialization(pose)
-    first_calls = calls
-    assert first_calls == len(pose.packed_block_types.active_block_types)
+    monkeypatch.setattr(term, "setup_block_type", recorded)
+    all_block_types = {id(bt) for bt in pose.packed_block_types.active_block_types}
 
     sfxn.pre_work_initialization(pose)
-    assert calls == first_calls
+    assert set_up == all_block_types
+
+    set_up.clear()
+    sfxn.pre_work_initialization(pose)
+    assert set_up == set()
 
     # Packed block types are shared. Another score function may replace
     # option-dependent annotations, so its setup must invalidate this cache.
@@ -802,7 +813,7 @@ def test_packed_block_setup_is_reused_and_cross_score_function_safe(
     other.set_weight(ScoreType.ref, 1.0)
     other.pre_work_initialization(pose)
     sfxn.pre_work_initialization(pose)
-    assert calls == 2 * first_calls
+    assert set_up == all_block_types
 
 
 def test_packed_block_setup_reuses_annotations_for_identical_types(
@@ -1075,9 +1086,10 @@ def test_cpu_parallel_whole_pose_gradient_matches_serial_order(
     scorer._cpu_term_workers = 0
     serial_score, serial_gradient = score_and_gradient()
 
-    assert torch.equal(parallel_score, serial_score)
-    # Independent shard graphs may reach the leaf accumulator in a different
-    # order; the resulting difference is limited to float32 roundoff.
+    # Parallel and serial scoring sum the term totals, and independent shard
+    # graphs reach the leaf accumulator, in different orders; the resulting
+    # difference is limited to float32 roundoff.
+    torch.testing.assert_close(parallel_score, serial_score, atol=5e-6, rtol=1e-6)
     torch.testing.assert_close(parallel_gradient, serial_gradient, atol=5e-6, rtol=1e-6)
 
 

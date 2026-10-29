@@ -240,6 +240,11 @@ PYBIND11_MODULE(_C, m) {
 #else
   m.attr("has_cuda") = false;
 #endif
+#ifdef WITH_MPS
+  m.attr("has_mps") = true;
+#else
+  m.attr("has_mps") = false;
+#endif
 }
 
 #endif

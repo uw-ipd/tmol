@@ -1,4 +1,5 @@
 #pragma once
+#include <tmol/utility/portable/reduce_ops.hh>
 #include <list>
 
 #include <Eigen/Core>
@@ -84,13 +85,13 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_kfo_indices_for_atoms(
 
   DeviceDispatch<D>::template forall<launch_t>(
       mgr, n_poses * max_n_blocks, get_n_atoms_for_block);
-  Int n_kfo_atoms =
-      DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
-          mgr,
-          block_n_atoms.data(),
-          block_kfo_offset.data(),
-          n_poses * max_n_blocks,
-          mgpu::plus_t<Int>());
+  Int n_kfo_atoms = DeviceDispatch<D>::template scan_and_return_total<
+      tmol::portable::scan_type::exclusive>(
+      mgr,
+      block_n_atoms.data(),
+      block_kfo_offset.data(),
+      n_poses * max_n_blocks,
+      tmol::portable::plus_t<Int>());
 
   auto kfo_2_orig_mapping_tp = TPack<Int, 2, D>::full({n_kfo_atoms, 3}, -1);
   auto atom_kfo_index_tp = TPack<Int, 3, D>::full(
@@ -503,12 +504,12 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_children(
       mgr, n_kfo_atoms, sum_jump_and_non_jump_children);
 
   // Now get the beginning and end indices for the child-list ranges.
-  DeviceDispatch<D>::template scan<mgpu::scan_type_exc>(
+  DeviceDispatch<D>::template scan<tmol::portable::scan_type::exclusive>(
       mgr,
       n_children.data(),
       child_list_span.data(),
       n_kfo_atoms + 1,
-      mgpu::plus_t<Int>());
+      tmol::portable::plus_t<Int>());
 
   // Okay, now ask each atom to insert itself into its parent's child-list
   auto fill_child_list = ([=] TMOL_DEVICE_FUNC(int i) {
@@ -548,7 +549,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_children(
       n_kfo_atoms,
       child_list_span.data(),
       n_kfo_atoms + 1,
-      mgpu::less_t<Int>());
+      tmol::portable::less_t<Int>());
   return {n_children_t, child_list_span_t, child_list_t, is_atom_jump_t};
 }
 
@@ -1855,20 +1856,22 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
 
   // SCAN!
   int n_blocks_building_edges_total =
-      DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+      DeviceDispatch<D>::template scan_and_return_total<
+          tmol::portable::scan_type::exclusive>(
           mgr,
           n_blocks_that_build_tsedge_for_gen.data(),
           block_offset_for_tsedge_for_gen.data(),
           n_gens_total * n_poses * max_n_edges_per_ff,
-          mgpu::plus_t<Int>());
+          tmol::portable::plus_t<Int>());
   // second scan for backward pass
   int n_blocks_building_edges_total2 =
-      DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+      DeviceDispatch<D>::template scan_and_return_total<
+          tmol::portable::scan_type::exclusive>(
           mgr,
           n_blocks_that_build_tsedge_for_gen_bw.data(),
           block_offset_for_tsedge_for_gen_bw.data(),
           n_gens_total * n_poses * max_n_edges_per_ff,
-          mgpu::plus_t<Int>());
+          tmol::portable::plus_t<Int>());
 
   auto is_scan_path_seg_root_of_scan_path_t = TPack<Int, 1, D>::full(
       {n_blocks_building_edges_total * max_n_scan_path_segs_per_gen}, 0);
@@ -2150,60 +2153,62 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
   auto temp_nodes_offset_for_gen = temp_nodes_offset_for_gen_t.view;
   auto temp_nodes_offset_for_gen_bw = temp_nodes_offset_for_gen_bw_t.view;
 
-  int n_nodes_total =
-      DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
-          mgr,
-          n_atoms_for_scan_path_seg_for_gen.data(),
-          nodes_offset_for_scan_path_seg_for_gen.data(),
-          n_blocks_building_edges_total * max_n_scan_path_segs_per_gen,
-          mgpu::plus_t<Int>());
-  int n_nodes_total2 =
-      DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
-          mgr,
-          n_atoms_for_scan_path_seg_for_gen_bw.data(),
-          nodes_offset_for_scan_path_seg_for_gen_bw.data(),
-          n_blocks_building_edges_total * max_n_scan_path_segs_per_gen,
-          mgpu::plus_t<Int>());
+  int n_nodes_total = DeviceDispatch<D>::template scan_and_return_total<
+      tmol::portable::scan_type::exclusive>(
+      mgr,
+      n_atoms_for_scan_path_seg_for_gen.data(),
+      nodes_offset_for_scan_path_seg_for_gen.data(),
+      n_blocks_building_edges_total * max_n_scan_path_segs_per_gen,
+      tmol::portable::plus_t<Int>());
+  int n_nodes_total2 = DeviceDispatch<D>::template scan_and_return_total<
+      tmol::portable::scan_type::exclusive>(
+      mgr,
+      n_atoms_for_scan_path_seg_for_gen_bw.data(),
+      nodes_offset_for_scan_path_seg_for_gen_bw.data(),
+      n_blocks_building_edges_total * max_n_scan_path_segs_per_gen,
+      tmol::portable::plus_t<Int>());
   int n_scan_path_roots_total =
-      DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+      DeviceDispatch<D>::template scan_and_return_total<
+          tmol::portable::scan_type::exclusive>(
           mgr,
           is_scan_path_seg_root_of_scan_path.data(),
           root_scan_path_offset.data(),
           n_blocks_building_edges_total * max_n_scan_path_segs_per_gen,
-          mgpu::plus_t<Int>());
+          tmol::portable::plus_t<Int>());
   int n_scan_path_roots_total2 =
-      DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+      DeviceDispatch<D>::template scan_and_return_total<
+          tmol::portable::scan_type::exclusive>(
           mgr,
           is_scan_path_seg_root_of_scan_path_bw.data(),
           root_scan_path_offset_bw.data(),
           n_blocks_building_edges_total * max_n_scan_path_segs_per_gen,
-          mgpu::plus_t<Int>());
+          tmol::portable::plus_t<Int>());
 
-  DeviceDispatch<D>::template scan<mgpu::scan_type_exc>(
+  DeviceDispatch<D>::template scan<tmol::portable::scan_type::exclusive>(
       mgr,
       n_scan_paths_for_gen.data(),
       n_scan_path_offsets_for_gen.data(),
       n_gens_total + 1,
-      mgpu::plus_t<Int>());
-  DeviceDispatch<D>::template scan<mgpu::scan_type_exc>(
+      tmol::portable::plus_t<Int>());
+  DeviceDispatch<D>::template scan<tmol::portable::scan_type::exclusive>(
       mgr,
       n_scan_paths_for_gen_bw.data(),
       n_scan_path_offsets_for_gen_bw.data(),
       n_gens_total + 1,
-      mgpu::plus_t<Int>());
+      tmol::portable::plus_t<Int>());
 
-  DeviceDispatch<D>::template scan<mgpu::scan_type_exc>(
+  DeviceDispatch<D>::template scan<tmol::portable::scan_type::exclusive>(
       mgr,
       temp_n_nodes_for_gen.data(),
       temp_nodes_offset_for_gen.data(),
       n_gens_total + 1,
-      mgpu::plus_t<Int>());
-  DeviceDispatch<D>::template scan<mgpu::scan_type_exc>(
+      tmol::portable::plus_t<Int>());
+  DeviceDispatch<D>::template scan<tmol::portable::scan_type::exclusive>(
       mgr,
       temp_n_nodes_for_gen_bw.data(),
       temp_nodes_offset_for_gen_bw.data(),
       n_gens_total + 1,
-      mgpu::plus_t<Int>());
+      tmol::portable::plus_t<Int>());
 
   // Step 13
   // Step N:

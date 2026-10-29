@@ -1,11 +1,11 @@
 #pragma once
 
+#include <tmol/utility/portable/matrix.hh>
 #include <tmol/utility/tensor/TensorPack.h>
 
 namespace tmol {
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+using tmol::portable::Vec;
 
 template <
     template <Device> class Dispatch,

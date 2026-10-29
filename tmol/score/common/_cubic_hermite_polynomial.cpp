@@ -1,5 +1,7 @@
 #include <pybind11/eigen.h>
 
+#include <tmol/utility/portable/pybind.h>
+
 #include <tmol/score/common/cubic_hermite_polynomial.hh>
 
 using namespace tmol::score::common;

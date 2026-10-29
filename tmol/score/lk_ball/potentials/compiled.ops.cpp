@@ -70,7 +70,12 @@ class PoseWaterGen : public tmol::native::autograd::Function<PoseWaterGen> {
 
     using Int = int32_t;
 
-    TMOL_DISPATCH_FLOATING_DEVICE(
+    // Water generation, the whole-pose forward and backward, and the
+    // rotamer-pair score have Metal backends; see gen_pose_waters.mps.cpp and
+    // lk_ball_pose_score.mps.cpp. The scoring module calls watergen itself,
+    // so it has to be on the GPU whenever scoring is. The remaining dispatch
+    // sites in this file stay CPU/CUDA-only until their kernels are ported.
+    TMOL_DISPATCH_FLOATING_DEVICE_MPS(
         rot_coords.options(), "watergen_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
@@ -221,7 +226,35 @@ class PoseWaterGen : public tmol::native::autograd::Function<PoseWaterGen> {
 
     auto dE_dWxyz = grad_outputs[0];
 
-    TMOL_DISPATCH_FLOATING_DEVICE(
+    // The Metal backward packs the three torsion tables into one [3, max_len]
+    // row-major table: its kernel context needs two accumulators the forward
+    // does not, and Metal binds at most 31 buffers per kernel. Built here,
+    // where the tables are still Tensors rather than views. A few floats, and
+    // only on the backend that needs it.
+    tmol::native::Tensor packed_water_tors;
+    if (rot_coords.is_mps()) {
+      int64_t const lengths[3] = {
+          sp2_water_tors.size(0),
+          sp3_water_tors.size(0),
+          ring_water_tors.size(0)};
+      int64_t max_len = 0;
+      for (int64_t n : lengths) max_len = n > max_len ? n : max_len;
+      packed_water_tors =
+          tmol::native::zeros({3, max_len}, sp2_water_tors.options());
+      tmol::native::Tensor const* rows[3] = {
+          &sp2_water_tors, &sp3_water_tors, &ring_water_tors};
+      for (int row = 0; row < 3; ++row) {
+        if (lengths[row] == 0) continue;
+        auto dst = packed_water_tors.select(0, row).narrow(0, 0, lengths[row]);
+        auto dst_handle = dst.handle();
+        auto src_handle = rows[row]->handle();
+        torch::stable::copy_(dst_handle, src_handle);
+      }
+    } else {
+      packed_water_tors = tmol::native::empty({3, 0}, sp2_water_tors.options());
+    }
+
+    TMOL_DISPATCH_FLOATING_DEVICE_MPS(
         rot_coords.options(), "WaterGenOpBackward", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
@@ -262,6 +295,7 @@ class PoseWaterGen : public tmol::native::autograd::Function<PoseWaterGen> {
                       TCAST(block_type_tile_acc_n_attached_H),
                       TCAST(block_type_atom_is_hydrogen),
                       TCAST(global_params),
+                      TCAST(packed_water_tors),
                       TCAST(sp2_water_tors),
                       TCAST(sp3_water_tors),
                       TCAST(ring_water_tors));
@@ -413,7 +447,7 @@ class LKBallPoseScoreOp
 
     using Int = int32_t;
 
-    TMOL_DISPATCH_FLOATING_DEVICE(
+    TMOL_DISPATCH_FLOATING_DEVICE_MPS(
         rot_coords.options(), "lk_ball_pose_score_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
@@ -566,8 +600,15 @@ class LKBallPoseScoreOp
     if (!block_pair_scoring) {
       dTdV = dTdV.unsqueeze(-1).unsqueeze(-1);
     }
+    // The upstream gradient is a slice of the score function's concatenated
+    // per-term scores, so its data pointer carries that slice's offset. The
+    // LK-ball derivative kernel is the one place a gradient is bound as a
+    // Metal buffer, and Metal requires a 16-byte-aligned offset.
+    if (rot_coords.is_mps()) {
+      dTdV = tmol::native::realigned_copy(dTdV);
+    }
 
-    TMOL_DISPATCH_FLOATING_DEVICE(
+    TMOL_DISPATCH_FLOATING_DEVICE_MPS(
         rot_coords.options(), "lk_ball_pose_score_backward", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
@@ -669,7 +710,7 @@ class LKBallRotamerScoreOp
 
     using Int = int32_t;
 
-    TMOL_DISPATCH_FLOATING_DEVICE(
+    TMOL_DISPATCH_FLOATING_DEVICE_MPS(
         rot_coords.options(), "lk_ball_rotamer_score_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;

@@ -19,6 +19,15 @@ from tmol.score.common._scoring_module import (
     TermWholePoseScoringModule,
 )
 from tmol.score.hbond._hbond_energy_term import HBondEnergyTerm
+from tmol.score._mps_offload import (
+    ROTAMER_SCORE_TYPES as _MPS_ROTAMER_SCORE_TYPES,
+    WHOLE_POSE_SCORE_TYPES as _MPS_WHOLE_POSE_SCORE_TYPES,
+    OffloadedRotamerScoringModule,
+    OffloadedWholePoseScoringModule,
+    OffloadPlan,
+    mps_offload_enabled,
+    to_mps,
+)
 from tmol.utility import resolve_device
 
 # force registration of the terms with the ScoreTermFactory
@@ -100,9 +109,9 @@ def _rotamer_dispatch_cutoff_compatible(
     producer_cutoff: float,
     consumer_cutoff: float,
 ) -> bool:
-    """Select exact layouts everywhere and larger-cutoff supersets on CUDA."""
+    """Select exact layouts everywhere and larger-cutoff supersets on GPUs."""
     return producer_cutoff == consumer_cutoff or (
-        device_type == "cuda" and producer_cutoff > consumer_cutoff
+        device_type in ("cuda", "mps") and producer_cutoff > consumer_cutoff
     )
 
 
@@ -377,6 +386,7 @@ class ScoreFunction:
         self._prepared_block_type_ids = None
         self._prepared_packed_annotation_names = ()
         self._setup_token = object()
+        self._mps_twins = {}
 
         self.term_options = {}
 
@@ -540,14 +550,42 @@ class ScoreFunction:
         its output buffer; clone an output that must survive the next call.
         """
         self.pre_work_initialization(pose_stack)
+        plan = (
+            None
+            if cuda_graph
+            else self._mps_offload_plan(pose_stack, _MPS_WHOLE_POSE_SCORE_TYPES)
+        )
         term_modules = []
-        for term in self.all_terms():
+        for term in plan.host_terms if plan else self.all_terms():
             module = term.render_whole_pose_scoring_module(pose_stack)
             # Retain the score-lane width without evaluating the module.  The
             # default weighted fused path uses this metadata to map its scalar
             # contribution back onto the live score-function weight buffer.
             module.n_score_types = len(term.score_types())
             term_modules.append(module)
+        if plan is not None:
+            weights = self.weights_tensor()
+            host = (
+                WholePoseScoringModule(weights[plan.host_lanes], term_modules)
+                if term_modules
+                else None
+            )
+            gpu = self._mps_twin(plan).render_whole_pose_scoring_module(
+                to_mps(pose_stack)
+            )
+
+            def render_host_twin():
+                self.pre_work_initialization(pose_stack)
+                modules = []
+                for term in plan.gpu_terms:
+                    module = term.render_whole_pose_scoring_module(pose_stack)
+                    module.n_score_types = len(term.score_types())
+                    modules.append(module)
+                return WholePoseScoringModule(weights[plan.gpu_lanes], modules)
+
+            return OffloadedWholePoseScoringModule(
+                plan, weights, host, gpu, render_host_twin
+            )
         scoring_module = WholePoseScoringModule(self.weights_tensor(), term_modules)
         if cuda_graph:
             mode = "both" if cuda_graph is True else cuda_graph
@@ -595,12 +633,59 @@ class ScoreFunction:
             results may already be coalesced.
         """
         self.pre_work_initialization(pose_stack)
+        plan = self._mps_offload_plan(pose_stack, _MPS_ROTAMER_SCORE_TYPES)
         term_modules = []
-        for term in self.all_terms():
+        for term in plan.host_terms if plan else self.all_terms():
             module = term.render_rotamer_scoring_module(pose_stack, rotamer_set)
             module.n_score_types = len(term.score_types())
             term_modules.append(module)
+        if plan is not None:
+            weights = self.weights_tensor()
+            host = (
+                RotamerScoringModule(weights[plan.host_lanes], term_modules)
+                if term_modules
+                else None
+            )
+            gpu = self._mps_twin(plan).render_rotamer_scoring_module(
+                *to_mps((pose_stack, rotamer_set))
+            )
+            return OffloadedRotamerScoringModule(host, gpu)
         return RotamerScoringModule(self.weights_tensor(), term_modules)
+
+    def _mps_offload_plan(self, pose_stack, offloadable):
+        """Choose the terms to run on the Apple GPU, or None to stay on the host.
+
+        Only a host score function scoring host poses offloads; see
+        tmol.score._mps_offload for which terms go and why.
+        """
+        if self._device.type != "cpu" or pose_stack.device.type != "cpu":
+            return None
+        if self._weights.requires_grad or not mps_offload_enabled():
+            return None
+        return OffloadPlan.for_terms(self.all_terms(), offloadable)
+
+    def _mps_twin(self, plan):
+        """A Metal score function holding this one's offloaded terms.
+
+        Cached per term set, so the terms' parameter tables are moved to the
+        GPU once rather than at every render.
+        """
+        score_types = tuple(st for t in plan.gpu_terms for st in t.score_types())
+        twin = self._mps_twins.get(score_types)
+        if twin is None:
+            twin = ScoreFunction(self._param_db, torch.device("mps"))
+            twin._source_options_version = None
+            self._mps_twins[score_types] = twin
+        for st in score_types:
+            twin.set_weight(st, float(self._weights[st.value]))
+        if twin._source_options_version != self._options_version:
+            twin.set_options(dict(self.term_options))
+            twin._source_options_version = self._options_version
+        # The twin's lanes must line up with the plan's.
+        assert (
+            tuple(st for t in twin.all_terms() for st in t.score_types()) == score_types
+        )
+        return twin
 
     def pre_work_initialization(self, pose_stack: PoseStack) -> None:
         """Prepare active energy terms for a pose topology.
@@ -1081,10 +1166,28 @@ class WholePoseScoringModule:
             default=None,
         )
 
+    def _shares_block_neighbors(self, coords: torch.Tensor) -> bool:
+        """Whether this call will build and share one compact neighbor list.
+
+        The shared list is a CUDA-oriented optimization for sparse poses, and
+        its builder (build_compact_block_neighbors) has no Metal kernel. The
+        ported MPS kernels read the dense scratch_rot_neighbors grid instead,
+        which sphere_overlap produces on the device, so MPS opts out and keeps
+        everything on the GPU rather than failing.
+
+        Also decides which module list runs, which is why it is a predicate
+        rather than inline: the fused LJLK/elec module lives in
+        ``_execution_modules`` only, and its index means nothing against the
+        fallback list.
+        """
+        if len(self._shared_neighbor_term_indices) < 2:
+            return False
+        return coords.device.type != "mps"
+
     def _build_shared_block_neighbors(
         self, coords: torch.Tensor
     ) -> torch.Tensor | None:
-        if len(self._shared_neighbor_term_indices) < 2:
+        if not self._shares_block_neighbors(coords):
             return None
         builder = self.term_modules[self._shared_neighbor_term_indices[0]]
         return builder.build_compact_block_neighbors(
@@ -1157,6 +1260,12 @@ class WholePoseScoringModule:
         # lanes. Preserve the canonical Python weighting path when callers opt
         # into fitting score-function weights.
         if torch.is_grad_enabled() and self.weights.requires_grad:
+            return False
+        # The fused module is only in _execution_modules, which runs only when
+        # the shared neighbor list is built. Without it, unweighted_scores
+        # enumerates term_modules instead and _fused_ljlk_elec_module_index
+        # would select the wrong term.
+        if not self._shares_block_neighbors(coords):
             return False
         if self._fused_ljlk_elec_weight_range is None or not _use_weighted_fused_score(
             coords,
@@ -1628,7 +1737,8 @@ class _DefaultWholePoseScoringModule(torch.nn.Module):
 
     def forward(self, coords):
         shared_block_neighbors = None
-        if len(self._shared_neighbor_terms) >= 2:
+        # See _build_shared_block_neighbors for why MPS opts out.
+        if len(self._shared_neighbor_terms) >= 2 and coords.device.type != "mps":
             builder = self._shared_neighbor_terms[0]
             shared_block_neighbors = builder.build_compact_block_neighbors(
                 coords, self._shared_neighbor_cutoff
@@ -2086,6 +2196,20 @@ class RotamerScoringModule:
             len(self.term_modules), weights.device
         )
 
+    def _use_fused_ljlk_elec(self, coords: torch.Tensor) -> bool:
+        """Whether this call can score LJ/LK and Elec as one fused term."""
+        if (
+            self._fused_ljlk_elec is None
+            or not self._fused_ljlk_elec.is_compatible()
+            or self.weights.requires_grad
+        ):
+            return False
+        # Metal runs the fused kernel's packing variant only: energies, no
+        # coordinate derivatives. Differentiable calls take the two terms.
+        return coords.device.type != "mps" or not (
+            torch.is_grad_enabled() and coords.requires_grad
+        )
+
     def _execution_terms(self, use_fused):
         """Return native calls, weights, and canonical-lane accounting."""
         execution_terms = []
@@ -2107,9 +2231,10 @@ class RotamerScoringModule:
     def _compatible_dispatch(term, dispatch_by_key, device_type):
         """Return the narrowest previously built compatible term layout.
 
-        CUDA may reuse a larger-cutoff sphere-overlap layout because the
-        consumer's native potential still applies its own distance cutoff.
-        CPU reuse remains exact-cutoff only, as favored by measurements.
+        The GPU backends (CUDA and MPS) may reuse a larger-cutoff
+        sphere-overlap layout because the consumer's native potential still
+        applies its own distance cutoff. CPU reuse remains exact-cutoff only,
+        as favored by measurements.
         """
         cutoff = getattr(term, "block_neighbor_cutoff", None)
         dispatch_key = getattr(term, "rotamer_dispatch_key", None)
@@ -2218,11 +2343,7 @@ class RotamerScoringModule:
         if not torch.is_grad_enabled() and coords.requires_grad:
             coords = coords.detach()
 
-        use_fused = (
-            self._fused_ljlk_elec is not None
-            and self._fused_ljlk_elec.is_compatible()
-            and not self.weights.requires_grad
-        )
+        use_fused = self._use_fused_ljlk_elec(coords)
         execution_terms = self._execution_terms(use_fused)
         if not retain_shared_dispatch:
             weights_offset = 0
@@ -2360,11 +2481,7 @@ class RotamerScoringModule:
             or self.weights.requires_grad
             or self._has_trainable_term_parameters
         )
-        use_fused = (
-            self._fused_ljlk_elec is not None
-            and self._fused_ljlk_elec.is_compatible()
-            and not self.weights.requires_grad
-        )
+        use_fused = self._use_fused_ljlk_elec(coords)
         execution_terms = self._execution_terms(use_fused)
         parallel = self._cpu_term_workers >= 2 and not differentiable
         if parallel:

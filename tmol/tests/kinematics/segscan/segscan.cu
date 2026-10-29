@@ -1,3 +1,4 @@
+#include <tmol/utility/portable/reduce_ops.hh>
 #include <pybind11/pybind11.h>
 #include <Eigen/Core>
 
@@ -125,21 +126,21 @@ template <
     typename Ident,
     typename OP,
     tmol::Device D,
-    mgpu::scan_type_t scan_type,
+    tmol::portable::scan_type scan_type,
     int nt,
     int vt>
-// template <typename Real, tmol::Device D, mgpu::scan_type_t scan_type, int nt,
-// int vt>
+// template <typename Real, tmol::Device D, tmol::portable::scan_type scan_type,
+// int nt, int vt>
 struct segscan {};
 
 template <
     typename Real,
     typename Ident,
     typename OP,
-    mgpu::scan_type_t scan_type,
+    tmol::portable::scan_type scan_type,
     int nt,
     int vt>
-// template <typename Real, mgpu::scan_type_t scan_type, int nt, int vt>
+// template <typename Real, tmol::portable::scan_type scan_type, int nt, int vt>
 struct segscan<Real, Ident, OP, tmol::Device::CPU, scan_type, nt, vt> {
   static const tmol::Device D = tmol::Device::CPU;
 
@@ -157,11 +158,16 @@ struct segscan<Real, Ident, OP, tmol::Device::CPU, scan_type, nt, vt> {
       int ub = (i == nsegs) ? nelts : segs[i];
       for (int j = lb; j < ub; ++j) {
         if (j == lb) {
-          res[j] = scan_type == mgpu::scan_type_inc ? t[j] : Ident::identity();
-          // res[j] = scan_type == mgpu::scan_type_inc ? t[j] : 0;
+          res[j] = scan_type == tmol::portable::scan_type::inclusive
+                       ? t[j]
+                       : Ident::identity();
+          // res[j] = scan_type == tmol::portable::scan_type::inclusive ? t[j] :
+          // 0;
         } else {
           res[j] = op(
-              res[j - 1], (scan_type == mgpu::scan_type_inc ? t[j] : t[j - 1]));
+              res[j - 1],
+              (scan_type == tmol::portable::scan_type::inclusive ? t[j]
+                                                                 : t[j - 1]));
         }
       }
     }
@@ -174,10 +180,10 @@ template <
     typename Real,
     typename Ident,
     typename OP,
-    mgpu::scan_type_t scan_type,
+    tmol::portable::scan_type scan_type,
     int nt,
     int vt>
-// template <typename Real, mgpu::scan_type_t scan_type, int nt, int vt>
+// template <typename Real, tmol::portable::scan_type scan_type, int nt, int vt>
 struct segscan<Real, Ident, OP, tmol::Device::CUDA, scan_type, nt, vt> {
   static const tmol::Device D = tmol::Device::CUDA;
 
@@ -206,18 +212,23 @@ struct segscan<Real, Ident, OP, tmol::Device::CUDA, scan_type, nt, vt> {
     };
 
     mgpu::standard_context_t context;
-    tmol::kinematics::kernel_segscan<mgpu::launch_params_t<nt, vt>, scan_type>(
-        data_loader,
-        nelts,
-        segs.data(),
-        nsegs,
-        res.data(),
-        scanCarryout.data(),
-        scanCodes.data(),
-        LBS.data(),
-        OP(),
-        init,
-        context);
+    // kernel_segscan is mgpu code and takes mgpu's scan type.
+    constexpr mgpu::scan_type_t mgpu_scan_type =
+        scan_type == tmol::portable::scan_type::inclusive ? mgpu::scan_type_inc
+                                                          : mgpu::scan_type_exc;
+    tmol::kinematics::
+        kernel_segscan<mgpu::launch_params_t<nt, vt>, mgpu_scan_type>(
+            data_loader,
+            nelts,
+            segs.data(),
+            nsegs,
+            res.data(),
+            scanCarryout.data(),
+            scanCodes.data(),
+            LBS.data(),
+            OP(),
+            init,
+            context);
 
     return res_t;
   }
@@ -230,9 +241,9 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
       &segscan<
           float,
           float_ident,
-          mgpu::plus_t<float>,
+          tmol::portable::plus_t<float>,
           tmol::Device::CUDA,
-          mgpu::scan_type_inc,
+          tmol::portable::scan_type::inclusive,
           256,
           3>::f,
       "t"_a,
@@ -244,7 +255,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
           float_ident,
           plus_op,
           tmol::Device::CPU,
-          mgpu::scan_type_inc,
+          tmol::portable::scan_type::inclusive,
           256,
           3>::f,
       "t"_a,
@@ -254,9 +265,9 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
       &segscan<
           float,
           float_ident,
-          mgpu::plus_t<float>,
+          tmol::portable::plus_t<float>,
           tmol::Device::CUDA,
-          mgpu::scan_type_exc,
+          tmol::portable::scan_type::exclusive,
           256,
           3>::f,
       "t"_a,
@@ -268,7 +279,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
           float_ident,
           plus_op,
           tmol::Device::CPU,
-          mgpu::scan_type_exc,
+          tmol::portable::scan_type::exclusive,
           256,
           3>::f,
       "t"_a,
@@ -278,9 +289,9 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
       &segscan<
           float,
           float_ident,
-          mgpu::plus_t<float>,
+          tmol::portable::plus_t<float>,
           tmol::Device::CUDA,
-          mgpu::scan_type_inc,
+          tmol::portable::scan_type::inclusive,
           128,
           2>::f,
       "t"_a,
@@ -292,7 +303,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
           float_ident,
           plus_op,
           tmol::Device::CPU,
-          mgpu::scan_type_inc,
+          tmol::portable::scan_type::inclusive,
           128,
           2>::f,
       "t"_a,
@@ -302,9 +313,9 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
       &segscan<
           float,
           float_ident,
-          mgpu::plus_t<float>,
+          tmol::portable::plus_t<float>,
           tmol::Device::CUDA,
-          mgpu::scan_type_exc,
+          tmol::portable::scan_type::exclusive,
           128,
           2>::f,
       "t"_a,
@@ -316,7 +327,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
           float_ident,
           plus_op,
           tmol::Device::CPU,
-          mgpu::scan_type_exc,
+          tmol::portable::scan_type::exclusive,
           128,
           2>::f,
       "t"_a,
@@ -328,7 +339,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
           float_ident,
           weird_op,
           tmol::Device::CUDA,
-          mgpu::scan_type_inc,
+          tmol::portable::scan_type::inclusive,
           128,
           2>::f,
       "t"_a,
@@ -340,7 +351,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
           float_ident,
           weird_op,
           tmol::Device::CPU,
-          mgpu::scan_type_inc,
+          tmol::portable::scan_type::inclusive,
           128,
           2>::f,
       "t"_a,
@@ -352,7 +363,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
           ht_zeros<float>,
           ht_sum<float>,
           tmol::Device::CUDA,
-          mgpu::scan_type_inc,
+          tmol::portable::scan_type::inclusive,
           128,
           2>::f,
       "t"_a,
@@ -364,7 +375,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
           ht_zeros<float>,
           ht_sum<float>,
           tmol::Device::CPU,
-          mgpu::scan_type_inc,
+          tmol::portable::scan_type::inclusive,
           128,
           2>::f,
       "t"_a,
