@@ -1086,9 +1086,10 @@ def test_cpu_parallel_whole_pose_gradient_matches_serial_order(
     scorer._cpu_term_workers = 0
     serial_score, serial_gradient = score_and_gradient()
 
-    assert torch.equal(parallel_score, serial_score)
-    # Independent shard graphs may reach the leaf accumulator in a different
-    # order; the resulting difference is limited to float32 roundoff.
+    # Parallel and serial scoring sum the term totals, and independent shard
+    # graphs reach the leaf accumulator, in different orders; the resulting
+    # difference is limited to float32 roundoff.
+    torch.testing.assert_close(parallel_score, serial_score, atol=5e-6, rtol=1e-6)
     torch.testing.assert_close(parallel_gradient, serial_gradient, atol=5e-6, rtol=1e-6)
 
 
