@@ -133,7 +133,7 @@ intersphinx_timeout = 10
 
 html_theme = "pydata_sphinx_theme"
 html_baseurl = os.environ.get(
-    "TMOL_DOCS_BASE_URL", "https://uw-ipd.github.io/tmol/latest/"
+    "TMOL_DOCS_BASE_URL", "https://rosettacommons.github.io/tmol/latest/"
 )
 html_static_path = ["_static"]
 templates_path = ["_templates"]
@@ -160,7 +160,7 @@ html_theme_options = {
     "icon_links": [
         {
             "name": "GitHub",
-            "url": "https://github.com/uw-ipd/tmol",
+            "url": "https://github.com/RosettaCommons/tmol",
             "icon": "fa-brands fa-github",
         },
     ],

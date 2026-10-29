@@ -116,10 +116,10 @@ docs = [
 ]
 
 [project.urls]
-Documentation = "https://uw-ipd.github.io/tmol/"
-Issues = "https://github.com/uw-ipd/tmol/issues"
-Repository = "https://github.com/uw-ipd/tmol"
-Releases = "https://github.com/uw-ipd/tmol/releases"
+Documentation = "https://rosettacommons.github.io/tmol/"
+Issues = "https://github.com/RosettaCommons/tmol/issues"
+Repository = "https://github.com/RosettaCommons/tmol"
+Releases = "https://github.com/RosettaCommons/tmol/releases"
 
 # Build settings ---------------------------------------------------------------
 [build-system]

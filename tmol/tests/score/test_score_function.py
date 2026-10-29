@@ -2075,8 +2075,9 @@ def test_score_function_all_score_types(ubq_pdb):
         ScoreType.na_torsion: n([0.0]),
         ScoreType.na_torsion_well: n([0.0]),
     }
+    # float32 summed energies (e.g. omega) vary across CI CPU models.
     _assert_matches_gold(
-        unweighted_score_map, gold_score_map, score_types, rtol=1e-4, atol=1e-4
+        unweighted_score_map, gold_score_map, score_types, rtol=1e-3, atol=1e-3
     )
 
 
