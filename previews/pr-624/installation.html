@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Installation &#8212; TMol</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=adb9cd23" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="_static/scripts/fontawesome.js?digest=18bd87630a240e9c25be"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
+
+    <script src="_static/documentation_options.js?v=938c9ccc"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>let toggleHintShow = 'show code';</script>
+    <script>let toggleHintHide = 'hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'installation';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <script src="_static/tmol-explorers.js?v=089c5f52"></script>
+    <script async="async" defer="defer" src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
+    <link rel="canonical" href="https://rosettacommons.github.io/tmol/latest/installation.html" />
+    <link rel="icon" href="_static/favicon.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Quickstart" href="quickstart.html" />
+    <link rel="prev" title="TMol documentation" href="index.html" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.2.0" />
+  
+    
+    <script src="_static/searchtools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script src="searchindex.js"></script>
+  
+  
+  <link rel="icon" type="image/svg+xml" sizes="any" href="_static/brand/favicon.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="_static/brand/apple-touch-icon.png">
+
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="_static/tmol-logo-light.svg" class="logo__image only-light" alt="TMol documentation — Home"/>
+    <img src="_static/tmol-logo-dark.svg" class="logo__image only-dark pst-js-only" alt="TMol documentation — Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#" aria-current="page">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="terminology.html">
+    Glossary
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="examples_index.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="api_reference.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#" aria-current="page">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="terminology.html">
+    Glossary
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="examples_index.html">
+    Tutorials
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="api_reference.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button type="button" id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"></div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Installation</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Link to this heading">#</a></h1>
+<p>Install TMol from PyPI in a virtual environment. Choose CPU support or a CUDA
+backend matching your PyTorch installation:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Use</p></th>
+<th class="head"><p>Install</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>CPU, including Apple Silicon</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">tmol</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>GPU with CUDA 12-enabled PyTorch</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">&quot;tmol[cu12]&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>GPU with CUDA 13-enabled PyTorch</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">&quot;tmol[cu13]&quot;</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">tmol</span></code> contains the Python API, data, and CPU kernels. The GPU extras add
+<code class="docutils literal notranslate"><span class="pre">tmol-ops-cu12</span></code> or <code class="docutils literal notranslate"><span class="pre">tmol-ops-cu13</span></code> at the <strong>same version</strong> as the base package.
+GPU installations also support CPU execution. You do not need a separate TMol
+wheel for each PyTorch minor version or CUDA minor version.</p>
+<section id="requirements">
+<h2>Requirements<a class="headerlink" href="#requirements" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p>Python 3.11–3.14 and PyTorch 2.11 or newer.</p></li>
+<li><p>Linux <code class="docutils literal notranslate"><span class="pre">x86_64</span></code> or <code class="docutils literal notranslate"><span class="pre">aarch64</span></code> with glibc 2.28 or newer, or Apple Silicon with
+macOS 14 or newer. Native Windows and Intel Mac wheels are not provided;
+Windows users can use Linux through WSL2.</p></li>
+<li><p>For GPU execution: Linux, an NVIDIA GPU with compute capability 7.5 or newer,
+CUDA-enabled PyTorch, and a compatible NVIDIA driver. See
+<a class="reference internal" href="#cuda-driver-errors"><span class="std std-ref">driver compatibility</span></a>.</p></li>
+</ul>
+<p>Pip selects the wheel for your Python version and platform. Wheel installation
+needs no compiler or local CUDA toolkit (<code class="docutils literal notranslate"><span class="pre">nvcc</span></code>). Add <code class="docutils literal notranslate"><span class="pre">--only-binary=:all:</span></code> to
+an install command if you want it to fail rather than build any dependency
+from source when a compatible wheel is unavailable.</p>
+</section>
+<section id="cpu-only-pytorch">
+<h2>CPU-only PyTorch<a class="headerlink" href="#cpu-only-pytorch" title="Link to this heading">#</a></h2>
+<p>On Linux, install CPU-only PyTorch first to avoid downloading its CUDA libraries:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>torch<span class="w"> </span>--index-url<span class="w"> </span>https://download.pytorch.org/whl/cpu
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>tmol
+</pre></div>
+</div>
+</section>
+<section id="gpu-installation">
+<h2>GPU installation<a class="headerlink" href="#gpu-installation" title="Link to this heading">#</a></h2>
+<p>First install CUDA-enabled PyTorch using the
+<a class="reference external" href="https://pytorch.org/get-started/locally/">PyTorch installation selector</a>.
+Choose a build supported by your NVIDIA driver, then inspect its CUDA runtime:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"import torch; print(torch.__version__, torch.version.cuda)"</span>
+</pre></div>
+</div>
+<p>Choose the TMol extra from <code class="docutils literal notranslate"><span class="pre">torch.version.cuda</span></code>: <code class="docutils literal notranslate"><span class="pre">12.x</span></code> uses <code class="docutils literal notranslate"><span class="pre">cu12</span></code>, and <code class="docutils literal notranslate"><span class="pre">13.x</span></code>
+uses <code class="docutils literal notranslate"><span class="pre">cu13</span></code>. For example, with CUDA 13-enabled PyTorch:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"tmol[cu13]"</span>
+</pre></div>
+</div>
+<p>Use <code class="docutils literal notranslate"><span class="pre">&quot;tmol[cu12]&quot;</span></code> for CUDA 12. If <code class="docutils literal notranslate"><span class="pre">torch.version.cuda</span></code> is <code class="docutils literal notranslate"><span class="pre">None</span></code>, install a
+CUDA-enabled PyTorch build first. Pip does not detect your GPU or replace an
+installed CPU build of PyTorch just because a TMol GPU extra is requested.
+The CUDA version shown by <code class="docutils literal notranslate"><span class="pre">nvidia-smi</span></code> describes driver capability; it does not
+select the TMol backend. TMol selects operators using PyTorch’s CUDA major.</p>
+</section>
+<section id="verify-the-installation">
+<h2>Verify the installation<a class="headerlink" href="#verify-the-installation" title="Link to this heading">#</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tmol</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">"TMol:"</span><span class="p">,</span> <span class="n">tmol</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"PyTorch:"</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">,</span> <span class="s2">"CUDA runtime:"</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">version</span><span class="o">.</span><span class="n">cuda</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"TMol CUDA operators:"</span><span class="p">,</span> <span class="n">tmol</span><span class="o">.</span><span class="n">has_cuda</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"GPU available:"</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>For CPU execution, use <code class="docutils literal notranslate"><span class="pre">torch.device(&quot;cpu&quot;)</span></code>. For GPU execution, both CUDA
+checks must be true. Applications that require a GPU should fail explicitly:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">tmol</span><span class="o">.</span><span class="n">has_cuda</span><span class="p">()</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()):</span>
+    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"Install matching TMol/PyTorch CUDA packages and check GPU access"</span><span class="p">)</span>
+<span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cuda"</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">tmol.has_cuda()</span></code> reports compiled capability, not a successful kernel launch or
+driver compatibility. Run the <a class="reference internal" href="quickstart.html"><span class="doc">Quickstart</span></a> on your chosen
+device to check structure loading, scoring, gradients, and refinement.</p>
+</section>
+<section id="upgrade-or-change-backends">
+<h2>Upgrade or change backends<a class="headerlink" href="#upgrade-or-change-backends" title="Link to this heading">#</a></h2>
+<p>Upgrade using the same extra so pip updates the base and operators together:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span><span class="s2">"tmol[cu13]"</span><span class="w">  </span><span class="c1"># or tmol[cu12], or tmol for CPU</span>
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>check
+</pre></div>
+</div>
+<p>When changing PyTorch’s CUDA major, remove the old operator package and install
+the matching extra. To return to CPU-only TMol, uninstall both optional
+operator packages; keep <code class="docutils literal notranslate"><span class="pre">tmol</span></code> installed. Changing PyTorch minor does not require
+rebuilding TMol, provided its runtime meets the requirements above.</p>
+<p>For reproducible environments, pin your chosen versions in a requirements or
+lock file. The ordinary install commands above select the latest compatible
+release.</p>
+</section>
+<section id="use-tmol-in-another-package">
+<h2>Use TMol in another package<a class="headerlink" href="#use-tmol-in-another-package" title="Link to this heading">#</a></h2>
+<p>Declare <code class="docutils literal notranslate"><span class="pre">tmol</span></code> as a dependency for CPU support. Applications can expose <code class="docutils literal notranslate"><span class="pre">cu12</span></code>
+and <code class="docutils literal notranslate"><span class="pre">cu13</span></code> extras depending on <code class="docutils literal notranslate"><span class="pre">tmol[cu12]</span></code> and <code class="docutils literal notranslate"><span class="pre">tmol[cu13]</span></code>, respectively.
+Set a minimum TMol version when your application requires a particular API.
+Users still choose a compatible PyTorch build; retain runtime capability checks
+when GPU execution is required.</p>
+</section>
+<section id="google-colab-and-notebooks">
+<h2>Google Colab and notebooks<a class="headerlink" href="#google-colab-and-notebooks" title="Link to this heading">#</a></h2>
+<p>Select a GPU runtime in Colab, then run the tutorial’s setup cell. The shared
+bootstrap installs a tested TMol release with the matching <code class="docutils literal notranslate"><span class="pre">cu12</span></code> or <code class="docutils literal notranslate"><span class="pre">cu13</span></code>
+extra and preserves Colab’s installed PyTorch. The requirements above still
+apply. No Python- or PyTorch-specific wheel URL is needed.</p>
+<p>For local tutorials, use an editable <a class="reference internal" href="user_guide/development.html"><span class="doc">development installation</span></a> with the <code class="docutils literal notranslate"><span class="pre">docs</span></code> extra (<code class="docutils literal notranslate"><span class="pre">-e</span> <span class="pre">&quot;.[docs]&quot;</span></code>) for notebook
+dependencies and viewers. This also makes the checkout’s fixtures available;
+release wheels omit test data. Colab setup downloads the fixtures automatically.</p>
+<p><span id="from-source"></span></p>
+</section>
+<section id="build-from-source">
+<h2>Build from source<a class="headerlink" href="#build-from-source" title="Link to this heading">#</a></h2>
+<p>Source builds require PyTorch 2.14+ <strong>build headers</strong>, a C++17 compiler, CMake,
+and Ninja. The resulting production binary supports PyTorch 2.11+ at runtime.
+From a repository checkout, build the CPU package with:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"torch&gt;=2.14"</span><span class="w"> </span><span class="s2">"scikit-build-core&gt;=0.10"</span><span class="w"> </span><span class="s2">"cmake&gt;=3.24,&lt;4"</span><span class="w"> </span><span class="s2">"pybind11&gt;=2.12"</span><span class="w"> </span>ninja<span class="w"> </span>packaging
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span>.
+</pre></div>
+</div>
+<p>Build optional GPU operators with a CUDA toolkit of the requested major and
+CUDA-enabled build-time PyTorch:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>./packages/cu13
+<span class="c1"># Or, with a CUDA 12 toolkit:</span>
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>./packages/cu12
+</pre></div>
+</div>
+<p>The toolkit minor need not match PyTorch’s CUDA minor. See
+<a class="reference internal" href="user_guide/development.html"><span class="doc">Development</span></a> for compiler requirements,
+test extensions, JIT compilation, and build flags.</p>
+<p><span id="linux-runtime-notes"></span></p>
+</section>
+<section id="troubleshooting">
+<h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading">#</a></h2>
+<section id="cuda-driver-errors">
+<h3>CUDA driver errors<a class="headerlink" href="#cuda-driver-errors" title="Link to this heading">#</a></h3>
+<p>The CUDA wheels contain compressed device code, which requires a driver from
+CUDA 12.4 or later, as well as a driver compatible with your PyTorch CUDA
+runtime. See NVIDIA’s <a class="reference external" href="https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/#cmdoption-compress-mode">compression restriction</a>.
+An older driver can expose the GPU to PyTorch but fail when TMol launches a
+kernel, for example with <code class="docutils literal notranslate"><span class="pre">device</span> <span class="pre">kernel</span> <span class="pre">image</span> <span class="pre">is</span> <span class="pre">invalid</span></code>. Update the driver
+or use a compatible system. Compatibility-library recovery on older drivers
+has not been verified.</p>
+</section>
+<section id="linux-arm64-dependency-metadata">
+<h3>Linux ARM64 dependency metadata<a class="headerlink" href="#linux-arm64-dependency-metadata" title="Link to this heading">#</a></h3>
+<p>Some PyTorch builds pin NVIDIA cuSPARSELt wheels whose internal platform tag
+is <code class="docutils literal notranslate"><span class="pre">manylinux2014_sbsa</span></code> instead of <code class="docutils literal notranslate"><span class="pre">aarch64</span></code>. Installation succeeds, but
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">check</span></code> reports that cuSPARSELt is unsupported. If you encounter
+this error, use the metadata repair supplied with the
+<a class="reference external" href="https://github.com/RosettaCommons/tmol/releases">TMol release</a>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>-fLO<span class="w"> </span>https://github.com/RosettaCommons/tmol/releases/download/v0.2.0/repair_cuda13_arm64_metadata.py
+python<span class="w"> </span>repair_cuda13_arm64_metadata.py
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>check
+</pre></div>
+</div>
+<p>This deliberately versioned repair verifies known library hashes and ARM64
+headers before correcting metadata; it leaves native code and versions intact
+and refuses unknown files. Repeat it after reinstalling an affected NVIDIA
+package. Do not independently upgrade cuSPARSELt against PyTorch’s exact pins.</p>
+</section>
+<section id="c-runtime-errors">
+<h3>C++ runtime errors<a class="headerlink" href="#c-runtime-errors" title="Link to this heading">#</a></h3>
+<p>If importing TMol reports <code class="docutils literal notranslate"><span class="pre">GLIBCXX_*</span> <span class="pre">not</span> <span class="pre">found</span></code>, use a newer system C++ runtime
+or a recent container image. A source build against your system libraries is
+another option; follow the build instructions above. JIT development also needs
+a source checkout and build tools; setting an environment variable alone does
+not repair an installed wheel.</p>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">TMol documentation</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="quickstart.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Quickstart</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#requirements">Requirements</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cpu-only-pytorch">CPU-only PyTorch</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#gpu-installation">GPU installation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#verify-the-installation">Verify the installation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#upgrade-or-change-backends">Upgrade or change backends</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#use-tmol-in-another-package">Use TMol in another package</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#google-colab-and-notebooks">Google Colab and notebooks</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#build-from-source">Build from source</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#troubleshooting">Troubleshooting</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cuda-driver-errors">CUDA driver errors</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#linux-arm64-dependency-metadata">Linux ARM64 dependency metadata</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#c-runtime-errors">C++ runtime errors</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="_sources/installation.md.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.23.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
