@@ -209,7 +209,7 @@ def test_gpu_fp32_cdk2_default_vsx_schedule():
     device = torch.device("cuda")
     reference, param_db = _load_cdk2_pose_on_device(device)
     ligand_block = _ligand_block(reference)
-    schedule = GASchedule()
+    schedule = GASchedule(npool=50)
     result = run_docking(
         reference,
         ContinuousBackend(ligand_block, param_db, kin_dtype=torch.float32),

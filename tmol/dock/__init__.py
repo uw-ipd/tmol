@@ -6,7 +6,7 @@ Dock one ligand of a protein-ligand complex ``pose_stack`` (a single-pose
     from tmol.dock import GridBackend, GASchedule, run_docking
 
     backend = GridBackend.from_pose_stack(pose_stack, "LG1", param_db)
-    result = run_docking(pose_stack, backend, schedule=GASchedule(npool=100))
+    result = run_docking(pose_stack, backend, schedule=GASchedule())
     result.best_pose_stack, result.best_energies
 
 ``"LG1"`` is the ligand's residue name; a block index, or a boolean mask over the
