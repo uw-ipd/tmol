@@ -324,8 +324,14 @@ def test_fused_ljlk_elec_preserves_term_lanes_weights_and_gradients(
         fused.weights[ScoreType.fa_lk.value] = 1.25
         fused.weights[ScoreType.fa_elec.value] = 0.0
     weighted_lanes = fused(pose.coords, sum_terms=False, apply_weights=True)
-    torch.testing.assert_close(weighted_lanes, fused_lanes.detach() * fused.weights)
-    torch.testing.assert_close(fused(pose.coords), weighted_lanes.sum(dim=0))
+    # The weighted kernel accumulates in a different float32 order than
+    # weighting the unweighted lanes afterwards; match the lane tolerance above.
+    torch.testing.assert_close(
+        weighted_lanes, fused_lanes.detach() * fused.weights, atol=2e-5, rtol=2e-5
+    )
+    torch.testing.assert_close(
+        fused(pose.coords), weighted_lanes.sum(dim=0), atol=2e-5, rtol=2e-5
+    )
 
     # Compact weighted fusion intentionally has no weight backward. If callers
     # make the score-function weights trainable, retain the canonical lanes so
