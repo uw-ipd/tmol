@@ -10,15 +10,13 @@ import pandas
 import pytest
 import torch
 
-from tmol.chemical._restypes import RefinedResidueType
-from tmol.database import ParameterDatabase
-from tmol.score.backbone_torsion._bb_torsion_energy_term import (
-    BackboneTorsionEnergyTerm,
-    _invert_flag,
-)
+from tmol.chemical import RefinedResidueType
+from tmol import ParameterDatabase
+from tmol.score import BackboneTorsionEnergyTerm
+from tmol.score.backbone_torsion._bb_torsion_energy_term import _invert_flag
 from tmol.score.backbone_torsion._params import (
     BackboneTorsionParamResolver,
-    mirror_grid,
+    _mirror_grid,
 )
 
 
@@ -49,8 +47,8 @@ def block_type_params(term, param_db, name):
 def test_mirror_is_an_involution(param_db) -> None:
     for table in param_db.scoring.rama.rama_tables:
         raw = table.table.to(torch.float)
-        once = mirror_grid(raw, table.bbstart, table.bbstep)
-        twice = mirror_grid(once, table.bbstart, table.bbstep)
+        once = _mirror_grid(raw, table.bbstart, table.bbstep)
+        twice = _mirror_grid(once, table.bbstart, table.bbstep)
         assert torch.equal(twice, raw), table.table_id
 
 
@@ -66,8 +64,8 @@ def test_mirror_follows_the_grid_registration(param_db) -> None:
     assert rama.bbstart[0] != omega.bbstart[0]
 
     ramp = torch.arange(36, dtype=torch.float).expand(36, 36).clone()
-    rama_mirror = mirror_grid(ramp, rama.bbstart, rama.bbstep)
-    omega_mirror = mirror_grid(ramp, omega.bbstart, omega.bbstep)
+    rama_mirror = _mirror_grid(ramp, rama.bbstart, rama.bbstep)
+    omega_mirror = _mirror_grid(ramp, omega.bbstart, omega.bbstep)
     # rama sends bin k to -k, omega sends it to n-1-k
     assert rama_mirror[0, 0].item() == 0.0
     assert omega_mirror[0, 0].item() == 35.0
@@ -80,7 +78,7 @@ def test_symmetric_table_is_its_own_mirror(param_db) -> None:
         table = tables[table_id]
         raw = table.table.to(torch.float)
         assert torch.allclose(
-            mirror_grid(raw, table.bbstart, table.bbstep), raw, atol=1e-5
+            _mirror_grid(raw, table.bbstart, table.bbstep), raw, atol=1e-5
         )
 
 

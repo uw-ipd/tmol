@@ -4,7 +4,7 @@ import attr
 import numpy as np
 import pytest
 
-from tmol.ligand._polymer_profile import cap_residue, profile_for_atom_array
+from tmol.ligand._polymer_profile import _cap_residue, _profile_for_atom_array
 from tmol.tests.ligand.test_nonstandard_backbones import _residue, _connection_atoms
 
 
@@ -12,7 +12,7 @@ from tmol.tests.ligand.test_nonstandard_backbones import _residue, _connection_a
 def test_caps_preserve_retained_annotations_and_topology(code):
     if code == "5CM":
         import biotite.structure as struc
-        from tmol.io import atom_array_from_file
+        from tmol import atom_array_from_file
         from tmol.tests.data import data_path
 
         array = atom_array_from_file(data_path("ncaa_fixtures", "na_dna_5mc_1d17.cif"))
@@ -23,7 +23,7 @@ def test_caps_preserve_retained_annotations_and_topology(code):
     else:
         source = _residue(code).copy()
         connections = _connection_atoms(code)
-    profile = profile_for_atom_array(source, connections)
+    profile = _profile_for_atom_array(source, connections)
     source.set_annotation("source_index", np.arange(len(source)))
     source.set_annotation("charge", np.arange(len(source), dtype=np.int32) % 3 - 1)
     source.set_annotation(
@@ -37,8 +37,8 @@ def test_caps_preserve_retained_annotations_and_topology(code):
     ):
         source.set_annotation(field, np.full(len(source), value))
     before = source.copy()
-    capped, caps = cap_residue(source, profile)
-    topology, topology_caps = cap_residue(source, profile, include_coordinates=False)
+    capped, caps = _cap_residue(source, profile)
+    topology, topology_caps = _cap_residue(source, profile, include_coordinates=False)
     assert caps == topology_caps
     assert np.isnan(topology.coord).all()
     np.testing.assert_array_equal(topology.bonds.as_array(), capped.bonds.as_array())
@@ -68,14 +68,14 @@ def test_topology_only_caps_do_not_construct_frames(monkeypatch):
     import tmol.ligand._polymer_profile as module
 
     source = _residue("HYP").copy()
-    profile = profile_for_atom_array(source, _connection_atoms("HYP"))
+    profile = _profile_for_atom_array(source, _connection_atoms("HYP"))
     source.coord[:] = np.nan
 
     def fail(*args):
         raise AssertionError("Topology-only capping must not construct coordinates")
 
-    monkeypatch.setattr(module, "place_atom", fail)
-    capped, _ = cap_residue(source, profile, include_coordinates=False)
+    monkeypatch.setattr(module, "_place_atom", fail)
+    capped, _ = _cap_residue(source, profile, include_coordinates=False)
     assert np.isnan(capped.coord).all()
     assert capped.bonds.get_bond_count() > 0
     assert len(capped) > np.count_nonzero(source.element != "H")
@@ -83,7 +83,7 @@ def test_topology_only_caps_do_not_construct_frames(monkeypatch):
 
 def test_long_cap_names_are_not_truncated():
     source = _residue("HYP").copy()
-    profile = profile_for_atom_array(source, _connection_atoms("HYP"))
+    profile = _profile_for_atom_array(source, _connection_atoms("HYP"))
     rename = {c.name: "synthetic_cap_" + c.name for c in profile.caps}
     profile = attr.evolve(
         profile,
@@ -97,6 +97,6 @@ def test_long_cap_names_are_not_truncated():
             for cap in profile.caps
         ),
     )
-    capped, caps = cap_residue(source, profile)
+    capped, caps = _cap_residue(source, profile)
     assert set(caps.values()) <= set(capped.atom_name)
     assert np.isfinite(capped.coord).all()

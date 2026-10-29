@@ -2,7 +2,7 @@ import numpy
 import torch
 import pytest
 
-from tmol.types import Tensor
+from tmol.types._torch import Tensor
 
 validation_examples = [
     {

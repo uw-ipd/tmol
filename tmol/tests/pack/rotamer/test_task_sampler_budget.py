@@ -2,10 +2,13 @@
 
 import pytest
 
-from tmol.io import pose_stack_from_file
-from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-from tmol.pack.rotamer import NaChiRotamerSampler, OptHSampler
-from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
+from tmol import pose_stack_from_file, PackerPalette, PackerTask
+from tmol.pack import (
+    SetPackerTask,
+    NaChiRotamerSampler,
+    OptHSampler,
+    create_dunbrack_sampler_from_database,
+)
 from tmol.tests.pack.rotamer.test_na_chi_sampler import _pose_stack
 
 
@@ -95,7 +98,7 @@ def test_combined_task_limit_is_checked_before_merging(
     kind, ubq_pdb, default_database, torch_device, monkeypatch
 ):
     import importlib
-    from tmol.pack.rotamer import IncludeCurrentSampler, FixedAAChiSampler
+    from tmol.pack import IncludeCurrentSampler, FixedAAChiSampler
 
     builder = importlib.import_module("tmol.pack.rotamer._build_rotamers")
     pose = pose_stack_from_file(
@@ -120,7 +123,7 @@ def test_combined_task_limit_is_checked_before_merging(
         raise AssertionError("The aggregate limit must be checked before merging rows")
 
     with monkeypatch.context() as scoped:
-        scoped.setattr(builder, "merge_conformer_samples", premature_merge)
+        scoped.setattr(builder, "_merge_conformer_samples", premature_merge)
         with pytest.raises(ValueError, match="combined rotamers at pose 0 block 0"):
             builder.build_rotamers(
                 pose, SetPackerTask.from_packer_task(task), default_database.chemical
@@ -138,7 +141,7 @@ def test_combined_task_limit_is_checked_before_merging(
 def test_combined_limit_is_per_residue_and_pose(torch_device):
     from types import SimpleNamespace
     import torch
-    from tmol.pack.rotamer._chi_budget import check_task_sample_budget
+    from tmol.pack.rotamer._chi_budget import _check_task_sample_budget
     from tmol.tests.pack.rotamer.test_merge_sample_plan import samples_from_counts
 
     task = SimpleNamespace(
@@ -148,9 +151,9 @@ def test_combined_limit_is_per_residue_and_pose(torch_device):
         cons_bt_block=torch.tensor([0, 0, 2, 0, 0], device=torch_device),
     )
     samples = samples_from_counts([[2, 3, 4, 1, 1], [1, 0, 1, 1, 2]], torch_device)
-    check_task_sample_budget(task, samples)
+    _check_task_sample_budget(task, samples)
     task.chi_sample_budget = (5, 5)
     with pytest.raises(ValueError, match="6 combined rotamers at pose 0 block 0"):
-        check_task_sample_budget(task, samples)
+        _check_task_sample_budget(task, samples)
     task.chi_sample_budget = None
-    check_task_sample_budget(task, samples)
+    _check_task_sample_budget(task, samples)

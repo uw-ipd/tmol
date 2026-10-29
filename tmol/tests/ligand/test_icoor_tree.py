@@ -6,10 +6,10 @@ import pytest
 from atomworks.experimental.protonation.geometry import build_coordinates
 
 from tmol.ligand._icoor_tree import (
-    build_atom_tree,
-    find_root_atom,
-    icoor_geometry_from_coords,
-    signed_dihedral_angle,
+    _build_atom_tree,
+    _find_root_atom,
+    _icoor_geometry_from_coords,
+    _signed_dihedral_angle,
 )
 
 
@@ -18,10 +18,10 @@ def test_a_structure_survives_the_internal_coordinate_round_trip(res_name):
     atoms = info.residue(res_name)
     bonds = [(int(i), int(j)) for i, j, _ in atoms.bonds.as_array()]
     heavy = atoms.element != "H"
-    order, parent, grandparents = build_atom_tree(
-        len(atoms), bonds, heavy, find_root_atom(atoms.coord, bonds, heavy)
+    order, parent, grandparents = _build_atom_tree(
+        len(atoms), bonds, heavy, _find_root_atom(atoms.coord, bonds, heavy)
     )
-    geometry = icoor_geometry_from_coords(atoms.coord, order, parent, grandparents)
+    geometry = _icoor_geometry_from_coords(atoms.coord, order, parent, grandparents)
 
     rebuilt = np.full_like(atoms.coord, np.nan, dtype=np.float64)
     rebuilt[order[:3]] = atoms.coord[order[:3]]
@@ -39,8 +39,8 @@ def test_signed_dihedral_angle_is_the_negated_iupac_dihedral():
     square = [
         np.array(p, dtype=float) for p in ([1, 0, 0], [0, 0, 0], [0, 1, 0], [0, 1, 1])
     ]
-    assert signed_dihedral_angle(*square) == pytest.approx(np.pi / 2)
-    assert signed_dihedral_angle(*square[::-1]) == pytest.approx(np.pi / 2)
-    assert signed_dihedral_angle(*(p * [1, 1, -1] for p in square)) == pytest.approx(
+    assert _signed_dihedral_angle(*square) == pytest.approx(np.pi / 2)
+    assert _signed_dihedral_angle(*square[::-1]) == pytest.approx(np.pi / 2)
+    assert _signed_dihedral_angle(*(p * [1, 1, -1] for p in square)) == pytest.approx(
         -np.pi / 2
     )

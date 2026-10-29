@@ -1,11 +1,11 @@
 Score Terms
 ===========
 
-TMol score functions combine weighted :class:`tmol.score.ScoreType`
-values. A :class:`tmol.score.ScoreFunction` activates the energy
+TMol score functions combine weighted :class:`tmol.ScoreType`
+values. A :class:`tmol.ScoreFunction` activates the energy
 term implementation associated with each non-zero weight, then renders a
 whole-pose, block-pair, or rotamer scoring module for a particular
-:class:`tmol.pose.PoseStack`.
+:class:`tmol.PoseStack`.
 
 Score-type map
 --------------
@@ -18,44 +18,44 @@ Score-type map
      - Energy-term class
      - Quantity represented
    * - ``fa_ljatr``, ``fa_ljrep``, ``fa_lk``
-     - :class:`~tmol.score.ljlk.LJLKEnergyTerm`
+     - :class:`~tmol.score.LJLKEnergyTerm`
      - Attractive and repulsive Lennard-Jones interactions and isotropic
        Lazaridis-Karplus solvation.
    * - ``fa_elec``
-     - :class:`~tmol.score.elec.ElecEnergyTerm`
+     - :class:`~tmol.score.ElecEnergyTerm`
      - Distance-dependent full-atom electrostatics.
    * - ``hbond``
-     - :class:`~tmol.score.hbond.HBondEnergyTerm`
+     - :class:`~tmol.score.HBondEnergyTerm`
      - Orientation-dependent hydrogen-bond interactions.
    * - ``cart_lengths``, ``cart_angles``, ``cart_torsions``,
        ``cart_impropers``, ``cart_hxltorsions``
-     - :class:`~tmol.score.cartbonded.CartBondedEnergyTerm`
+     - :class:`~tmol.score.CartBondedEnergyTerm`
      - Bonded geometry used by Cartesian scoring and minimization.
    * - ``constraint``
-     - :class:`~tmol.score.constraint.ConstraintEnergyTerm`
+     - :class:`~tmol.score.ConstraintEnergyTerm`
      - Harmonic distance, bounded distance, harmonic coordinate, and
        circular-harmonic torsion constraints attached through
-       :class:`tmol.pose.ConstraintSet`.
+       :class:`tmol.ConstraintSet`.
    * - ``disulfide``
-     - :class:`~tmol.score.disulfide.DisulfideEnergyTerm`
+     - :class:`~tmol.score.DisulfideEnergyTerm`
      - Geometry of disulfide-linked cysteine pairs.
    * - ``omega``, ``rama``
-     - :class:`~tmol.score.backbone_torsion.BackboneTorsionEnergyTerm`
+     - :class:`~tmol.score.BackboneTorsionEnergyTerm`
      - Backbone-dependent peptide omega and Ramachandran torsion preferences.
    * - ``dunbrack_rot``, ``dunbrack_rotdev``, ``dunbrack_semirot``
-     - :class:`~tmol.score.dunbrack.DunbrackEnergyTerm`
+     - :class:`~tmol.score.DunbrackEnergyTerm`
      - Backbone-dependent amino-acid rotamer probabilities and deviations.
    * - ``lk_ball_iso``, ``lk_ball``, ``lk_bridge``, ``lk_bridge_uncpl``
-     - :class:`~tmol.score.lk_ball.LKBallEnergyTerm`
+     - :class:`~tmol.score.LKBallEnergyTerm`
      - Directional water-mediated solvation and bridging terms.
    * - ``ref``
-     - :class:`~tmol.score.ref.RefEnergyTerm`
+     - :class:`~tmol.score.RefEnergyTerm`
      - Per-residue-type reference energies.
    * - ``gen_torsions``
-     - :class:`~tmol.score.genbonded.GenBondedEnergyTerm`
+     - :class:`~tmol.score.GenBondedEnergyTerm`
      - Generic bonded torsions, including ligand torsional parameters.
    * - ``na_torsion``, ``na_torsion_well``
-     - :class:`~tmol.score.na_torsion.NaTorsionEnergyTerm`
+     - :class:`~tmol.score.NaTorsionEnergyTerm`
      - DNA/RNA backbone, glycosidic-chi, sugar, coupling, and rotamer-well
        preferences with polymer-specific parameters.
 
@@ -65,102 +65,70 @@ allocation; it is not a score component.
 Non-bonded and solvation terms
 ------------------------------
 
-.. autoclass:: tmol.score.ljlk.LJLKEnergyTerm
+.. autoclass:: tmol.score.LJLKEnergyTerm
    :show-inheritance:
 
-.. autoclass:: tmol.score.elec.ElecEnergyTerm
+.. autoclass:: tmol.score.ElecEnergyTerm
    :show-inheritance:
 
-.. autoclass:: tmol.score.hbond.HBondEnergyTerm
+.. autoclass:: tmol.score.HBondEnergyTerm
    :show-inheritance:
 
-.. autoclass:: tmol.score.lk_ball.LKBallEnergyTerm
+.. autoclass:: tmol.score.LKBallEnergyTerm
    :show-inheritance:
 
 Bonded, torsional, and reference terms
 --------------------------------------
 
-.. autoclass:: tmol.score.cartbonded.CartBondedEnergyTerm
+.. autoclass:: tmol.score.CartBondedEnergyTerm
    :show-inheritance:
 
-.. autoclass:: tmol.score.genbonded.GenBondedEnergyTerm
+.. autoclass:: tmol.score.GenBondedEnergyTerm
    :show-inheritance:
 
-.. autoclass:: tmol.score.disulfide.DisulfideEnergyTerm
+.. autoclass:: tmol.score.DisulfideEnergyTerm
    :show-inheritance:
 
-.. autoclass:: tmol.score.backbone_torsion.BackboneTorsionEnergyTerm
+.. autoclass:: tmol.score.BackboneTorsionEnergyTerm
    :show-inheritance:
 
-.. autoclass:: tmol.score.dunbrack.DunbrackEnergyTerm
+.. autoclass:: tmol.score.DunbrackEnergyTerm
    :show-inheritance:
 
-.. autoclass:: tmol.score.ref.RefEnergyTerm
+.. autoclass:: tmol.score.RefEnergyTerm
    :show-inheritance:
 
 Nucleic-acid term
 -----------------
 
-.. autoclass:: tmol.score.na_torsion.NaTorsionEnergyTerm
+.. autoclass:: tmol.score.NaTorsionEnergyTerm
    :show-inheritance:
+
+The :mod:`tmol.score.na_torsion` package exports the sugar-pucker helpers and
+fitted-model constants below for lower-level analysis and extension work.
 
 .. automodule:: tmol.score.na_torsion
    :members:
    :imported-members:
-   :exclude-members: NaTorsionEnergyTerm
    :show-inheritance:
-
-The public parameter aliases and fitted-model constants are also available
-for lower-level analysis and extension work.
-
-.. hlist::
-   :columns: 3
-
-   * ``BACKBONE_TORSIONS``
-   * ``BASES``
-   * ``BASE_FOR_NAME3``
-   * ``CHI``
-   * ``CHI_TORSION``
-   * ``DELTA``
-   * ``NORTH_PUCKERS``
-   * ``NaTorsionParams``
-   * ``POLYMERS``
-   * ``REQUIRED_TORSIONS``
-   * ``SUGAR_TORSIONS``
-   * ``SYN_MEAN``
-   * ``SYN_RANGE``
-   * ``TORSION_NAMES``
-   * ``eval_na_torsion_for_pose``
 
 Constraints
 -----------
 
-.. autoclass:: tmol.score.constraint.ConstraintEnergyTerm
+.. autoclass:: tmol.score.ConstraintEnergyTerm
    :show-inheritance:
 
-.. automodule:: tmol.score.constraint
-   :members:
-   :imported-members:
-   :exclude-members: ConstraintEnergyTerm
-   :show-inheritance:
+.. autofunction:: tmol.score.constrain_all_ca
 
-.. currentmodule:: tmol.score.constraint
-
-.. autosummary::
-   :nosignatures:
-
-   MCAtomIndices
-   constrain_all_ca
-   create_mainchain_coordinate_constraints
+.. autofunction:: tmol.score.create_mainchain_coordinate_constraints
 
 Score-term construction
 -----------------------
 
-The creator classes below are the public extension surface used by
-:class:`tmol.score.terms.ScoreTermFactory`. Most applications should configure
-a :class:`tmol.score.ScoreFunction` rather than instantiate creators directly.
+:class:`tmol.score.ScoreTermFactory` constructs the energy term associated with
+each score type. Most applications should configure a
+:class:`tmol.ScoreFunction` rather than use the factory directly.
 
-.. automodule:: tmol.score.terms
+.. autoclass:: tmol.score.ScoreTermFactory
    :members:
-   :imported-members:
    :show-inheritance:

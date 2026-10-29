@@ -1,4 +1,4 @@
 """Distance-dependent electrostatic scoring."""
 
-from ._params import ElecGlobalParams, ElecParamResolver  # noqa: F401
-from ._elec_energy_term import ElecEnergyTerm  # noqa: F401
+from . import _params  # noqa: F401
+from . import _elec_energy_term  # noqa: F401

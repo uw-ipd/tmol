@@ -3,7 +3,7 @@
 import torch
 
 
-def torch_cuda_array_interface(tensor):
+def _torch_cuda_array_interface(tensor):
     """__cuda_array_interface__ getter implementation for torch.Tensor."""
 
     if not tensor.device.type == "cuda":
@@ -38,4 +38,4 @@ def torch_cuda_array_interface(tensor):
     return dict(typestr=typestr, shape=shape, strides=strides, data=data, version=0)
 
 
-torch.Tensor.__cuda_array_interface__ = property(torch_cuda_array_interface)
+torch.Tensor.__cuda_array_interface__ = property(_torch_cuda_array_interface)

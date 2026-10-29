@@ -2,8 +2,7 @@ import numpy
 import pytest
 import torch
 import attrs
-from tmol.io import pose_stack_from_file
-from tmol.pose import PoseStackBuilder
+from tmol import pose_stack_from_file, PoseStackBuilder
 
 
 def test_n_poses(ubq_40_60_pose_stack):

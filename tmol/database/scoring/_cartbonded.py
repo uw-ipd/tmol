@@ -1,6 +1,6 @@
 import attr
 import cattr
-from tmol.database._yaml import load_yaml, existing_paths
+from tmol.database._yaml import _load_yaml, _existing_paths
 import json
 import hashlib
 
@@ -95,9 +95,9 @@ class CartBondedDatabase:
 
     @classmethod
     def from_file(cls, path, generated=()):
-        resparam_dict = load_yaml(path)
-        for extra in existing_paths(generated):
-            extension = load_yaml(extra)
+        resparam_dict = _load_yaml(path)
+        for extra in _existing_paths(generated):
+            extension = _load_yaml(extra)
             resparam_dict["residue_params"].update(extension.get("residue_params", {}))
             if extension.get("connection_params"):
                 resparam_dict.setdefault("connection_params", []).extend(

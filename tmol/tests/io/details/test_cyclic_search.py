@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 import torch
 
-from tmol.io.details._cyclic_search import find_cyclic_closures
+from tmol.io.details._cyclic_search import _find_cyclic_closures
 
 
 def inputs(device):
@@ -28,7 +28,7 @@ def inputs(device):
 
 def test_closes_each_polymer_before_trailing_ligand(torch_device):
     args = inputs(torch_device)
-    result = find_cyclic_closures(*args)
+    result = _find_cyclic_closures(*args)
     torch.testing.assert_close(
         result, torch.tensor([[0, 2, 0], [1, 2, 0]], device=torch_device)
     )
@@ -45,14 +45,14 @@ def test_does_not_infer_invalid_closures(change, torch_device):
         chain[:, 2] = 1
     else:
         types[:, 1:3] = 1
-    assert find_cyclic_closures(co, chain, types, coords).shape == (0, 3)
+    assert _find_cyclic_closures(co, chain, types, coords).shape == (0, 3)
 
 
 def test_explicit_rows_survive_disable_and_are_not_duplicated(torch_device):
     args = inputs(torch_device)
     explicit = torch.tensor([[0, 2, 0]], device=torch_device)
-    assert find_cyclic_closures(*args, explicit, False) is explicit
-    result = find_cyclic_closures(*args, explicit)
+    assert _find_cyclic_closures(*args, explicit, False) is explicit
+    result = _find_cyclic_closures(*args, explicit)
     torch.testing.assert_close(
         result, torch.tensor([[0, 2, 0], [1, 2, 0]], device=torch_device)
     )
@@ -60,6 +60,6 @@ def test_explicit_rows_survive_disable_and_are_not_duplicated(torch_device):
 
 def test_empty_batch(torch_device):
     co, chain, types, coords = inputs(torch_device)
-    assert find_cyclic_closures(
+    assert _find_cyclic_closures(
         co, chain[:, :0], types[:, :0], coords[:, :0]
     ).shape == (0, 3)

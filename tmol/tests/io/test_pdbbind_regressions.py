@@ -5,11 +5,7 @@ import pytest
 import torch
 import zstandard
 
-from tmol.io import (
-    atom_array_from_file,
-    file_from_atom_array,
-    pose_stack_from_atom_array,
-)
+from tmol import atom_array_from_file, file_from_atom_array, pose_stack_from_atom_array
 from tmol.tests.data import data_path
 
 
@@ -49,14 +45,14 @@ def test_sdf_ligand_reads_like_its_mol2(tmp_path):
 def test_sdf_ligand_writes_params_like_its_mol2(tmp_path):
     """Parameters are written from 3GE7's SDF as from its MOL2: one residue with
     the MOL2's heavy atoms and net charge."""
-    from tmol.ligand._detect import nonstandard_residue_info_from_file
+    from tmol.ligand._detect import _nonstandard_residue_info_from_file
     from tmol.ligand import write_params_from_mol2
 
     infos = []
     for ext in ("mol2", "sdf"):
         path = _unpacked(tmp_path, f"cyclic_acylguanidinium_3ge7.{ext}.zst")
         write_params_from_mol2(path, tmp_path / f"{ext}.tmol", res_name="AFQ")
-        infos.append(nonstandard_residue_info_from_file(path, res_name="AFQ"))
+        infos.append(_nonstandard_residue_info_from_file(path, res_name="AFQ"))
         assert "AFQ" in (tmp_path / f"{ext}.tmol").read_text()
     mol2, sdf = (info.atom_array for info in infos)
     assert sorted(sdf.element[sdf.element != "H"]) == sorted(
@@ -70,7 +66,7 @@ def test_a_carboxyl_written_with_single_bonds_reads_as_a_carboxylate(tmp_path):
     bonds to O and OXT; the planar group is a carboxylate, not a geminal diol."""
     from rdkit import Chem
 
-    from tmol.ligand._structure_to_smiles import ligand_smiles_from_atom_array
+    from tmol.ligand import ligand_smiles_from_atom_array
 
     ligand = atom_array_from_file(
         _unpacked(tmp_path, "single_bonded_carboxyl_2xej.mol2.zst")

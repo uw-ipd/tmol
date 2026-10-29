@@ -3,7 +3,7 @@
 import attr
 
 from tmol.pack.rotamer._conformer_sampler import ConformerSampler
-from tmol.pack.rotamer._conjugated_groups import add_conjugated_group_sampler
+from tmol.pack.rotamer._conjugated_groups import _add_conjugated_group_sampler
 from tmol.pack.rotamer._fixed_aa_chi_sampler import FixedAAChiSampler
 
 
@@ -27,7 +27,9 @@ class SidechainSampler:
     @classmethod
     def from_database(cls, database, device) -> "SidechainSampler":
         """Bundle the rotamer-library and fixed-chi samplers for ``database``."""
-        from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
+        from tmol.pack.rotamer.dunbrack._dunbrack_chi_sampler import (
+            create_dunbrack_sampler_from_database,
+        )
 
         return cls(
             (
@@ -65,4 +67,4 @@ class ConjugatedSCSampler:
         """Register the side-chain bundle, then group conjugated residues."""
         self.sidechain.expand_into_task(task)
         # Runs after the bundle so the group sampler can find the library.
-        add_conjugated_group_sampler(task, task.pose_stack)
+        _add_conjugated_group_sampler(task, task.pose_stack)

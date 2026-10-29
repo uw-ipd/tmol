@@ -2,17 +2,14 @@ import attr
 import torch
 import numpy
 
-from tmol.types import Tensor
-from tmol.pose import (
-    DEFAULT_ATOM_B_FACTOR,
-    DEFAULT_ATOM_OCCUPANCY,
-    PoseStack,
-)
-from tmol.pack.rotamer import RotamerSet
-from tmol.utility import exclusive_cumsum2d_w_totals
+from tmol.types._torch import Tensor
+from tmol.pose._pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
+from tmol.pose._pose_stack import PoseStack
+from tmol.pack.rotamer._rotamer_set import RotamerSet
+from tmol.utility._cumsum import _exclusive_cumsum2d_w_totals
 
 
-def chosen_rotamer_for_block(
+def _chosen_rotamer_for_block(
     orig_pose_stack,
     rotamer_for_nonmolten_block,
     n_molten_blocks_per_pose,
@@ -46,7 +43,7 @@ def chosen_rotamer_for_block(
     return assignment
 
 
-def impose_top_rotamer_assignments(
+def _impose_top_rotamer_assignments(
     orig_pose_stack: PoseStack,
     rotamer_set: RotamerSet,
     rotamer_for_nonmolten_block: Tensor[torch.int64][:, :],
@@ -79,7 +76,7 @@ def impose_top_rotamer_assignments(
     max_n_atoms_per_block = orig_pose_stack.max_n_atoms
     bc_assignment = bc_assignment[:, 0, :]
 
-    assignment = chosen_rotamer_for_block(
+    assignment = _chosen_rotamer_for_block(
         orig_pose_stack,
         rotamer_for_nonmolten_block,
         n_molten_blocks_per_pose,
@@ -111,7 +108,7 @@ def impose_top_rotamer_assignments(
 
     if any_block_types_changed:
         # get the per-pose offset for each block w/ exclusive cumsum on n-atoms-per-block
-        new_n_atoms_offset32, new_n_pose_atoms = exclusive_cumsum2d_w_totals(
+        new_n_atoms_offset32, new_n_pose_atoms = _exclusive_cumsum2d_w_totals(
             new_n_atoms_per_block32
         )
         new_n_atoms_offset64 = new_n_atoms_offset32.to(torch.int64)

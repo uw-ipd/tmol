@@ -4,20 +4,17 @@ import numpy
 
 import torch
 
-from tmol import PoseStack, PackedBlockTypes, pose_stack_from_canonical_form
-from tmol.io._canonical_ordering import _canonical_form_from_pdb
-from tmol.io import (
-    default_canonical_ordering,
-    default_packed_block_types,
+from tmol import PoseStack, PackedBlockTypes
+from tmol.io._pose_stack_construction import _pose_stack_from_canonical_form
+from tmol.io._canonical_ordering import (
+    _canonical_form_from_pdb,
+    _default_canonical_ordering,
+    _default_packed_block_types,
 )
-from tmol.types import Tensor
+from tmol.types._torch import Tensor
 
-from tmol.kinematics import (
-    FoldForest,
-    EdgeType,
-    PoseStackKinematicsModule,
-    inverseKin,
-)
+from tmol import FoldForest, EdgeType
+from tmol.kinematics import PoseStackKinematicsModule, inverseKin
 
 from tmol.tests import requires_cuda
 
@@ -78,12 +75,12 @@ def coord_weights(torch_device):
 def pose_stack_system1(
     ubq_pdb: str, torch_device: torch.device
 ) -> typing.Tuple[PoseStack, FoldForest]:
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
+    co = _default_canonical_ordering()
+    pbt = _default_packed_block_types(torch_device)
     canonical_form = _canonical_form_from_pdb(
         co, ubq_pdb, torch_device, residue_start=0, residue_end=2
     )
-    pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
+    pose_stack = _pose_stack_from_canonical_form(co, pbt, *canonical_form)
     # ff_roots = numpy.full((1,), 0, dtype=int)  # residue 0 is the root
     ff_n_edges = numpy.full(
         (1,), 1, dtype=int
@@ -130,12 +127,12 @@ def pose_stack_gradcheck_test_system1(
 def pose_stack_system2(
     ubq_pdb: str, torch_device: torch.device
 ) -> typing.Tuple[PoseStack, FoldForest]:
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
+    co = _default_canonical_ordering()
+    pbt = _default_packed_block_types(torch_device)
     canonical_form = _canonical_form_from_pdb(
         co, ubq_pdb, torch_device, residue_start=0, residue_end=6
     )
-    pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
+    pose_stack = _pose_stack_from_canonical_form(co, pbt, *canonical_form)
 
     # capital letter H fold forest
     # "*" designates the root-jump residue
@@ -362,11 +359,14 @@ def test_pose_stack_kinematics_op_device(pose_stack_system1, torch_device):
 def test_forward_with_ht_and_kin_deriv_match_autograd(
     pose_stack_gradcheck_test_system1,
 ):
-    from tmol.kinematics.compiled import forward_with_ht_op, kin_deriv_op
+    from tmol.kinematics.compiled._compiled_ops import (
+        _forward_with_ht_op,
+        _kin_deriv_op,
+    )
 
     _, module, _, kin_dofs = pose_stack_gradcheck_test_system1
     dofs = kin_dofs.raw
-    coords, hts = forward_with_ht_op(
+    coords, hts = _forward_with_ht_op(
         dofs, module.nodes_f, module.scans_f, module.gens_f, module.kinforest
     )
     torch.testing.assert_close(coords, module(dofs))
@@ -376,7 +376,7 @@ def test_forward_with_ht_and_kin_deriv_match_autograd(
     ).to(coords.device)
     tracked = dofs.clone().requires_grad_(True)
     (expected,) = torch.autograd.grad((module(tracked) * weights).sum(), tracked)
-    actual = kin_deriv_op(
+    actual = _kin_deriv_op(
         weights,
         hts,
         dofs,

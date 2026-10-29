@@ -7,13 +7,11 @@ from collections import defaultdict
 import scipy.sparse as sparse
 import scipy.sparse.csgraph as csgraph
 
-from tmol.types import (
-    NDArray,
-    Tensor,
-    ValidateAttrs,
-    validate_args,
-)
-from tmol.pose import PoseStack
+from tmol.types._array import NDArray
+from tmol.types._torch import Tensor
+from tmol.types._attrs import ValidateAttrs
+from tmol.types._functional import _validate_args
+from tmol.pose._pose_stack import PoseStack
 
 from ._datatypes import (
     NodeType,
@@ -25,7 +23,7 @@ from ._datatypes import (
 )
 
 
-def get_children(parents):
+def _get_children(parents):
     nelts = parents.shape[0]
 
     # Pass 1, count number of children for each parent.
@@ -74,7 +72,7 @@ def get_children(parents):
 #    genStarts - an N x 2 array giving indices where each gen begins
 #         genStarts[:,0] indexes nodes
 #         genStarts[:,1] indexes scanStarts
-def get_scans(parents, roots):
+def _get_scans(parents, roots):
     """Partitioning of a tree into linear subpaths.
 
     The tree is stored as a list of pointers to parent indices, with an
@@ -102,7 +100,7 @@ def get_scans(parents, roots):
     """
 
     nelts = parents.shape[0]
-    n_descendents, child_list_span, child_list = get_children(parents)
+    n_descendents, child_list_span, child_list = _get_children(parents)
 
     # scan storage - allocate upper bound for 4-connected graph
     # scan indices are emitted as a 1D array of nodes ('scans') with:
@@ -256,7 +254,7 @@ class KinForestScanOrdering(ValidateAttrs):
     backward_scan_paths: KinForestScanData
 
     @classmethod
-    @validate_args
+    @_validate_args
     def for_kinforest(cls, kinforest):
         """Calculate and cache refold ordering over kinforest
 
@@ -276,13 +274,13 @@ class KinForestScanOrdering(ValidateAttrs):
         return getattr(kinforest, cls.kinforest_cache_key)
 
     @classmethod
-    @validate_args
+    @_validate_args
     def calculate_from_kinforest(cls, kinforest: KinForest):
         """Setup for operations over KinForest.
         ``device`` is inferred from kinforest tensor device.
         """
 
-        nodes, scanStarts, genStarts = get_scans(
+        nodes, scanStarts, genStarts = _get_scans(
             kinforest.parent.cpu().numpy(), numpy.array([0])
         )
         forward_scan_paths = KinForestScanData(
@@ -329,8 +327,8 @@ class KinForestScanOrdering(ValidateAttrs):
         )
 
 
-@validate_args
-def construct_kin_module_data_for_pose(
+@_validate_args
+def _construct_kin_module_data_for_pose(
     pose_stack: PoseStack,
     fold_forest_edges: Tensor[torch.int32][:, :, 4],
 ):
@@ -343,15 +341,15 @@ def construct_kin_module_data_for_pose(
     Returns:
         Immutable topology and traversal data for forward and backward scans.
     """
-    from tmol.kinematics.compiled import (
-        calculate_ff_edge_delays,
-        get_children,
-        get_block_parent_connectivity_from_toposort,
-        get_id_and_frame_xyz,
-        get_jump_atom_indices,
-        get_kinforest_scans_from_stencils2,
-        get_kfo_indices_for_atoms,
-        get_kfo_atom_parents,
+    from tmol.kinematics.compiled._compiled_ops import (
+        _calculate_ff_edge_delays,
+        _get_children_op,
+        _get_block_parent_connectivity_from_toposort,
+        _get_id_and_frame_xyz,
+        _get_jump_atom_indices,
+        _get_kinforest_scans_from_stencils2,
+        _get_kfo_indices_for_atoms,
+        _get_kfo_atom_parents,
     )
 
     device = pose_stack.device
@@ -363,7 +361,7 @@ def construct_kin_module_data_for_pose(
     ff_edges_device = fold_forest_edges.to(device)
 
     cpu = torch.device("cpu")
-    result = calculate_ff_edge_delays(
+    result = _calculate_ff_edge_delays(
         pose_stack.block_coord_offset,
         pose_stack.block_type_ind,
         ff_edges_cpu,
@@ -389,11 +387,11 @@ def construct_kin_module_data_for_pose(
         toposort_index_for_edge,
     ) = tuple(x.to(device) for x in result)
 
-    pose_stack_atom_for_jump, pose_stack_atom_for_root_jump = get_jump_atom_indices(
+    pose_stack_atom_for_jump, pose_stack_atom_for_root_jump = _get_jump_atom_indices(
         ff_edges_device, pose_stack.block_type_ind, pbt_gssps.jump_atom
     )
 
-    pose_stack_block_in_and_first_out = get_block_parent_connectivity_from_toposort(
+    pose_stack_block_in_and_first_out = _get_block_parent_connectivity_from_toposort(
         pose_stack.block_type_ind,
         pose_stack.inter_residue_connections,
         pose_stack_ff_parent,
@@ -408,14 +406,14 @@ def construct_kin_module_data_for_pose(
         pbt.polymeric_conn_inds,
     )
 
-    block_kfo_offset, kfo_2_orig_mapping, atom_kfo_index = get_kfo_indices_for_atoms(
+    block_kfo_offset, kfo_2_orig_mapping, atom_kfo_index = _get_kfo_indices_for_atoms(
         pose_stack.block_coord_offset,
         pose_stack.block_type_ind,
         pbt.n_atoms,
         pbt.atom_is_real,
     )
 
-    kfo_atom_parents, kfo_atom_grandparents = get_kfo_atom_parents(
+    kfo_atom_parents, kfo_atom_grandparents = _get_kfo_atom_parents(
         pose_stack.block_type_ind,
         pose_stack.inter_residue_connections,
         pose_stack_ff_parent,
@@ -428,7 +426,7 @@ def construct_kin_module_data_for_pose(
         pbt.conn_atom,
     )
 
-    n_children, child_list_span, child_list, is_atom_jump = get_children(
+    n_children, child_list_span, child_list, is_atom_jump = _get_children_op(
         pose_stack.block_type_ind,
         pose_stack_block_in_and_first_out,
         kfo_2_orig_mapping,
@@ -436,7 +434,7 @@ def construct_kin_module_data_for_pose(
         pbt.n_conn,
     )
 
-    id, frame_x, frame_y, frame_z, keep_atom_fixed = get_id_and_frame_xyz(
+    id, frame_x, frame_y, frame_z, keep_atom_fixed = _get_id_and_frame_xyz(
         pose_stack.coords.shape[1],
         pose_stack.block_coord_offset,
         kfo_2_orig_mapping,
@@ -447,7 +445,7 @@ def construct_kin_module_data_for_pose(
     )
 
     nodes_fw, scans_fw, gens_fw, nodes_bw, scans_bw, gens_bw = (
-        get_kinforest_scans_from_stencils2(
+        _get_kinforest_scans_from_stencils2(
             pose_stack.max_n_atoms,
             pose_stack.block_coord_offset,
             pose_stack.block_type_ind,
@@ -1106,7 +1104,7 @@ def _tree_bond_indices(bt):
     return edges
 
 
-def block_group_kinforest_data(block_types, links, anchor: int = 0):
+def _block_group_kinforest_data(block_types, links, anchor: int = 0):
     """Spanning tree over a group of blocks joined by inter-block bonds.
 
     The single-block case of annotate_block_type_with_residue_kinforest_data,
@@ -1179,7 +1177,7 @@ def block_group_kinforest_data(block_types, links, anchor: int = 0):
     )
 
 
-def annotate_block_type_with_residue_kinforest_data(bt):
+def _annotate_block_type_with_residue_kinforest_data(bt):
     """Annotate a block type with the single-residue kinforest spanning tree,
     rooted at its default jump connection atom (CA for amino acids, O for water).
 
@@ -1244,7 +1242,7 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):  # noqa: C901
 
     # Compute (and cache) the MST and jump-rooted BFS once, reused below for
     # the i >= n_conn input types and by construct_single_residue_kinforest.
-    annotate_block_type_with_residue_kinforest_data(bt)
+    _annotate_block_type_with_residue_kinforest_data(bt)
     bond_graph_spanning_tree = bt._bond_graph_mst
 
     # As we are iterating across atoms, we need to keep track of which atoms

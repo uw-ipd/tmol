@@ -13,8 +13,8 @@ from tmol.tests.ligand._params_reference import BOND_TOKEN_TO_TYPE
 from tmol.ligand import (
     prepare_single_ligand,
     nonstandard_residue_info_from_smiles_via_mol2,
-    LigandPreparation,
 )
+from tmol.ligand._registry import LigandPreparation
 
 
 def prepare_seed_entry(entry) -> LigandPreparation:

@@ -1,9 +1,8 @@
 import numpy
 import torch
 
-from tmol.io import pose_stack_from_file
-from tmol.score.elec import ElecEnergyTerm
-from tmol.pose import PackedBlockTypes
+from tmol import pose_stack_from_file, PackedBlockTypes
+from tmol.score import ElecEnergyTerm
 
 from tmol.tests.score.common import EnergyTermTestBase
 

@@ -40,7 +40,7 @@ _setup_done = False
 # ---------------------------------------------------------------------------
 
 
-def setup() -> None:
+def _setup() -> None:
     """Discover pip-installed CUDA toolkit and configure the environment.
 
     Safe to call multiple times (idempotent after the first call).
@@ -87,7 +87,7 @@ def setup() -> None:
     _ensure_cu12_compat_symlink(cuda_home)
 
 
-def get_cccl_include() -> str | None:
+def _get_cccl_include() -> str | None:
     """Return the CCCL include directory, or *None* if not found.
 
     The ``nvidia-cuda-cccl`` pip package installs headers (``nv/target``,

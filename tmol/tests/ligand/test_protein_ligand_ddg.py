@@ -124,9 +124,9 @@ def _ligand_block_mask(pose_stack, torch_device: torch.device) -> torch.Tensor:
 
 
 def _weighted_ddg_from_fixtures(target: str, torch_device: torch.device) -> float:
-    from tmol.database import ParameterDatabase
-    from tmol.io import pose_stack_from_atom_array
-    from tmol.score import beta2016_score_function
+    from tmol import ParameterDatabase
+    from tmol import pose_stack_from_atom_array
+    from tmol import beta2016_score_function
     from tmol.ops import calculate_block_pair_ddg
 
     tmol_path = PLI_DATA_DIR / f"{target}.xtal-lig.mmff94.tmol"

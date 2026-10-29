@@ -6,9 +6,8 @@ import attr
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_file
-from tmol.pose import PackedBlockTypes, PoseStackBuilder
-from tmol.score.dunbrack import DunbrackEnergyTerm
+from tmol import pose_stack_from_file, PackedBlockTypes, PoseStackBuilder
+from tmol.score import DunbrackEnergyTerm
 
 
 def fresh_pose(pose):

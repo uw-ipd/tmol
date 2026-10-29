@@ -11,51 +11,43 @@ import biotite.structure
 import logging
 import warnings
 
-from tmol.types import validate_args
+from tmol.types._functional import _validate_args
 from tmol.chemical import ResidueTypeSet
-from tmol.chemical import BondType as ChemBondType
-from tmol.chemical import chemical_bond_orders
+from tmol.chemical._restypes import BondType as ChemBondType
+from tmol.chemical._bond_orders import _chemical_bond_orders
 from tmol.database import ParameterDatabase
-from tmol.database.chemical import metal_table, site_connections
+from tmol.database.chemical import _metal_table, _site_connections
 from tmol.io._atomworks_reader import (
     INFERRED_POLYMER_BOND,
-    renumbered_decreasing_chains,
+    _renumbered_decreasing_chains,
 )
-from tmol.io._input_geometry import rebuild_coincident_hydrogens
-from tmol.io.details._select_from_canonical import validate_ligand_hydrogens
+from tmol.io._input_geometry import _rebuild_coincident_hydrogens
+from tmol.io.details._select_from_canonical import _validate_ligand_hydrogens
 from tmol.io._input_termini import (
     EXPLICIT_TERMINI,
-    validate_connection_hydrogens,
-    with_stated_termini,
+    _validate_connection_hydrogens,
+    _with_stated_termini,
 )
-from tmol.io._canonical_ordering import _only_coordinates_a_metal
+from tmol.io._canonical_ordering import _only_coordinates_a_metal, CanonicalOrdering
 from tmol.io._protonation import (
     PROTONATION_VARIANT,
-    database_forms,
-    residues_lacking_hydrogens,
-    with_atomworks_hydrogens,
+    _database_forms,
+    _residues_lacking_hydrogens,
+    _with_atomworks_hydrogens,
 )
-from tmol.io import (
-    CanonicalForm,
-    CanonicalOrdering,
-    canonical_form_from_pose_stack,
-    PoseBuildContext,
-)
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-    DEFAULT_ATOM_B_FACTOR,
-    DEFAULT_ATOM_OCCUPANCY,
-)
-from tmol.utility import (
-    get_all_residue_positions,
-    resolve_device,
-)
+from tmol.io._canonical_form import CanonicalForm
+from tmol.io._pose_stack_deconstruction import _canonical_form_from_pose_stack
+from tmol.io._build_context import PoseBuildContext
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
+from tmol.pose._pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
+from tmol.utility._biotite_util import _get_all_residue_positions
+from tmol.utility import resolve_device
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from tmol.ligand import FragmentedLigandPoseMapping
+    from tmol.ligand._fragmentation import FragmentedLigandPoseMapping
 
 _MAX_PREPARED_BATCH_SIZES = 4
 
@@ -143,9 +135,9 @@ class _PreparedAtom37PoseTopology:
         from tmol.io.details._build_missing_leaf_atoms import (
             _apply_h_geometric_completion,
         )
-        from tmol.io.details.compiled import gen_pose_leaf_atoms
+        from tmol.io.details.compiled._compiled import _gen_pose_leaf_atoms
 
-        coords = gen_pose_leaf_atoms(
+        coords = _gen_pose_leaf_atoms(
             coords,
             block_leaf_atom_is_missing,
             pose_atom_is_missing,
@@ -241,7 +233,7 @@ class PreparedAtom37PoseBuilder:
         """
         canonical_coords = self._canonical_coords(atom37_coords)
         if not self._topology_cache_safe:
-            return pose_stack_from_canonical_form_and_context(
+            return _pose_stack_from_canonical_form_and_context(
                 self._canonical_form(canonical_coords),
                 self.context,
                 no_optH=not opt_h,
@@ -253,7 +245,7 @@ class PreparedAtom37PoseBuilder:
         topology_was_cached = topology is not None
         if topology is None:
             cf = self._canonical_form(canonical_coords)
-            pose_stack, details = pose_stack_from_canonical_form_and_context(
+            pose_stack, details = _pose_stack_from_canonical_form_and_context(
                 cf,
                 self.context,
                 no_optH=True,
@@ -265,7 +257,7 @@ class PreparedAtom37PoseBuilder:
             if bool(torch.any(block_has_missing_atoms)):
                 if not opt_h:
                     return pose_stack
-                return pose_stack_from_canonical_form_and_context(
+                return _pose_stack_from_canonical_form_and_context(
                     cf,
                     self.context,
                     no_optH=False,
@@ -282,7 +274,7 @@ class PreparedAtom37PoseBuilder:
         else:
             if topology.has_missing_nonleaf(canonical_coords):
                 self._pose_topologies[n_poses] = topology
-                return pose_stack_from_canonical_form_and_context(
+                return _pose_stack_from_canonical_form_and_context(
                     self._canonical_form(canonical_coords),
                     self.context,
                     no_optH=not opt_h,
@@ -295,9 +287,9 @@ class PreparedAtom37PoseBuilder:
         self._pose_topologies[n_poses] = topology
 
         if opt_h:
-            from tmol.pack import build_missing_sidechains
+            from tmol.pack._build_missing_sidechains import _build_missing_sidechains
 
-            pose_stack = build_missing_sidechains(
+            pose_stack = _build_missing_sidechains(
                 pose_stack,
                 self.context._opth_score_function,
                 self.context._dunbrack_sampler,
@@ -393,7 +385,7 @@ class PreparedAtom37PoseBuilder:
         )
 
 
-@validate_args
+@_validate_args
 def prepare_atom37_pose_builder(
     biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
     context: PoseBuildContext,
@@ -411,9 +403,9 @@ def prepare_atom37_pose_builder(
     device = context.packed_block_types.device
     fragment_mapping = None
     if context.fragment_definitions:
-        from tmol.ligand import expand_fragmented_ligands
+        from tmol.ligand._fragmentation import _expand_fragmented_ligands
 
-        biotite_structure, fragment_mapping = expand_fragmented_ligands(
+        biotite_structure, fragment_mapping = _expand_fragmented_ligands(
             biotite_structure, context.fragment_definitions
         )
 
@@ -435,7 +427,7 @@ def prepare_atom37_pose_builder(
         missing_density_distance_threshold=0.0,
         _filter_missing_mainchain=False,
     )
-    atom_residue = get_all_residue_positions(filtered)
+    atom_residue = _get_all_residue_positions(filtered)
     valid_mask, valid_atom, valid_residue = _map_atoms_to_canonical(
         context.canonical_ordering,
         atom_residue,
@@ -485,7 +477,7 @@ def prepare_atom37_pose_builder(
     )
 
 
-@validate_args
+@_validate_args
 def build_context_from_atom_array(
     biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
     torch_device: torch.device,
@@ -531,7 +523,7 @@ def build_context_from_atom_array(
             Residues defined in these files skip the RDKit/OB pipeline.
         chem_comp_types: ``{comp_id: type}`` from the input file's
             ``_chem_comp`` table (see
-            ``tmol.ligand.chem_comp_types_from_cif``), which says whether a
+            ``tmol.ligand._detect._chem_comp_types_from_cif``), which says whether a
             residue belongs to a polymer where the file does not number it
             along a sequence. Only used when prepare_ligands=True.
         ligand_seed: Fixed RNG seed for the conformer each prepared residue
@@ -546,11 +538,11 @@ def build_context_from_atom_array(
         types, parameter database, and residue type set.
     """
     torch_device = resolve_device(torch_device)
-    validate_ligand_hydrogens(ligand_hydrogens)
+    _validate_ligand_hydrogens(ligand_hydrogens)
     # aliased names are resolved before ligand detection, or the residue the
     #    alias points at would be prepared as a nonstandard one
     if ligand_params_files and not prepare_ligands:
-        from tmol.ligand._params_file import inject_params_files
+        from tmol.ligand import inject_params_files
 
         param_db = inject_params_files(
             param_db or ParameterDatabase.get_default(),
@@ -630,7 +622,7 @@ def build_context_from_atom_array(
     )
 
 
-@validate_args
+@_validate_args
 def pose_stack_from_atom_array(  # noqa: C901
     biotite_structure: biotite.structure.AtomArray | biotite.structure.AtomArrayStack,
     torch_device: torch.device,
@@ -796,9 +788,9 @@ def pose_stack_from_atom_array(  # noqa: C901
 
     fragment_mapping = None
     if context.fragment_definitions:
-        from tmol.ligand import expand_fragmented_ligands
+        from tmol.ligand._fragmentation import _expand_fragmented_ligands
 
-        biotite_structure, fragment_mapping = expand_fragmented_ligands(
+        biotite_structure, fragment_mapping = _expand_fragmented_ligands(
             biotite_structure, context.fragment_definitions
         )
 
@@ -838,7 +830,7 @@ def pose_stack_from_atom_array(  # noqa: C901
             bonds = bonds[~remove]
         cf = attr.evolve(cf, res_not_connected=disconnected, covalent_bonds=bonds)
 
-    return pose_stack_from_canonical_form_and_context(
+    return _pose_stack_from_canonical_form_and_context(
         cf,
         context,
         no_optH=no_optH,
@@ -851,7 +843,7 @@ def pose_stack_from_atom_array(  # noqa: C901
     )
 
 
-def pose_stack_from_canonical_form_and_context(
+def _pose_stack_from_canonical_form_and_context(
     cf: CanonicalForm,
     context: PoseBuildContext,
     *,
@@ -896,12 +888,12 @@ def pose_stack_from_canonical_form_and_context(
     Returns:
       The constructed pose, optionally with atom mappings or the context.
     """
-    from tmol.io import pose_stack_from_canonical_form
-    from tmol.pack import build_missing_sidechains
-    from tmol.pack.rotamer import (
-        FixedAAChiSampler,
-        bfs_sidechain_atoms,
-        construct_single_residue_kinforest,
+    from tmol.io._pose_stack_construction import _pose_stack_from_canonical_form
+    from tmol.pack._build_missing_sidechains import _build_missing_sidechains
+    from tmol.pack import FixedAAChiSampler
+    from tmol.pack.rotamer._bfs_sidechain import _bfs_sidechain_atoms
+    from tmol.pack.rotamer._single_residue_kinforest import (
+        _construct_single_residue_kinforest,
     )
 
     # amino-acid side chains a rotamer sampler covers are left for the packer
@@ -911,9 +903,9 @@ def pose_stack_from_canonical_form_and_context(
         placed = numpy.zeros(rt.n_atoms, dtype=bool)
         for sampler in samplers:
             if sampler.defines_rotamers_for_rt(rt):
-                construct_single_residue_kinforest(rt)
+                _construct_single_residue_kinforest(rt)
                 roots = [rt.atom_to_idx[a] for a in sampler.first_sc_atoms_for_rt(rt)]
-                placed |= bfs_sidechain_atoms(rt, roots).astype(bool)
+                placed |= _bfs_sidechain_atoms(rt, roots).astype(bool)
         return placed
 
     if atom37_coords is not None:
@@ -933,7 +925,7 @@ def pose_stack_from_canonical_form_and_context(
     return_block_has_missing_atoms = bool(
         kwargs.pop("return_block_has_missing_atoms", False)
     )
-    result = pose_stack_from_canonical_form(
+    result = _pose_stack_from_canonical_form(
         context.canonical_ordering,
         context.packed_block_types,
         *cf,
@@ -944,11 +936,11 @@ def pose_stack_from_canonical_form_and_context(
 
     pose_stack, opt_return_vals = result
     if atom37_coords is None:
-        pose_stack = rebuild_coincident_hydrogens(pose_stack)
+        pose_stack = _rebuild_coincident_hydrogens(pose_stack)
     if fragment_mapping is not None:
-        from tmol.ligand import apply_fragment_connections
+        from tmol.ligand._fragmentation import _apply_fragment_connections
 
-        pose_stack = apply_fragment_connections(pose_stack, fragment_mapping)
+        pose_stack = _apply_fragment_connections(pose_stack, fragment_mapping)
         fragment_mapping = pose_stack.split_block_mapping
     block_has_missing_atoms = opt_return_vals["block_has_missing_atoms"]
 
@@ -975,7 +967,7 @@ def pose_stack_from_canonical_form_and_context(
                 "%i blocks with missing heavy atoms",
                 torch.count_nonzero(block_has_missing_atoms),
             )
-        pose_stack = build_missing_sidechains(
+        pose_stack = _build_missing_sidechains(
             pose_stack,
             sfxn,
             dunbrack_sampler,
@@ -1152,7 +1144,7 @@ def _assert_no_nan_coords(
     )
 
 
-@validate_args
+@_validate_args
 def atom_array_from_pose_stack(
     pose_stack: PoseStack,
     co: CanonicalOrdering | None = None,
@@ -1182,8 +1174,8 @@ def atom_array_from_pose_stack(
     """
     if co is None:
         co = _canonical_ordering_for_pose_stack(pose_stack)
-    cf = canonical_form_from_pose_stack(co, pose_stack)
-    structure, block_for_atom = _biotite_from_canonical_form(
+    cf = _canonical_form_from_pose_stack(co, pose_stack)
+    structure, block_for_atom = _biotite_from_canonical_form_impl(
         cf, co, include_virtual_atoms
     )
     structure.bonds = _bonds_from_pose_stack(pose_stack, structure, block_for_atom)
@@ -1202,7 +1194,7 @@ def atom_array_from_pose_stack(
         )
     sbm = getattr(pose_stack, "split_block_mapping", None)
     if merge_fragments and sbm is not None and sbm.entries:
-        from tmol.ligand import recombine_fragmented_ligands
+        from tmol.ligand._fragmentation import recombine_fragmented_ligands
 
         structure = recombine_fragmented_ligands(structure, pose_stack)
     return _renumbered_for_cif(structure)
@@ -1214,7 +1206,7 @@ def _canonical_ordering_for_pose_stack(pose_stack: PoseStack) -> CanonicalOrderi
     Generated ligand and custom residue types are absent from the default
     ordering, but the pose's packed block types carry the database they came from.
     """
-    co = canonical_ordering_for_biotite()
+    co = _canonical_ordering_for_biotite()
     known = set(co.restype_io_equiv_classes)
     block_types = pose_stack.packed_block_types.active_block_types
     if all(bt.io_equiv_class in known for bt in block_types):
@@ -1291,7 +1283,7 @@ def _bonds_from_pose_stack(pose_stack, structure, block_for_atom):
 
     def metal_bond(bt, bt_ind, conn):
         if bt_ind not in sites_for_type:
-            sites_for_type[bt_ind] = frozenset(site_connections(bt))
+            sites_for_type[bt_ind] = frozenset(_site_connections(bt))
         return bt.connections[conn].name in sites_for_type[bt_ind]
 
     orders_for_type = {}
@@ -1303,7 +1295,7 @@ def _bonds_from_pose_stack(pose_stack, structure, block_for_atom):
         if bt_ind not in orders_for_type:
             # Only the first block of each type needs this; there are two dozen
             # types behind hundreds of blocks.
-            orders_for_type[bt_ind] = chemical_bond_orders(bt, pbt.chem_db)
+            orders_for_type[bt_ind] = _chemical_bond_orders(bt, pbt.chem_db)
         for key, order in orders_for_type[bt_ind].items():
             a, b = tuple(key)
             i, j = index.get((block, a)), index.get((block, b))
@@ -1390,7 +1382,7 @@ def _renumbered_for_cif(structure):
     that decreases within a chain: the first is shifted to start at 1, the second 1..N.
     """
     template = _template_array(structure)
-    res_id, ins_code, decreasing = renumbered_decreasing_chains(template)
+    res_id, ins_code, decreasing = _renumbered_decreasing_chains(template)
     reasons = dict.fromkeys(decreasing, "numbering that decreases within a chain")
     for chain in dict.fromkeys(template.chain_id.tolist()):
         in_chain = template.chain_id == chain
@@ -1458,7 +1450,7 @@ def _metal_atom_names(chemdb=None, co=None):
             if r.metal_sites
         }
     out = {}
-    for ion in metal_table()["ions"]:
+    for ion in _metal_table()["ions"]:
         names = co.restypes_ordered_atom_names.get(ion["name3"])
         if names:
             virtual = co.restypes_virtual_atoms.get(ion["name3"], frozenset())
@@ -1471,7 +1463,7 @@ def _chelated_metals(template, metal_atom):
     component that stays one organic molecule without them (a heme's Fe, not a cluster).
     """
     ion_for_element = {}
-    for ion in metal_table()["ions"]:
+    for ion in _metal_table()["ions"]:
         element = ion["element"].upper()
         ion_for_element.setdefault((element, 0), ion["name3"])
         ion_for_element[element, ion["oxidation_state"]] = ion["name3"]
@@ -1677,7 +1669,7 @@ def _ion_elements(metal_atom):
     """Elements of the ions a chelated metal can become."""
     return {
         ion["element"].upper()
-        for ion in metal_table()["ions"]
+        for ion in _metal_table()["ions"]
         if ion["name3"] in metal_atom
     }
 
@@ -2004,7 +1996,7 @@ def _filter_supported_atoms_and_connectivity(  # noqa: C901
             "complete coordinates."
         )
 
-    atom_res = get_all_residue_positions(biotite_structure)
+    atom_res = _get_all_residue_positions(biotite_structure)
     _validate_filtered_covalent_partners(
         _template_array(biotite_structure),
         co,
@@ -2455,7 +2447,7 @@ def _populate_canonical_coords_from_atom37(
     return reference_coords, n_poses
 
 
-@validate_args
+@_validate_args
 def _normalize_input_identifiers(biotite_structure, name3_aliases):
     """Resolve residue aliases and AtomWorks assembly instances without mutation.
 
@@ -2485,18 +2477,18 @@ def _normalize_input_identifiers(biotite_structure, name3_aliases):
 def _with_input_hydrogens(biotite_structure, ph, co, chemdb, find_metal_coordination):
     """The input with AtomWorks' protonation of residues lacking hydrogens (only
     ``co``'s if given), seeing detected metal bonds and ``chemdb`` backbone links."""
-    biotite_structure = with_stated_termini(biotite_structure, chemdb, co)
-    validate_connection_hydrogens(biotite_structure, chemdb)
+    biotite_structure = _with_stated_termini(biotite_structure, chemdb, co)
+    _validate_connection_hydrogens(biotite_structure, chemdb)
     aliases = {a.name3: a.read_as for a in chemdb.name3_aliases}
     names = None
     if co is not None:
         names = set(co.restype_io_equiv_classes)
         names |= {alias for alias, name in aliases.items() if name in names}
     template = _template_array(biotite_structure)
-    forms = database_forms(chemdb)
+    forms = _database_forms(chemdb)
     if PROTONATION_VARIANT in template.get_annotation_categories() or (
         EXPLICIT_TERMINI not in template.get_annotation_categories()
-        and not residues_lacking_hydrogens(biotite_structure, names, forms)[1].any()
+        and not _residues_lacking_hydrogens(biotite_structure, names, forms)[1].any()
     ):
         return biotite_structure
     metal_atom = _metal_atom_names(chemdb=chemdb)
@@ -2507,7 +2499,7 @@ def _with_input_hydrogens(biotite_structure, ph, co, chemdb, find_metal_coordina
     res_name = _template_array(biotite_structure).res_name
     if find_metal_coordination and numpy.isin(res_name, list(metal_atom)).any():
         coordination = _detected_metal_bonds(
-            biotite_structure, co or canonical_ordering_for_biotite(), chemdb
+            biotite_structure, co or _canonical_ordering_for_biotite(), chemdb
         )
     backbone = {}
     for residue in chemdb.residues:
@@ -2517,7 +2509,7 @@ def _with_input_hydrogens(biotite_structure, ph, co, chemdb, find_metal_coordina
             up or connection.get("up"),
             down or connection.get("down"),
         )
-    return with_atomworks_hydrogens(
+    return _with_atomworks_hydrogens(
         biotite_structure,
         ph=ph,
         residue_names=names,
@@ -2530,8 +2522,8 @@ def _with_input_hydrogens(biotite_structure, ph, co, chemdb, find_metal_coordina
 def _detected_metal_bonds(biotite_structure, co, chemdb):
     """(metal atom, donor atom) index pairs metal detection bonds in the input."""
     from tmol.io._pose_stack_construction import _declared_metal_sites
-    from tmol.io.details import find_disulfides
-    from tmol.io.details._metal_detection import find_metal_geometries
+    from tmol.io.details._disulfide_search import _find_disulfides
+    from tmol.io.details._metal_detection import _find_metal_geometries
 
     template = _template_array(biotite_structure)
     known = numpy.isin(
@@ -2548,10 +2540,10 @@ def _detected_metal_bonds(biotite_structure, co, chemdb):
     declared, required = _declared_metal_sites(
         cf.res_types, cf.metal_sites, cf.metal_coordination
     )
-    _, disulfide_variants = find_disulfides(
+    _, disulfide_variants = _find_disulfides(
         co, cf.res_types.to(torch.int32), cf.coords, cf.disulfides, True
     )
-    _, assignments = find_metal_geometries(
+    _, assignments = _find_metal_geometries(
         co,
         chemdb,
         cf.res_types.to(torch.int32),
@@ -2657,7 +2649,7 @@ def canonical_form_from_biotite(
     """
     torch_device = resolve_device(torch_device)
     if co is None:
-        co = canonical_ordering_for_biotite()
+        co = _canonical_ordering_for_biotite()
 
     biotite_structure = _normalize_input_identifiers(
         biotite_structure, co.name3_aliases
@@ -2680,7 +2672,7 @@ def canonical_form_from_biotite(
         biotite_residues,
     ) = _extract_residue_metadata(biotite_structure, not_connected)
 
-    atom_res_inds = get_all_residue_positions(biotite_structure)
+    atom_res_inds = _get_all_residue_positions(biotite_structure)
     biotite_name_for_atom = biotite_structure.atom_name
     biotite_res_name_for_atom = biotite_structure.res_name
 
@@ -2866,9 +2858,9 @@ def _restype_set_for_biotite() -> ResidueTypeSet:
     return ResidueTypeSet.from_database(paramdb.chemical)
 
 
-@validate_args
+@_validate_args
 @toolz.functoolz.memoize
-def canonical_ordering_for_biotite() -> CanonicalOrdering:
+def _canonical_ordering_for_biotite() -> CanonicalOrdering:
     """Construct the CanonicalOrdering object to use for Biotite.
     This wont be used as a typical CanonicalOrdering object, since
     we aren't mapping from int-to-int, and instead are going from
@@ -2879,9 +2871,9 @@ def canonical_ordering_for_biotite() -> CanonicalOrdering:
     return CanonicalOrdering.from_chemdb(paramdb.chemical)
 
 
-@validate_args
+@_validate_args
 @toolz.functoolz.memoize
-def packed_block_types_for_biotite(device: torch.device) -> PackedBlockTypes:
+def _packed_block_types_for_biotite(device: torch.device) -> PackedBlockTypes:
     """Construct the PackedBlockTypes (PBT) object that will used for Biotite.
     We'll use the defaults since anything might show up in a Biotite AtomArray.
     Some things may show up in the AtomArrays that are not handled by this
@@ -2900,9 +2892,9 @@ def packed_block_types_for_biotite(device: torch.device) -> PackedBlockTypes:
     )
 
 
-@validate_args
+@_validate_args
 @toolz.functoolz.memoize
-def packed_block_types_for_biotite_with_metals(
+def _packed_block_types_for_biotite_with_metals(
     device: torch.device,
 ) -> PackedBlockTypes:
     """The Biotite packed block types, plus the ions and clusters a structure's
@@ -2916,7 +2908,7 @@ def packed_block_types_for_biotite_with_metals(
 
 def _is_metal(structure) -> numpy.ndarray:
     """Per atom, whether its element is one the metal table coordinates."""
-    metals = [ion["element"].upper() for ion in metal_table()["ions"]]
+    metals = [ion["element"].upper() for ion in _metal_table()["ions"]]
     return numpy.isin(
         numpy.char.upper(numpy.asarray(structure.element, dtype=str)), metals
     )
@@ -2938,19 +2930,19 @@ def _restype_set_sharing_default(chemical_db) -> ResidueTypeSet:
         return ResidueTypeSet.from_database(chemical_db)
 
 
-@validate_args
+@_validate_args
 @toolz.functoolz.memoize
 def _default_pose_build_context(
     device: torch.device, with_metals: bool
 ) -> PoseBuildContext:
     """Return the process-wide construction context for the default database."""
     packed = (
-        packed_block_types_for_biotite_with_metals
+        _packed_block_types_for_biotite_with_metals
         if with_metals
-        else packed_block_types_for_biotite
+        else _packed_block_types_for_biotite
     )
     return PoseBuildContext(
-        canonical_ordering=canonical_ordering_for_biotite(),
+        canonical_ordering=_canonical_ordering_for_biotite(),
         packed_block_types=packed(device),
         parameter_database=_paramdb_for_biotite(),
         restype_set=_restype_set_for_biotite(),
@@ -2969,8 +2961,8 @@ def _derived_types_for_param_db(
     return co, rts, pbt
 
 
-@validate_args
-def biotite_from_canonical_form(
+@_validate_args
+def _biotite_from_canonical_form(
     cf: CanonicalForm,
     co: CanonicalOrdering | None = None,
     include_virtual_atoms: bool = False,
@@ -2984,15 +2976,15 @@ def biotite_from_canonical_form(
     export detaches coordinates from autograd. A canonical form carries no
     residue types, so the result has no bonds; atom_array_from_pose_stack adds them.
     """
-    return _biotite_from_canonical_form(cf, co, include_virtual_atoms)[0]
+    return _biotite_from_canonical_form_impl(cf, co, include_virtual_atoms)[0]
 
 
-def _biotite_from_canonical_form(cf, co, include_virtual_atoms):
+def _biotite_from_canonical_form_impl(cf, co, include_virtual_atoms):
     """The exported structure, and the canonical residue of each of its atoms."""
     import biotite.structure as struc
 
     if co is None:
-        co = canonical_ordering_for_biotite()
+        co = _canonical_ordering_for_biotite()
     n_poses, n_residues, max_atoms = cf.coords.shape[:3]
     if n_poses > 1 and not _poses_have_identical_metadata(cf):
         raise ValueError(
@@ -3071,7 +3063,7 @@ def _biotite_from_canonical_form(cf, co, include_virtual_atoms):
     return result, rows
 
 
-@validate_args
+@_validate_args
 def _poses_have_identical_metadata(cf: CanonicalForm) -> bool:
     """Check if all poses in the CanonicalForm have identical metadata.
 

@@ -2,7 +2,7 @@ import numpy
 import pytest
 import torch
 
-from tmol.pose import PackedBlockTypes
+from tmol import PackedBlockTypes
 
 
 def test_load_packed_residue_types(

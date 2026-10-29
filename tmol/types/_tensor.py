@@ -8,8 +8,8 @@ import typing
 
 from ._shape import Shape
 
-from ._converters import register_converter
-from ._validators import register_validator
+from ._converters import _register_converter
+from ._validators import _register_validator
 
 from ._subscriptable import SubscriptableType
 
@@ -234,7 +234,7 @@ class TensorGroup:
         return attr.evolve(self, **to_components)
 
 
-def cat(seq, dim=0, out=None):
+def _cat(seq, dim=0, out=None):
     """Concatenate tensors or compatible tensor groups along a dimension."""
     first, *rest = seq
     return _cat_internal(first, rest, dim=dim, out=out)
@@ -270,7 +270,7 @@ def _cat_tensorgroup(first, rest, dim=0, out=None):
 
     return cls(
         **{
-            a.name: cat(
+            a.name: _cat(
                 [getattr(first, a.name)] + [getattr(e, a.name) for e in rest], dim=dim
             )
             for a in attr.fields(cls)
@@ -278,9 +278,9 @@ def _cat_tensorgroup(first, rest, dim=0, out=None):
     )
 
 
-register_validator(
+_register_validator(
     lambda t: inspect.isclass(t) and issubclass(t, _TensorType), lambda t: t.validate
 )
-register_converter(
+_register_converter(
     lambda t: inspect.isclass(t) and issubclass(t, _TensorType), lambda t: t.convert
 )

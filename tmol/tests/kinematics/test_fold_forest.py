@@ -1,14 +1,9 @@
 import numpy
 import torch
 
-from tmol.io import pose_stack_from_file
-from tmol.pose import PoseStackBuilder
-from tmol.kinematics import (
-    validate_fold_forest,
-    FoldForest,
-    EdgeType,
-    _build_pose_fold_forest,
-)
+from tmol import pose_stack_from_file, PoseStackBuilder, FoldForest, EdgeType
+from tmol.kinematics._check_fold_forest import _validate_fold_forest
+from tmol.kinematics._fold_forest import _build_pose_fold_forest
 
 
 def _real_edges(fold_forest, pose_idx):
@@ -159,7 +154,7 @@ def test_fold_forest_numbers_only_true_jumps():
     assert by_type[EdgeType.jump] == [(2, 3, 0)]
     assert by_type[EdgeType.polymer] == [(0, 2, -1), (3, 5, -1), (6, 8, -1)]
 
-    validate_fold_forest(
+    _validate_fold_forest(
         numpy.array([9], dtype=numpy.int64),
         numpy.array([edges], dtype=numpy.int64),
     )
@@ -196,7 +191,7 @@ def test_fold_forest_routes_through_a_conjugation():
     assert by_type[EdgeType.chemical] == [(2, 4, 3), (4, 5, 1), (4, 6, 2)]
     assert EdgeType.jump not in by_type
 
-    validate_fold_forest(
+    _validate_fold_forest(
         numpy.array([7], dtype=numpy.int64),
         numpy.array([edges], dtype=numpy.int64),
     )
@@ -230,7 +225,7 @@ def test_fold_forest_breaks_a_cycle_at_a_chemical_bond():
     assert by_type[EdgeType.polymer] == [(0, 3, -1)]
     assert len(by_type[EdgeType.chemical]) == 2
 
-    validate_fold_forest(
+    _validate_fold_forest(
         numpy.array([6], dtype=numpy.int64),
         numpy.array([edges], dtype=numpy.int64),
     )
@@ -252,7 +247,7 @@ def test_fold_forest_builds_outward_from_a_mid_chain_conjugation():
     ]
     assert EdgeType.jump not in by_type
 
-    validate_fold_forest(
+    _validate_fold_forest(
         numpy.array([7], dtype=numpy.int64),
         numpy.array([edges], dtype=numpy.int64),
     )

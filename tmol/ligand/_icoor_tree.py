@@ -7,14 +7,14 @@ from collections.abc import Iterable, Sequence
 import numpy as np
 
 
-def vertex_angle(a: np.ndarray, b: np.ndarray, c: np.ndarray) -> float:
+def _vertex_angle(a: np.ndarray, b: np.ndarray, c: np.ndarray) -> float:
     """The angle at vertex ``b``, in radians."""
     ba, bc = a - b, c - b
     cos_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc) + 1e-12)
     return float(np.arccos(np.clip(cos_angle, -1.0, 1.0)))
 
 
-def signed_dihedral_angle(
+def _signed_dihedral_angle(
     a: np.ndarray, b: np.ndarray, c: np.ndarray, d: np.ndarray
 ) -> float:
     """The dihedral ``a-b-c-d`` in radians, signed opposite to IUPAC's."""
@@ -26,7 +26,7 @@ def signed_dihedral_angle(
     return float(np.arctan2(float(np.dot(m1, n2)), float(np.dot(n1, n2))))
 
 
-def icoor_geometry_from_coords(
+def _icoor_geometry_from_coords(
     coords: np.ndarray,
     order: list[int],
     parent: dict[int, int],
@@ -40,12 +40,12 @@ def icoor_geometry_from_coords(
         grandparent, great_grandparent = (coords[i] for i in grandparents[index])
         d = float(np.linalg.norm(atom - par)) if position >= 1 else 0.0
         theta = (
-            math.pi - vertex_angle(atom, par, grandparent)
+            math.pi - _vertex_angle(atom, par, grandparent)
             if position >= 2
             else (math.pi if position else 0.0)
         )
         phi = (
-            -signed_dihedral_angle(atom, par, grandparent, great_grandparent)
+            -_signed_dihedral_angle(atom, par, grandparent, great_grandparent)
             if position >= 3
             else 0.0
         )
@@ -53,7 +53,7 @@ def icoor_geometry_from_coords(
     return geometry
 
 
-def build_atom_tree(
+def _build_atom_tree(
     n_atoms: int,
     bonds: Iterable[tuple[int, int]],
     is_heavy: Sequence[bool],
@@ -132,7 +132,7 @@ def build_atom_tree(
     return order, parent, grandparents
 
 
-def find_root_atom(
+def _find_root_atom(
     coords: np.ndarray,
     bonds: Iterable[tuple[int, int]],
     is_heavy: Sequence[bool],

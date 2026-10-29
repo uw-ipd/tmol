@@ -2,11 +2,11 @@ import pytest
 import math
 import torch
 import torch.autograd
-from tmol.utility import parse_angle
+from tmol.utility._units import _parse_angle
 import numpy
 from tmol.tests import gradcheck
-from tmol.score.ljlk import LJLKParamResolver
-from tmol.score import AtomTypeParamResolver
+from tmol.score.ljlk._params import LJLKParamResolver
+from tmol.score._chemical_database import AtomTypeParamResolver
 
 
 @pytest.fixture
@@ -34,8 +34,8 @@ def test_build_acc_waters():
     B0 = tensor((-5.489, 0.060, -3.542))
 
     dist = 2.65
-    angle = parse_angle("109.0 deg")
-    torsions = tensor([parse_angle(f"{a} deg") for a in (120.0, 240.0)])
+    angle = _parse_angle("109.0 deg")
+    torsions = tensor([_parse_angle(f"{a} deg") for a in (120.0, 240.0)])
 
     waters_ref = tensor(
         [[-7.42086525, -1.79165583, -5.14882262], [-7.75428876, 0.40906314, -1.4232189]]
@@ -84,8 +84,8 @@ def test_lk_fraction():
         B0=tensor((1.0, 0.0, 0.0)),
     )
     dist = tensor([2.65]).reshape(())
-    angle = tensor([parse_angle("109.0 deg")]).reshape(())
-    torsions = tensor([parse_angle(f"{a} deg") for a in (120.0, 240.0)])
+    angle = tensor([_parse_angle("109.0 deg")]).reshape(())
+    torsions = tensor([_parse_angle(f"{a} deg") for a in (120.0, 240.0)])
 
     WI = torch.stack(
         [
@@ -114,13 +114,13 @@ def test_lk_bridge_fraction():
     tensor = torch.DoubleTensor
 
     dist = tensor([2.65]).reshape(())
-    angle = tensor([parse_angle("109.0 deg")]).reshape(())
+    angle = tensor([_parse_angle("109.0 deg")]).reshape(())
 
     coords_I = dict(  # noqa
         A=tensor((0.0, 3.0, 3.0)), B=tensor((0.0, 3.0, 4.0)), B0=tensor((1.0, 0.0, 0.0))
     )
 
-    torsions = tensor([parse_angle(f"{a} deg") for a in (60.0, 300.0)])
+    torsions = tensor([_parse_angle(f"{a} deg") for a in (60.0, 300.0)])
     WI = torch.stack(
         [
             BuildAcceptorWater.apply(
@@ -136,7 +136,7 @@ def test_lk_bridge_fraction():
         B0=tensor((1.0, 0.0, 0.0)),
     )
 
-    torsions = tensor([parse_angle(f"{a} deg") for a in (120.0, 240.0)])
+    torsions = tensor([_parse_angle(f"{a} deg") for a in (120.0, 240.0)])
     WJ = torch.stack(
         [
             BuildAcceptorWater.apply(

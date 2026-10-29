@@ -5,7 +5,7 @@ import numpy
 import torch
 from tmol.tests import gradcheck, VectorizedOp
 
-from tmol.score import AcceptorHybridization
+from tmol.score._chemical_database import AcceptorHybridization
 
 _hbond_global_param_dict = dict(
     hb_sp2_range_span=1.6,

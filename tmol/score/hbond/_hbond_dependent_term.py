@@ -3,25 +3,21 @@ import numpy
 import torch
 import pandas
 
-from .._annotation_cache import AnnotationKey, cached_annotation, store_annotation
+from .._annotation_cache import AnnotationKey, _cached_annotation, _store_annotation
 
 from tmol.database import ParameterDatabase
 from tmol.database.scoring import HBondDatabase
 
 from tmol.chemical import RefinedResidueType
-from tmol.pose import PackedBlockTypes
+from tmol.pose._packed_block_types import PackedBlockTypes
 
-from tmol.score.hbond import HBondParamResolver
-from tmol.score.common import arg_tile_subset_indices
-from tmol.score import (
-    AtomTypeParamResolver,
-    BondDependentTerm,
-)
-from tmol.types import (
-    ValidateAttrs,
-    NDArray,
-    Tensor,
-)
+from tmol.score.hbond._params import HBondParamResolver
+from tmol.score.common._stack_condense import _arg_tile_subset_indices
+from tmol.score._chemical_database import AtomTypeParamResolver
+from tmol.score._bond_dependent_term import BondDependentTerm
+from tmol.types._attrs import ValidateAttrs
+from tmol.types._array import NDArray
+from tmol.types._torch import Tensor
 
 
 def _map_hbond_types(mapper, column, type_index, atom_types):
@@ -33,7 +29,7 @@ def _map_hbond_types(mapper, column, type_index, atom_types):
     return type_index.get_indexer(names)
 
 
-def attached_H_for_don(atom_is_hydrogen, D_idx, bonds, bond_spans):
+def _attached_H_for_don(atom_is_hydrogen, D_idx, bonds, bond_spans):
     donH = numpy.full(atom_is_hydrogen.shape, -1, dtype=numpy.int32)
     heavy_at_don_for_H = numpy.full(atom_is_hydrogen.shape, -1, dtype=numpy.int32)
     which_H_for_hvy = numpy.full(atom_is_hydrogen.shape, -1, dtype=numpy.int32)
@@ -162,7 +158,7 @@ class HBondDependentTerm(BondDependentTerm):
     def setup_block_type(self, block_type: RefinedResidueType):
         super(HBondDependentTerm, self).setup_block_type(block_type)
 
-        cached = cached_annotation(
+        cached = _cached_annotation(
             block_type, "_hbond_annotation", self._hbond_block_key
         )
         if cached is not None:
@@ -178,7 +174,7 @@ class HBondDependentTerm(BondDependentTerm):
         is_hydrogen = self._hbond_is_hydrogen[atom_type_idx]
 
         tile_size = HBondDependentTerm.tile_size
-        tiled_acc_orig_inds, tile_n_acc = arg_tile_subset_indices(
+        tiled_acc_orig_inds, tile_n_acc = _arg_tile_subset_indices(
             A_idx, tile_size, block_type.n_atoms - 1
         )
 
@@ -197,7 +193,7 @@ class HBondDependentTerm(BondDependentTerm):
         # now lets get the list of attached hydrogen atoms:
         D_idx = numpy.nonzero(is_don)[0].astype(dtype=numpy.int32)
         indexed_bonds = block_type.intrares_indexed_bonds
-        H_idx, D_for_H, which_H_for_Hs_D, n_H_for_D = attached_H_for_don(
+        H_idx, D_for_H, which_H_for_Hs_D, n_H_for_D = _attached_H_for_don(
             is_hydrogen,
             D_idx,
             indexed_bonds.bonds.cpu().numpy()[0],
@@ -211,10 +207,10 @@ class HBondDependentTerm(BondDependentTerm):
         )
         tile_acceptor_n_attached_H[is_tiled_acc] = n_H_for_at[A_idx]
 
-        tiled_donH_orig_inds, tile_n_donH = arg_tile_subset_indices(
+        tiled_donH_orig_inds, tile_n_donH = _arg_tile_subset_indices(
             H_idx, tile_size, block_type.n_atoms - 1
         )
-        tiled_don_hvy_orig_inds, tile_n_don_hvy = arg_tile_subset_indices(
+        tiled_don_hvy_orig_inds, tile_n_don_hvy = _arg_tile_subset_indices(
             D_idx, tile_size, block_type.n_atoms - 1
         )
 
@@ -277,7 +273,7 @@ class HBondDependentTerm(BondDependentTerm):
             is_hydrogen=is_hydrogen,
         )
         setattr(block_type, "hbbt_params", hbbt_params)
-        return store_annotation(
+        return _store_annotation(
             block_type,
             "_hbond_annotation",
             self._hbond_block_key,
@@ -288,7 +284,7 @@ class HBondDependentTerm(BondDependentTerm):
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(HBondDependentTerm, self).setup_packed_block_types(packed_block_types)
 
-        cached = cached_annotation(
+        cached = _cached_annotation(
             packed_block_types, "_hbond_annotation", self._hbond_packed_key
         )
         if cached is not None:
@@ -384,7 +380,7 @@ class HBondDependentTerm(BondDependentTerm):
         )
 
         setattr(packed_block_types, "hbpbt_params", params)
-        return store_annotation(
+        return _store_annotation(
             packed_block_types,
             "_hbond_annotation",
             self._hbond_packed_key,

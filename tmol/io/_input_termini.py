@@ -41,7 +41,7 @@ def _connection_hydrogen_capacities(database):
     return capacity
 
 
-def validate_connection_hydrogens(structure, database):
+def _validate_connection_hydrogens(structure, database):
     """Reject stated terminal H that no available residue form can retain.
 
     An aldehyde hydrogen on the backbone carbon must not silently become OXT.
@@ -132,7 +132,7 @@ def _inferred_residue_bonds(template):
     )
 
 
-def with_stated_termini(structure, database, co=None):
+def _with_stated_termini(structure, database, co=None):
     """Fill missing hydrogen bonds and preserve stated terminal chemistry.
 
     A terminal atom's element and bonded parent must match the database. Source

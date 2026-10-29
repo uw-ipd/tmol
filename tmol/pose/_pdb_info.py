@@ -3,7 +3,7 @@ from typing import Optional
 import attr
 import numpy
 
-from tmol.types import NDArray
+from tmol.types._array import NDArray
 
 DEFAULT_ATOM_OCCUPANCY = 1.0
 # fpd: B factors of 0 are badly behaved in crystal refinement/MR/etc., 30 is a very reasonable "average"
@@ -22,6 +22,7 @@ class PDBInfo:
     those changes to also update the PDBInfo object accordingly.
 
     Datamembers:
+
     residue_labels: numpy array of strings giving residue ids for each residue.
         shape: [n_poses x max_n_residues]
     residue_insertion_codes: numpy array of strings giving insertion codes

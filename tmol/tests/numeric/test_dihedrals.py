@@ -4,7 +4,7 @@ import torch
 
 from tmol.numeric import coord_dihedrals
 from tmol.numeric._dihedrals import _numpy_coord_dihedrals
-from tmol.utility import parse_angle
+from tmol.utility._units import _parse_angle
 
 
 def test_coord_dihedrals():
@@ -27,7 +27,7 @@ def test_coord_dihedrals():
         [[0, 1, 2, 3], [0, 1, 4, 5], [1, 4, 5, 6], [1, 4, 5, 7], [8, 0, 1, 3]]
     )
 
-    dihedrals = compose(numpy.array, list, map(parse_angle))(
+    dihedrals = compose(numpy.array, list, map(_parse_angle))(
         ["-71.21515 deg", "-171.94319 deg", "60.82226 deg", "-177.63641 deg", numpy.nan]
     )
 

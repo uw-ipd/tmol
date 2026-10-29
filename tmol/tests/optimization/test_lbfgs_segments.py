@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import torch
 
-from tmol.optimization import LBFGS_Armijo, lbfgs_two_loop
+from tmol.optimization._lbfgs_armijo import LBFGS_Armijo, _lbfgs_two_loop
 
 
 def _history(m, n_segments, size, dtype, device, seed=0):
@@ -88,25 +88,25 @@ def test_idle_reset_mask_retains_storage(torch_device):
 
 def test_batched_two_loop_matches_one_problem_at_a_time(torch_device):
     grad, dirs, stps = _history(7, 4, 13, torch.float64, torch_device)
-    batched = lbfgs_two_loop(grad, dirs, stps)
+    batched = _lbfgs_two_loop(grad, dirs, stps)
     for p in range(grad.shape[0]):
-        alone = lbfgs_two_loop(grad[p], dirs[:, p], stps[:, p])
+        alone = _lbfgs_two_loop(grad[p], dirs[:, p], stps[:, p])
         torch.testing.assert_close(batched[p], alone, rtol=1e-10, atol=1e-12)
 
 
 def test_two_loop_ignores_zeroed_history_slots(torch_device):
     """A slot with no curvature for one problem must not affect any problem."""
     grad, dirs, stps = _history(7, 3, 9, torch.float64, torch_device)
-    full = lbfgs_two_loop(grad, dirs, stps)
+    full = _lbfgs_two_loop(grad, dirs, stps)
 
     dropped, problem = 3, 1
     dirs_z, stps_z = dirs.clone(), stps.clone()
     dirs_z[dropped, problem] = 0.0
     stps_z[dropped, problem] = 0.0
-    zeroed = lbfgs_two_loop(grad, dirs_z, stps_z)
+    zeroed = _lbfgs_two_loop(grad, dirs_z, stps_z)
 
     keep = [i for i in range(dirs.shape[0]) if i != dropped]
-    shorter = lbfgs_two_loop(
+    shorter = _lbfgs_two_loop(
         grad[problem], dirs[keep][:, problem], stps[keep][:, problem]
     )
     torch.testing.assert_close(zeroed[problem], shorter, rtol=1e-10, atol=1e-12)

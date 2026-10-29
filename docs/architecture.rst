@@ -4,7 +4,7 @@
 Architecture
 ============
 
-``tmol.io`` builds batched :class:`~tmol.pose.PoseStack` objects from structures
+``tmol.io`` builds batched :class:`~tmol.PoseStack` objects from structures
 or model tensors. ``tmol.score`` evaluates their coordinates using chemical
 definitions from ``tmol.database.chemical`` and parameters from
 ``tmol.database.scoring``.
@@ -54,10 +54,10 @@ Structure preparation, scoring, and output follow this sequence:
                   v
        Biotite structure or PDB output
 
-The :class:`~tmol.database.ParameterDatabase` supplies chemical and scoring
+The :class:`~tmol.ParameterDatabase` supplies chemical and scoring
 definitions. I/O chooses compatible block types and constructs a
-:class:`~tmol.pose.PackedBlockTypes` collection on the requested device. The
-resulting :class:`~tmol.pose.PoseStack` owns coordinates, topology, block
+:class:`~tmol.PackedBlockTypes` collection on the requested device. The
+resulting :class:`~tmol.PoseStack` owns coordinates, topology, block
 indices, and references to those packed types.
 
 Packing may return a new stack when chemical identities or atom counts change.
@@ -66,10 +66,10 @@ the same layout. That distinction determines whether an existing rendered
 scoring module can be reused.
 
 ``tmol.pose`` and ``tmol.score`` meet when a
-:class:`~tmol.score.ScoreFunction` renders a scoring module for a
-:class:`~tmol.pose.PoseStack`, for example with
-:meth:`~tmol.score.ScoreFunction.render_whole_pose_scoring_module`.
-Score terms annotate :class:`~tmol.pose.PackedBlockTypes`
+:class:`~tmol.ScoreFunction` renders a scoring module for a
+:class:`~tmol.PoseStack`, for example with
+:meth:`~tmol.ScoreFunction.render_whole_pose_scoring_module`.
+Score terms annotate :class:`~tmol.PackedBlockTypes`
 and then render ``torch.nn.Module`` objects for repeated evaluation.
 
 Scoring overview

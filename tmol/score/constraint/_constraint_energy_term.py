@@ -6,10 +6,8 @@ from .._energy_term import EnergyTerm
 
 from tmol.database import ParameterDatabase
 from tmol.chemical import RefinedResidueType
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
 
 
 class ConstraintEnergyTerm(EnergyTerm):
@@ -37,9 +35,9 @@ class ConstraintEnergyTerm(EnergyTerm):
 
     @classmethod
     def get_torsion_angle_test(cls, tensor):
-        from tmol.score.constraint.potentials._compiled import get_torsion_angle
+        from tmol.score.constraint.potentials._compiled import _get_torsion_angle
 
-        return get_torsion_angle(tensor)
+        return _get_torsion_angle(tensor)
 
     @classmethod
     def harmonic(cls, atoms, params):
@@ -92,13 +90,13 @@ class ConstraintEnergyTerm(EnergyTerm):
         # params[:, 0] == mean (target value)
         # params[:, 1] == standard deviation
         # params[:, 2] == constant that's added to the score regardless
-        from tmol.score.constraint.potentials._compiled import get_torsion_angle
+        from tmol.score.constraint.potentials._compiled import _get_torsion_angle
 
         x0 = params[:, 0]  # The desired angle
         sd = params[:, 1]
         offset = params[:, 2]
 
-        angles = get_torsion_angle(atoms)
+        angles = _get_torsion_angle(atoms)
 
         def round_away_from_zero(val):
             return torch.trunc(val + torch.sign(val) * 0.5)

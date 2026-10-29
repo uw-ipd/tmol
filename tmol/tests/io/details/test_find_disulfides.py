@@ -1,10 +1,12 @@
 import numpy
 import torch
 import attr
-from tmol.io import CanonicalOrdering, default_canonical_ordering
-from tmol.io._canonical_ordering import _canonical_form_from_pdb
-from tmol.io.details import find_disulfides
-from tmol.database import PatchedChemicalDatabase
+from tmol import CanonicalOrdering, PatchedChemicalDatabase
+from tmol.io._canonical_ordering import (
+    _default_canonical_ordering,
+    _canonical_form_from_pdb,
+)
+from tmol.io.details._disulfide_search import _find_disulfides
 
 # ATOM    160  N   CYS L  23     -60.489 -22.492  -9.505  1.00 63.92           N
 # ATOM    161  CA  CYS L  23     -60.175 -22.416  -8.082  1.00 64.85           C
@@ -55,7 +57,7 @@ def cf_as_tuple_from_pdb_lines(co, pdblines, device):
 
 
 def test_find_disulfide_pairs():
-    co = default_canonical_ordering()
+    co = _default_canonical_ordering()
     coords = torch.zeros((1, 4, co.max_n_canonical_atoms, 3), dtype=torch.float32)
     res_types = torch.full((1, 4), co.cys_inds.cys_co_aa_inds[0], dtype=torch.int32)
 
@@ -106,7 +108,7 @@ def test_find_disulfide_pairs():
     set_coord(3, " HB2", (-69.933, -33.996, 12.191))
     set_coord(3, " HB3", (-70.999, -32.900, 12.502))
 
-    found_dslf, restype_variants = find_disulfides(co, res_types, coords)
+    found_dslf, restype_variants = _find_disulfides(co, res_types, coords)
 
     found_dslf = found_dslf.cpu().numpy()
     found_dslf_gold = numpy.array([[0, 0, 1], [0, 2, 3]], dtype=numpy.int32)
@@ -118,7 +120,7 @@ def test_find_disulfide_pairs():
 
 
 def test_find_disulf_in_pdb(pertuzumab_pdb):
-    co = default_canonical_ordering()
+    co = _default_canonical_ordering()
     (
         chain_id,
         res_types,
@@ -134,7 +136,7 @@ def test_find_disulf_in_pdb(pertuzumab_pdb):
         _cov2,
     ) = cf_as_tuple_from_pdb_lines(co, pertuzumab_pdb, torch.device("cpu"))
 
-    found_dslf, restype_variants = find_disulfides(co, res_types, coords)
+    found_dslf, restype_variants = _find_disulfides(co, res_types, coords)
     found_dslf = found_dslf.cpu().numpy()
 
     found_dslf_gold = numpy.array(
@@ -152,7 +154,7 @@ def test_find_disulf_in_pdb(pertuzumab_pdb):
 
 
 def test_find_disulf_w_some_provided(pertuzumab_pdb):
-    co = default_canonical_ordering()
+    co = _default_canonical_ordering()
     (
         chain_id,
         res_types,
@@ -173,7 +175,7 @@ def test_find_disulf_w_some_provided(pertuzumab_pdb):
         [[0, 22, 87], [0, 133, 193], [0, 235, 309], [0, 359, 415]], dtype=torch.int64
     )
 
-    found_dslf, restype_variants = find_disulfides(co, res_types, coords, disulfides)
+    found_dslf, restype_variants = _find_disulfides(co, res_types, coords, disulfides)
     found_dslf = found_dslf.cpu().numpy()
 
     # because 213-435 is "found last" it will appear at the end of the list
@@ -192,7 +194,7 @@ def test_find_disulf_w_some_provided(pertuzumab_pdb):
 
 
 def test_find_disulf_w_some_provided_but_rest_skipped(pertuzumab_pdb):
-    co = default_canonical_ordering()
+    co = _default_canonical_ordering()
     (
         chain_id,
         res_types,
@@ -213,7 +215,7 @@ def test_find_disulf_w_some_provided_but_rest_skipped(pertuzumab_pdb):
         [[0, 22, 87], [0, 133, 193], [0, 235, 309], [0, 359, 415]], dtype=torch.int64
     )
 
-    found_dslf, restype_variants = find_disulfides(
+    found_dslf, restype_variants = _find_disulfides(
         co, res_types, coords, disulfides, False
     )
     assert found_dslf is disulfides
@@ -228,7 +230,7 @@ def test_find_disulf_w_some_provided_but_rest_skipped(pertuzumab_pdb):
 
 
 def test_find_disulf_w_all_provided(pertuzumab_pdb):
-    co = default_canonical_ordering()
+    co = _default_canonical_ordering()
     (
         chain_id,
         res_types,
@@ -253,7 +255,7 @@ def test_find_disulf_w_all_provided(pertuzumab_pdb):
         dtype=torch.int64,
     )
 
-    found_dslf, restype_variants = find_disulfides(co, res_types, coords, disulfides)
+    found_dslf, restype_variants = _find_disulfides(co, res_types, coords, disulfides)
     # the same tensor will be returned that was input
     assert found_dslf is disulfides
 
@@ -275,7 +277,7 @@ def test_find_disulf_w_all_provided(pertuzumab_pdb):
 
 
 def test_find_disulf_w_no_cys(ubq_pdb):
-    co = default_canonical_ordering()
+    co = _default_canonical_ordering()
     (
         chain_id,
         res_types,
@@ -291,7 +293,7 @@ def test_find_disulf_w_no_cys(ubq_pdb):
         _cov2,
     ) = cf_as_tuple_from_pdb_lines(co, ubq_pdb, torch.device("cpu"))
 
-    found_dslf, restype_variants = find_disulfides(co, res_types, coords)
+    found_dslf, restype_variants = _find_disulfides(co, res_types, coords)
     assert (0, 3) == found_dslf.shape
     assert found_dslf.dtype == torch.int64
 
@@ -311,7 +313,7 @@ def test_find_disulf_w_no_cys_in_canonical_ordering(
     res_types = cf.res_types
     coords = cf.coords
 
-    found_dslf, restype_variants = find_disulfides(small_co, res_types, coords)
+    found_dslf, restype_variants = _find_disulfides(small_co, res_types, coords)
     assert (0, 3) == found_dslf.shape
     assert found_dslf.dtype == torch.int64
 

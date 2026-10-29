@@ -7,15 +7,17 @@ import numpy as np
 import pytest
 import torch
 
-from tmol.io import (
+from tmol.io._pose_stack_from_biotite import (
     Atom37MappingError,
+    _canonical_ordering_for_biotite,
+)
+from tmol.io import (
+    prepare_atom37_pose_builder,
     build_context_from_atom_array,
     canonical_form_from_biotite,
-    canonical_ordering_for_biotite,
     pose_stack_from_atom37_and_topology,
-    pose_stack_from_atom_array,
-    prepare_atom37_pose_builder,
 )
+from tmol import pose_stack_from_atom_array
 from tmol.tests.data import data_path
 
 
@@ -71,7 +73,7 @@ def test_canonical_form_routes_batched_atom37_and_gradients(biotite_1ubq, torch_
     assert cf.coords.shape[0] == 2
     assert cf.atom_b_factor is not None
     assert cf.atom_b_factor.shape[0] == 2
-    co = canonical_ordering_for_biotite()
+    co = _canonical_ordering_for_biotite()
     n_index = co.restypes_atom_index_mapping[structure.res_name[0]]["N"]
     torch.testing.assert_close(cf.coords[:, 0, n_index], atom37[:, 0, 1])
 
@@ -96,7 +98,7 @@ def test_all_nan_atom37_coordinate_is_missing_not_reference_fallback(
         atom37_coords=atom37,
     )
 
-    co = canonical_ordering_for_biotite()
+    co = _canonical_ordering_for_biotite()
     oxygen_index = co.restypes_atom_index_mapping[structure.res_name[oxygen]]["O"]
     assert torch.isnan(cf.coords[0, 0, oxygen_index]).all()
     torch.nan_to_num(cf.coords).sum().backward()
@@ -451,7 +453,7 @@ def test_prepared_atom37_builder_falls_back_for_ambiguous_histidine_hydrogen(
 def test_atom37_pose_uses_ligand_context(torch_device, prebuilt):
     cif_path = data_path("protein_ligand_test", "cif_inputs", "ace.ligand.cif.zst")
     params_path = data_path("protein_ligand_test", "ace.xtal-lig.mmff94.tmol")
-    from tmol.io import atom_array_from_file
+    from tmol import atom_array_from_file
 
     structure = atom_array_from_file(cif_path)
     structure, atom37 = _atomized_atom37(structure, torch_device)
@@ -620,7 +622,7 @@ def test_geometric_gap_drops_bond_inferred_from_consecutive_numbering(
     _break_connections_for_missing_density flagged the gap but covalent_bonds_np
     kept the bond inferred from numbering.
     """
-    from tmol.io import atom_array_from_file
+    from tmol import atom_array_from_file
 
     lines = []
     for line in data_path("pdb", "1ubq.pdb").read_text().splitlines():

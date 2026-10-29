@@ -6,9 +6,9 @@ from tmol.tests import requires_cuda
 
 @pytest.fixture
 def extension():
-    from tmol._load_ext import load_module
+    from tmol._load_ext import _load_module
 
-    return load_module(
+    return _load_module(
         f"{__name__}.cuda",
         __file__,
         "segscan.cu",

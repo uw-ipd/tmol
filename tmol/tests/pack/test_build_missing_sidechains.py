@@ -1,9 +1,8 @@
 import torch
 import tmol.pack._build_missing_sidechains as build_missing_sidechains_module
 
-from tmol.pack import build_missing_sidechains
-from tmol.score import beta2016_score_function
-from tmol.pose import PoseStackBuilder
+from tmol.pack._build_missing_sidechains import _build_missing_sidechains
+from tmol import beta2016_score_function, PoseStackBuilder
 from tmol.tests.score.common import pose_stack_from_pdb_and_resnums
 
 
@@ -21,7 +20,7 @@ def test_build_missing_sidechains_jagged_pose_stack(ubq_pdb, torch_device, dun_s
     block_has_missing_atoms[0, 40:60] = True
     block_has_missing_atoms[2, 10:20] = True
     sfxn = beta2016_score_function(torch_device)
-    build_missing_sidechains(
+    _build_missing_sidechains(
         pose_stack=pn,
         sfxn=sfxn,
         dunbrack_sampler=dun_sampler,
@@ -46,7 +45,7 @@ def test_build_missing_sidechains_no_optH(ubq_pdb, torch_device, dun_sampler):
     sfxn = beta2016_score_function(torch_device)
     # A fully frozen middle pose must remain safe across repeated anneals.
     for _ in range(2):
-        build_missing_sidechains(
+        _build_missing_sidechains(
             pose_stack=pn,
             sfxn=sfxn,
             dunbrack_sampler=dun_sampler,
@@ -76,7 +75,7 @@ def test_build_missing_sidechains_skips_na_sampler_for_complete_pose(
         "pack_rotamers",
         lambda pose_stack, *_args, **_kwargs: pose_stack,
     )
-    result = build_missing_sidechains(
+    result = _build_missing_sidechains(
         pose_stack=pose_stack,
         sfxn=beta2016_score_function(torch_device),
         dunbrack_sampler=dun_sampler,
@@ -92,7 +91,7 @@ def test_build_missing_sidechains_freezes_complete_non_opth_blocks(
     ubq_pdb, torch_device, dun_sampler, monkeypatch
 ):
     """Do not send chemically immutable blocks through one-rotamer packing."""
-    from tmol.pack.rotamer import FixedAAChiSampler, OptHSampler
+    from tmol.pack import FixedAAChiSampler, OptHSampler
 
     pose_stack = pose_stack_from_pdb_and_resnums(ubq_pdb, torch_device)
     missing = torch.zeros(
@@ -107,7 +106,7 @@ def test_build_missing_sidechains_freezes_complete_non_opth_blocks(
         return pose_stack
 
     monkeypatch.setattr(build_missing_sidechains_module, "pack_rotamers", capture_task)
-    build_missing_sidechains(
+    _build_missing_sidechains(
         pose_stack=pose_stack,
         sfxn=beta2016_score_function(torch_device),
         dunbrack_sampler=dun_sampler,

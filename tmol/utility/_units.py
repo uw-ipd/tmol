@@ -24,7 +24,7 @@ def _simple_angle(angle: str):
     return math.radians(value) if fields[1] == "deg" else value
 
 
-def parse_angle(
+def _parse_angle(
     angle: Union[float, str], lim: Tuple[float, float] = (-2 * math.pi, 2 * math.pi)
 ) -> float:
     """Parse an angle via :doc:`pint <pint:index>` and convert to radians.
@@ -60,21 +60,21 @@ def parse_angle(
     return float(val)
 
 
-def parse_bond_angle(v: Union[float, str]) -> float:
+def _parse_bond_angle(v: Union[float, str]) -> float:
     """Parse a bond angle on the range [0, pi) via pint."""
-    return parse_angle(v, lim=_BOND_ANGLE_LIMIT)
+    return _parse_angle(v, lim=_BOND_ANGLE_LIMIT)
 
 
-def parse_dihedral_angle(v) -> float:
+def _parse_dihedral_angle(v) -> float:
     """Parse a dihedral angle on the range [-pi, pi) via pint."""
-    return parse_angle(v, lim=_DIHEDRAL_ANGLE_LIMIT)
+    return _parse_angle(v, lim=_DIHEDRAL_ANGLE_LIMIT)
 
 
 Angle = NewType("Angle", float)
-cattr.register_structure_hook(Angle, lambda v, t: parse_angle(v))
+cattr.register_structure_hook(Angle, lambda v, t: _parse_angle(v))
 
 BondAngle = NewType("BondAngle", float)
-cattr.register_structure_hook(BondAngle, lambda v, t: parse_bond_angle(v))
+cattr.register_structure_hook(BondAngle, lambda v, t: _parse_bond_angle(v))
 
 DihedralAngle = NewType("DihedralAngle", float)
-cattr.register_structure_hook(DihedralAngle, lambda v, t: parse_dihedral_angle(v))
+cattr.register_structure_hook(DihedralAngle, lambda v, t: _parse_dihedral_angle(v))

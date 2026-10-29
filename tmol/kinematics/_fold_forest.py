@@ -2,8 +2,9 @@ import numpy
 import attr
 import enum
 
-from tmol.types import NDArray
-from tmol.pose import PoseStack, annotate_packed_block_types_w_kinematic_conns
+from tmol.types._array import NDArray
+from tmol.pose._pose_stack import PoseStack
+from tmol.pose._packed_block_types import _annotate_packed_block_types_w_kinematic_conns
 
 
 class EdgeType(enum.IntEnum):
@@ -314,7 +315,7 @@ class FoldForest:
         up_c = pbt.up_conn_inds.cpu().numpy()
         down_c = pbt.down_conn_inds.cpu().numpy()
         n_conn = pbt.n_conn.cpu().numpy()
-        annotate_packed_block_types_w_kinematic_conns(pbt)
+        _annotate_packed_block_types_w_kinematic_conns(pbt)
         kinematic_c = pbt.kinematic_conn.cpu().numpy()
 
         all_pose_edges = [

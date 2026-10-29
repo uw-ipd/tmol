@@ -5,7 +5,7 @@ from torch.cuda.nvtx import range_push, range_pop
 
 
 @contextlib.contextmanager
-def nvtx_range(name):
+def _nvtx_range(name):
     """Annotate a CUDA operation range when CUDA is available."""
     if torch.cuda.is_available():
         try:

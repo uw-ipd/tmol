@@ -1,7 +1,7 @@
 import numpy
 import pytest
 
-from tmol.types import NDArray
+from tmol.types._array import NDArray
 
 validation_examples = [
     {

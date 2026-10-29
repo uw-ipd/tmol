@@ -3,12 +3,10 @@ import cattr
 
 import torch
 
-from tmol.types import (
-    Tensor,
-    TensorGroup,
-    validate_args,
-)
-from tmol.database.scoring import DisulfideDatabase
+from tmol.types._torch import Tensor
+from tmol.types._tensor import TensorGroup
+from tmol.types._functional import _validate_args
+from tmol.database.scoring._disulfide import DisulfideDatabase
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -52,7 +50,7 @@ class DisulfideGlobalParams(TensorGroup):
     dss_mixed_mu2: Tensor[torch.float32][...]
 
     @classmethod
-    @validate_args
+    @_validate_args
     def from_database(cls, disulfide_database: DisulfideDatabase, device: torch.device):
         return DisulfideGlobalParams(
             **{

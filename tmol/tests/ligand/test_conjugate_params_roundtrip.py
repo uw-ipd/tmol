@@ -6,12 +6,19 @@ import pytest
 import torch
 import yaml
 
-from tmol.database import ParameterDatabase
-from tmol.io import atom_array_from_file, pose_stack_from_atom_array
-from tmol.ligand import prepare_ligands, load_params_file, write_params_file
-from tmol.ligand._params_file import TMOL_FORMAT_VERSION
-from tmol.ligand._registry import inject_ligand_preparations
-from tmol.score import beta2016_score_function
+from tmol import (
+    ParameterDatabase,
+    atom_array_from_file,
+    pose_stack_from_atom_array,
+    beta2016_score_function,
+)
+from tmol.ligand import (
+    prepare_ligands,
+    load_params_file,
+    write_params_file,
+    TMOL_FORMAT_VERSION,
+)
+from tmol.ligand._registry import _inject_ligand_preparations
 from tmol.tests.data import data_path
 from tmol.tests.pack.test_conjugated_group_packing import FIXTURES
 
@@ -107,11 +114,11 @@ def test_conjugate_params_roundtrip(tmp_path, fixture, torch_device, bundle_copi
         )
         for p in sources
     ]
-    existing = inject_ligand_preparations(base, partial)
-    enriched = inject_ligand_preparations(existing, preps)
+    existing = _inject_ligand_preparations(base, partial)
+    enriched = _inject_ligand_preparations(existing, preps)
     assert {r.name: r for r in enriched.chemical.residues} == after
     assert charges(enriched) == charges(loaded)
-    assert inject_ligand_preparations(enriched, preps) is enriched
+    assert _inject_ligand_preparations(enriched, preps) is enriched
 
 
 @pytest.mark.parametrize("preinstalled", [False, True])
@@ -124,7 +131,7 @@ def test_connection_params_bundle_scores_after_reload(
         peptide_record,
         scoring_term,
     )
-    from tmol.database import inject_residue_params
+    from tmol.database import _inject_residue_params
 
     pose = pose_stack_from_pdb_and_resnums(ubq_pdb, torch_device, [(24, 26)])
     record = peptide_record(pose)
@@ -136,12 +143,12 @@ def test_connection_params_bundle_scores_after_reload(
     assert loaded[0].connection_params == (record,)
     assert yaml.safe_load(path.read_text())["version"] == TMOL_FORMAT_VERSION
     base = (
-        inject_ligand_preparations(default_database, [plain])
+        _inject_ligand_preparations(default_database, [plain])
         if preinstalled
         else default_database
     )
-    db = inject_ligand_preparations(base, loaded)
-    reference_db = inject_residue_params(
+    db = _inject_ligand_preparations(base, loaded)
+    reference_db = _inject_residue_params(
         default_database, [], connection_params=(record,)
     )
     results = []
@@ -151,7 +158,7 @@ def test_connection_params_bundle_scores_after_reload(
         score = module(coords)
         results.append((score.detach(), torch.autograd.grad(score.sum(), coords)[0]))
     torch.testing.assert_close(results[0], results[1])
-    assert inject_ligand_preparations(db, loaded) is db
+    assert _inject_ligand_preparations(db, loaded) is db
 
 
 def test_repeated_exports_do_not_retain_per_record_classes(tmp_path):
@@ -171,7 +178,7 @@ def test_repeated_exports_do_not_retain_per_record_classes(tmp_path):
 def test_shared_metadata_without_residue_is_not_silently_dropped(tmp_path, section):
     import cattr
     import yaml
-    from tmol.database.scoring import ConnectionCartRes
+    from tmol.database.scoring._cartbonded import ConnectionCartRes
 
     payload = {"version": "1.0", "chemical": {"residues": []}}
     if section == "patches":
@@ -210,4 +217,4 @@ def test_conflicting_patch_name_rejected():
     conflicting = attr.evolve(patch, display_name=patch.display_name + "_changed")
     prep = replace(_single_prep(), adds_patches=(conflicting,))
     with pytest.raises(ValueError, match="Conflicting patch definition"):
-        inject_ligand_preparations(base, [prep])
+        _inject_ligand_preparations(base, [prep])

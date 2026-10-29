@@ -1,16 +1,15 @@
 import torch
 
 from .._energy_term import EnergyTerm
-from .._annotation_cache import AnnotationKey, cached_annotation, store_annotation
+from .._annotation_cache import AnnotationKey, _cached_annotation, _store_annotation
 
 from tmol.database import ParameterDatabase
 from tmol.score.common._scoring_module import _coordinate_independent_score
 
-from tmol.chemical import RefinedResidueType, l_base_name
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
+from tmol.chemical import RefinedResidueType
+from tmol.database.chemical import _l_base_name
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
 
 
 class _RefAnnotationSource:
@@ -72,7 +71,7 @@ class RefEnergyTerm(EnergyTerm):
         # guard in ``setup_packed_block_types``.)
         src = self._resolved_weights()
         key = self._annotation_key()
-        cached = cached_annotation(block_type, "_ref_annotation", key)
+        cached = _cached_annotation(block_type, "_ref_annotation", key)
         if cached is not None:
             return cached
 
@@ -81,10 +80,10 @@ class RefEnergyTerm(EnergyTerm):
         #    acid falls back to the l form it mirrors rather than to zero
         ref_weight = src.get(block_type.base_name)
         if ref_weight is None:
-            ref_weight = src.get(l_base_name(block_type), 0.0)
+            ref_weight = src.get(_l_base_name(block_type), 0.0)
 
         setattr(block_type, "ref_weight", ref_weight)
-        return store_annotation(
+        return _store_annotation(
             block_type,
             "_ref_annotation",
             key,
@@ -100,7 +99,7 @@ class RefEnergyTerm(EnergyTerm):
         # score functions, so reusing a stale ``ref_weights`` tensor would leak
         # one score function's reference energies into another.
         key = self._annotation_key(packed=True)
-        cached = cached_annotation(packed_block_types, "_ref_annotation", key)
+        cached = _cached_annotation(packed_block_types, "_ref_annotation", key)
         if cached is not None:
             return cached
 
@@ -113,7 +112,7 @@ class RefEnergyTerm(EnergyTerm):
         )
 
         setattr(packed_block_types, "ref_weights", ref_weights)
-        return store_annotation(
+        return _store_annotation(
             packed_block_types,
             "_ref_annotation",
             key,
@@ -129,10 +128,10 @@ class RefEnergyTerm(EnergyTerm):
         super(RefEnergyTerm, self).setup_poses(poses)
 
     def get_pose_score_term_function(self):
-        return eval_ref_energy_for_pose
+        return _eval_ref_energy_for_pose
 
     def get_rotamer_score_term_function(self):
-        return eval_ref_energy_for_rotamers
+        return _eval_ref_energy_for_rotamers
 
     def get_score_term_attributes(self, pose_stack):
         # ref depends only on block type, so per-block energies are constant for
@@ -146,7 +145,7 @@ class RefEnergyTerm(EnergyTerm):
         return [block_ref, pose_ref, ref_weights]
 
 
-def eval_ref_energy_for_pose(
+def _eval_ref_energy_for_pose(
     # common args
     _rot_coords,
     _rot_coord_offset,
@@ -177,7 +176,7 @@ def eval_ref_energy_for_pose(
     return _coordinate_independent_score(_rot_coords, score), None
 
 
-def eval_ref_energy_for_rotamers(
+def _eval_ref_energy_for_rotamers(
     # common args
     rot_coords,
     _rot_coord_offset,

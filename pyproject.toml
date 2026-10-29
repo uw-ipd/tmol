@@ -2,7 +2,7 @@
 name = "tmol"
 description = "GPU-accelerated PyTorch reimplementation of the Rosetta energy function"
 readme = "README.md"
-license = {text = "Apache-2.0"}
+license = {text = "BSD-3-Clause"}
 requires-python = ">=3.11"
 authors = [
     { name = "Institute for Protein Design", email = "contact@ipd.uw.edu" },
@@ -77,7 +77,7 @@ dev = [
     "hypothesis>=5.35",
     "psutil>=5.9",
     "build>=1.2",  # Build real sdists in the packaging regression tests.
-    "pytest>=8.0",
+    "pytest>=8.0,<9.2",  # pytest-benchmark<=5.3.0 reads node._nodeid, removed in 9.2
     "pytest-cov>=4.1",
     "pytest-benchmark>=5.1",
     "pytest-forked>=1.6",
@@ -116,10 +116,10 @@ docs = [
 ]
 
 [project.urls]
-Documentation = "https://uw-ipd.github.io/tmol/"
-Issues = "https://github.com/uw-ipd/tmol/issues"
-Repository = "https://github.com/uw-ipd/tmol"
-Releases = "https://github.com/uw-ipd/tmol/releases"
+Documentation = "https://rosettacommons.github.io/tmol/"
+Issues = "https://github.com/RosettaCommons/tmol/issues"
+Repository = "https://github.com/RosettaCommons/tmol"
+Releases = "https://github.com/RosettaCommons/tmol/releases"
 
 # Build settings ---------------------------------------------------------------
 [build-system]

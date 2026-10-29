@@ -4,16 +4,16 @@ import pytest
 from rdkit import Chem
 
 from tmol.chemical import ResidueTypeSet
-from tmol.database import ParameterDatabase
-from tmol.io import (
+from tmol import (
+    ParameterDatabase,
     atom_array_from_file,
     extended_pose_stack_from_sequences,
     pose_stack_from_atom_array,
 )
 from tmol.ligand import (
     prepare_ligand_from_smiles,
-    smiles_from_block_type,
     smiles_from_pose_stack,
+    smiles_from_block_type,
 )
 from tmol.tests.data import data_path
 

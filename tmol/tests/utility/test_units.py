@@ -29,17 +29,17 @@ def test_angle_parsing():
     ]
 
     for v in valid_values:
-        assert units.parse_angle(v) == 1 / 2 * pi
+        assert units._parse_angle(v) == 1 / 2 * pi
 
     for i in invalid_values:
         with pytest.raises((pint.DimensionalityError, ValueError)):
-            units.parse_angle(i)
+            units._parse_angle(i)
 
-    units.parse_angle("1/2 pi", (units.u("0"), units.u("pi")))
-    units.parse_angle("1/2 pi rad", (units.u("0"), None))
+    units._parse_angle("1/2 pi", (units.u("0"), units.u("pi")))
+    units._parse_angle("1/2 pi rad", (units.u("0"), None))
 
-    units.parse_angle("-1/2 pi rad", (None, units.u("pi")))
+    units._parse_angle("-1/2 pi rad", (None, units.u("pi")))
     with pytest.raises(ValueError):
-        units.parse_angle("-1/2 pi rad", (units.u("0"), units.u("pi")))
+        units._parse_angle("-1/2 pi rad", (units.u("0"), units.u("pi")))
     with pytest.raises(ValueError):
-        units.parse_angle("-1/2 pi rad", (units.u("0"), None))
+        units._parse_angle("-1/2 pi rad", (units.u("0"), None))

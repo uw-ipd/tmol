@@ -26,11 +26,11 @@ from tmol.ligand._atom_typing import (
     AtomTypeAssignment,
     RosettaTypingState,
 )
-from tmol.ligand._chi_topology import build_chi_topology
+from tmol.ligand._chi_topology import _build_chi_topology
 from tmol.ligand._icoor_tree import (
-    build_atom_tree,
-    find_root_atom,
-    icoor_geometry_from_coords,
+    _build_atom_tree,
+    _find_root_atom,
+    _icoor_geometry_from_coords,
 )
 
 logger = logging.getLogger(__name__)
@@ -151,7 +151,7 @@ def _is_planar_resonance_bond(
     return sum(1 for nbr in other_neighbors if nbr.GetAtomicNum() == 7) >= 2
 
 
-def build_residue_type(  # noqa: C901
+def _build_residue_type(  # noqa: C901
     mol: Chem.Mol,
     res_name: str,
     atom_types: list[AtomTypeAssignment],
@@ -259,9 +259,9 @@ def build_residue_type(  # noqa: C901
     mol_bonds = [(b.GetBeginAtomIdx(), b.GetEndAtomIdx()) for b in mol.GetBonds()]
     is_heavy = [a.GetAtomicNum() != 1 for a in mol.GetAtoms()]
     unusable = (dropped_indices or set()) | frame_excluded
-    nbr_idx = find_root_atom(coords, mol_bonds, is_heavy, unusable)
+    nbr_idx = _find_root_atom(coords, mol_bonds, is_heavy, unusable)
     joins = _fragment_joins(mol, coords, is_heavy, nbr_idx, unusable, res_name)
-    order, parent, grandparents = build_atom_tree(
+    order, parent, grandparents = _build_atom_tree(
         mol.GetNumAtoms(), mol_bonds + joins, is_heavy, nbr_idx, frame_excluded
     )
     if keep_indices is not None:
@@ -278,7 +278,7 @@ def build_residue_type(  # noqa: C901
             ggp = gp
         grandparents[idx] = (gp, ggp)
 
-    geometry = icoor_geometry_from_coords(coords, order, parent, grandparents)
+    geometry = _icoor_geometry_from_coords(coords, order, parent, grandparents)
     icoors = [
         Icoor(
             name=atom_names[idx],
@@ -295,7 +295,7 @@ def build_residue_type(  # noqa: C901
     # Rotatable-bond (CHI / PROTON_CHI) topology, classified against the
     # perception state atom typing already built.
     atype_by_idx = {at.index: at.atom_type for at in atom_types}
-    torsions, chi_samples = build_chi_topology(
+    torsions, chi_samples = _build_chi_topology(
         mol,
         order,
         parent,
@@ -328,9 +328,12 @@ def build_residue_type(  # noqa: C901
         virtual=(),
     )
 
+    # ':' separates patch names in a type name; the input name lives on in
+    #    name3 and io_equiv_class
+    type_name = res_name.replace(":", "_")
     return RawResidueType(
-        name=res_name,
-        base_name=res_name,
+        name=type_name,
+        base_name=type_name,
         name3=res_name,
         io_equiv_class=res_name,
         atoms=atoms,

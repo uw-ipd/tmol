@@ -18,10 +18,8 @@ from biotite.structure.io.pdb import PDBFile
 import numpy as np
 
 from tmol.tests.data import data_path, read_text
-from tmol.ligand import (
-    disambiguate_mol2_atom_name,
-    load_params_file,
-)
+from tmol.ligand._mol2_names import _disambiguate_mol2_atom_name
+from tmol.ligand import load_params_file
 
 PLI_DIR = data_path("protein_ligand_test")
 CIF_OUT_DIR = PLI_DIR / "cif_inputs"
@@ -134,7 +132,7 @@ def _load_ligand_coords_from_mol2(
             continue
         raw_name = parts[1]
         seen[raw_name] = seen.get(raw_name, 0) + 1
-        name = disambiguate_mol2_atom_name(raw_name, seen[raw_name])
+        name = _disambiguate_mol2_atom_name(raw_name, seen[raw_name])
         if name in coords_by_name:
             raise ValueError(f"{mol2_path.name}: duplicate mol2 atom name {name}")
         element = _element_from_tripos_type(parts[5])
@@ -249,7 +247,7 @@ def _with_lewis_structure(ligand: struc.AtomArray) -> None:
     """
     from rdkit import Chem
 
-    from tmol.ligand._structure_to_smiles import ligand_smiles_from_atom_array
+    from tmol.ligand import ligand_smiles_from_atom_array
 
     try:
         smiles = ligand_smiles_from_atom_array(ligand, with_atom_map=True)

@@ -3,35 +3,34 @@ import torch
 
 from tmol.chemical import ResidueTypeSet
 
-from tmol.pose import PackedBlockTypes
-from tmol.pack.rotamer import (
-    construct_single_residue_kinforest,
-    create_non_sidechain_fingerprint,
-    create_mainchain_fingerprint,
+from tmol import PackedBlockTypes
+from tmol.pack.rotamer._single_residue_kinforest import (
+    _construct_single_residue_kinforest,
+)
+from tmol.pack.rotamer._mainchain_fingerprint import (
+    _create_non_sidechain_fingerprint,
+    _create_mainchain_fingerprint,
     AtomFingerprint,
-    annotate_residue_type_with_sampler_fingerprints,
-    find_unique_fingerprints,
-    bfs_sidechain_atoms,
-    FixedAAChiSampler,
+    _annotate_residue_type_with_sampler_fingerprints,
+    _find_unique_fingerprints,
 )
-from tmol.pack.rotamer.dunbrack import (
-    create_dunbrack_sampler_from_database,
-)
+from tmol.pack.rotamer._bfs_sidechain import _bfs_sidechain_atoms
+from tmol.pack import FixedAAChiSampler, create_dunbrack_sampler_from_database
 
 
 def test_create_non_sidechain_fingerprint(default_database):
     rts = ResidueTypeSet.from_database(default_database.chemical)
     leu_rt = rts.restype_map["LEU"][0]
-    construct_single_residue_kinforest(leu_rt)
+    _construct_single_residue_kinforest(leu_rt)
 
-    sc_atoms = bfs_sidechain_atoms(leu_rt, [leu_rt.atom_to_idx["CB"]])
+    sc_atoms = _bfs_sidechain_atoms(leu_rt, [leu_rt.atom_to_idx["CB"]])
 
     id = leu_rt.rotamer_kinforest.id
     parents = leu_rt.rotamer_kinforest.parent.copy()
     parents[parents < 0] = 0
     parents[id] = id[parents]
 
-    non_sc_ats, fingerprints, _ = create_non_sidechain_fingerprint(
+    non_sc_ats, fingerprints, _ = _create_non_sidechain_fingerprint(
         leu_rt, parents, sc_atoms, default_database.chemical
     )
 
@@ -82,11 +81,11 @@ def test_create_non_sc_fingerprint_smoke(default_database):
     for aa in canonical_aas:
         rt = rts.restype_map[aa][0]
 
-        construct_single_residue_kinforest(rt)
+        _construct_single_residue_kinforest(rt)
 
         sc_at_root = "CB" if rt.name != "GLY" else "HA3"
 
-        create_mainchain_fingerprint(rt, (sc_at_root,), default_database.chemical)
+        _create_mainchain_fingerprint(rt, (sc_at_root,), default_database.chemical)
 
 
 def test_annotate_rt_w_mainchain_fingerprint(default_database):
@@ -95,8 +94,8 @@ def test_annotate_rt_w_mainchain_fingerprint(default_database):
     leu_rt = rts.restype_map["LEU"][0]
     dun_sampler = create_dunbrack_sampler_from_database(default_database, torch_device)
 
-    construct_single_residue_kinforest(leu_rt)
-    annotate_residue_type_with_sampler_fingerprints(
+    _construct_single_residue_kinforest(leu_rt)
+    _annotate_residue_type_with_sampler_fingerprints(
         leu_rt, [dun_sampler], default_database.chemical
     )
 
@@ -170,17 +169,17 @@ def test_merge_fingerprints(default_database):  # noqa: C901
     ]
 
     for rt in rt_list:
-        construct_single_residue_kinforest(rt)
-        annotate_residue_type_with_sampler_fingerprints(
+        _construct_single_residue_kinforest(rt)
+        _annotate_residue_type_with_sampler_fingerprints(
             rt, [dun_sampler, fixed_sampler], default_database.chemical
         )
     # print([x.name for x in rt_list])
     pbt = PackedBlockTypes.from_restype_list(
         default_database.chemical, rts, rt_list, device=torch_device
     )
-    find_unique_fingerprints(pbt)
+    _find_unique_fingerprints(pbt)
     cached_fingerprints = pbt.mc_fingerprints
-    find_unique_fingerprints(pbt)
+    _find_unique_fingerprints(pbt)
     assert pbt.mc_fingerprints is cached_fingerprints
 
     # we should find that the pbt has been annotated

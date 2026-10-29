@@ -23,8 +23,7 @@ import yaml
 from yaml import safe_load
 
 from tmol.database.chemical import ChemicalDatabase
-from tmol.database.scoring._cartbonded import CartBondedDatabase
-from tmol.database.scoring._elec import ElecDatabase
+from tmol.database.scoring import CartBondedDatabase, ElecDatabase
 
 # three-letter code the PDB uses for each D-amino acid; these are the codes a
 #    deposited structure carries, so they drive residue-type matching on input
@@ -57,41 +56,41 @@ HEADER = (
 )
 
 
-def d_name(l_name: str) -> str:
+def _d_name(l_name: str) -> str:
     """The name of the mirror image of an L residue type."""
     return "D" + l_name
 
 
-def negate_angle(value: str) -> str:
+def _negate_angle(value: str) -> str:
     """Negate an angle written as a magnitude and a unit, e.g. "60.0 deg"."""
     magnitude, _, unit = str(value).partition(" ")
     return f"{-float(magnitude):.6f} {unit}"
 
 
-def mirror_icoor(icoor: dict) -> dict:
+def _mirror_icoor(icoor: dict) -> dict:
     """Negate an internal coordinate's dihedral.
 
     Reflection preserves distances and bond angles, so ``d`` and ``theta`` are
     untouched and only the dihedral changes sign.
     """
     mirrored = dict(icoor)
-    mirrored["phi"] = negate_angle(icoor["phi"])
+    mirrored["phi"] = _negate_angle(icoor["phi"])
     return mirrored
 
 
-def mirror_residue(residue: dict) -> dict:
+def _mirror_residue(residue: dict) -> dict:
     """Build the D residue type that mirrors one L residue type."""
     l_name = residue["name"]
     out = dict(residue)
-    out["name"] = d_name(l_name)
-    out["base_name"] = d_name(residue["base_name"])
+    out["name"] = _d_name(l_name)
+    out["base_name"] = _d_name(residue["base_name"])
     out["name3"] = D_NAME3[residue["name3"]]
     out["io_equiv_class"] = D_NAME3[residue["io_equiv_class"]]
     # one-letter codes address base types, and the sequence grammar reads
     #    lowercase as DNA; a D residue is written X[DALA]
     out["one_letter_code"] = None
 
-    out["icoors"] = [mirror_icoor(ic) for ic in residue["icoors"]]
+    out["icoors"] = [_mirror_icoor(ic) for ic in residue["icoors"]]
 
     properties = {
         k: dict(v) if isinstance(v, dict) else v
@@ -109,12 +108,12 @@ def mirror_residue(residue: dict) -> dict:
     borrowed = residue.get("dunbrack_reference")
     if borrowed in (None, residue["base_name"]):
         borrowed = None  # a self-reference is not a borrow
-    out["dunbrack_reference"] = d_name(borrowed) if borrowed else residue["base_name"]
+    out["dunbrack_reference"] = _d_name(borrowed) if borrowed else residue["base_name"]
     out["reference_mirrored"] = True
     return out
 
 
-def mirror_cartbonded(params: dict) -> dict:
+def _mirror_cartbonded(params: dict) -> dict:
     """Copy one residue's cartbonded parameters, negating improper phases.
 
     Bond lengths, angles and proper torsions are mirror-invariant. Impropers
@@ -131,7 +130,7 @@ def mirror_cartbonded(params: dict) -> dict:
     return out
 
 
-def assert_torsions_are_mirror_safe(params: dict, name: str) -> None:
+def _assert_torsions_are_mirror_safe(params: dict, name: str) -> None:
     """Proper torsions must be copied verbatim, so their phases must be flat.
 
     A phase of 0 or pi is unchanged by negation; any other phase would make the
@@ -152,13 +151,13 @@ def assert_torsions_are_mirror_safe(params: dict, name: str) -> None:
                 )
 
 
-def write_yaml(path: str, payload: dict) -> None:
+def _write_yaml(path: str, payload: dict) -> None:
     with open(path, "w") as outfile:
         outfile.write(HEADER)
         yaml.safe_dump(payload, outfile, default_flow_style=None, sort_keys=False)
 
 
-def main() -> None:
+def _main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--db_dir", default="tmol/database/default")
     args = parser.parse_args()
@@ -188,42 +187,42 @@ def main() -> None:
     residues, charges, cp_reps, cart, ref_weights = [], [], [], {}, {}
     for residue in sources:
         l_name = residue["name"]
-        residues.append(mirror_residue(residue))
+        residues.append(_mirror_residue(residue))
         # charges are per variant too; a c-terminus carries an OXT the base
         #    residue does not have
         charges.extend(
-            {**entry, "res": d_name(entry["res"])}
+            {**entry, "res": _d_name(entry["res"])}
             for entry in elec["atom_charge_parameters"]
             if entry["res"] == l_name or entry["res"].startswith(l_name + ":")
         )
         # countpair representatives gate which atom pairs fa_elec counts, and
         #    are keyed by residue name like the charges
         cp_reps.extend(
-            {**entry, "res": d_name(entry["res"])}
+            {**entry, "res": _d_name(entry["res"])}
             for entry in elec["atom_cp_reps_parameters"]
             if entry["res"] == l_name or entry["res"].startswith(l_name + ":")
         )
         if l_name in ref["weights"]:
-            ref_weights[d_name(l_name)] = ref["weights"][l_name]
+            ref_weights[_d_name(l_name)] = ref["weights"][l_name]
         if l_name in cartbonded["residue_params"]:
             params = cartbonded["residue_params"][l_name]
-            assert_torsions_are_mirror_safe(params, l_name)
-            cart[d_name(l_name)] = mirror_cartbonded(params)
+            _assert_torsions_are_mirror_safe(params, l_name)
+            cart[_d_name(l_name)] = _mirror_cartbonded(params)
         print(
-            f"  {l_name:8s} -> {d_name(l_name):9s} name3 {residue['name3']} -> "
+            f"  {l_name:8s} -> {_d_name(l_name):9s} name3 {residue['name3']} -> "
             f"{D_NAME3[residue['name3']]}"
         )
 
-    write_yaml(os.path.join(chem_dir, "d_amino_acids.yaml"), {"residues": residues})
-    write_yaml(
+    _write_yaml(os.path.join(chem_dir, "d_amino_acids.yaml"), {"residues": residues})
+    _write_yaml(
         os.path.join(scoring_dir, "elec_d_amino_acids.yaml"),
         {"atom_charge_parameters": charges, "atom_cp_reps_parameters": cp_reps},
     )
-    write_yaml(
+    _write_yaml(
         os.path.join(scoring_dir, "cartbonded_d_amino_acids.yaml"),
         {"residue_params": cart},
     )
-    write_yaml(
+    _write_yaml(
         os.path.join(scoring_dir, "ref_d_amino_acids.yaml"), {"weights": ref_weights}
     )
     print(
@@ -248,4 +247,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    _main()

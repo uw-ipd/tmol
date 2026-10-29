@@ -325,7 +325,7 @@ basetype_for_dtype = {
 }
 
 
-def attrs_for_dtypes(name, dtypes):
+def _attrs_for_dtypes(name, dtypes):
     obuf = io.StringIO()
     p = IPython.lib.pretty.PrettyPrinter(
         output=obuf, max_width=int(1e6), max_seq_length=int(1e6)

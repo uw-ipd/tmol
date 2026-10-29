@@ -26,7 +26,7 @@ _torch_dtype_mapping = {
 
 
 @singledispatch
-def torch_dtype(dt):
+def _torch_dtype(dt):
     """Resolve a torch dtype via numpy's dtype parsing system."""
     explict_dtype = _torch_dtype_mapping.get(dt, None)
 
@@ -42,12 +42,12 @@ def torch_dtype(dt):
     return torch_type
 
 
-@torch_dtype.register(torch.dtype)
-def _torch_dtype(dt):
+@_torch_dtype.register(torch.dtype)
+def _torch_dtype_impl(dt):
     return dt
 
 
-def like_kwargs(t: torch.Tensor):
+def _like_kwargs(t: torch.Tensor):
     """Extract kwargs args needed to initialize an identical tensor."""
     return dict(dtype=t.dtype, layout=t.layout, device=t.device)
 
@@ -60,7 +60,7 @@ class Tensor(_TensorType):
 
     @classmethod
     def _convert_dtype(cls, t):
-        return torch_dtype(t)
+        return _torch_dtype(t)
 
     @classmethod
     def convert(cls, value):
