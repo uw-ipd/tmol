@@ -169,3 +169,4 @@ tmol/tests/data/protein_ligand_test/*.packmin.cif
 *.flat.metal
 *.metal.d
 
+.devcontainer
