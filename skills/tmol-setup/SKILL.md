@@ -6,7 +6,7 @@ description: >
   and import or compiler failures. Do not use for scoring or modeling once an
   installation already works.
 allowed-tools: Bash, Read, Write, AskUserQuestion
-license: Apache-2.0
+license: BSD-3-Clause
 ---
 
 # TMol setup

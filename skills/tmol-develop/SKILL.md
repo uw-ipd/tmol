@@ -6,7 +6,7 @@ description: >
   regressions, launch profiling, code quality, and preparing a reviewable PR.
   Do not use for ordinary installed-library modeling workflows.
 allowed-tools: Bash, Read, Write, AskUserQuestion
-license: Apache-2.0
+license: BSD-3-Clause
 ---
 
 # TMol development

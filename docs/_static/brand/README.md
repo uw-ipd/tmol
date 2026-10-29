@@ -55,7 +55,7 @@ generated from that single geometry; they are not separate AI redraws.
 The initial concept was created with OpenAI image generation, selected by the
 maintainer, then traced and cleaned into this two-color vector master. The
 short force arrow was subsequently drawn as a native SVG path. Assets are
-distributed under the repository's Apache-2.0 license.
+distributed under the repository's BSD-3-Clause license.
 
 From the repository root, with Python and the Cairo shared library installed:
 

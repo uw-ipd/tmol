@@ -6,7 +6,7 @@ description: >
   gradients, CPU thread control, batching, and fixed-shape CUDA graph replay.
   Do not use for side-chain packing or full FastRelax protocols.
 allowed-tools: Bash, Read, Write, AskUserQuestion
-license: Apache-2.0
+license: BSD-3-Clause
 ---
 
 # TMol scoring
