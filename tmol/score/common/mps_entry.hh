@@ -38,8 +38,6 @@
 #define TMOL_MPS_BIND_28 TMOL_MPS_BIND_27, device void* b28 [[buffer(28)]]
 #define TMOL_MPS_BIND_29 TMOL_MPS_BIND_28, device void* b29 [[buffer(29)]]
 #define TMOL_MPS_BIND_30 TMOL_MPS_BIND_29, device void* b30 [[buffer(30)]]
-#define TMOL_MPS_BIND_31 TMOL_MPS_BIND_30, device void* b31 [[buffer(31)]]
-#define TMOL_MPS_BIND_32 TMOL_MPS_BIND_31, device void* b32 [[buffer(32)]]
 
 #define TMOL_MPS_PTRS_1 b1
 #define TMOL_MPS_PTRS_2 TMOL_MPS_PTRS_1, b2
@@ -71,5 +69,4 @@
 #define TMOL_MPS_PTRS_28 TMOL_MPS_PTRS_27, b28
 #define TMOL_MPS_PTRS_29 TMOL_MPS_PTRS_28, b29
 #define TMOL_MPS_PTRS_30 TMOL_MPS_PTRS_29, b30
-#define TMOL_MPS_PTRS_31 TMOL_MPS_PTRS_30, b31
-#define TMOL_MPS_PTRS_32 TMOL_MPS_PTRS_31, b32
+

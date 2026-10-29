@@ -22,17 +22,6 @@ TMOL_HD Mat<Real, R, C> from_eigen(Eigen::Matrix<Real, R, C> const& e) {
   return r;
 }
 
-template <typename Real, int R, int C>
-TMOL_HD Eigen::Matrix<Real, R, C> to_eigen(Mat<Real, R, C> const& a) {
-  Eigen::Matrix<Real, R, C> r;
-  for (int i = 0; i < R; ++i) {
-    for (int j = 0; j < C; ++j) {
-      r(i, j) = a(i, j);
-    }
-  }
-  return r;
-}
-
 // TView reinterprets torch storage as an array of these element types, so the
 // element stride -- sizeof -- must match Eigen exactly, as must the in-memory
 // element order (asserted by the byte-layout test in
