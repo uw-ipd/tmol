@@ -53,7 +53,8 @@
     <script>DOCUMENTATION_OPTIONS.pagename = 'model_input_example';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <script src="_static/tmol-explorers.js?v=089c5f52"></script>
-    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/model_input_example.html" />
+    <script async="async" defer="defer" src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
+    <link rel="canonical" href="https://rosettacommons.github.io/tmol/latest/model_input_example.html" />
     <link rel="icon" href="_static/favicon.ico"/>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -241,7 +242,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
       
@@ -368,7 +369,7 @@
           
           
           
-          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+          <a href="https://github.com/RosettaCommons/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
         </li>
 </ul></div>
         
@@ -486,7 +487,7 @@
                   
   <section id="Build-your-own-model-input-interface">
 <h1>Build your own model input interface<a class="headerlink" href="#Build-your-own-model-input-interface" title="Link to this heading">#</a></h1>
-<p><a class="reference external" href="https://colab.research.google.com/github/uw-ipd/tmol/blob/master/docs/model_input_example.ipynb">Open in Colab</a></p>
+<p><a class="reference external" href="https://colab.research.google.com/github/RosettaCommons/tmol/blob/master/docs/model_input_example.ipynb">Open in Colab</a></p>
 <p>Map OpenFold-style atom14 and RoseTTAFold2 prediction tensors to TMol, score them, and differentiate back to the original coordinates. The adapter functions below are editable application code using TMol’s canonical construction and scoring APIs.</p>
 <p>Run cells in order. In Colab, select a GPU runtime; the shared setup installs published wheels matching PyTorch’s CUDA major and downloads example predictions. No compilation is needed. Locally, follow the <a class="reference internal" href="installation.html"><span class="doc">installation guide</span></a>, then run from a source checkout for the fixtures. CPU and CUDA are supported. Set <code class="docutils literal notranslate"><span class="pre">TMOL_EXAMPLE_SOURCE</span></code> to another fixture checkout or <code class="docutils literal notranslate"><span class="pre">TMOL_EXAMPLE_DEVICE</span></code> to select a device explicitly.</p>
 <div class="nbinput nblast docutils container">
@@ -507,7 +508,7 @@
     <span class="kn">from</span><span class="w"> </span><span class="nn">urllib.request</span><span class="w"> </span><span class="kn">import</span> <span class="n">urlretrieve</span>
 
     <span class="n">urlretrieve</span><span class="p">(</span>
-        <span class="s2">"https://raw.githubusercontent.com/uw-ipd/tmol/"</span>
+        <span class="s2">"https://raw.githubusercontent.com/RosettaCommons/tmol/"</span>
         <span class="s2">"master/docs/tutorial/notebook_setup.py"</span><span class="p">,</span>
         <span class="s2">"notebook_setup.py"</span><span class="p">,</span>
     <span class="p">)</span>
