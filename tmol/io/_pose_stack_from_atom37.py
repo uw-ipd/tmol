@@ -18,7 +18,7 @@ import torch
 from tmol.io._build_context import PoseBuildContext
 from tmol.io._canonical_form import CanonicalForm
 from tmol.io._canonical_ordering import CanonicalOrdering
-from tmol.pose import PoseStack
+from tmol.pose._pose_stack import PoseStack
 
 
 def atom37_slot_map_for_ordering(
@@ -90,7 +90,7 @@ def _default_slot_map(
     )
 
 
-def canonical_form_from_atom37(
+def _canonical_form_from_atom37(
     atom37_coords: torch.Tensor,
     res_types: torch.Tensor,
     chain_id: torch.Tensor,
@@ -241,7 +241,7 @@ def pose_stack_from_atom37(
       A pose whose coordinates carry gradients back to ``atom37_coords``.
 
     Examples:
-      >>> context = build_context_from_biotite(array, device)
+      >>> context = build_context_from_atom_array(array, device)
       >>> pose = pose_stack_from_atom37(coords, res_types, chain_id, context)
       >>> pose.coords.requires_grad
       True
@@ -249,10 +249,10 @@ def pose_stack_from_atom37(
     # Imported here because the module defining the shared constructor is
     # loaded after this one.
     from tmol.io._pose_stack_from_biotite import (
-        pose_stack_from_canonical_form_and_context,
+        _pose_stack_from_canonical_form_and_context,
     )
 
-    canonical_form = canonical_form_from_atom37(
+    canonical_form = _canonical_form_from_atom37(
         atom37_coords,
         res_types,
         chain_id,
@@ -263,7 +263,7 @@ def pose_stack_from_atom37(
         covalent_bonds=covalent_bonds,
         res_not_connected=res_not_connected,
     )
-    return pose_stack_from_canonical_form_and_context(
+    return _pose_stack_from_canonical_form_and_context(
         canonical_form,
         context,
         no_optH=no_optH,

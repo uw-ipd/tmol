@@ -48,20 +48,20 @@ def test_mol2_roundtrip_preserves_delocalized_chemistry_and_scores(
 ):
     import torch
     from rdkit import Chem
-    from tmol.database import ParameterDatabase
-    from tmol.io import pose_stack_from_biotite
-    from tmol.ligand._detect import nonstandard_residue_info_from_mol2_block
+    from tmol import ParameterDatabase
+    from tmol import pose_stack_from_atom_array
+    from tmol.ligand._detect import _nonstandard_residue_info_from_mol2_block
     from tmol.ligand._openbabel_compat import _build_charged_3d_mol2_mol
-    from tmol.ligand._rdkit_mol import ligand_atom_array_to_rdkit_mol
-    from tmol.ligand._preparation import prepare_single_ligand
-    from tmol.ligand._registry import inject_ligand_preparations
-    from tmol.score import beta2016_score_function
+    from tmol.ligand._rdkit_mol import _ligand_atom_array_to_rdkit_mol
+    from tmol.ligand import prepare_single_ligand
+    from tmol.ligand._registry import _inject_ligand_preparations
+    from tmol import beta2016_score_function
 
     generated = _build_charged_3d_mol2_mol(smiles, seed=20250828)
-    info = nonstandard_residue_info_from_mol2_block(
+    info = _nonstandard_residue_info_from_mol2_block(
         generated.write("mol2"), res_name="LGX"
     )
-    mol = ligand_atom_array_to_rdkit_mol(info, keep_hydrogens=True)
+    mol = _ligand_atom_array_to_rdkit_mol(info, keep_hydrogens=True)
     assert all(atom.IsInRing() for atom in mol.GetAtoms() if atom.GetIsAromatic())
     assert all(bond.IsInRing() for bond in mol.GetBonds() if bond.GetIsAromatic())
     Chem.SanitizeMol(mol)
@@ -75,8 +75,8 @@ def test_mol2_roundtrip_preserves_delocalized_chemistry_and_scores(
     assert sum(prep.partial_charges.values()) == pytest.approx(
         Chem.GetFormalCharge(mol), abs=1e-4 * mol.GetNumAtoms()
     )
-    db = inject_ligand_preparations(ParameterDatabase.get_default(), [prep])
-    pose = pose_stack_from_biotite(
+    db = _inject_ligand_preparations(ParameterDatabase.get_default(), [prep])
+    pose = pose_stack_from_atom_array(
         info.atom_array, torch_device, param_db=db, no_optH=True
     )
     coords = pose.coords.detach().clone().requires_grad_()

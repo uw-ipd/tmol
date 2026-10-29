@@ -4,21 +4,18 @@ import attr
 import pandas
 from collections import defaultdict
 
-from tmol.types import (
-    Tensor,
-    validate_args,
-)
-from tmol.database import (
-    ParameterDatabase,
-    PatchedChemicalDatabase,
-)
-from tmol.pose import PackedBlockTypes
-from tmol.chemical import ResidueTypeSet, l_base_name
+from tmol.types._torch import Tensor
+from tmol.types._functional import _validate_args
+from tmol.database import ParameterDatabase
+from tmol.database._patched_chemdb import PatchedChemicalDatabase
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.chemical import ResidueTypeSet
+from tmol.database.chemical import _l_base_name
 from tmol.utility import resolve_device
 from typing import FrozenSet, List, Mapping, Optional, Tuple, Union
 from ._canonical_form import CanonicalForm
-from ._pdb_parsing import parse_pdb
-from ._alternates import records_with_one_alternate
+from ._pdb_parsing import _parse_pdb
+from ._alternates import _records_with_one_alternate
 import toolz.functoolz
 
 
@@ -241,7 +238,7 @@ class CanonicalOrdering:
         return ordered_set(
             restype.io_equiv_class
             for restype in chemdb.residues
-            if l_base_name(restype) in ("HIS", "HIS_D", "HIS_POS")
+            if _l_base_name(restype) in ("HIS", "HIS_D", "HIS_POS")
         ).ordered_vals
 
     @classmethod
@@ -500,7 +497,7 @@ class CanonicalOrdering:
             name
             for name in restype_name3s
             if any(
-                l_base_name(restype) in ("CYS", "CYD")
+                _l_base_name(restype) in ("CYS", "CYD")
                 for restype in chemdb.residues
                 if restype.io_equiv_class == name
             )
@@ -618,17 +615,17 @@ class CanonicalOrdering:
         )
 
 
-@validate_args
+@_validate_args
 @toolz.functoolz.memoize
-def default_canonical_ordering() -> CanonicalOrdering:
+def _default_canonical_ordering() -> CanonicalOrdering:
     """Create a CanonicalOrdering object from the default set of residue types"""
 
     chemdb = ParameterDatabase.get_default().chemical
     return CanonicalOrdering.from_chemdb(chemdb)
 
 
-@validate_args
-def default_packed_block_types(device: torch.device) -> PackedBlockTypes:
+@_validate_args
+def _default_packed_block_types(device: torch.device) -> PackedBlockTypes:
     """Create a PackedBlockTypes object from the default set of residue types"""
     # resolved before the memo lookup so 'cuda' and 'cuda:0' share one entry
     return _memoized_packed_block_types(resolve_device(device))
@@ -663,8 +660,8 @@ def _memoized_packed_block_types(device: torch.device) -> PackedBlockTypes:
     )
 
 
-@validate_args
-def canonical_form_from_pdb(
+@_validate_args
+def _canonical_form_from_pdb(
     canonical_ordering: CanonicalOrdering,
     pdb_lines_or_fname: Union[str, List],
     device: torch.device,
@@ -681,17 +678,17 @@ def canonical_form_from_pdb(
     a string representing a file
 
     """
-    atom_records = records_with_one_alternate(parse_pdb(pdb_lines_or_fname))
+    atom_records = _records_with_one_alternate(_parse_pdb(pdb_lines_or_fname))
     if residue_start is not None or residue_end is not None:
-        atom_records = select_atom_records_res_subset(
+        atom_records = _select_atom_records_res_subset(
             atom_records, residue_start, residue_end
         )
-    return canonical_form_from_atom_records(
+    return _canonical_form_from_atom_records(
         canonical_ordering, atom_records, device, res_not_connected
     )
 
 
-def select_atom_records_res_subset(
+def _select_atom_records_res_subset(
     atom_records: pandas.DataFrame,
     residue_start: Optional[int],
     residue_end: Optional[int],
@@ -722,7 +719,7 @@ def select_atom_records_res_subset(
     return atom_records.iloc[begin:end]
 
 
-def canonical_form_from_atom_records(  # noqa: C901
+def _canonical_form_from_atom_records(  # noqa: C901
     canonical_ordering: CanonicalOrdering,
     atom_records: pandas.DataFrame,
     device: torch.device,

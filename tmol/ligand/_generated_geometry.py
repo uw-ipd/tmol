@@ -33,7 +33,7 @@ def _is_sp2(atom) -> bool:
     return any(b.GetBondType() in _SP2_BONDS for b in atom.GetBonds())
 
 
-def planarize_conjugated_nh2(mol: Chem.Mol) -> list[str]:  # noqa: C901
+def _planarize_conjugated_nh2(mol: Chem.Mol) -> list[str]:  # noqa: C901
     """Make -NH2 groups conjugated to an sp2 center planar.
 
     Correct proton geomoetry around amine N bound to sp2 heavy atoms.
@@ -117,10 +117,10 @@ def _angle_sum_deg(center, a, hs):
 
 
 # Corrections applied, in order, to every generated structure.
-_CORRECTIONS = (planarize_conjugated_nh2,)
+_CORRECTIONS = (_planarize_conjugated_nh2,)
 
 
-def correct_generated_geometry(mol: Chem.Mol) -> list[str]:
+def _correct_generated_geometry(mol: Chem.Mol) -> list[str]:
     """Repair known defects in the generated conformer, in place.
 
     Apply all corrections specified in _CORRECTIONS.

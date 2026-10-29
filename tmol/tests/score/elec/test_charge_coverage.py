@@ -4,9 +4,10 @@ import attr
 import numpy
 import pytest
 
-from tmol.database.scoring import PartialCharges
-from tmol.pose import PackedBlockTypes
-from tmol.score.elec import ElecEnergyTerm, ElecParamResolver
+from tmol.database.scoring._elec import PartialCharges
+from tmol import PackedBlockTypes
+from tmol.score import ElecEnergyTerm
+from tmol.score.elec._params import ElecParamResolver
 
 
 @pytest.fixture

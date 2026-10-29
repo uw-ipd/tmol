@@ -2,11 +2,36 @@
 
 from __future__ import annotations
 
+import attr
 import numpy
 import pytest
+import torch
 
-from tmol.io import EXTENDED_BACKBONE_TORSIONS, extended_pose_stack_from_sequences
-from tmol.pose import get_named_torsions, get_torsion_names
+from tmol.io._pose_stack_from_sequence import EXTENDED_BACKBONE_TORSIONS
+from tmol import (
+    atom_for_residue_label,
+    block_for_residue_label,
+    constraint_atoms_for_labels,
+    extended_pose_stack_from_sequences,
+    get_torsion_names,
+)
+from tmol.pose import get_named_torsions
+
+
+def _with_inserted_residue(pose_stack, pose, block, residue_number, insertion_code):
+    """Give one block a residue label shared with its predecessor, distinguished
+    only by an insertion code -- mimics a real PDB's "52, 52A" numbering."""
+    residue_labels = pose_stack.pdb_info.residue_labels.copy()
+    residue_labels[pose, block] = residue_number
+    insertion_codes = pose_stack.pdb_info.residue_insertion_codes.copy()
+    insertion_codes[pose, block] = insertion_code
+    pdb_info = attr.evolve(
+        pose_stack.pdb_info,
+        residue_labels=residue_labels,
+        residue_insertion_codes=insertion_codes,
+    )
+    return attr.evolve(pose_stack, pdb_info=pdb_info)
+
 
 # ── get_torsion_names ─────────────────────────────────────────────────────────
 
@@ -222,3 +247,123 @@ def test_get_named_torsions_paired_lists_are_not_cartesian_product(torch_device)
     assert result[1][2]  # (pose 1, block 2) has torsion entries
     assert not result[0][2]  # (pose 0, block 2) is absent from the paired selection
     assert not result[1][1]  # (pose 1, block 1) is absent from the paired selection
+
+
+# ── block_for_residue_label ───────────────────────────────────────────────────
+
+
+def test_block_for_residue_label_finds_correct_block(torch_device):
+    """Chain + residue number (as a string) resolves to the expected block index."""
+    pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
+    assert block_for_residue_label(pose_stack, 0, "A", "1") == 0
+    assert block_for_residue_label(pose_stack, 0, "A", "2") == 1
+    assert block_for_residue_label(pose_stack, 0, "A", "5") == 4
+
+
+def test_block_for_residue_label_malformed_residue_id_raises(torch_device):
+    """A residue id that isn't digits-then-letters raises ValueError."""
+    pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
+    with pytest.raises(ValueError, match="invalid residue id"):
+        block_for_residue_label(pose_stack, 0, "A", "2-3")
+
+
+def test_block_for_residue_label_no_match_raises(torch_device):
+    """An out-of-range residue number raises ValueError."""
+    pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
+    with pytest.raises(ValueError, match="no block found"):
+        block_for_residue_label(pose_stack, 0, "A", "9999")
+
+
+def test_block_for_residue_label_wrong_chain_raises(torch_device):
+    """A chain letter that doesn't exist in the pose raises ValueError."""
+    pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
+    with pytest.raises(ValueError, match="no block found"):
+        block_for_residue_label(pose_stack, 0, "Z", "1")
+
+
+def test_block_for_residue_label_distinguishes_insertion_codes(torch_device):
+    """A plain residue number and its inserted variant resolve to different blocks."""
+    pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
+    pose_stack = _with_inserted_residue(pose_stack, 0, 2, 2, "A")
+
+    plain_block = block_for_residue_label(pose_stack, 0, "A", "2")
+    inserted_block = block_for_residue_label(pose_stack, 0, "A", "2A")
+
+    assert plain_block == 1
+    assert inserted_block == 2
+    assert plain_block != inserted_block
+
+
+# ── atom_for_residue_label ────────────────────────────────────────────────────
+
+
+def test_atom_for_residue_label_returns_pose_block_atom_triple(torch_device):
+    """The result is the [pose, block, atom] triple for the named atom."""
+    pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
+    block_type = pose_stack.block_type(0, 1)  # LYS
+
+    triple = atom_for_residue_label(pose_stack, 0, "A", "2", "CA")
+
+    assert triple.tolist() == [0, 1, block_type.atom_to_idx["CA"]]
+
+
+def test_atom_for_residue_label_tensor_properties(torch_device):
+    """The returned tensor is int32 and lives on the pose stack's device."""
+    pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
+    triple = atom_for_residue_label(pose_stack, 0, "A", "2", "CA")
+    assert triple.dtype == torch.int32
+    assert triple.device.type == pose_stack.device.type
+
+
+def test_atom_for_residue_label_unknown_atom_raises(torch_device):
+    """An atom name absent from the residue type raises ValueError."""
+    pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
+    with pytest.raises(ValueError, match="has no atom"):
+        atom_for_residue_label(pose_stack, 0, "A", "2", "ZZ")
+
+
+def test_atom_for_residue_label_distinguishes_insertion_codes(torch_device):
+    """Insertion-code resolution applies to the atom lookup too."""
+    pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
+    pose_stack = _with_inserted_residue(pose_stack, 0, 2, 2, "A")
+
+    plain = atom_for_residue_label(pose_stack, 0, "A", "2", "CA")
+    inserted = atom_for_residue_label(pose_stack, 0, "A", "2A", "CA")
+
+    assert int(plain[1]) == 1
+    assert int(inserted[1]) == 2
+
+
+# ── constraint_atoms_for_labels ────────────────────────────────────────────────
+
+
+def test_constraint_atoms_for_labels_matches_manual_stacking(torch_device):
+    """The result stacks one atom_for_residue_label call per label, in order."""
+    pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
+    labels = [(0, "A", "2", "CA"), (0, "A", "3", "N")]
+
+    actual = constraint_atoms_for_labels(pose_stack, labels)
+    expected = torch.stack(
+        [atom_for_residue_label(pose_stack, *label) for label in labels]
+    )
+
+    torch.testing.assert_close(actual, expected)
+    assert actual.shape == (2, 3)
+
+
+@pytest.mark.parametrize("n_atoms", [1, 2, 3, 4])
+def test_constraint_atoms_for_labels_accepts_one_to_four_atoms(torch_device, n_atoms):
+    """1 to 4 atom labels are all valid; the result has one row per label."""
+    pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
+    labels = [(0, "A", str(i + 1), "CA") for i in range(n_atoms)]
+    actual = constraint_atoms_for_labels(pose_stack, labels)
+    assert actual.shape == (n_atoms, 3)
+
+
+@pytest.mark.parametrize("n_atoms", [0, 5])
+def test_constraint_atoms_for_labels_rejects_wrong_atom_count(torch_device, n_atoms):
+    """Fewer than 1 or more than 4 atom labels raises ValueError."""
+    pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
+    labels = [(0, "A", "1", "CA")] * n_atoms
+    with pytest.raises(ValueError, match="1 to 4 atoms"):
+        constraint_atoms_for_labels(pose_stack, labels)

@@ -43,7 +43,7 @@ class ReferenceRefused(Exception):
 PLANAR_ANGLE_SUM = 350.0
 
 
-def planar_atoms(adjacency, coords) -> frozenset:
+def _planar_atoms(adjacency, coords) -> frozenset:
     """Heavy atoms that are planar, from the angles at them.
 
     Read from geometry rather than bond orders: which bond of a delocalized
@@ -158,7 +158,7 @@ def _degenerate_turn(graph: "SidechainGraph", previous: str, atom: str) -> bool:
     return all(not (graph.adjacency.get(n, frozenset()) - {atom}) for n in substituents)
 
 
-def chi_paths(graph: SidechainGraph, n_chi: int) -> list:
+def _chi_paths(graph: SidechainGraph, n_chi: int) -> list:
     """Every way to read n_chi chi off this residue, as paths p0..pN+1.
 
     Chi i turns the bond (p[i-1], p[i]) and is measured to p[i+1]. Only the
@@ -195,7 +195,7 @@ def chi_paths(graph: SidechainGraph, n_chi: int) -> list:
     return paths
 
 
-def longest_chi(graph: SidechainGraph) -> int:
+def _longest_chi(graph: SidechainGraph) -> int:
     """The most chi this residue offers along one chain.
 
     A rigid bond is crossed rather than turned, so chi past a ring or a double
@@ -378,7 +378,9 @@ def _substitution_cost(graph, mine, reference, theirs) -> float:
     return cost
 
 
-def path_cost(graph: SidechainGraph, path: tuple, reference: ReferenceProfile) -> float:
+def _path_cost(
+    graph: SidechainGraph, path: tuple, reference: ReferenceProfile
+) -> float:
     """How poorly the reference's chi stand in for this reading of the residue.
 
     The reference's sidechain is laid onto the residue's and the two compared
@@ -423,7 +425,7 @@ def path_cost(graph: SidechainGraph, path: tuple, reference: ReferenceProfile) -
     return cost
 
 
-def reference_cost(graph: SidechainGraph, reference: ReferenceProfile):
+def _reference_cost(graph: SidechainGraph, reference: ReferenceProfile):
     """The cost of this reference and the chi path that earns it.
 
     Raises ReferenceRefused where the residue cannot read the reference's chi
@@ -441,7 +443,7 @@ def reference_cost(graph: SidechainGraph, reference: ReferenceProfile):
             + ("only here" if graph.bridges_backbone() else "only in the reference")
         )
 
-    declared = longest_chi(graph)
+    declared = _longest_chi(graph)
     if declared == 0:
         raise ReferenceRefused("no rotatable sidechain bond")
     if declared - reference.n_chi > MAX_EXTRA_CHI:
@@ -453,13 +455,13 @@ def reference_cost(graph: SidechainGraph, reference: ReferenceProfile):
         raise ReferenceRefused(
             f"{reference.n_chi - declared} chi short of the reference"
         )
-    paths = chi_paths(graph, reference.n_chi)
+    paths = _chi_paths(graph, reference.n_chi)
     if not paths:
         raise ReferenceRefused("no chi path corresponds")
     scored = []
     for path in paths:
         try:
-            scored.append((path_cost(graph, path, reference), path))
+            scored.append((_path_cost(graph, path, reference), path))
         except ReferenceRefused:
             continue
     if not scored:
@@ -523,7 +525,7 @@ def _element_map(atoms, atom_type_index, owner: str) -> dict:
     return elements
 
 
-def graph_from_residue_type(residue_type, atom_type_index, coords=None):
+def _graph_from_residue_type(residue_type, atom_type_index, coords=None):
     """A SidechainGraph for a residue type.
 
     atom_type_index maps an atom type name to its database record, which is
@@ -553,7 +555,7 @@ def graph_from_residue_type(residue_type, atom_type_index, coords=None):
         order = bond[2] if len(bond) > 2 else "SINGLE"
         if order != "SINGLE" and bond[0] in heavy and bond[1] in heavy:
             rigid.add(frozenset((bond[0], bond[1])))
-    planar = planar_atoms(adjacency, coords or {})
+    planar = _planar_atoms(adjacency, coords or {})
     polymer = residue_type.properties.polymer
     return SidechainGraph(
         name=residue_type.name,
@@ -574,7 +576,7 @@ def graph_from_residue_type(residue_type, atom_type_index, coords=None):
     )
 
 
-def reference_profiles(chemical_database, library_names) -> list:
+def _reference_profiles(chemical_database, library_names) -> list:
     """ReferenceProfiles for the canonical residues that own a rotamer library."""
     atom_type_index = {a.name: a for a in chemical_database.atom_types}
     wanted = {name.upper() for name in library_names}
@@ -592,7 +594,7 @@ def reference_profiles(chemical_database, library_names) -> list:
             icoor.name: refined.ideal_coords[index]
             for index, icoor in enumerate(refined.icoors)
         }
-        graph = graph_from_residue_type(residue, atom_type_index, coords=coords)
+        graph = _graph_from_residue_type(residue, atom_type_index, coords=coords)
         profiles.append(
             ReferenceProfile(residue.name, graph, path, _declared_chi(residue, element))
         )
@@ -607,11 +609,11 @@ def _cached_profiles(chemical_database, library_names) -> list:
     return _PROFILE_CACHE.get_or_create(
         chemical_database,
         names,
-        lambda: reference_profiles(chemical_database, names),
+        lambda: _reference_profiles(chemical_database, names),
     )
 
 
-def anchor_atom(mainchain, attachment) -> Optional[str]:
+def _anchor_atom(mainchain, attachment) -> Optional[str]:
     """The mainchain atom on the N-terminal side of a sidechain's attachment.
 
     Chi1 is measured from it, so a residue and the reference it borrows from
@@ -625,7 +627,7 @@ def anchor_atom(mainchain, attachment) -> Optional[str]:
     return mainchain[index - 1] if index > 0 else None
 
 
-def transferred_chi(reference: ReferenceProfile, path, anchor) -> Optional[tuple]:
+def _transferred_chi(reference: ReferenceProfile, path, anchor) -> Optional[tuple]:
     """The reference's chi, read onto this residue through the path alignment.
 
     Every atom of a declared chi sits on the reference's chi path except the
@@ -638,7 +640,7 @@ def transferred_chi(reference: ReferenceProfile, path, anchor) -> Optional[tuple
     if len(path) != len(reference.path):
         return None
     position = {atom: index for index, atom in enumerate(reference.path)}
-    reference_anchor = anchor_atom(reference.graph.mainchain, reference.path[0])
+    reference_anchor = _anchor_atom(reference.graph.mainchain, reference.path[0])
     out = []
     for atoms in reference.chi:
         mapped = []
@@ -653,7 +655,7 @@ def transferred_chi(reference: ReferenceProfile, path, anchor) -> Optional[tuple
     return tuple(out)
 
 
-def reference_chi_for_graph(
+def _reference_chi_for_graph(
     graph: SidechainGraph, references, *, max_cost: float = MAX_COST
 ):
     """The cheapest reference this residue can take its chi from, and those chi.
@@ -665,14 +667,14 @@ def reference_chi_for_graph(
     scored = []
     for candidate in references:
         try:
-            cost, path = reference_cost(graph, candidate)
+            cost, path = _reference_cost(graph, candidate)
         except ReferenceRefused:
             continue
         if cost <= max_cost:
             scored.append((cost, candidate.name, candidate, path))
     scored.sort(key=lambda entry: (entry[0], entry[1]))
     for _cost, name, candidate, path in scored:
-        chi = transferred_chi(candidate, path, anchor_atom(graph.mainchain, path[0]))
+        chi = _transferred_chi(candidate, path, _anchor_atom(graph.mainchain, path[0]))
         if chi is not None:
             return name, chi
     return None, ()

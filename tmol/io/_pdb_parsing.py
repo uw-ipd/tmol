@@ -46,7 +46,7 @@ atom_record_dtype = numpy.dtype(
 )
 
 
-def parse_pdb(pdb_lines) -> pandas.DataFrame:
+def _parse_pdb(pdb_lines) -> pandas.DataFrame:
     """Parses pdb file into atom records.
 
     pdb_lines : Iterable lines, a string filename, or a string of lines in PDB format.
@@ -91,7 +91,7 @@ def parse_pdb(pdb_lines) -> pandas.DataFrame:
             model_names.append(model_name)
             model_breaks.append(False)
 
-    entries = parse_atom_lines(atom_lines)
+    entries = _parse_atom_lines(atom_lines)
 
     # Mark additional breaks if the chain code changes.
     chain_breaks = numpy.array(chain_breaks, dtype=bool)
@@ -111,7 +111,7 @@ def parse_pdb(pdb_lines) -> pandas.DataFrame:
     return pandas.DataFrame(entries)
 
 
-def parse_atom_lines(lines):
+def _parse_atom_lines(lines):
     """Parses an array of pdb ATOM records into a dict of field arrays.
 
     1 -  6         Record name     "ATOM  "
@@ -165,12 +165,12 @@ def parse_atom_lines(lines):
     return results
 
 
-def to_pdb(atom_records):
+def _to_pdb(atom_records):
     """Atom record DataFrame as pdb text."""
-    return "".join(to_pdb_lines(atom_records))
+    return "".join(_to_pdb_lines(atom_records))
 
 
-def format_atomn(atomn):
+def _format_atomn(atomn):
     """Formats atomn via pdb standard.
 
     If atomn is a single-letter element (N, C, O, S, H), then printed atomn record of the the format ' {atomn:<3}', else of the format '{atomn:<4}'
@@ -181,7 +181,7 @@ def format_atomn(atomn):
     return "{0:<4}".format(atomn)
 
 
-def to_pdb_lines(atom_records):
+def _to_pdb_lines(atom_records):
     """Yields atom record DataFrame as pdb lines."""
 
     if not isinstance(atom_records, pandas.DataFrame):
@@ -190,19 +190,19 @@ def to_pdb_lines(atom_records):
     for model_name, records in atom_records.groupby("model"):
         yield "MODEL {}\n".format(model_name)
 
-        for line in to_atom_lines(r for _, r in records.iterrows()):
+        for line in _to_atom_lines(r for _, r in records.iterrows()):
             yield line
 
         yield "TER\n"
         yield "ENDMDL\n"
 
 
-def to_atom_lines(atom_records):
+def _to_atom_lines(atom_records):
     """Convert atom records into ATOM lines."""
     for r in atom_records:
         yield _atom_record_format.format(
             atomi=r["atomi"],
-            atomn=format_atomn(r["atomn"]),
+            atomn=_format_atomn(r["atomn"]),
             location=r["location"],
             resn=r["resn"],
             chain=r["chain"],

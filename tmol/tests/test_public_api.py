@@ -8,6 +8,7 @@ PUBLIC_PACKAGES = (
     "tmol",
     "tmol.chemical",
     "tmol.database",
+    "tmol.dock",
     "tmol.io",
     "tmol.kinematics",
     "tmol.ligand",
@@ -21,6 +22,7 @@ PUBLIC_PACKAGES = (
     "tmol.relax",
     "tmol.score",
     "tmol.score.constraint",
+    "tmol.score.gridscore",
     "tmol.score.na_torsion",
     "tmol.score.terms",
     "tmol.types",
@@ -48,10 +50,46 @@ def test_ligand_all_excludes_vendored_and_internal_helpers():
     assert "print_header" not in ligand.__all__
 
 
-def test_documented_fragment_interaction_helper_is_public():
-    from tmol import score
+def test_ligand_all_contains_user_facing_names():
+    from tmol import ligand
 
-    assert "calculate_fragment_interactions" in score.__all__
+    expected = {
+        # errors, return types and format constant users need to name
+        "LigandPreparationError",
+        "NonStandardResidueInfo",
+        "TMOL_FORMAT_VERSION",
+        # SMILES helpers paired with the public pose-level ones
+        "smiles_from_block_type",
+        "smiles_from_pose_stack",
+        "ligand_smiles_from_atom_array",
+        "nonstandard_residue_info_from_mol2",
+        "nonstandard_residue_info_from_smiles_via_mol2",
+    }
+    assert expected <= set(ligand.__all__)
+    for name in expected:
+        assert getattr(ligand, name) is not None
+    assert "LigandPreparation" not in ligand.__all__
+
+
+def test_documented_fragment_interaction_helper_is_public():
+    import tmol
+
+    # tutorial_api_usage.csv makes it a top-level API name.
+    assert "calculate_fragment_interactions" in tmol.__all__
+
+
+def test_default_relax_minimizers_are_public():
+    from tmol import relax
+    from tmol.relax._fast_relax import (
+        DefaultCartesianMinimizer,
+        DefaultKinematicMinimizer,
+    )
+
+    assert relax.DefaultCartesianMinimizer is DefaultCartesianMinimizer
+    assert relax.DefaultKinematicMinimizer is DefaultKinematicMinimizer
+    assert {"DefaultCartesianMinimizer", "DefaultKinematicMinimizer"} <= set(
+        relax.__all__
+    )
 
 
 def test_extern_import_is_independent_of_vendored_tests():

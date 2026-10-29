@@ -6,7 +6,7 @@ import numpy
 
 from tmol.tests import gradcheck
 
-from tmol.score.ljlk import LJLKParamResolver
+from tmol.score.ljlk._params import LJLKParamResolver
 
 
 @pytest.fixture

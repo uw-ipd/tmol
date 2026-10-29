@@ -4,10 +4,10 @@ import numpy as np
 import pytest
 from rdkit import Chem
 
-from tmol.io import pose_stack_from_biotite
+from tmol import pose_stack_from_atom_array
 from tmol.ligand import prepare_ligand_from_mol2
-from tmol.ligand._detect import nonstandard_residue_info_from_mol2_block
-from tmol.ligand._rdkit_mol import ligand_atom_array_to_rdkit_mol
+from tmol.ligand._detect import _nonstandard_residue_info_from_mol2_block
+from tmol.ligand._rdkit_mol import _ligand_atom_array_to_rdkit_mol
 from tmol.tests.data import data_path
 from tmol.tests.ligand.test_ligand_entry_paths import _score_and_minimize_ligand
 
@@ -18,8 +18,8 @@ DATA = data_path() / "sweep_regressions"
 def test_prepared_charge_recovers_source_resonance_and_scores(code, torch_device):
     path = DATA / f"aromatic_charge_{code}.mol2"
     text = path.read_text()
-    info = nonstandard_residue_info_from_mol2_block(text, res_name="LIG")
-    actual = ligand_atom_array_to_rdkit_mol(info, keep_hydrogens=True)
+    info = _nonstandard_residue_info_from_mol2_block(text, res_name="LIG")
+    actual = _ligand_atom_array_to_rdkit_mol(info, keep_hydrogens=True)
     reference = next(
         iter(Chem.SDMolSupplier(str(path.with_suffix(".sdf")), removeHs=False))
     )
@@ -53,12 +53,12 @@ def test_prepared_charge_recovers_source_resonance_and_scores(code, torch_device
     assert actual.GetNumAtoms() == len(atoms)  # Includes every supplied hydrogen.
     assert not any(atom.GetNumRadicalElectrons() for atom in actual.GetAtoms())
     database, _ = prepare_ligand_from_mol2(path, res_name="LIG", mode="keep")
-    pose = pose_stack_from_biotite(
+    pose = pose_stack_from_atom_array(
         info.atom_array,
         torch_device,
         param_db=database,
         no_optH=True,
-        trust_hydrogen_names=True,
+        ligand_hydrogens="input",
     )
     block = pose.packed_block_types.active_block_types[int(pose.block_type_ind[0, 0])]
     np.testing.assert_allclose(
@@ -95,4 +95,4 @@ def test_missing_charge_is_not_guessed_without_consistent_constraints(unusable):
         lines[index] = " ".join(fields)
         text = "\n".join(lines) + "\n"
     with pytest.raises(ValueError, match="sanitizable chemical graph"):
-        nonstandard_residue_info_from_mol2_block(text)
+        _nonstandard_residue_info_from_mol2_block(text)

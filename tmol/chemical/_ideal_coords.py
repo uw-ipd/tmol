@@ -2,34 +2,34 @@ from typing import TYPE_CHECKING
 
 import numpy
 
-from tmol.types import NDArray
+from tmol.types._array import NDArray
 
 if TYPE_CHECKING:
-    from tmol.chemical import RefinedResidueType
+    from tmol.chemical._restypes import RefinedResidueType
 
 
-def eye4() -> NDArray[numpy.float32][4, 4]:
+def _eye4() -> NDArray[numpy.float32][4, 4]:
     """Return a single-precision homogeneous identity transform."""
 
     return numpy.eye(4, dtype=numpy.float32)
 
 
-def normalize(v: numpy.ndarray) -> numpy.ndarray:
+def _normalize(v: numpy.ndarray) -> numpy.ndarray:
     """Return ``v`` scaled to unit length."""
     return v / numpy.linalg.norm(v)
 
 
-def frame_from_coords(
+def _frame_from_coords(
     p1: NDArray[numpy.float32][3],
     p2: NDArray[numpy.float32][3],
     p3: NDArray[numpy.float32][3],
 ) -> NDArray[numpy.float32][4, 4]:
     """Construct a homogeneous frame from three Cartesian points."""
-    ht = eye4()
-    z = normalize(p3 - p2)
-    v21 = normalize(p1 - p2)
-    y = normalize(v21 - numpy.dot(z, v21) * z)
-    x = normalize(numpy.cross(y, z))
+    ht = _eye4()
+    z = _normalize(p3 - p2)
+    v21 = _normalize(p1 - p2)
+    y = _normalize(v21 - numpy.dot(z, v21) * z)
+    x = _normalize(numpy.cross(y, z))
 
     ht[0:3, 0] = x
     ht[0:3, 1] = y
@@ -38,9 +38,9 @@ def frame_from_coords(
     return ht
 
 
-def rot_x(rot: float) -> NDArray[numpy.float32][4, 4]:
+def _rot_x(rot: float) -> NDArray[numpy.float32][4, 4]:
     """Return a homogeneous rotation about the x-axis."""
-    ht = eye4()
+    ht = _eye4()
     crot = numpy.cos(rot)
     srot = numpy.sin(rot)
     ht[1, 1] = crot
@@ -50,9 +50,9 @@ def rot_x(rot: float) -> NDArray[numpy.float32][4, 4]:
     return ht
 
 
-def rot_z(rot: float) -> NDArray[numpy.float32][4, 4]:
+def _rot_z(rot: float) -> NDArray[numpy.float32][4, 4]:
     """Return a homogeneous rotation about the z-axis."""
-    ht = eye4()
+    ht = _eye4()
     crot = numpy.cos(rot)
     srot = numpy.sin(rot)
     ht[0, 0] = crot
@@ -62,14 +62,14 @@ def rot_z(rot: float) -> NDArray[numpy.float32][4, 4]:
     return ht
 
 
-def trans_z(trans: float) -> NDArray[numpy.float32][4, 4]:
+def _trans_z(trans: float) -> NDArray[numpy.float32][4, 4]:
     """Return a homogeneous translation along the z-axis."""
-    ht = eye4()
+    ht = _eye4()
     ht[2, 3] = trans
     return ht
 
 
-def build_coords_from_icoors(
+def _build_coords_from_icoors(
     icoors_ancestors: NDArray[numpy.int32][:, 3],
     icoors_geom: NDArray[numpy.float64][:, 3],
 ) -> NDArray[numpy.float32][:, 3]:
@@ -97,38 +97,38 @@ def build_coords_from_icoors(
     #   the origin, angle taken against the atom0->atom1 direction (rotate by
     #   pi - theta so atom 2 still lands in the +y half plane).
     if icoors_ancestors[2, 0] == 1:
-        ht_base = eye4()
+        ht_base = _eye4()
         ht_base[:3, 3] = coords[1, :]
-        rot_2 = rot_z(icoors_geom[2, 1])
+        rot_2 = _rot_z(icoors_geom[2, 1])
     else:
-        ht_base = eye4()
+        ht_base = _eye4()
         ht_base[:3, 3] = coords[0, :]
-        rot_2 = rot_z(numpy.pi - icoors_geom[2, 1])
-    trans_2 = eye4()
+        rot_2 = _rot_z(numpy.pi - icoors_geom[2, 1])
+    trans_2 = _eye4()
     trans_2[0, 3] = icoors_geom[2, 2]
     ht_2 = ht_base @ rot_2 @ trans_2
 
     coords[2, :] = ht_2[:3, 3]
 
     for i in range(3, icoors_ancestors.shape[0]):
-        ht_i = frame_from_coords(
+        ht_i = _frame_from_coords(
             coords[icoors_ancestors[i, 2], :],
             coords[icoors_ancestors[i, 1], :],
             coords[icoors_ancestors[i, 0], :],
         )
 
-        ht_rot_z = rot_z(icoors_geom[i, 0])
+        ht_rot_z = _rot_z(icoors_geom[i, 0])
         # negative rotation about the x axis will point z
         # at the next atom
-        ht_rot_x = rot_x(-icoors_geom[i, 1])
-        ht_trans_z = trans_z(icoors_geom[i, 2])
+        ht_rot_x = _rot_x(-icoors_geom[i, 1])
+        ht_trans_z = _trans_z(icoors_geom[i, 2])
 
         ht_i = ht_i @ ht_rot_z @ ht_rot_x @ ht_trans_z
         coords[i, :3] = ht_i[:3, 3]
     return coords
 
 
-def build_ideal_coords(
+def _build_ideal_coords(
     restype: "RefinedResidueType",
 ) -> NDArray[numpy.float32][:, 3]:
     """Build ideal Cartesian coordinates for a refined residue type."""
@@ -137,4 +137,4 @@ def build_ideal_coords(
     # let's just build the coordinates directly from the
     # tree provided in the icoors.
 
-    return build_coords_from_icoors(restype.icoors_ancestors, restype.icoors_geom)
+    return _build_coords_from_icoors(restype.icoors_ancestors, restype.icoors_geom)

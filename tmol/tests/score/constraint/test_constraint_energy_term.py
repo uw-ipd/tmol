@@ -6,10 +6,9 @@ import pytest
 import sys
 import types
 
-from tmol.pose import ConstraintSet
-from tmol.score.constraint import ConstraintEnergyTerm
+from tmol import ConstraintSet, pose_stack_from_file, ScoreFunction, ScoreType
+from tmol.score import ConstraintEnergyTerm
 from tmol.tests.score.common import EnergyTermTestBase
-from tmol import pose_stack_from_pdb, ScoreFunction, ScoreType
 
 
 def add_test_constraints_to_pose_stack(pose_stack):
@@ -150,7 +149,7 @@ def _circularharmonic_from_angles(monkeypatch, angles, x0, sd=0.5, offset=1.25):
     def get_torsion_angle(atoms):
         return atoms[:, 0, 0]
 
-    compiled.get_torsion_angle = get_torsion_angle
+    compiled._get_torsion_angle = get_torsion_angle
     monkeypatch.setitem(sys.modules, module_name, compiled)
 
     atoms = torch.zeros((len(angles), 4, 3), dtype=torch.float64)
@@ -360,7 +359,12 @@ class TestConstraintEnergyTerm(EnergyTermTestBase):
 def test_create_coordinate_constraints(
     ubq_pdb, kin_minimized_ubq_pdb, default_database, torch_device
 ):
-    ps = pose_stack_from_pdb(ubq_pdb, device=torch_device)
+    ps = pose_stack_from_file(
+        ubq_pdb,
+        device=torch_device,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     pbt = ps.packed_block_types
     constraints = ps.get_constraint_set()
     if constraints is None:
@@ -407,7 +411,12 @@ def test_create_coordinate_constraints(
     s = wpsm(ps.coords)
     torch.testing.assert_close(s, torch.tensor([0.0], device=torch_device))
 
-    ps2 = pose_stack_from_pdb(kin_minimized_ubq_pdb, device=torch_device)
+    ps2 = pose_stack_from_file(
+        kin_minimized_ubq_pdb,
+        device=torch_device,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     constraints2 = ps2.get_constraint_set()
     if constraints2 is None:
         constraints2 = ConstraintSet.create_empty(

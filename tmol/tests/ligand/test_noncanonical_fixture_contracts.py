@@ -19,13 +19,8 @@ import pytest
 import torch
 from biotite.structure.io import pdb
 
-from tmol.io import (
-    atom_array_from_cif,
-    canonical_ordering_for_biotite,
-    pose_stack_from_biotite,
-    pose_stack_from_cif,
-    pose_stack_from_file,
-)
+from tmol import atom_array_from_file, pose_stack_from_atom_array, pose_stack_from_file
+from tmol.io._pose_stack_from_biotite import _canonical_ordering_for_biotite
 from tmol.tests.data import data_path
 
 SEED = 20260915
@@ -76,7 +71,7 @@ def _described_from_an_unplaced_copy(array, names):
 def _unresolved_atom_names(array):
     """Atoms the file declares but never places.
 
-    ``atom_array_from_cif`` leaves a declared heavy atom at NaN when the
+    ``atom_array_from_file`` leaves a declared heavy atom at NaN when the
     structure resolves no position for it. A PDB record *is* a position, so
     these are exactly the atoms no coordinate-only file can carry.
     """
@@ -86,7 +81,7 @@ def _unresolved_atom_names(array):
 
 def _noncanonical_names(array):
     """Residue names the default ordering does not already describe."""
-    known = set(canonical_ordering_for_biotite().restype_io_equiv_classes)
+    known = set(_canonical_ordering_for_biotite().restype_io_equiv_classes)
     return sorted({str(n) for n in np.unique(array.res_name)} - known)
 
 
@@ -130,7 +125,7 @@ def test_prepared_parameters_make_coordinate_only_pdb_complete(
 ):
     """Parameters prepared from the CIF load a bare PDB of the same structure."""
     cif = data_path(*fixture.split("/"))
-    prepared, context = pose_stack_from_cif(
+    prepared, context = pose_stack_from_file(
         cif,
         torch_device,
         prepare_ligands=True,
@@ -141,7 +136,7 @@ def test_prepared_parameters_make_coordinate_only_pdb_complete(
     assert torch.isfinite(prepared.coords[prepared.real_atoms]).all()
 
     # A PDB with coordinates only: no CONECT records, no component blocks.
-    source = atom_array_from_cif(cif)
+    source = atom_array_from_file(cif)
     unresolved = _unresolved_atom_names(source)
     source.bonds = None
     pdb_path = tmp_path / "coordinates.pdb"
@@ -176,12 +171,12 @@ def test_prepared_parameters_make_coordinate_only_pdb_complete(
 def test_renamed_components_process_identically(fixture, torch_device):
     """A component renamed beyond any dictionary keeps its chemistry."""
     cif = data_path(*fixture.split("/"))
-    array = atom_array_from_cif(cif)
+    array = atom_array_from_file(cif)
     noncanonical = _noncanonical_names(array)
     if not noncanonical:
         pytest.skip(f"{fixture} carries no noncanonical component to rename")
 
-    named, named_context = pose_stack_from_biotite(
+    named, named_context = pose_stack_from_atom_array(
         array,
         torch_device,
         prepare_ligands=True,
@@ -198,10 +193,10 @@ def test_renamed_components_process_identically(fixture, torch_device):
         renamed_array.res_name[renamed_array.res_name == original] = alias
 
     if _described_from_an_unplaced_copy(array, aliases):
-        from tmol.ligand._preparation import LigandPreparationError
+        from tmol.ligand import LigandPreparationError
 
         with pytest.raises(LigandPreparationError, match="declared but unresolved"):
-            pose_stack_from_biotite(
+            pose_stack_from_atom_array(
                 renamed_array,
                 torch_device,
                 prepare_ligands=True,
@@ -212,7 +207,7 @@ def test_renamed_components_process_identically(fixture, torch_device):
         del named_context
         return
 
-    renamed, renamed_context = pose_stack_from_biotite(
+    renamed, renamed_context = pose_stack_from_atom_array(
         renamed_array,
         torch_device,
         prepare_ligands=True,

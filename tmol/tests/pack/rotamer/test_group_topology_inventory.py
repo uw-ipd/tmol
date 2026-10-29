@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 import torch
 
-from tmol.pose._conjugated_groups import find_conjugated_groups
+from tmol.pose._conjugated_groups import _find_conjugated_groups
 
 
 def _pose_graph(n_blocks, conjugations, other_bonds, polymers, device):
@@ -72,7 +72,7 @@ def test_group_records_all_internal_and_external_bonds(
     n_blocks, conjugations, other, polymers, torch_device
 ):
     pose, ports = _pose_graph(n_blocks, conjugations, other, polymers, torch_device)
-    groups = find_conjugated_groups(pose)
+    groups = _find_conjugated_groups(pose)
     assert len(groups) == 2
     for pose_index, group in enumerate(groups):
         assert group.pose == pose_index

@@ -7,12 +7,9 @@ import numpy as np
 import pytest
 import torch
 
-from tmol.io import (
-    atom_array_from_cif,
-    build_context_from_biotite,
-    pose_stack_from_biotite,
-)
-from tmol.ligand import chem_comp_types_from_cif
+from tmol import atom_array_from_file, pose_stack_from_atom_array
+from tmol.io import build_context_from_atom_array
+from tmol.ligand._detect import _chem_comp_types_from_cif
 from tmol.ligand._registry import _applied_patch
 from tmol.score.elec._params import ElecParamResolver
 from tmol.tests.io.test_atomworks_corpus_regressions import (
@@ -24,14 +21,16 @@ DATA = Path(__file__).parents[1] / "data" / "atomworks_regressions"
 
 
 def test_free_and_attached_solutes_keep_distinct_chemistry(torch_device):
-    array = atom_array_from_cif(DATA / "free_and_attached_solutes_5xag.cif.zst")
+    array = atom_array_from_file(DATA / "free_and_attached_solutes_5xag.cif.zst")
     array = array[
         (array.res_name != "HOH") & ~np.isin(np.char.upper(array.element), ("MG", "CA"))
     ]
-    context = build_context_from_biotite(
+    context = build_context_from_atom_array(
         array, torch_device, prepare_ligands=True, ligand_seed=20260909
     )
-    pose = pose_stack_from_biotite(array, torch_device, context=context, no_optH=True)
+    pose = pose_stack_from_atom_array(
+        array, torch_device, context=context, no_optH=True
+    )
     types = pose.packed_block_types.active_block_types
     charges = ElecParamResolver.from_database(
         context.parameter_database.scoring.elec, torch_device
@@ -83,8 +82,10 @@ def test_free_and_attached_solutes_keep_distinct_chemistry(torch_device):
     linked = residues[bonds[residues[bonds[:, 0]] != residues[bonds[:, 1]]]].flatten()
     free = solutes[~np.isin(residues, linked)]
     assert len(free) > 0
-    reused = pose_stack_from_biotite(free, torch_device, context=context, no_optH=True)
-    fresh, fresh_context = pose_stack_from_biotite(
+    reused = pose_stack_from_atom_array(
+        free, torch_device, context=context, no_optH=True
+    )
+    fresh, fresh_context = pose_stack_from_atom_array(
         free,
         torch_device,
         prepare_ligands=True,
@@ -99,17 +100,20 @@ def test_free_and_attached_solutes_keep_distinct_chemistry(torch_device):
 
 
 def test_missing_ligand_carbon_reconstructs_and_backpropagates(torch_device):
-    from tmol.io import canonical_form_from_biotite, pose_stack_from_canonical_form
+    from tmol.io import canonical_form_from_biotite
+    from tmol.io._pose_stack_construction import _pose_stack_from_canonical_form
 
-    array = atom_array_from_cif(DATA / "missing_ligand_carbon_5hs6.cif.zst")
+    array = atom_array_from_file(DATA / "missing_ligand_carbon_5hs6.cif.zst")
     array = array[(np.char.upper(array.element) != "NA") & (array.res_name != "HOH")]
     ligand = array[array.res_name == "J3Z"]
     assert int((ligand.atom_name == "C6").sum()) == 1
     assert np.isnan(ligand.coord[ligand.atom_name == "C6"]).all()
-    context = build_context_from_biotite(
+    context = build_context_from_atom_array(
         array, torch_device, prepare_ligands=True, ligand_seed=20260909
     )
-    pose = pose_stack_from_biotite(array, torch_device, context=context, no_optH=True)
+    pose = pose_stack_from_atom_array(
+        array, torch_device, context=context, no_optH=True
+    )
     types = pose.packed_block_types.active_block_types
     block = next(
         i for i, t in enumerate(pose.block_type_ind[0]) if types[int(t)].name == "J3Z"
@@ -141,7 +145,7 @@ def test_missing_ligand_carbon_reconstructs_and_backpropagates(torch_device):
 
     def rebuild(coords):
         args[2] = coords
-        return pose_stack_from_canonical_form(
+        return _pose_stack_from_canonical_form(
             context.canonical_ordering, context.packed_block_types, *args
         )
 
@@ -149,7 +153,7 @@ def test_missing_ligand_carbon_reconstructs_and_backpropagates(torch_device):
     assert torch.isfinite(rebuilt.coords[rebuilt.real_atoms]).all()
     # Fresh preparation must agree across atom order and bond order; the
     #    tensor route builds hydrogens that AtomWorks places from structures.
-    other = atom_array_from_cif(DATA / "missing_ligand_carbon_5hs6.cif.zst")
+    other = atom_array_from_file(DATA / "missing_ligand_carbon_5hs6.cif.zst")
     other = other[other.res_name == "J3Z"]
     fresh = []
     for order in (slice(None), slice(None, None, -1)):
@@ -158,7 +162,7 @@ def test_missing_ligand_carbon_reconstructs_and_backpropagates(torch_device):
             len(reordered), other[order].bonds.as_array()[order]
         )
         fresh.append(
-            pose_stack_from_biotite(
+            pose_stack_from_atom_array(
                 reordered,
                 torch_device,
                 prepare_ligands=True,
@@ -237,7 +241,7 @@ def test_plp_aldimine_keeps_its_double_bond_through_packing(torch_device):
         _assert_all_source_connections,
     )
 
-    array = atom_array_from_cif(DATA / "plp_cap_5t4j.cif.zst")
+    array = atom_array_from_file(DATA / "plp_cap_5t4j.cif.zst")
     array = array[array.res_name != "HOH"]
     c4a = np.flatnonzero((array.res_name == "PLP") & (array.atom_name == "C4A"))
     assert len(c4a) == 1
@@ -248,12 +252,14 @@ def test_plp_aldimine_keeps_its_double_bond_through_packing(torch_device):
         if array.res_name[j] != "PLP"
     ]
     assert link == [("ABU", "N", int(struc.BondType.DOUBLE))]
-    context = build_context_from_biotite(
+    context = build_context_from_atom_array(
         array, torch_device, prepare_ligands=True, ligand_seed=20260909
     )
     # Missing sidechain atoms trigger packing.
     assert np.isnan(array.coord).any()
-    pose = pose_stack_from_biotite(array, torch_device, context=context, no_optH=True)
+    pose = pose_stack_from_atom_array(
+        array, torch_device, context=context, no_optH=True
+    )
     # The author chain A also names the separate ligand entities. The protein
     # still ends at histidine and needs its terminal oxygen through both readers.
     assert (
@@ -306,39 +312,39 @@ def test_single_atom_plp_backbone_preserves_chirality(monkeypatch):
     gives the CH2 mainchain the packer fingerprints.
     """
     from tmol.chemical import ResidueTypeSet
-    from tmol.database import ParameterDatabase
-    from tmol.ligand import prepare_polymer_residue
-    from tmol.ligand._polymer_profile import cap_polymer_profile
+    from tmol import ParameterDatabase
+    from tmol.ligand._preparation import _prepare_polymer_residue
+    from tmol.ligand._polymer_profile import _cap_polymer_profile
     from tmol.ligand._registry import (
-        inject_ligand_preparations,
-        rebuild_canonical_ordering,
+        _inject_ligand_preparations,
+        _rebuild_canonical_ordering,
     )
-    from tmol.pack.rotamer import (
-        construct_single_residue_kinforest,
-        create_mainchain_fingerprint,
+    from tmol.pack.rotamer._single_residue_kinforest import (
+        _construct_single_residue_kinforest,
     )
+    from tmol.pack.rotamer._mainchain_fingerprint import _create_mainchain_fingerprint
 
-    array = atom_array_from_cif(DATA / "plp_cap_5t4j.cif.zst")
+    array = atom_array_from_file(DATA / "plp_cap_5t4j.cif.zst")
     source = array[array.res_name == "PLP"]
     assert "O4A" not in set(source.atom_name)
     database = ParameterDatabase.get_default()
-    prep = prepare_polymer_residue(
+    prep = _prepare_polymer_residue(
         source,
-        rebuild_canonical_ordering(database),
+        _rebuild_canonical_ordering(database),
         database,
         connection_atoms={"C4A"},
-        profile=cap_polymer_profile(source, "C4A", database.chemical),
+        profile=_cap_polymer_profile(source, "C4A", database.chemical),
         seed=20260909,
     )
-    chemical = inject_ligand_preparations(database, [prep]).chemical
+    chemical = _inject_ligand_preparations(database, [prep]).chemical
     plp = next(
         rt
         for rt in ResidueTypeSet.from_database(chemical).residue_types
         if rt.name == "PLP"
     )
     assert plp.properties.polymer.mainchain_atoms == ("C4A",)
-    construct_single_residue_kinforest(plp)
-    original = create_mainchain_fingerprint(plp, (), chemical)[1]
+    _construct_single_residue_kinforest(plp)
+    original = _create_mainchain_fingerprint(plp, (), chemical)[1]
     assert len(set(original)) == plp.n_atoms
     mainchain_hydrogens = _hydrogens_on(plp, "C4A")
     assert len(mainchain_hydrogens) == 2
@@ -347,23 +353,25 @@ def test_single_atom_plp_backbone_preserves_chirality(monkeypatch):
     } == {1, 2}
     with monkeypatch.context() as patch:
         patch.setattr(plp, "ideal_coords", plp.ideal_coords * [-1, 1, 1])
-        mirrored = create_mainchain_fingerprint(plp, (), chemical)[1]
+        mirrored = _create_mainchain_fingerprint(plp, (), chemical)[1]
     for first, reflected in zip(original, mirrored):
         expected = 3 - first.chirality if first.chirality in (1, 2) else first.chirality
         assert reflected.chirality == expected
 
 
 def test_chromophore_with_one_terminal_patch_constructs_and_minimizes(torch_device):
-    array = atom_array_from_cif(DATA / "chromophore_3nez.cif.zst")
+    array = atom_array_from_file(DATA / "chromophore_3nez.cif.zst")
     array = array[array.res_name != "HOH"]
-    context = build_context_from_biotite(
+    context = build_context_from_atom_array(
         array, torch_device, prepare_ligands=True, ligand_seed=20260909
     )
     assert context.canonical_ordering.restypes_default_termini_mapping["NRQ"] == (
         None,
         "cterm",
     )
-    pose = pose_stack_from_biotite(array, torch_device, context=context, no_optH=True)
+    pose = pose_stack_from_atom_array(
+        array, torch_device, context=context, no_optH=True
+    )
     types = pose.packed_block_types.active_block_types
     chromophores = [
         (i, types[int(t)])
@@ -383,7 +391,7 @@ def test_chromophore_with_one_terminal_patch_constructs_and_minimizes(torch_devi
 
 
 def test_internal_representative_keeps_terminal_oxygen_names(torch_device):
-    array = atom_array_from_cif(DATA / "modified_components_6q9t.cif")
+    array = atom_array_from_file(DATA / "modified_components_6q9t.cif")
     metal = np.isin(np.char.upper(array.element), ("ZN", "NA", "MG", "CA"))
     assert_metal_bonds_are_coordination(array, metal)
     array = array[~metal & (array.res_name != "HOH")]
@@ -406,10 +414,10 @@ def test_internal_representative_keeps_terminal_oxygen_names(torch_device):
             preparation = source[
                 ~((source.res_name == "QUK") & (source.atom_name == "OXT"))
             ]
-        context = build_context_from_biotite(
+        context = build_context_from_atom_array(
             preparation, torch_device, prepare_ligands=True, ligand_seed=20260909
         )
-        pose = pose_stack_from_biotite(
+        pose = pose_stack_from_atom_array(
             source, torch_device, context=context, no_optH=True
         )
         terminal = next(
@@ -467,15 +475,17 @@ def test_internal_representative_keeps_terminal_oxygen_names(torch_device):
 def test_modified_nucleotide_aliases_construct_score_and_minimize(torch_device):
     from collections import Counter
 
-    array = atom_array_from_cif(DATA / "modified_nucleotide_aliases_1d9d.cif.zst")
+    array = atom_array_from_file(DATA / "modified_nucleotide_aliases_1d9d.cif.zst")
     metal = np.isin(np.char.upper(array.element), ("ZN", "MG"))
     assert_metal_bonds_are_coordination(array, metal)
     array = array[~metal & (array.res_name != "HOH")]
     supplied, names = array.coord.copy(), array.atom_name.copy()
-    context = build_context_from_biotite(
+    context = build_context_from_atom_array(
         array, torch_device, prepare_ligands=True, ligand_seed=20260909
     )
-    pose = pose_stack_from_biotite(array, torch_device, context=context, no_optH=True)
+    pose = pose_stack_from_atom_array(
+        array, torch_device, context=context, no_optH=True
+    )
     copies = []
     for bi, ti in enumerate(pose.block_type_ind[0].tolist()):
         bt = pose.packed_block_types.active_block_types[ti]
@@ -514,7 +524,7 @@ def test_modified_nucleotide_aliases_construct_score_and_minimize(torch_device):
 
 def test_aromatic_acyl_cap_keeps_every_heavy_atom_in_its_tree():
     path = DATA / "modified_components_6q9t.cif"
-    array = atom_array_from_cif(path)
+    array = atom_array_from_file(path)
     # Retain 4SO and its directly attached A1IJ4 partner. The complete source
     # also contains zinc; this regression concerns the organic atom tree.
     indices = struc.get_residue_positions(array, np.arange(len(array)))
@@ -524,12 +534,12 @@ def test_aromatic_acyl_cap_keeps_every_heavy_atom_in_its_tree():
     selected.update(indices[linked].flatten())
     array = array[np.isin(indices, list(selected))]
     assert set(array.res_name) == {"4SO", "A1IJ4"}
-    context = build_context_from_biotite(
+    context = build_context_from_atom_array(
         array,
         torch.device("cpu"),
         prepare_ligands=True,
         ligand_seed=20260909,
-        chem_comp_types=chem_comp_types_from_cif(path),
+        chem_comp_types=_chem_comp_types_from_cif(path),
     )
     residue = next(r for r in context.restype_set.residue_types if r.name == "4SO")
     observed = set(array.atom_name[array.res_name == "4SO"])
@@ -542,19 +552,19 @@ def test_plp_enzyme_completion_preserves_residues_and_terminal_chemistry(
     torch_device, monkeypatch
 ):
     path = DATA / "plp_enzyme_7mkv.cif"
-    array = atom_array_from_cif(path)
+    array = atom_array_from_file(path)
     starts = struc.get_residue_starts(array)
     terminal_arg = (array.chain_id == "B") & (array.res_id == 437)
     assert terminal_arg[starts].sum() == 1
     assert {"N", "CA", "C", "O", "CB", "CG", "CD", "NE", "CZ", "NH1", "NH2"} <= set(
         array.atom_name[terminal_arg]
     )
-    context = build_context_from_biotite(
+    context = build_context_from_atom_array(
         array,
         torch_device,
         prepare_ligands=True,
         ligand_seed=20260909,
-        chem_comp_types=chem_comp_types_from_cif(path),
+        chem_comp_types=_chem_comp_types_from_cif(path),
     )
     db = context.parameter_database
     base = next(r for r in db.chemical.residues if r.name == "LLP")
@@ -572,15 +582,17 @@ def test_plp_enzyme_completion_preserves_residues_and_terminal_chemistry(
     for residue in context.restype_set.residue_types:
         if residue.name.split(":")[0] == "LLP":
             assert np.isfinite(resolver.get_partial_charges_for_block(residue)).all()
-    pose = pose_stack_from_biotite(array, torch_device, context=context, no_optH=True)
+    pose = pose_stack_from_atom_array(
+        array, torch_device, context=context, no_optH=True
+    )
     _score_and_minimize(pose, context)
 
-    from tmol.kinematics import CartesianMoveMap, FoldForest
-    from tmol.optimization import run_cart_min
-    from tmol.pack import PackerPalette
+    from tmol import CartesianMoveMap, FoldForest
+    from tmol import run_cart_min
+    from tmol import PackerPalette
     import tmol.pack._pack_rotamers as packing
-    from tmol.relax import fast_relax
-    from tmol.score import beta2016_score_function
+    from tmol import fast_relax
+    from tmol import beta2016_score_function
 
     build = packing.build_rotamers
     counts = []

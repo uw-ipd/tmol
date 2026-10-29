@@ -4,16 +4,14 @@ import attr
 import cattr
 import torch
 
-from tmol.types import (
-    Tensor,
-    TensorGroup,
-)
-from tmol.score.ljlk import LJLKParamResolver
-from tmol.score import AtomTypeParamResolver
+from tmol.types._torch import Tensor
+from tmol.types._tensor import TensorGroup
+from tmol.score.ljlk._params import LJLKParamResolver
+from tmol.score._chemical_database import AtomTypeParamResolver
 
-from tmol._load_ext import load_module
+from tmol._load_ext import _load_module
 
-_compiled = load_module(
+_compiled = _load_module(
     __name__,
     __file__,
     "compiled.pybind.cpp",

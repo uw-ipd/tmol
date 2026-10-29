@@ -1,14 +1,19 @@
 import torch
 
-from tmol._load_ext import ensure_compiled_or_jit
+from tmol._load_ext import _ensure_compiled_or_jit
 
-if ensure_compiled_or_jit():
-    from tmol.utility import load, relpaths, modulename, cuda_if_available
+if _ensure_compiled_or_jit():
+    from tmol.utility._cpp_extension import (
+        _load,
+        _relpaths,
+        _modulename,
+        _cuda_if_available,
+    )
 
-    load(
-        modulename(__name__),
-        cuda_if_available(
-            relpaths(
+    _load(
+        _modulename(__name__),
+        _cuda_if_available(
+            _relpaths(
                 __file__,
                 [
                     "compiled.ops.cpp",
@@ -29,7 +34,7 @@ genbonded_pose_scores = _ops.genbonded_pose_scores
 genbonded_rotamer_scores = _ops.genbonded_rotamer_scores
 
 
-def iter_packing_rotamer_scores(*args):
+def _iter_packing_rotamer_scores(*args):
     *score_args, topology_only = args
     op = (
         _ops.genbonded_rotamer_scores_topology

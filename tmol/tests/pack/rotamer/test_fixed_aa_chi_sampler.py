@@ -3,12 +3,8 @@ import numpy
 import cattr
 
 from tmol.chemical import RefinedResidueType, ResidueTypeSet
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStackBuilder,
-)
-from tmol.pack import PackerTask, SetPackerTask, PackerPalette
-from tmol.pack.rotamer import FixedAAChiSampler
+from tmol import PackedBlockTypes, PoseStackBuilder, PackerTask, PackerPalette
+from tmol.pack import SetPackerTask, FixedAAChiSampler
 
 from tmol.tests.data import no_termini_pose_stack_from_pdb
 
@@ -24,6 +20,27 @@ def test_annotate_residue_type_smoke(default_database):
     sampler = FixedAAChiSampler()
     sampler.annotate_residue_type(ala_restype)
     # this is a no-op
+
+
+def test_fixed_aa_residue_types(default_database):
+    """Residues with no heavy chi get one conformer, built from CA's branches."""
+    restypes = {
+        res.name: cattr.structure(cattr.unstructure(res), RefinedResidueType)
+        for res in default_database.chemical.residues
+        if res.name in ("ALA", "DALA", "GLY", "AIB", "SER")
+    }
+    sampler = FixedAAChiSampler()
+
+    assert not sampler.defines_rotamers_for_rt(restypes["SER"])
+    expected_sc_atoms = {
+        "ALA": ("CB",),
+        "DALA": ("CB",),
+        "GLY": ("HA2", "HA3"),
+        "AIB": ("CB1", "CB2"),
+    }
+    for name, sc_atoms in expected_sc_atoms.items():
+        assert sampler.defines_rotamers_for_rt(restypes[name])
+        assert sampler.first_sc_atoms_for_rt(restypes[name]) == sc_atoms
 
 
 def test_annotate_packed_block_types_smoke(default_database, torch_device):

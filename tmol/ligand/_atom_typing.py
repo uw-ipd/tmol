@@ -16,7 +16,7 @@ from typing import NamedTuple
 import numpy as np
 from rdkit import Chem
 
-from tmol.ligand._chemistry_tables import get_polar_classes
+from tmol.ligand._chemistry_tables import _get_polar_classes
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +119,7 @@ def _elem_symbol(atomic_num: int) -> str:
     return Chem.GetPeriodicTable().GetElementSymbol(atomic_num)
 
 
-def sanitize_tolerant(mol: Chem.Mol) -> None:
+def _sanitize_tolerant(mol: Chem.Mol) -> None:
     """Run ``Chem.SanitizeMol`` with a Kekulé/valence-tolerant fallback.
 
     Some ligand inputs (e.g. guanidinium / amidine groups, fused
@@ -130,17 +130,17 @@ def sanitize_tolerant(mol: Chem.Mol) -> None:
     orders / aromaticity flags rather than dropping the mol on the floor.
 
     When the molecule carries explicit aromatic flags from the source
-    (see :func:`source_carried_kekule`), we skip ``SETAROMATICITY`` /
+    (see :func:`_source_carried_kekule`), we skip ``SETAROMATICITY`` /
     ``KEKULIZE`` from the start so RDKit's re-perception cannot
     overwrite the source-supplied flags / Kekulé bond orders.
     """
     from tmol.ligand._rdkit_mol import (
-        normalize_non_ring_aromatic_bonds,
-        source_has_aromatic_annotations,
-        source_carried_kekule,
+        _normalize_non_ring_aromatic_bonds,
+        _source_has_aromatic_annotations,
+        _source_carried_kekule,
     )
 
-    if source_carried_kekule(mol) or source_has_aromatic_annotations(mol):
+    if _source_carried_kekule(mol) or _source_has_aromatic_annotations(mol):
         ops = Chem.SANITIZE_ALL ^ Chem.SANITIZE_KEKULIZE ^ Chem.SANITIZE_SETAROMATICITY
         try:
             Chem.SanitizeMol(mol, sanitizeOps=ops)
@@ -151,7 +151,7 @@ def sanitize_tolerant(mol: Chem.Mol) -> None:
             Chem.rdchem.AtomValenceException,
         ):
             # Retry after normalizing non-ring aromatic placeholders.
-            normalize_non_ring_aromatic_bonds(mol)
+            _normalize_non_ring_aromatic_bonds(mol)
             try:
                 Chem.SanitizeMol(mol, sanitizeOps=ops)
                 return
@@ -168,7 +168,7 @@ def sanitize_tolerant(mol: Chem.Mol) -> None:
         Chem.rdchem.AtomKekulizeException,
         Chem.rdchem.AtomValenceException,
     ):
-        normalize_non_ring_aromatic_bonds(mol)
+        _normalize_non_ring_aromatic_bonds(mol)
         ops = (
             Chem.SANITIZE_ALL
             ^ Chem.SANITIZE_KEKULIZE
@@ -413,13 +413,13 @@ def _is_rosetta_aromatic_ring(  # noqa: C901
 
 def _build_rosetta_typing_state(mol: Chem.Mol) -> RosettaTypingState:  # noqa: C901
     """Construct Rosetta-like typing state consumed by all classifiers."""
-    from tmol.ligand._rdkit_mol import source_subtype
+    from tmol.ligand._rdkit_mol import _source_subtype
 
     source_subtype_by_idx: dict[int, str] = {}
     hyb_by_idx: dict[int, int] = {}
     for atom in mol.GetAtoms():
         idx = atom.GetIdx()
-        subtype = source_subtype(atom)
+        subtype = _source_subtype(atom)
         source_subtype_by_idx[idx] = subtype
         hyb_by_idx[idx] = _hyb_from_atom_and_subtype(atom, subtype)
 
@@ -498,7 +498,7 @@ def _state_for_atom(
     return _build_rosetta_typing_state(atom.GetOwningMol())
 
 
-def kekulize_tolerant(mol: Chem.Mol) -> None:
+def _kekulize_tolerant(mol: Chem.Mol) -> None:
     """Force Kekulé bond orders + clear aromatic flags, tolerant of failure.
 
     Rosetta's atom-type classifier and the reference ``.tmol`` files use
@@ -513,7 +513,7 @@ def kekulize_tolerant(mol: Chem.Mol) -> None:
         pass
 
 
-def should_kekulize_for_typing(mol: Chem.Mol) -> bool:
+def _should_kekulize_for_typing(mol: Chem.Mol) -> bool:
     """``True`` when this mol's rings should use Kekulé typing.
 
     Rosetta's mol2genparams takes atom types directly from the source
@@ -523,9 +523,9 @@ def should_kekulize_for_typing(mol: Chem.Mol) -> bool:
     can read a flag set when the source AtomArray carried explicit
     Kekulé bond orders (see ``rdkit_mol.source_carried_kekule``).
     """
-    from tmol.ligand._rdkit_mol import source_carried_kekule
+    from tmol.ligand._rdkit_mol import _source_carried_kekule
 
-    return source_carried_kekule(mol)
+    return _source_carried_kekule(mol)
 
 
 def _prepare_mol_for_typing(mol: Chem.Mol) -> Chem.Mol:
@@ -537,12 +537,12 @@ def _prepare_mol_for_typing(mol: Chem.Mol) -> Chem.Mol:
     if not any(a.GetAtomicNum() == 1 for a in mol.GetAtoms()):
         mol = Chem.AddHs(mol, addCoords=mol.GetNumConformers() > 0)
 
-    sanitize_tolerant(mol)
+    _sanitize_tolerant(mol)
 
-    if should_kekulize_for_typing(mol):
+    if _should_kekulize_for_typing(mol):
         # Rosetta's atom-type pipeline for non-.ar sources expects explicit
         # single/double bond orders during classification.
-        kekulize_tolerant(mol)
+        _kekulize_tolerant(mol)
 
     # Perceive rings
     Chem.GetSSSR(mol)
@@ -609,9 +609,9 @@ def _get_hyb(atom: Chem.Atom, state: RosettaTypingState | None = None) -> int:
         if idx in state.hyb_by_idx:
             return state.hyb_by_idx[idx]
 
-    from tmol.ligand._rdkit_mol import source_subtype
+    from tmol.ligand._rdkit_mol import _source_subtype
 
-    return _hyb_from_atom_and_subtype(atom, source_subtype(atom))
+    return _hyb_from_atom_and_subtype(atom, _source_subtype(atom))
 
 
 def _has_sp2_oxygen_neighbor(
@@ -1121,7 +1121,7 @@ def _modify_polar_c(
 ) -> list[AtomTypeAssignment]:
     """Convert CS/CD/CR/CT -> CSp/CDp/CRp/CTp for polar-adjacent carbons."""
     type_by_idx = {a.index: a.atom_type for a in assignments}
-    polar_classes = get_polar_classes()
+    polar_classes = _get_polar_classes()
 
     result = []
     for a in assignments:
@@ -1274,7 +1274,7 @@ SPECIAL_BIARYL_PAIRS = frozenset(
 )
 
 
-def find_special_biaryl_pivots(
+def _find_special_biaryl_pivots(
     mol: Chem.Mol,
     atype_by_idx: dict[int, str],
     aromatic_atoms: Collection[int],
@@ -1320,7 +1320,7 @@ def _correct_conjugated_single_bond_orders(  # noqa: C901
     assign_bond_conjugation: single + conjugated => output bond order 2.
     """
     type_by_idx = {a.index: a.atom_type for a in assignments}
-    pivots = find_special_biaryl_pivots(
+    pivots = _find_special_biaryl_pivots(
         mol, type_by_idx, state.atms_aro, state.ring_membership_by_idx
     )
 
@@ -1423,7 +1423,7 @@ def _correct_conjugated_single_bond_orders(  # noqa: C901
 # ---------------------------------------------------------------------------
 
 
-def assign_tmol_atom_types(
+def _assign_tmol_atom_types(
     mol: Chem.Mol, return_state: bool = False
 ) -> "list[AtomTypeAssignment] | tuple[list[AtomTypeAssignment], RosettaTypingState]":
     """Assign Rosetta generic_potential atom types to each atom in a Mol.

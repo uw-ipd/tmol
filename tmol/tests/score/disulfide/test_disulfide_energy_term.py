@@ -1,8 +1,8 @@
 import torch
 
-from tmol.io import pose_stack_from_pdb
-from tmol.score.disulfide import DisulfideEnergyTerm
-from tmol.score.common import ZeroTermPoseScoringModule
+from tmol import pose_stack_from_file
+from tmol.score import DisulfideEnergyTerm
+from tmol.score.common._scoring_module import ZeroTermPoseScoringModule
 
 from tmol.tests.score.common import EnergyTermTestBase
 
@@ -43,7 +43,13 @@ def test_annotate_disulfide_conns(
 def test_pose_without_disulfides_uses_zero_term(
     ubq_pdb, default_database, torch_device: torch.device
 ):
-    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
+    pose_stack = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=10,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
 
     whole_pose = TestDisulfideEnergyTerm.get_whole_pose_scorer(
         pose_stack, default_database, torch_device

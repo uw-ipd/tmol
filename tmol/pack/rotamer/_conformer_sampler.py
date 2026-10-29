@@ -3,19 +3,15 @@ import attr
 
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from tmol.types import (
-    Tensor,
-    validate_args,
-)
+from tmol.types._torch import Tensor
+from tmol.types._functional import _validate_args
 from tmol.chemical import RefinedResidueType
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
-from tmol.kinematics import KinForest
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
+from tmol.kinematics._datatypes import KinForest
 
 if TYPE_CHECKING:
-    from tmol.pack import PackerTask
+    from tmol.pack._packer_task import PackerTask
 
 
 ConformerSample = tuple[
@@ -25,7 +21,7 @@ ConformerSample = tuple[
 ]
 
 
-def chi_moving_roots(rt: RefinedResidueType, chi_name: str) -> tuple[str, ...]:
+def _chi_moving_roots(rt: RefinedResidueType, chi_name: str) -> tuple[str, ...]:
     """The atoms a chi turns: everything bonded to its third atom but its second.
 
     Sidechain roots mark where a sampler stops copying degrees of freedom from
@@ -43,11 +39,11 @@ def chi_moving_roots(rt: RefinedResidueType, chi_name: str) -> tuple[str, ...]:
     return tuple(rt.atoms[at].name for at in sorted(moved))
 
 
-def sc_roots_for_chis(rt: RefinedResidueType, chi_names) -> tuple[str, ...]:
+def _sc_roots_for_chis(rt: RefinedResidueType, chi_names) -> tuple[str, ...]:
     """Sidechain roots for a sampler that turns the named chis."""
     roots = {}
     for chi_name in chi_names:
-        for at in chi_moving_roots(rt, chi_name):
+        for at in _chi_moving_roots(rt, chi_name):
             roots[at] = None
     return tuple(roots)
 
@@ -69,17 +65,17 @@ class ConformerSampler:
         """Return the stable name used for sampler-specific annotations."""
         raise NotImplementedError()
 
-    @validate_args
+    @_validate_args
     def annotate_residue_type(self, rt: RefinedResidueType) -> None:
         """Attach optional sampler metadata to one residue type."""
         pass
 
-    @validate_args
+    @_validate_args
     def annotate_packed_block_types(self, packed_block_types: PackedBlockTypes) -> None:
         """Attach optional sampler metadata to packed block types."""
         pass
 
-    @validate_args
+    @_validate_args
     def defines_rotamers_for_rt(self, rt: RefinedResidueType) -> bool:
         """Return whether this sampler supports a residue type."""
         raise NotImplementedError()
@@ -89,7 +85,7 @@ class ConformerSampler:
     ) -> Tensor[torch.bool]:
         raise NotImplementedError()
 
-    @validate_args
+    @_validate_args
     def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> tuple[str, ...]:
         """Return side-chain roots used to transfer main-chain geometry."""
         raise NotImplementedError()

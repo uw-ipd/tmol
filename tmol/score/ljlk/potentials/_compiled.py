@@ -1,6 +1,6 @@
-from tmol._load_ext import load_ops
+from tmol._load_ext import _load_ops
 
-_ops = load_ops(
+_ops = _load_ops(
     __name__,
     __file__,
     [
@@ -16,11 +16,11 @@ _ops = load_ops(
     "tmol_ljlk",
 )
 
-ljlk_pose_scores = _ops.ljlk_pose_scores
-ljlk_elec_pose_scores = _ops.ljlk_elec_pose_scores
-ljlk_elec_weighted_pose_scores = _ops.ljlk_elec_weighted_pose_scores
-weighted_fused_score_sum = _ops.weighted_fused_score_sum
-ljlk_rotamer_scores = _ops.ljlk_rotamer_scores
-ljlk_elec_rotamer_dispatch = _ops.ljlk_elec_rotamer_dispatch
-ljlk_elec_weighted_rotamer_scores = _ops.ljlk_elec_weighted_rotamer_scores
-build_compact_block_neighbors = _ops.build_compact_block_neighbors
+_ljlk_pose_scores = _ops.ljlk_pose_scores
+_ljlk_elec_pose_scores = _ops.ljlk_elec_pose_scores
+_ljlk_elec_weighted_pose_scores = _ops.ljlk_elec_weighted_pose_scores
+_weighted_fused_score_sum = _ops.weighted_fused_score_sum
+_ljlk_rotamer_scores = _ops.ljlk_rotamer_scores
+_ljlk_elec_rotamer_dispatch = _ops.ljlk_elec_rotamer_dispatch
+_ljlk_elec_weighted_rotamer_scores = _ops.ljlk_elec_weighted_rotamer_scores
+_build_compact_block_neighbors = _ops.build_compact_block_neighbors

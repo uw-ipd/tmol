@@ -5,10 +5,12 @@ _ops = load_ops(
     __file__,
     [
         "compiled.ops.cpp",
+        "grid_build.cpu.cpp",
+        "grid_build.cuda.cu",
         "grid_interp_pose_score.cpu.cpp",
         "grid_interp_pose_score.cuda.cu",
-        "grid_lk_ball.cpu.cpp",
-        "grid_lk_ball.cuda.cu",
+        "grid_score.cpu.cpp",
+        "grid_score.cuda.cu",
         "live_hbond.cpu.cpp",
         "live_hbond.cuda.cu",
         "live_lk_ball.cpu.cpp",
@@ -18,11 +20,8 @@ _ops = load_ops(
 )
 
 build_grid = _ops.build_grid
-build_grid_lk_ball = _ops.build_grid_lk_ball
-evaluate_pairs = _ops.evaluate_pairs
-interpolate = _ops.interpolate
 interpolate_with_derivatives = _ops.interpolate_with_derivatives
 live_hbond = _ops.live_hbond
 live_lk_ball = _ops.live_lk_ball
-build_lk_ball_waters = _ops.build_lk_ball_waters
-propagate_lk_ball_water_gradients = _ops.propagate_lk_ball_water_gradients
+grid_score_atoms = _ops.grid_score_atoms
+grid_score_waters = _ops.grid_score_waters

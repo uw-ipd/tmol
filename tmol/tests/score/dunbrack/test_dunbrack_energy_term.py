@@ -1,6 +1,6 @@
 import torch
 
-from tmol.score.dunbrack import DunbrackEnergyTerm
+from tmol.score import DunbrackEnergyTerm
 
 from tmol.tests.score.common import EnergyTermTestBase
 

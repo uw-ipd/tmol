@@ -34,10 +34,10 @@ your own mmCIF containing a nonstandard polymer:
 
 ```python
 import torch
-from tmol.io import atom_array_from_cif, pose_stack_from_biotite
+from tmol import atom_array_from_file, pose_stack_from_atom_array
 
-array = atom_array_from_cif("modified_polymer.cif")
-pose, context = pose_stack_from_biotite(
+array = atom_array_from_file("modified_polymer.cif")
+pose, context = pose_stack_from_atom_array(
     array, torch.device("cuda"), prepare_ligands=True, return_context=True
 )
 ```
@@ -93,19 +93,18 @@ A MOL2 charge-model label alone does not establish the intended protonation pH.
 ## Load a complex
 
 For full protein-ligand structures, load with Biotite and let
-`pose_stack_from_biotite()` prepare every non-standard residue:
+`pose_stack_from_atom_array()` prepare every non-standard residue:
 
 ```python
 import torch
 import tmol
 
-from tmol.database import ParameterDatabase
-from tmol.io import atom_array_from_file, pose_stack_from_biotite
+from tmol import ParameterDatabase, atom_array_from_file, pose_stack_from_atom_array
 
 device = torch.device("cuda" if tmol.has_cuda() and torch.cuda.is_available() else "cpu")
 structure = atom_array_from_file("complex.cif")
 
-pose_stack, context = pose_stack_from_biotite(
+pose_stack, context = pose_stack_from_atom_array(
     structure,
     device,
     prepare_ligands=True,
@@ -118,7 +117,7 @@ Known residues need only residue names, atom names, and coordinates. For example
 prepare a ligand from MOL2 once, then load coordinate-only PDB or CIF complexes:
 
 ```python
-from tmol.io import pose_stack_from_file
+from tmol import pose_stack_from_file
 from tmol.ligand import write_params_from_mol2
 
 write_params_from_mol2(
@@ -153,14 +152,12 @@ When scoring many structures that contain the same ligand definitions, build
 the structure-independent context once:
 
 ```python
-from tmol.io import (
-    build_context_from_biotite,
-    pose_stack_from_biotite,
-)
+from tmol.io import build_context_from_atom_array
+from tmol import pose_stack_from_atom_array
 
-context = build_context_from_biotite(struct0, device, prepare_ligands=True)
+context = build_context_from_atom_array(struct0, device, prepare_ligands=True)
 for structure in structures:
-    pose_stack = pose_stack_from_biotite(structure, device, context=context)
+    pose_stack = pose_stack_from_atom_array(structure, device, context=context)
 ```
 
 This skips rebuilding the parameter database, canonical ordering, residue type
@@ -173,7 +170,7 @@ set, and packed block types for every structure.
 For manual edits or cold reuse, write `.tmol` params and load them later:
 
 ```python
-from tmol.database import ParameterDatabase
+from tmol import ParameterDatabase
 from tmol.ligand import prepare_ligands
 
 param_db, co = prepare_ligands(
@@ -192,7 +189,7 @@ param_db, co = prepare_ligands(
 The same prepared files can be passed through IO:
 
 ```python
-pose_stack, context = pose_stack_from_biotite(
+pose_stack, context = pose_stack_from_atom_array(
     structure,
     device,
     prepare_ligands=True,
@@ -266,4 +263,4 @@ lists the currently supported exports.
 
 ## Examples and reference
 
-{doc}`Ligand tutorial </tutorial/07_ligand_and_params>` · {doc}`Ligand API </api/ligand>` · {doc}`Scoring </user_guide/scoring>`
+{ref}`Ligand tutorial </tutorial/01_tmol_tutorial.ipynb#4.-ligands-and-ncaas>` · {doc}`Ligand API </api/ligand>` · {doc}`Scoring </user_guide/scoring>`

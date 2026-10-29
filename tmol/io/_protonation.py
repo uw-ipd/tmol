@@ -22,8 +22,8 @@ from tmol.database.chemical import (
     DEPROTONATED_VAR_IND,
     HIS_UNRESOLVED_VAR_IND,
     NEUTRAL_TERMINUS_VAR_BASE,
-    l_base_name,
-    special_case_variant_index,
+    _l_base_name,
+    _special_case_variant_index,
 )
 from tmol.io._cif import _FORMAL_CHARGE_SPECIFIED
 from tmol.io._input_termini import EXPLICIT_TERMINI
@@ -46,7 +46,7 @@ _STATE_LOCK = RLock()
 _STATE_CAPACITY = 8192
 
 
-def hydrogen_names_by_parent(
+def _hydrogen_names_by_parent(
     parents: list[tuple[str, str, int]], taken: set[str]
 ) -> list[list[str]]:
     """AtomWorks' names for the hydrogens of each ``(parent name, element, count)``.
@@ -59,29 +59,29 @@ def hydrogen_names_by_parent(
     return out
 
 
-def database_forms(chemdb) -> dict[str, Forms]:
+def _database_forms(chemdb) -> dict[str, Forms]:
     """The protonation ``Forms`` of each default-database class in ``chemdb``.
 
     Only plain, histidine and deprotonated forms count; tmol's disulfide search
     decides CYD. Connection atoms have no fixed count."""
-    return _FORMS.get_or_create(chemdb, (), lambda: _database_forms(chemdb))
+    return _FORMS.get_or_create(chemdb, (), lambda: _database_forms_impl(chemdb))
 
 
-def _database_forms(chemdb) -> dict[str, Forms]:
-    from tmol.io._pose_stack_from_biotite import canonical_ordering_for_biotite
+def _database_forms_impl(chemdb) -> dict[str, Forms]:
+    from tmol.io._pose_stack_from_biotite import _canonical_ordering_for_biotite
 
-    known = set(canonical_ordering_for_biotite().restype_io_equiv_classes)
+    known = set(_canonical_ordering_for_biotite().restype_io_equiv_classes)
     element = {t.name: t.element.upper() for t in chemdb.atom_types}
     counts = defaultdict(dict)
     linked = defaultdict(set)
     amine = {}
     for res in chemdb.residues:
-        variant = special_case_variant_index(res)
+        variant = _special_case_variant_index(res)
         if (
             res.io_equiv_class not in known
             or variant == HIS_UNRESOLVED_VAR_IND
             or variant > DEPROTONATED_VAR_IND
-            or l_base_name(res) == "CYD"
+            or _l_base_name(res) == "CYD"
         ):
             continue
         on = {a.name: 0 for a in res.atoms if element[a.atom_type] not in _HYDROGEN}
@@ -119,7 +119,7 @@ def _template(structure):
     return structure[0] if isinstance(structure, struc.AtomArrayStack) else structure
 
 
-def residues_lacking_hydrogens(
+def _residues_lacking_hydrogens(
     structure: struc.AtomArray | struc.AtomArrayStack,
     residue_names: Collection[str] | None = None,
     forms: Mapping[str, Forms] | None = None,
@@ -141,7 +141,7 @@ def residues_lacking_hydrogens(
     lacking = ~has_h & has_carrier & ~numpy.isin(names, _WATER)
     if forms and (has_h & numpy.isin(names, list(forms))).any():
         # PDBbind 10GS draws polar hydrogens only: a missing thiol H says nothing
-        count = hydrogens_by_parent(template)
+        count = _hydrogens_by_parent(template)
         expected = numpy.full(len(template), -1)
         residue_of = struc.get_all_residue_positions(template)
         for name in set(names[has_h].tolist()) & set(forms):
@@ -155,7 +155,7 @@ def residues_lacking_hydrogens(
     return starts, lacking
 
 
-def hydrogens_by_parent(template: struc.AtomArray) -> numpy.ndarray:
+def _hydrogens_by_parent(template: struc.AtomArray) -> numpy.ndarray:
     """Resolved hydrogens bonded to each atom; bonded by residue name without bonds."""
     element = numpy.char.upper(template.element.astype(str))
     is_h = numpy.isin(element, _HYDROGEN) & numpy.isfinite(template.coord).all(-1)
@@ -182,7 +182,7 @@ def _stated_terminal_variants(template, starts, lacking, forms):
     variant = numpy.full(len(template), -1, dtype=numpy.int8)
     if EXPLICIT_TERMINI in template.get_annotation_categories():
         stated = template.get_annotation(EXPLICIT_TERMINI)[starts[:-1]]
-        count = hydrogens_by_parent(template)
+        count = _hydrogens_by_parent(template)
         # Complete input states need no protonation call, including their zero
         # hydrogens on the unprotonated atom of a histidine tautomer.
         for r in numpy.flatnonzero(~lacking & ((stated & 1) != 0)):
@@ -206,7 +206,7 @@ def _protonate_stack(structure, **kwargs):
     if registry is not None:
         for model in models:
             model._custom_ccd_registry = registry
-    marked = [with_atomworks_hydrogens(model, **kwargs) for model in models]
+    marked = [_with_atomworks_hydrogens(model, **kwargs) for model in models]
     if all(result is model for result, model in zip(marked, models)):
         return structure
     if any(
@@ -220,7 +220,7 @@ def _protonate_stack(structure, **kwargs):
     return result
 
 
-def with_atomworks_hydrogens(
+def _with_atomworks_hydrogens(
     structure: struc.AtomArray | struc.AtomArrayStack,
     *,
     ph: float = 7.4,
@@ -247,7 +247,7 @@ def with_atomworks_hydrogens(
         backbone: ``(upper, lower)`` polymer connection atoms by residue name,
             through which consecutive residues of a chain are bonded for
             AtomWorks where the structure leaves them unbonded.
-        forms: ``database_forms`` of the residues tmol builds itself.
+        forms: ``_database_forms`` of the residues tmol builds itself.
         hydrogens: Hydrogen count per atom AtomWorks is to keep, -1 where none.
 
     Returns:
@@ -267,7 +267,7 @@ def with_atomworks_hydrogens(
             hydrogens=hydrogens,
         )
 
-    starts, lacking = residues_lacking_hydrogens(structure, residue_names, forms)
+    starts, lacking = _residues_lacking_hydrogens(structure, residue_names, forms)
     template = _template(structure)
     variant = _stated_terminal_variants(template, starts, lacking, forms)
     if not lacking.any():
@@ -299,7 +299,7 @@ def with_atomworks_hydrogens(
         ]
     ).astype(numpy.int64)
 
-    declared = numpy.where(lacking[residue_of], hydrogens_by_parent(template), 0)
+    declared = numpy.where(lacking[residue_of], _hydrogens_by_parent(template), 0)
     declared[declared == 0] = -1
     if hydrogens is not None:
         declared = numpy.where(hydrogens >= 0, hydrogens, declared)
@@ -508,7 +508,7 @@ def _names_by_parent(template, parent, names, residue_of):
         mine = numpy.flatnonzero(residue_of[parent] == residue)
         taken = set(template.atom_name[heavy & (residue_of == residue)].tolist())
         counts = Counter(parent[mine].tolist())
-        given = hydrogen_names_by_parent(
+        given = _hydrogen_names_by_parent(
             [
                 (str(template.atom_name[p]), str(template.element[p]), n)
                 for p, n in counts.items()

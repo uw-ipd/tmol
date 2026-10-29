@@ -4,18 +4,16 @@ import torch
 import numpy
 
 from .._energy_term import EnergyTerm
-from .._annotation_cache import AnnotationKey, cached_annotation, store_annotation
+from .._annotation_cache import AnnotationKey, _cached_annotation, _store_annotation
 
 from tmol.database import ParameterDatabase
-from tmol.score.dunbrack import (
+from tmol.score.dunbrack._params import (
     DunbrackParamResolver,
     ScoringDunbrackDatabaseView,
 )
 from tmol.chemical import RefinedResidueType
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
 from itertools import count
 from dataclasses import dataclass
 import dataclasses
@@ -106,11 +104,11 @@ class DunbrackEnergyTerm(EnergyTerm):
     def setup_block_type(self, block_type: RefinedResidueType):
         super(DunbrackEnergyTerm, self).setup_block_type(block_type)
 
-        cached = cached_annotation(
+        cached = _cached_annotation(
             block_type, "_dunbrack_annotation", self._annotation_key
         )
         if cached is None:
-            cached = store_annotation(
+            cached = _store_annotation(
                 block_type,
                 "_dunbrack_annotation",
                 self._annotation_key,
@@ -202,7 +200,7 @@ class DunbrackEnergyTerm(EnergyTerm):
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(DunbrackEnergyTerm, self).setup_packed_block_types(packed_block_types)
 
-        cached = cached_annotation(
+        cached = _cached_annotation(
             packed_block_types, "_dunbrack_packed_annotation", self._annotation_key
         )
         if cached is None:
@@ -216,7 +214,7 @@ class DunbrackEnergyTerm(EnergyTerm):
                 )
                 for field in dataclasses.fields(DunbrackBlockAttrs)
             ]
-            store_annotation(
+            _store_annotation(
                 packed_block_types,
                 "_dunbrack_packed_annotation",
                 self._annotation_key,
@@ -254,16 +252,16 @@ class DunbrackEnergyTerm(EnergyTerm):
         super(DunbrackEnergyTerm, self).setup_poses(poses)
 
     def get_pose_score_term_function(self):
-        from tmol.score.dunbrack.potentials import dunbrack_pose_scores
+        from tmol.score.dunbrack.potentials._compiled import _dunbrack_pose_scores
 
-        return dunbrack_pose_scores
+        return _dunbrack_pose_scores
 
     score_only_in_no_grad = True
 
     def get_rotamer_score_term_function(self):
-        from tmol.score.dunbrack.potentials import dunbrack_rotamer_scores
+        from tmol.score.dunbrack.potentials._compiled import _dunbrack_rotamer_scores
 
-        return dunbrack_rotamer_scores
+        return _dunbrack_rotamer_scores
 
     def get_score_term_attributes(self, pose_stack):
         pbt = pose_stack.packed_block_types

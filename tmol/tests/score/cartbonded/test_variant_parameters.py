@@ -4,9 +4,9 @@ import attr
 import pytest
 import torch
 
-from tmol.database import inject_residue_params
-from tmol.io import extended_pose_stack_from_sequences
-from tmol.score import AtomTypeDependentTerm
+from tmol.database import _inject_residue_params
+from tmol import extended_pose_stack_from_sequences
+from tmol.score._atom_type_dependent_term import AtomTypeDependentTerm
 from tmol.tests.score.cartbonded.test_explicit_connection_parameters import scoring_term
 
 
@@ -35,7 +35,7 @@ def test_exact_variant_parameters_are_isolated(
             field: tuple(new if row is old else row for row in getattr(original, field))
         },
     )
-    changed = inject_residue_params(
+    changed = _inject_residue_params(
         default_database, [], cartbonded_params={target: replacement}
     )
     databases = {"original": default_database, "changed": changed}
@@ -106,8 +106,9 @@ def test_exact_variant_parameters_are_isolated(
 def test_variant_rotamer_energies_and_gradients(
     default_database, torch_device, dun_sampler
 ):
-    from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-    from tmol.pack.rotamer import build_rotamers
+    from tmol import PackerPalette, PackerTask
+    from tmol.pack import SetPackerTask
+    from tmol.pack import build_rotamers
 
     pose = extended_pose_stack_from_sequences(["KKK", "KKKK"], device=torch_device)
     task = PackerTask(pose, PackerPalette())
@@ -135,7 +136,7 @@ def test_variant_rotamer_energies_and_gradients(
             new if row is old else row for row in original.length_parameters
         ),
     )
-    changed = inject_residue_params(
+    changed = _inject_residue_params(
         default_database, [], cartbonded_params={bt.name: replacement}
     )
     modules = [
@@ -184,7 +185,7 @@ def test_contradictory_bonded_bundle_rejected(
 ):
     from dataclasses import replace
     from tmol.ligand import write_params_file
-    from tmol.ligand._registry import inject_ligand_preparations
+    from tmol.ligand._registry import _inject_ligand_preparations
     from tmol.tests.ligand.test_ligand_entry_paths import _single_prep
 
     prep = _single_prep()
@@ -197,24 +198,24 @@ def test_contradictory_bonded_bundle_rejected(
             replace(prep, additional_cartbonded_params={name: prep.cartbonded_params})
         )
     with pytest.raises(ValueError, match="Conflicting bonded parameters"):
-        inject_ligand_preparations(default_database, preps)
+        _inject_ligand_preparations(default_database, preps)
     with pytest.raises(ValueError, match="Conflicting bonded parameters"):
         write_params_file(preps, tmp_path / "conflict.tmol")
 
 
 def test_biotin_variant_params_survive_bundle_reload(tmp_path, torch_device):
     from dataclasses import replace
-    from tmol.database import ParameterDatabase
-    from tmol.io import atom_array_from_cif, pose_stack_from_biotite
+    from tmol import ParameterDatabase
+    from tmol import atom_array_from_file, pose_stack_from_atom_array
     from tmol.ligand import prepare_ligands, load_params_file, write_params_file
-    from tmol.ligand._registry import inject_ligand_preparations
+    from tmol.ligand._registry import _inject_ligand_preparations
     from tmol.ligand._parameter_replacements import _local_identity
     from tmol.tests.data import data_path
 
-    aa = atom_array_from_cif(data_path("covalent_fixtures", "lys_biotin_1bdo.cif"))
+    aa = atom_array_from_file(data_path("covalent_fixtures", "lys_biotin_1bdo.cif"))
     path = tmp_path / "biotin.tmol"
     prepared, _ = prepare_ligands(aa, seed=20250828, params_output=str(path))
-    pose = pose_stack_from_biotite(aa, torch_device, param_db=prepared, no_optH=True)
+    pose = pose_stack_from_atom_array(aa, torch_device, param_db=prepared, no_optH=True)
     pbt = pose.packed_block_types
     bi, bt = next(
         (bi, pbt.active_block_types[ti])
@@ -242,17 +243,17 @@ def test_biotin_variant_params_survive_bundle_reload(tmp_path, torch_device):
     write_params_file(preps, path)
     loaded = load_params_file(path)
     assert loaded[index].cartbonded_params == replacement
-    database = inject_ligand_preparations(ParameterDatabase.get_default(), loaded)
+    database = _inject_ligand_preparations(ParameterDatabase.get_default(), loaded)
     with pytest.raises(ValueError, match="Residue baseline changed"):
-        inject_ligand_preparations(prepared, loaded)
+        _inject_ligand_preparations(prepared, loaded)
     rebased = replace(
         loaded[index],
         baseline_sha256=_local_identity(
             previous.residue_type, previous.partial_charges, original
         ),
     )
-    enriched = inject_ligand_preparations(prepared, [rebased])
-    assert inject_ligand_preparations(enriched, [rebased]) is enriched
+    enriched = _inject_ligand_preparations(prepared, [rebased])
+    assert _inject_ligand_preparations(enriched, [rebased]) is enriched
     coords = pose.coords.double().clone().requires_grad_(True)
     scores = [
         scoring_term(pose, db).render_whole_pose_scoring_module(pose)(coords)

@@ -366,7 +366,7 @@ jobs:
           for page in prepared/wheels/*/*/index.html; do
             relative=${page#prepared/}
             curl --fail --silent --show-error --retry 120 --retry-all-errors --retry-delay 10 \
-              "https://uw-ipd.github.io/tmol/${relative}" --output /tmp/index.html
+              "https://rosettacommons.github.io/tmol/${relative}" --output /tmp/index.html
             cmp "$page" /tmp/index.html
           done
       - run: python -m pip install twine

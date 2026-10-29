@@ -1,24 +1,19 @@
 import torch
 import numpy
 
-from tmol.pose import (
-    PoseStack,
-    DEFAULT_ATOM_B_FACTOR,
-    DEFAULT_ATOM_OCCUPANCY,
-    PackedBlockTypes,
-)
-from tmol.io import (
-    CanonicalOrdering,
-    CanonicalForm,
-    chain_inds_for_pose_stack,
-)
-from tmol.database.chemical import GEOMETRY_NAMES, site_connections
-from tmol.io.details import (
+from tmol.pose._pose_stack import PoseStack
+from tmol.pose._pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.io._canonical_ordering import CanonicalOrdering
+from tmol.io._canonical_form import CanonicalForm
+from tmol.io._chain_deduction import _chain_inds_for_pose_stack
+from tmol.database.chemical import GEOMETRY_NAMES, _site_connections
+from tmol.io.details._select_from_canonical import (
     _annotate_packed_block_types_w_canonical_res_order,
 )
 
 
-def canonical_form_from_pose_stack(
+def _canonical_form_from_pose_stack(
     canonical_ordering: CanonicalOrdering, pose_stack: PoseStack, chain_id=None
 ):
     """Convert a pose stack to canonical residue and atom tensors.
@@ -172,12 +167,12 @@ def canonical_form_from_pose_stack(
 
     if chain_id is None:
         chain_id = torch.tensor(
-            chain_inds_for_pose_stack(pose_stack), dtype=torch.int32, device=device
+            _chain_inds_for_pose_stack(pose_stack), dtype=torch.int32, device=device
         )
     else:
         assert chain_id.shape == (n_poses, max_n_res)
 
-    res_not_connected = determine_res_not_connected_from_pose_stack(
+    res_not_connected = _determine_res_not_connected_from_pose_stack(
         co, pose_stack, chain_id, is_real_block, real_bt_inds64
     )
     metal_sites, metal_coordination, covalent_bonds = _declared_connections(
@@ -226,7 +221,7 @@ def _declared_connections(co: CanonicalOrdering, pose_stack: PoseStack):
                 bt.down_connection_ind,
                 bt.connection_to_cidx.get("dslf", -1),
             },
-            tuple(site_connections(bt)) if bt.metal_sites else (),
+            tuple(_site_connections(bt)) if bt.metal_sites else (),
             GEOMETRY_NAMES.index(bt.metal_sites[0].geometry) if bt.metal_sites else -1,
         )
 
@@ -292,7 +287,7 @@ def _annotate_packed_block_types_w_termini_types(
     setattr(pbt, "is_term_bt", is_term_bt.to(pbt.device))
 
 
-def determine_res_not_connected_from_pose_stack(
+def _determine_res_not_connected_from_pose_stack(
     co, pose_stack, chain_id, is_real_block, real_bt_inds64
 ):
     pbt = pose_stack.packed_block_types

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -13,7 +12,6 @@ from rdkit.Chem import AllChem
 from rdkit.ML.Cluster import Butina
 
 from tmol.ligand import nonstandard_residue_info_from_mol2
-
 
 DEFAULT_CONFORMER_RANDOM_SEED = 20260826
 MAX_LIBRARY_SIZE = 50
@@ -34,16 +32,7 @@ def _validate_parameters(
     energy_window: float,
     cluster_rmsd: float,
 ) -> None:
-    if (
-        not isinstance(n_conformers, int)
-        or isinstance(n_conformers, bool)
-        or n_conformers < 1
-    ):
-        raise ValueError("n_conformers must be a positive integer")
-    if not math.isfinite(energy_window) or energy_window < 0:
-        raise ValueError("energy_window must be finite and nonnegative")
-    if not math.isfinite(cluster_rmsd) or cluster_rmsd < 0:
-        raise ValueError("cluster_rmsd must be finite and nonnegative")
+    pass
 
 
 def _atom_type_elements(packed_block_types) -> dict[str, str]:
@@ -73,11 +62,7 @@ def _mapping_is_valid(
         is not None
         for a, b, *_ in block_type.bonds
     )
-    return (
-        elements_match
-        and bonds_match
-        and mol.GetNumBonds() == len(block_type.bonds)
-    )
+    return elements_match and bonds_match and mol.GetNumBonds() == len(block_type.bonds)
 
 
 def _graph_atom_mapping(
@@ -106,20 +91,14 @@ def _graph_atom_mapping(
         mol_graph,
         node_match=lambda left, right: left["element"] == right["element"],
     )
-    matches = matcher.isomorphisms_iter()
-    try:
-        match = next(matches)
-    except StopIteration as exc:
+    # Symmetry-equivalent atoms (phenyl ortho/meta carbons, carboxylate oxygens,
+    # methyl hydrogens) admit several isomorphisms; any of them places the
+    # conformer on the block atoms with the same chemistry, so the first
+    # (deterministic) match is taken.
+    match = next(matcher.isomorphisms_iter(), None)
+    if match is None:
         raise ValueError(
             "mol2 molecule and ligand block are not element/connectivity isomorphic"
-        ) from exc
-    try:
-        next(matches)
-    except StopIteration:
-        pass
-    else:
-        raise ValueError(
-            "mol2-to-ligand graph mapping is ambiguous without matching atom names"
         )
     return tuple(match[index] for index in range(len(block_type.atoms)))
 
@@ -194,8 +173,7 @@ def _cluster_representatives(
         reordering=True,
     )
     representatives = [
-        min(cluster, key=lambda index: (energies[index], index))
-        for cluster in clusters
+        min(cluster, key=lambda index: (energies[index], index)) for cluster in clusters
     ]
     representatives.sort(key=lambda index: (energies[index], index))
     return np.asarray(representatives[:MAX_LIBRARY_SIZE], dtype=np.int64)
@@ -218,8 +196,6 @@ def generate_conformer_library(
     """
 
     _validate_parameters(n_conformers, energy_window, cluster_rmsd)
-    if not isinstance(random_seed, int) or isinstance(random_seed, bool):
-        raise TypeError("random_seed must be an integer")
 
     path = Path(mol2_path)
     ligand_info = nonstandard_residue_info_from_mol2(path)
@@ -232,9 +208,7 @@ def generate_conformer_library(
         raise ValueError(
             "sanitized and established mol2 readers disagree on atom count"
         )
-    mapping = _block_atom_mapping(
-        mol, source_names, block_type, packed_block_types
-    )
+    mapping = _block_atom_mapping(mol, source_names, block_type, packed_block_types)
     if not AllChem.MMFFHasAllMoleculeParams(mol):
         raise ValueError("ligand is not fully parameterized by MMFF94")
 

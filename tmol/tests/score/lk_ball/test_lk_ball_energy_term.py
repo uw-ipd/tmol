@@ -1,9 +1,8 @@
 import numpy
 import torch
 
-from tmol.io import pose_stack_from_pdb
-from tmol.pose import PoseStackBuilder
-from tmol.score.lk_ball import LKBallEnergyTerm
+from tmol import pose_stack_from_file, PoseStackBuilder
+from tmol.score import LKBallEnergyTerm
 
 from tmol.tests.score.common import EnergyTermTestBase
 
@@ -54,7 +53,9 @@ def test_whole_pose_scoring_module_smoke(ubq_pdb, default_database, torch_device
         [[422.0388], [172.1965], [1.581745], [11.031567]], dtype=numpy.float32
     )
     lk_ball_energy = LKBallEnergyTerm(param_db=default_database, device=torch_device)
-    p1 = pose_stack_from_pdb(ubq_pdb, torch_device)
+    p1 = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
     if torch_device.type == "cuda":
         p1 = PoseStackBuilder.from_poses([p1] * 30, torch_device)
     for bt in p1.packed_block_types.active_block_types:

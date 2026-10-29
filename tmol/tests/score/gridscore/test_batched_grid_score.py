@@ -3,12 +3,8 @@ from __future__ import annotations
 import pytest
 import torch
 
-from tmol.score.gridscore import (
-    build_grid,
-    probe_atom_types_from_name3,
-    score_ligand_grid,
-    score_ligand_grid_batched,
-)
+from tmol.score.gridscore import GridScorer, build_grid
+from tmol.score.gridscore.grid import probe_atom_types_from_name3
 from tmol.tests.ligand.test_protein_ligand_ddg import LIGAND_RES_NAME
 from tmol.tests.score.gridscore.test_gridscore import (
     _ligand_scoring_inputs,
@@ -59,14 +55,10 @@ def test_batched_grid_score_matches_individual_cdk2_poses(
     pose_coords = coordinate_storage[..., ::2]
     assert not pose_coords.is_contiguous()
 
-    actual = score_ligand_grid_batched(
-        grids, pose_coords, atom_types, charges
-    )
+    scorer = GridScorer(grids, atom_types, charges, device=torch_device, dtype=dtype)
+    actual = scorer(pose_coords)
     expected = torch.stack(
-        [
-            score_ligand_grid(grids, coords, atom_types, charges).sum()
-            for coords in pose_coords
-        ]
+        [scorer.grid_channels(coords[None]).sum() for coords in pose_coords]
     )
 
     assert actual.shape == (pose_coords.shape[0],)

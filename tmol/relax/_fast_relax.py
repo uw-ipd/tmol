@@ -4,34 +4,25 @@ from collections.abc import Callable, Sequence
 from typing import Protocol
 
 import attr
+import numpy
 import torch
 
-from tmol.pose import PoseStack
-from tmol.score import (
-    ScoreFunction,
-    ScoreType,
-)
-from tmol.kinematics import (
-    CartesianMoveMap,
-    MoveMap,
-    FoldForest,
-)
-from tmol.pack import (
-    pack_rotamers,
-    PackerPalette,
-    PackerTask,
-)
-from tmol.pack.rotamer import (
-    FixedAAChiSampler,
-    IncludeCurrentSampler,
-    NaChiRotamerSampler,
-)
-from tmol.optimization import (
+from tmol.pose._pose_stack import PoseStack
+from tmol.score._score_function import ScoreFunction
+from tmol.score._score_types import ScoreType
+from tmol.kinematics._move_map import CartesianMoveMap, MoveMap
+from tmol.kinematics._fold_forest import FoldForest
+from tmol.pack._pack_rotamers import pack_rotamers
+from tmol.pack._packer_task import PackerPalette, PackerTask
+from tmol.pack import FixedAAChiSampler, IncludeCurrentSampler, NaChiRotamerSampler
+from tmol.optimization._minimizers import (
     CartesianMinimizer,
+    KinematicMinimizer,
     run_cart_min,
+    run_kin_min,
 )
-from tmol.types import Tensor
-from tmol.utility._device import synchronize_device
+from tmol.types._torch import Tensor
+from tmol.utility._device import _synchronize_device
 
 RelaxScheduleEntry = float | int | dict[str, float]
 PackerTaskOperation = Callable[[PackerTask], None]
@@ -141,7 +132,7 @@ def _default_cart_min_fn(
     )
 
 
-class _DefaultCartesianMinimizer:
+class DefaultCartesianMinimizer:
     """Cartesian minimizer that reuses rendering for unchanged pose topology."""
 
     def __init__(self, cuda_graph: bool):
@@ -168,6 +159,58 @@ class _DefaultCartesianMinimizer:
             pose_stack,
             sfxn,
             coord_mask=coord_mask,
+            verbose=verbose,
+            optimizer_kwargs={"verbose": verbose},
+        )
+
+
+def _default_kin_min_fn(
+    pose_stack: PoseStack,
+    sfxn: ScoreFunction,
+    *,
+    fold_forest: FoldForest,
+    move_map: MoveMap | CartesianMoveMap,
+    verbose: bool,
+    cuda_graph: bool = False,
+) -> PoseStack:
+    """Default minimization function: kinematic (torsion-space) LBFGS."""
+    return run_kin_min(
+        pose_stack,
+        sfxn,
+        fold_forest,
+        move_map,
+        verbose=verbose,
+        cuda_graph=cuda_graph,
+        optimizer_kwargs={"verbose": verbose},
+    )
+
+
+class DefaultKinematicMinimizer:
+    """Kinematic minimizer that reuses rendering for unchanged pose topology."""
+
+    def __init__(self, cuda_graph: bool | str = False):
+        self.cuda_graph = cuda_graph
+        self.minimizer = KinematicMinimizer(cuda_graph=cuda_graph)
+
+    def release_retained_state(self) -> None:
+        """Release scorer and optimizer storage between relax stages."""
+        self.minimizer.release_retained_state()
+
+    def __call__(
+        self,
+        pose_stack: PoseStack,
+        sfxn: ScoreFunction,
+        *,
+        fold_forest: FoldForest,
+        move_map: MoveMap | CartesianMoveMap,
+        verbose: bool,
+    ) -> PoseStack:
+
+        return self.minimizer(
+            pose_stack,
+            sfxn,
+            fold_forest,
+            move_map,
             verbose=verbose,
             optimizer_kwargs={"verbose": verbose},
         )
@@ -280,10 +323,8 @@ def fast_relax(  # noqa: C901
 
     if task_operations is None:
         torch_device = pose_stack.device
-        from tmol.pack.rotamer.dunbrack import (
-            create_dunbrack_sampler_from_database,
-        )
-        from tmol.pack.rotamer._conjugated_groups import add_conjugated_group_sampler
+        from tmol.pack import create_dunbrack_sampler_from_database
+        from tmol.pack.rotamer._conjugated_groups import _add_conjugated_group_sampler
 
         samplers = [
             create_dunbrack_sampler_from_database(sfxn._param_db, torch_device),
@@ -302,7 +343,7 @@ def fast_relax(  # noqa: C901
             task.restrict_to_repacking()
             for sampler in samplers:
                 task.add_conformer_sampler(sampler)
-            add_conjugated_group_sampler(task, pose_stack)
+            _add_conjugated_group_sampler(task, pose_stack)
 
         task_operations = [default_op]
 
@@ -314,14 +355,14 @@ def fast_relax(  # noqa: C901
     best_ps = pose_stack.clone_sharing_topology()
 
     if min_fn is None:
-        min_fn = _DefaultCartesianMinimizer(
+        min_fn = DefaultCartesianMinimizer(
             _resolve_cuda_graph_mode(pose_stack, cuda_graph)
         )
 
     ps = pose_stack
     for _ in range(num_repeats):
         for pack_frac, min_frac, cst_frac in steps:
-            ps = relax_pack_min_step(
+            ps = _relax_pack_min_step(
                 pose_stack=ps,
                 sfxn=sfxn,
                 fold_forest=fold_forest,
@@ -336,7 +377,7 @@ def fast_relax(  # noqa: C901
                 release_between_stages=release_between_stages,
             )
 
-        best_ps, best_score = accept_best(sfxn, best_ps, best_score, ps, verbose)
+        best_ps, best_score = _accept_best(sfxn, best_ps, best_score, ps, verbose)
         ps = best_ps.clone_sharing_topology()
     if use_constraints:
         # Restore original constraint weight to the score function
@@ -344,7 +385,7 @@ def fast_relax(  # noqa: C901
     return ps
 
 
-def relax_pack_min_step(
+def _relax_pack_min_step(
     pose_stack: PoseStack,
     sfxn: ScoreFunction,
     fold_forest: FoldForest,
@@ -378,7 +419,7 @@ def relax_pack_min_step(
     """
 
     if verbose:
-        synchronize_device(pose_stack.device)
+        _synchronize_device(pose_stack.device)
     start_time = time.perf_counter()
     task = PackerTask(pose_stack, packer_pallete)
     for op in task_operations:
@@ -391,7 +432,7 @@ def relax_pack_min_step(
             f"packing with fa_rep of {fa_rep_pack_weight: .2f} and constraint weight of {cst_weight: .2f}"
         )
     if verbose:
-        synchronize_device(pose_stack.device)
+        _synchronize_device(pose_stack.device)
     end_time1 = time.perf_counter()
     packed_pose_stack = pack_rotamers(pose_stack, sfxn, task, verbose)
 
@@ -401,7 +442,7 @@ def relax_pack_min_step(
             f"minimizing with fa_rep of {fa_rep_min_weight: .2f} and constraint weight of {cst_weight: .2f}"
         )
     if verbose:
-        synchronize_device(pose_stack.device)
+        _synchronize_device(pose_stack.device)
     end_time2 = time.perf_counter()
     minimized_pose_stack = min_fn(
         packed_pose_stack,
@@ -419,7 +460,7 @@ def relax_pack_min_step(
         if release_retained_state is not None:
             release_retained_state()
     if verbose:
-        synchronize_device(pose_stack.device)
+        _synchronize_device(pose_stack.device)
     end_time3 = time.perf_counter()
 
     if verbose:
@@ -431,7 +472,7 @@ def relax_pack_min_step(
     return minimized_pose_stack
 
 
-def accept_best(
+def _accept_best(
     sfxn: ScoreFunction,
     best_pose_stack: PoseStack,
     best_pose_score: Tensor[torch.float32][:],
@@ -468,6 +509,16 @@ def accept_best(
         new_tensor[better_mask] = candidate[better_mask]
         return new_tensor
 
+    def select_better_atom_info(field_name: str, width: int) -> numpy.ndarray:
+        """A per-atom pdb_info field, padded with zeros to the merged atom count."""
+        best = getattr(best_pose_stack.pdb_info, field_name)
+        candidate = getattr(candidate_pose_stack.pdb_info, field_name)
+        better = better_mask.cpu().numpy()
+        merged = numpy.zeros((best.shape[0], width), dtype=best.dtype)
+        merged[~better, : best.shape[1]] = best[~better]
+        merged[better, : candidate.shape[1]] = candidate[better]
+        return merged
+
     if better_mask.any():
         if verbose:
             print("accepting new best scores")
@@ -479,9 +530,17 @@ def accept_best(
         new_block_coord_offset64 = select_better("block_coord_offset64")
         new_block_type_ind = select_better("block_type_ind")
         new_block_type_ind64 = select_better("block_type_ind64")
+        new_pdb_info = attr.evolve(
+            best_pose_stack.pdb_info,
+            atom_occupancy=select_better_atom_info(
+                "atom_occupancy", new_coords.shape[1]
+            ),
+            atom_b_factor=select_better_atom_info("atom_b_factor", new_coords.shape[1]),
+        )
         new_best_pose_stack = attr.evolve(
             best_pose_stack,
             coords=new_coords,
+            pdb_info=new_pdb_info,
             block_coord_offset=new_block_coord_offset,
             block_coord_offset64=new_block_coord_offset64,
             block_type_ind=new_block_type_ind,

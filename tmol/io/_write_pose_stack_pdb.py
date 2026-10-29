@@ -1,21 +1,17 @@
 import numpy
 import torch
 
-from tmol.io import atom_record_dtype
-from tmol.pose import (
-    PoseStack,
-    PackedBlockTypes,
-)
-from tmol.types import (
-    NDArray,
-    Tensor,
-    validate_args,
-)
+from tmol.io._pdb_parsing import atom_record_dtype, _to_pdb
+from tmol.pose._pose_stack import PoseStack
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.types._array import NDArray
+from tmol.types._torch import Tensor
+from tmol.types._functional import _validate_args
 from typing import Optional
 
 
-@validate_args
-def write_pose_stack_pdb(
+@_validate_args
+def _write_pose_stack_pdb(
     pose_stack: PoseStack,
     fname_out: str,
     merge_fragments: bool = True,
@@ -23,22 +19,20 @@ def write_pose_stack_pdb(
 ):
     """Write a PDB-formatted file to disk given an input PoseStack.
     Optionally, additional arguments may be passed to the inner function
-    "atom_records_from_pose_stack." Fragmented ligands use their original
+    "_atom_records_from_pose_stack." Fragmented ligands use their original
     residue identity by default; pass ``merge_fragments=False`` to keep
     fragment residues separate.
     """
-    from tmol.io import to_pdb
-
-    atom_records = atom_records_from_pose_stack(
+    atom_records = _atom_records_from_pose_stack(
         pose_stack, merge_fragments=merge_fragments, **kwargs
     )
-    pdbstring = to_pdb(atom_records)
+    pdbstring = _to_pdb(atom_records)
     with open(fname_out, "w") as fid:
         fid.write(pdbstring)
 
 
-@validate_args
-def atom_records_from_pose_stack(
+@_validate_args
+def _atom_records_from_pose_stack(
     pose_stack: PoseStack,
     merge_fragments: bool = True,
 ) -> NDArray[atom_record_dtype][:]:
@@ -49,7 +43,7 @@ def atom_records_from_pose_stack(
     ``merge_fragments=False`` to retain the separate fragment residue numbers.
     """
 
-    records = atom_records_from_coords(
+    records = _atom_records_from_coords(
         pose_stack.packed_block_types,
         pose_stack.chain_id64,
         pose_stack.block_type_ind64,
@@ -79,8 +73,8 @@ def atom_records_from_pose_stack(
     return records
 
 
-@validate_args
-def atom_records_from_coords(
+@_validate_args
+def _atom_records_from_coords(
     pbt: "PackedBlockTypes",
     chain_ind_for_block: Tensor[torch.int64][:, :],
     block_types64: Tensor[torch.int64][:, :],
@@ -97,8 +91,7 @@ def atom_records_from_coords(
     laid out in pose-stack form.
     """
 
-    from tmol.io import atom_record_dtype
-    from tmol.utility.tensor import exclusive_cumsum1d
+    from tmol.utility.tensor._common_operations import _exclusive_cumsum1d
 
     assert pose_like_coords.shape[0] == chain_ind_for_block.shape[0]
     assert pose_like_coords.shape[0] == block_types64.shape[0]
@@ -203,7 +196,7 @@ def atom_records_from_coords(
         ]
     )
 
-    pose_atom_offsets = exclusive_cumsum1d(n_pose_atoms)
+    pose_atom_offsets = _exclusive_cumsum1d(n_pose_atoms)
 
     # ok, let's move everything to the cpu/numpy from here forward
     block_types64 = block_types64.cpu().numpy()
@@ -247,7 +240,7 @@ def atom_records_from_coords(
     if chain_labels is None:
         # create default chain labels as A, B, ..., Z, AA, AB, ... ZZ; max 702 chains.
         assert max_n_chains <= 26 * 27
-        chain_labels = numpy.array(
+        chain_letter_by_ind = numpy.array(
             [
                 (
                     chr(i + ord("A"))
@@ -258,7 +251,9 @@ def atom_records_from_coords(
             ],
             dtype=object,
         )
-    results["chain"] = chain_labels[pose_for_real_atom, block_for_real_atom]
+        results["chain"] = chain_letter_by_ind[chain_ind_for_real_atom]
+    else:
+        results["chain"] = chain_labels[pose_for_real_atom, block_for_real_atom]
 
     # create lookup for atom names
     bt_names = numpy.array([bt.name3 for bt in pbt.active_block_types])

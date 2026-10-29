@@ -12,12 +12,12 @@ import torch
 RAD = torch.pi / 180.0
 
 
-def wrap_degrees(delta):
+def _wrap_degrees(delta):
     """Wrap an angle difference to [-180, 180)."""
     return (delta + 180.0) % 360.0 - 180.0
 
 
-def dihedral(p0, p1, p2, p3):
+def _dihedral(p0, p1, p2, p3):
     """Signed dihedral in degrees, batched over leading dims."""
     b0, b1, b2 = p0 - p1, p2 - p1, p3 - p2
     b1 = b1 / b1.norm(dim=-1, keepdim=True).clamp_min(1e-9)
@@ -70,31 +70,31 @@ def _pucker_indices(device):
     return rot, unshuffle
 
 
-def blended_devsq(angle, means, weights):
+def _blended_devsq(angle, means, weights):
     """Weighted mixture of harmonic wells, not a well about a blended mean.
 
     angle: (...), means/weights: (..., n_bins). Mixing the squared deviations
     keeps one minimum per bin; mixing the means would invent one between them.
     """
-    dev = wrap_degrees(angle.unsqueeze(-1) - means)
+    dev = _wrap_degrees(angle.unsqueeze(-1) - means)
     return (weights * dev * dev).sum(-1)
 
 
-def triple_bin_weights(angle, means, sdev):
+def _triple_bin_weights(angle, means, sdev):
     """Soft g+/t/g- assignment, replacing Rosetta's hard 120-degree bins."""
-    dev = wrap_degrees(angle.unsqueeze(-1) - means)
+    dev = _wrap_degrees(angle.unsqueeze(-1) - means)
     return torch.softmax(-dev * dev / (2.0 * sdev * sdev), -1)
 
 
-def bi_bii_weight(epsilon, zeta):
+def _bi_bii_weight(epsilon, zeta):
     """Weight on BI, from sin(epsilon - zeta).
 
     exp(-s*del) / (exp(-s*del) + exp(s.del)) with s = 20
     """
-    return torch.sigmoid(-40.0 * torch.sin(wrap_degrees(epsilon - zeta) * RAD))
+    return torch.sigmoid(-40.0 * torch.sin(_wrap_degrees(epsilon - zeta) * RAD))
 
 
-def syn_weight(chi, width=5.0):
+def _syn_weight(chi, width=5.0):
     """Soft version of Rosetta's chi in (20, 100) syn window."""
     chi = chi % 360.0
     return torch.sigmoid((chi - 20.0) / width) * torch.sigmoid((100.0 - chi) / width)

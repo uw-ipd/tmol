@@ -3,18 +3,16 @@ from collections.abc import Sequence
 import torch
 from torch.nn.utils.rnn import pad_sequence
 
-from tmol.types import (
-    Tensor,
-    validate_args,
-)
+from tmol.types._torch import Tensor
+from tmol.types._functional import _validate_args
 
 IntTensor1D = Tensor[torch.int32][:] | Tensor[torch.int64][:]
 IntTensor2D = Tensor[torch.int32][:, :] | Tensor[torch.int64][:, :]
 RepeatCount = int | torch.Tensor
 
 
-@validate_args
-def stretch(t: IntTensor1D, count: RepeatCount) -> IntTensor1D:
+@_validate_args
+def _stretch(t: IntTensor1D, count: RepeatCount) -> IntTensor1D:
     """Repeat each element of a one-dimensional integer tensor.
 
     Args:
@@ -27,8 +25,8 @@ def stretch(t: IntTensor1D, count: RepeatCount) -> IntTensor1D:
     return t.repeat(count).view(count, -1).permute(1, 0).contiguous().view(-1)
 
 
-@validate_args
-def stretch2(t: IntTensor2D, count: RepeatCount) -> IntTensor2D:
+@_validate_args
+def _stretch2(t: IntTensor2D, count: RepeatCount) -> IntTensor2D:
     """Repeat each element along the second dimension of an integer tensor.
 
     Args:
@@ -47,8 +45,8 @@ def stretch2(t: IntTensor2D, count: RepeatCount) -> IntTensor2D:
     )
 
 
-@validate_args
-def exclusive_cumsum1d(inds: IntTensor1D) -> IntTensor1D:
+@_validate_args
+def _exclusive_cumsum1d(inds: IntTensor1D) -> IntTensor1D:
     """Compute an exclusive prefix sum over a one-dimensional integer tensor.
 
     Args:
@@ -61,8 +59,8 @@ def exclusive_cumsum1d(inds: IntTensor1D) -> IntTensor1D:
     return torch.cumsum(inds, dim=0, dtype=inds.dtype) - inds
 
 
-@validate_args
-def exclusive_cumsum2d(inds: IntTensor2D) -> IntTensor2D:
+@_validate_args
+def _exclusive_cumsum2d(inds: IntTensor2D) -> IntTensor2D:
     """Compute exclusive prefix sums along each row of an integer tensor.
 
     Args:
@@ -75,8 +73,8 @@ def exclusive_cumsum2d(inds: IntTensor2D) -> IntTensor2D:
     return torch.cumsum(inds, dim=1, dtype=inds.dtype) - inds
 
 
-@validate_args
-def exclusive_cumsum2d_and_totals(
+@_validate_args
+def _exclusive_cumsum2d_and_totals(
     inds: IntTensor2D,
 ) -> (
     tuple[Tensor[torch.int32][:, :], Tensor[torch.int32][:]]
@@ -100,7 +98,7 @@ def exclusive_cumsum2d_and_totals(
     return cs - inds, totals
 
 
-def print_row_numbered_tensor(tensor: torch.Tensor) -> None:
+def _print_row_numbered_tensor(tensor: torch.Tensor) -> None:
     """Print a one- or two-dimensional tensor with zero-based row indices."""
     if tensor.ndim not in (1, 2):
         raise ValueError("tensor must be one- or two-dimensional")
@@ -129,7 +127,7 @@ def _validate_tensor_sequence(tensors: Sequence[torch.Tensor]) -> torch.Tensor:
     return first
 
 
-def nplus1d_tensor_from_list(
+def _nplus1d_tensor_from_list(
     tensors: Sequence[torch.Tensor],
 ) -> tuple[torch.Tensor, Tensor[torch.int64][:, :], Tensor[torch.int64][:, :]]:
     """Pad tensors into a new leading dimension and report shape metadata.
@@ -163,7 +161,7 @@ def nplus1d_tensor_from_list(
     return newt, sizes, strides
 
 
-def cat_differently_sized_tensors(
+def _cat_differently_sized_tensors(
     tensors: Sequence[torch.Tensor],
 ) -> tuple[torch.Tensor, Tensor[torch.int64][:, :], Tensor[torch.int64][:, :]]:
     """Concatenate padded tensors along dimension zero and report metadata.
@@ -210,7 +208,7 @@ def cat_differently_sized_tensors(
     return newt, sizes, strides
 
 
-def join_tensors_and_report_real_entries(
+def _join_tensors_and_report_real_entries(
     tensors: Sequence[torch.Tensor], sentinel: int = -1
 ) -> tuple[Tensor[torch.int32][:], Tensor[torch.bool][:, :], torch.Tensor]:
     """Pad tensors along dimension zero and identify their real entries.
@@ -253,7 +251,7 @@ def join_tensors_and_report_real_entries(
     return n_elements, real, combo
 
 
-def invert_mapping(
+def _invert_mapping(
     a_2_b: IntTensor1D,
     n_elements_b: int | torch.Tensor | None = None,
     sentinel: int = -1,

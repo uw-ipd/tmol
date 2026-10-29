@@ -19,9 +19,7 @@ import pytest
 import torch
 
 
-from tmol.database import ParameterDatabase
-from tmol.io import atom_array_from_cif
-from tmol.score import beta2016_score_function
+from tmol import ParameterDatabase, atom_array_from_file, beta2016_score_function
 from tmol.tests.data import data_path
 
 FIXTURE_DIR = data_path("ncaa_fixtures")
@@ -29,17 +27,17 @@ MIRROR_PAIR = "6dmz_mod"
 
 
 def _pose(stem, param_db, torch_device, hydrogen_policy="preserve"):
-    from tmol.io import pose_stack_from_biotite
+    from tmol import pose_stack_from_atom_array
 
-    array = atom_array_from_cif(FIXTURE_DIR / f"{stem}.cif")
+    array = atom_array_from_file(FIXTURE_DIR / f"{stem}.cif")
     if hydrogen_policy == "rebuild":
         array = array[~numpy.isin(array.element, ["H", "D"])]
-    return pose_stack_from_biotite(
+    return pose_stack_from_atom_array(
         array,
         torch_device,
         param_db=param_db,
         no_optH=True,
-        trust_hydrogen_names=hydrogen_policy == "preserve",
+        ligand_hydrogens="input" if hydrogen_policy == "preserve" else "names",
     )
 
 
@@ -59,8 +57,8 @@ def _scores_by_term(pose_stack, sfxn):
 
 def test_mirror_image_coordinates_are_exact_negations() -> None:
     """The fixtures are a mirror pair, so the comparison means what it says."""
-    left = atom_array_from_cif(FIXTURE_DIR / f"{MIRROR_PAIR}_l.cif")
-    right = atom_array_from_cif(FIXTURE_DIR / f"{MIRROR_PAIR}_d.cif")
+    left = atom_array_from_file(FIXTURE_DIR / f"{MIRROR_PAIR}_l.cif")
+    right = atom_array_from_file(FIXTURE_DIR / f"{MIRROR_PAIR}_d.cif")
     assert left.array_length() == right.array_length()
     numpy.testing.assert_allclose(left.coord, -right.coord, atol=1e-4)
     assert list(left.atom_name) == list(right.atom_name)
@@ -145,13 +143,10 @@ def test_repacking_a_d_structure_keeps_it_d(symmetric_gly_db, torch_device) -> N
     all or place the sidechain as its mirror image. Only the handedness is
     checked: a tautomer or protonation state is a packing degree of freedom.
     """
-    from tmol.pack import PackerPalette, PackerTask, SetPackerTask, pack_rotamers
-    from tmol.pack.rotamer import (
-        FixedAAChiSampler,
-        IncludeCurrentSampler,
-        build_rotamers,
-    )
-    from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
+    from tmol import PackerPalette, PackerTask, pack_rotamers
+    from tmol.pack import SetPackerTask
+    from tmol.pack import FixedAAChiSampler, IncludeCurrentSampler, build_rotamers
+    from tmol.pack import create_dunbrack_sampler_from_database
 
     pose_stack = _pose(f"{MIRROR_PAIR}_d", symmetric_gly_db, torch_device)
     before = _chirality(pose_stack)

@@ -10,19 +10,10 @@ import torch
 
 import tmol.dock.finalization as finalization_module
 from tmol.database import ParameterDatabase
-from tmol.dock import (
-    ContinuousBackend,
-    GAPool,
-    GAResult,
-    GASchedule,
-    GridBackend,
-    LigandGeneLayout,
-    build_ligand_docking_dofs,
-    count_non_proton_ligand_chis,
-    run_docking,
-    select_pocket_residue_blocks,
-)
-from tmol.dock.dock_loop import _repeat_pose_stack
+from tmol.dock import GASchedule, GridBackend, run_docking, select_pocket_residues
+from tmol.dock.finalization import count_non_proton_ligand_chis
+from tmol.dock.ga import GAPool, GAResult, LigandGeneLayout
+from tmol.dock.ligand_dofs import build_ligand_docking_dofs
 from tmol.dock.finalization import (
     _flexible_sidechain_mapping,
     _ligand_atom_indices,
@@ -32,25 +23,25 @@ from tmol.dock.finalization import (
     _score_pose_stack,
     finalize_ga_docking,
 )
-from tmol.dock.ga import (
-    _ligand_only_pose_stack,
-    _movable_block_mapping,
-    _movable_pose_stack,
-    _sidechain_context_blocks,
-)
-from tmol.io import pose_stack_from_biotite
+from tmol.io import pose_stack_from_atom_array
 from tmol.score import beta2016_score_function
-from tmol.tests.dock.test_dock_loop import _load_cdk2_pose_on_device
+from tmol.tests.dock.test_ligand_dof_roundtrip import _load_cdk2_pose_on_device
 from tmol.tests.dock.test_ligand_dof_roundtrip import (
     PLI_DATA_DIR,
     _ligand_block,
     _load_cdk2_pose,
 )
 from tmol.tests.ligand.test_protein_ligand_ddg import _load_complex_cif
+from tmol.pose import repeat_pose_stack
+from tmol.score.gridscore._movable import (
+    movable_block_mapping,
+    movable_pose_stack,
+    sidechain_context_blocks,
+)
 
 
 def _load_target(target: str, device: torch.device):
-    pose_stack, context = pose_stack_from_biotite(
+    pose_stack, context = pose_stack_from_atom_array(
         _load_complex_cif(target),
         device,
         prepare_ligands=True,
@@ -63,7 +54,7 @@ def _load_target(target: str, device: torch.device):
 
 
 def _flexible_sidechains(reference, ligand_block, count=1):
-    selected = select_pocket_residue_blocks(reference, ligand_block, cutoff=6.0)
+    selected = select_pocket_residues(reference, ligand_block, cutoff=6.0)
     sidechain_blocks = tuple(
         block
         for block in selected.detach().cpu().tolist()
@@ -74,11 +65,11 @@ def _flexible_sidechains(reference, ligand_block, count=1):
 
 
 def _flexible_ga_result(reference, ligand_block, sidechain_blocks, npool=3):
-    movable = _movable_pose_stack(reference, ligand_block, sidechain_blocks)
-    _, compact_sidechains, _ = _movable_block_mapping(
+    movable = movable_pose_stack(reference, ligand_block, sidechain_blocks)
+    _, compact_sidechains, _ = movable_block_mapping(
         reference, ligand_block, sidechain_blocks
     )
-    population = _repeat_pose_stack(movable, npool)
+    population = repeat_pose_stack(movable, npool)
     docking_dofs = build_ligand_docking_dofs(
         population, 0, sidechain_blocks=compact_sidechains
     )
@@ -102,13 +93,9 @@ def _flexible_ga_result(reference, ligand_block, sidechain_blocks, npool=3):
         per_pose_increment[:, None] * per_chi_scale[None, :]
     )
     population = layout.pose_stack_from_genes(genes)
-    energies = torch.arange(
-        npool, 0, -1, dtype=genes.dtype, device=genes.device
-    )
+    energies = torch.arange(npool, 0, -1, dtype=genes.dtype, device=genes.device)
     if npool == 3:
-        energies = torch.tensor(
-            [3.0, 1.0, 2.0], dtype=genes.dtype, device=genes.device
-        )
+        energies = torch.tensor([3.0, 1.0, 2.0], dtype=genes.dtype, device=genes.device)
     order = torch.argsort(energies)
     return GAResult(
         pool=GAPool(genes, population, energies, n_diverse=npool),
@@ -152,7 +139,7 @@ def test_receptor_only_builder_removes_ligand_and_preserves_receptor():
     reference, _ = _load_cdk2_pose()
     ligand_block = _ligand_block(reference)
     receptor = _receptor_only_pose_stack(reference, ligand_block)
-    ligand = _ligand_only_pose_stack(reference, ligand_block)
+    ligand = movable_pose_stack(reference, ligand_block)
 
     assert receptor.max_n_blocks == reference.max_n_blocks - 1
     assert receptor.max_n_pose_atoms + ligand.max_n_pose_atoms == (
@@ -169,8 +156,8 @@ def test_receptor_only_builder_removes_ligand_and_preserves_receptor():
 def test_top_candidates_are_promoted_without_moving_receptor():
     reference, _ = _load_cdk2_pose()
     ligand_block = _ligand_block(reference)
-    population = _repeat_pose_stack(reference, 3)
-    ligand_population = _ligand_only_pose_stack(population, ligand_block)
+    population = repeat_pose_stack(reference, 3)
+    ligand_population = movable_pose_stack(population, ligand_block)
     ligand_population.coords[:, :, 0] += torch.tensor([1.0, 2.0, 3.0])[:, None]
     energies = torch.tensor([3.0, 1.0, 2.0], dtype=reference.coords.dtype)
     genes = torch.arange(24, dtype=reference.coords.dtype).reshape(3, 8)
@@ -186,7 +173,7 @@ def test_top_candidates_are_promoted_without_moving_receptor():
     with pytest.raises(ValueError, match="requires one reference pose"):
         _promote_top_candidates(population, ligand_block, ga_result, top_k=2)
     with pytest.raises(ValueError, match="requires one reference pose"):
-        finalize_ga_docking(population, ligand_block, None, ga_result, top_k=2)
+        finalize_ga_docking(population, None, ga_result, top_k=2)
 
     promoted, promoted_genes = _promote_top_candidates(
         reference, ligand_block, ga_result, top_k=2
@@ -216,14 +203,12 @@ def test_flexible_top_candidates_restore_distinct_sidechains():
     reference, param_db = _load_cdk2_pose()
     ligand_block = _ligand_block(reference)
     sidechain_blocks = _flexible_sidechains(reference, ligand_block, count=2)
-    ga_result = _flexible_ga_result(
-        reference, ligand_block, sidechain_blocks, npool=3
-    )
+    ga_result = _flexible_ga_result(reference, ligand_block, sidechain_blocks, npool=3)
     backend = SimpleNamespace(
         param_db=param_db,
         ligand_block=ligand_block,
         sidechain_blocks=sidechain_blocks,
-        context_blocks=_sidechain_context_blocks(
+        context_blocks=sidechain_context_blocks(
             reference, ligand_block, sidechain_blocks
         ),
     )
@@ -255,8 +240,7 @@ def test_flexible_top_candidates_restore_distinct_sidechains():
     )
     torch.testing.assert_close(promoted_genes[0], ga_result.pool.genes[[1, 2]])
     assert torch.any(
-        promoted.coords[0, full_atoms[0]]
-        != reference.coords[0, full_atoms[0]]
+        promoted.coords[0, full_atoms[0]] != reference.coords[0, full_atoms[0]]
     )
     assert torch.any(
         promoted.coords[0, full_atoms[0]] != promoted.coords[1, full_atoms[1]]
@@ -285,14 +269,12 @@ def test_cdk2_cpu_flexible_finalization_refines_sidechain_and_apo(monkeypatch):
     reference, param_db = _load_cdk2_pose()
     ligand_block = _ligand_block(reference)
     sidechain_blocks = _flexible_sidechains(reference, ligand_block)
-    ga_result = _flexible_ga_result(
-        reference, ligand_block, sidechain_blocks, npool=1
-    )
+    ga_result = _flexible_ga_result(reference, ligand_block, sidechain_blocks, npool=1)
     backend = SimpleNamespace(
         param_db=param_db,
         ligand_block=ligand_block,
         sidechain_blocks=sidechain_blocks,
-        context_blocks=_sidechain_context_blocks(
+        context_blocks=sidechain_context_blocks(
             reference, ligand_block, sidechain_blocks
         ),
     )
@@ -327,9 +309,7 @@ def test_cdk2_cpu_flexible_finalization_refines_sidechain_and_apo(monkeypatch):
         return result
 
     monkeypatch.setattr(finalization_module, "run_cart_min", capture_apo)
-    final = finalize_ga_docking(
-        reference, ligand_block, backend, ga_result, top_k=1
-    )
+    final = finalize_ga_docking(reference, backend, ga_result, top_k=1)
     final_sidechain_atoms = _mapped_atom_indices(final.pose_stack, block_local_atoms)
     sidechain_refine_delta = torch.amax(
         torch.linalg.vector_norm(
@@ -351,11 +331,14 @@ def test_cdk2_cpu_flexible_finalization_refines_sidechain_and_apo(monkeypatch):
         rtol=0.0,
         atol=1.0e-6,
     )
-    assert _bad_bond_count(
-        reference,
-        final.pose_stack,
-        (ligand_block,) + sidechain_blocks,
-    ) == 0
+    assert (
+        _bad_bond_count(
+            reference,
+            final.pose_stack,
+            (ligand_block,) + sidechain_blocks,
+        )
+        == 0
+    )
     assert torch.isfinite(final.complex_energies).all()
     assert torch.all(final.complex_energies <= final.pre_refine_energies + 1.0e-8)
 
@@ -388,11 +371,14 @@ def test_cdk2_cpu_flexible_finalization_refines_sidechain_and_apo(monkeypatch):
         source_block: receptor_block
         for receptor_block, source_block in enumerate(keep_blocks)
     }
-    assert _bad_bond_count(
-        apo_before,
-        apo_after,
-        tuple(source_to_receptor[block] for block in sidechain_blocks),
-    ) == 0
+    assert (
+        _bad_bond_count(
+            apo_before,
+            apo_after,
+            tuple(source_to_receptor[block] for block in sidechain_blocks),
+        )
+        == 0
+    )
     torch.testing.assert_close(
         final.dH,
         final.complex_energies
@@ -415,15 +401,11 @@ def test_cdk2_grid_docking_exact_finalization_and_dg_assembly():
     cpu_reference, param_db = _load_cdk2_pose()
     ligand_block = _ligand_block(cpu_reference)
     grid_backend = GridBackend.from_pose_stack(
-        cpu_reference,
-        ligand_block,
-        param_db,
-        kin_dtype=torch.float32,
+        cpu_reference, ligand_block, param_db, kin_dtype=torch.float32
     )
     reference, _ = _load_cdk2_pose_on_device(torch.device("cuda"))
     result = run_docking(
         reference,
-        ligand_block,
         grid_backend,
         schedule=GASchedule(
             generations=1,
@@ -496,14 +478,13 @@ def test_cdk2_flexible_grid_docking_exact_finalization_e2e():
         ligand_block,
         param_db,
         kin_dtype=torch.float32,
-        sidechain_blocks=sidechain_blocks,
+        flexible_residues=sidechain_blocks,
     )
     reference, _ = _load_cdk2_pose_on_device(torch.device("cuda"))
     torch.cuda.synchronize()
     started = time.perf_counter()
     result = run_docking(
         reference,
-        ligand_block,
         grid_backend,
         schedule=GASchedule(
             generations=1,
@@ -515,7 +496,6 @@ def test_cdk2_flexible_grid_docking_exact_finalization_e2e():
         seed=20260826,
         finalize=True,
         top_k=2,
-        sidechain_blocks=sidechain_blocks,
     )
     torch.cuda.synchronize()
     wall_seconds = time.perf_counter() - started
@@ -568,37 +548,10 @@ def test_cdk2_flexible_grid_docking_exact_finalization_e2e():
         )
     )
     print(
-        "flexible cdk2 finalized RMSD, wall_s, moved_sidechain_atoms, "
-        "bad_bonds:",
+        "flexible cdk2 finalized RMSD, wall_s, moved_sidechain_atoms, " "bad_bonds:",
         float(rmsd_to_native),
         wall_seconds,
         int(torch.sum(displacement > 1.0e-5)),
         bad_bonds,
     )
     assert bad_bonds == 0
-
-
-def test_finalize_false_does_not_call_finalization(monkeypatch):
-    reference, param_db = _load_cdk2_pose()
-    ligand_block = _ligand_block(reference)
-
-    def fail_if_called(*args, **kwargs):
-        raise AssertionError("finalization was called")
-
-    monkeypatch.setattr("tmol.dock.finalization.finalize_ga_docking", fail_if_called)
-    result = run_docking(
-        reference,
-        ligand_block,
-        ContinuousBackend(param_db, kin_dtype=torch.float64),
-        schedule=GASchedule(generations=1, npool=1, maxiter=1),
-        seed=20260824,
-        finalize=False,
-    )
-    assert result.finalization is None
-    assert torch.equal(
-        result.best_pose_stack.coords, result.ga_result.best_pose_stack.coords
-    )
-    assert torch.equal(result.best_energies, result.ga_result.best_energies)
-    assert torch.equal(result.best_genes, result.ga_result.best_genes)
-    assert torch.equal(result.ranked_energies, result.ga_result.ranked_energies)
-    assert torch.equal(result.ranked_genes, result.ga_result.ranked_genes)

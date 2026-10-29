@@ -1,10 +1,8 @@
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_pdb
-from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-from tmol.pack.rotamer import IncludeCurrentSampler
-from tmol.pose import PoseStackBuilder
+from tmol import pose_stack_from_file, PackerPalette, PackerTask, PoseStackBuilder
+from tmol.pack import SetPackerTask, IncludeCurrentSampler
 
 
 @pytest.mark.parametrize(
@@ -15,8 +13,20 @@ def test_registration_samples_each_enabled_residue_once(
 ):
     poses = PoseStackBuilder.from_poses(
         [
-            pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=3),
-            pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5),
+            pose_stack_from_file(
+                ubq_pdb,
+                torch_device,
+                residue_end=3,
+                no_optH=True,
+                missing_density_distance_threshold=0.0,
+            ),
+            pose_stack_from_file(
+                ubq_pdb,
+                torch_device,
+                residue_end=5,
+                no_optH=True,
+                missing_density_distance_threshold=0.0,
+            ),
         ],
         torch_device,
     )

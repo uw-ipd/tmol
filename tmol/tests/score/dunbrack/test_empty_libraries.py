@@ -4,8 +4,9 @@ import attr
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_pdb
-from tmol.score.dunbrack import DunbrackEnergyTerm, DunbrackParamResolver
+from tmol import pose_stack_from_file
+from tmol.score import DunbrackEnergyTerm
+from tmol.score.dunbrack._params import DunbrackParamResolver
 from tmol.tests.score.dunbrack.test_parameter_identity import setup, render, evaluate
 
 
@@ -38,7 +39,14 @@ def test_empty_families_preserve_scores_and_gradients(
     full = default_database.scoring.dun
     selected = select_libraries(full, kind)
     reference = attr.evolve(full, dun_lookup=selected.dun_lookup)
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=12)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=12,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     results = []
     for library in (reference, selected):
         database = attr.evolve(
@@ -59,7 +67,7 @@ def test_empty_families_preserve_scores_and_gradients(
 def test_no_libraries_still_supports_explicit_chi_sampling(
     default_database, torch_device
 ):
-    from tmol.pack.rotamer.dunbrack import DunbrackChiSampler
+    from tmol.pack import DunbrackChiSampler
 
     database = select_libraries(default_database.scoring.dun, "empty")
     resolver = DunbrackParamResolver.from_database(database, torch_device)

@@ -7,7 +7,7 @@ import torch
 
 from tmol.io._pose_stack_from_biotite import (
     _filter_supported_atoms_and_connectivity,
-    canonical_ordering_for_biotite,
+    _canonical_ordering_for_biotite,
 )
 
 
@@ -16,8 +16,8 @@ from tmol.io._pose_stack_from_biotite import (
 )
 def test_disulfide_input_authority_through_scoring(source, torch_device):
     from biotite.structure.info import residue
-    from tmol.io import pose_stack_from_biotite
-    from tmol.score import beta2016_score_function
+    from tmol import pose_stack_from_atom_array
+    from tmol import beta2016_score_function
 
     first = residue("CYS")
     first = first[first.element != "H"]
@@ -43,9 +43,9 @@ def test_disulfide_input_authority_through_scoring(source, torch_device):
         sulfurs = np.flatnonzero(array.atom_name == "SG")
         array.bonds.add_bond(*sulfurs[1:], struc.BondType.SINGLE)
         with pytest.raises(ValueError, match="only one declared disulfide"):
-            pose_stack_from_biotite(array, torch_device, no_optH=True)
+            pose_stack_from_atom_array(array, torch_device, no_optH=True)
         return
-    pose = pose_stack_from_biotite(array, torch_device, no_optH=True)
+    pose = pose_stack_from_atom_array(array, torch_device, no_optH=True)
     assert int((pose.inter_residue_connections[..., 0] >= 0).sum()) == 2
     types = [
         pose.packed_block_types.active_block_types[int(i)]
@@ -89,7 +89,7 @@ def test_reject_filtering_one_end_of_declared_chemical_link(bond, chains):
     before = array.copy()
     with pytest.raises(ValueError, match="discard.*covalent"):
         _filter_supported_atoms_and_connectivity(
-            array, canonical_ordering_for_biotite()
+            array, _canonical_ordering_for_biotite()
         )
     np.testing.assert_equal(array.coord, before.coord)
     np.testing.assert_array_equal(array.bonds.as_array(), before.bonds.as_array())
@@ -101,14 +101,14 @@ def test_reject_when_one_model_lacks_the_covalent_partner_backbone():
     stack = struc.stack([complete, incomplete])
     with pytest.raises(ValueError, match="discard.*covalent"):
         _filter_supported_atoms_and_connectivity(
-            stack, canonical_ordering_for_biotite()
+            stack, _canonical_ordering_for_biotite()
         )
 
 
 def test_ordinary_sequential_backbone_gap_remains_supported():
     array = cysteine_pair((2, 6))
     kept, breaks = _filter_supported_atoms_and_connectivity(
-        array, canonical_ordering_for_biotite()
+        array, _canonical_ordering_for_biotite()
     )
     np.testing.assert_array_equal(kept.res_id, np.full(6, 2))
     assert breaks.shape == (1, 2)
@@ -117,7 +117,7 @@ def test_ordinary_sequential_backbone_gap_remains_supported():
 def test_complete_crosslink_keeps_both_residues_and_its_bond():
     array = cysteine_pair((5, 11), missing=False)
     kept, _ = _filter_supported_atoms_and_connectivity(
-        array, canonical_ordering_for_biotite()
+        array, _canonical_ordering_for_biotite()
     )
     np.testing.assert_array_equal(kept.coord, array.coord)
     np.testing.assert_array_equal(kept.bonds.as_array(), array.bonds.as_array())

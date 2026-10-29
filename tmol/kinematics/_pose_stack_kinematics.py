@@ -12,15 +12,13 @@ import attr
 import numpy as np
 import torch
 
-from tmol.kinematics.compiled import inverse_kin
-from tmol.kinematics import (
-    BondDOFTypes,
-    NodeType,
-    FoldForest,
-    PoseStackKinematicsModule,
-)
+from tmol.kinematics.compiled._compiled_ops import _inverse_kin
+from tmol.kinematics._datatypes import BondDOFTypes, NodeType
+from tmol.kinematics._fold_forest import FoldForest
+from tmol.kinematics._script_modules import PoseStackKinematicsModule
 from tmol.pose._pose_stack import PoseStack
 from tmol.pose._util import _measure_torsions, _resolve_uaid, _torsion_requests
+from tmol.pose import residue_label
 
 
 def _controlling_kfo_node(pose_stack, kmd, kfo_for_atom, pose, block, tor_ind):
@@ -41,6 +39,27 @@ def _controlling_kfo_node(pose_stack, kmd, kfo_for_atom, pose, block, tor_ind):
     return int(kfo_for_atom[flat_atom])
 
 
+def torsion_labels(pose_stack, kin_module, pose):
+    """Labels and kinforest nodes for the named torsions of one pose driven by a bond phi_c."""
+    kmd = kin_module.kmd
+    ids = kmd.forest.id[1:].to(torch.int64)
+    kfo_for_atom = torch.full(
+        (pose_stack.n_poses * pose_stack.max_n_pose_atoms,), -1, dtype=torch.int64
+    )
+    kfo_for_atom[ids.cpu()] = torch.arange(1, ids.shape[0] + 1)
+
+    labels, nodes = [], []
+    for _, block, tor_ind, name in _torsion_requests(pose_stack, pose, None, None):
+        node = _controlling_kfo_node(
+            pose_stack, kmd, kfo_for_atom, pose, block, tor_ind
+        )
+        if node == -1 or kmd.forest.doftype[node] != NodeType.bond:
+            continue
+        labels.append(f"{residue_label(pose_stack, pose, block)} {name}")
+        nodes.append(node)
+    return labels, torch.tensor(nodes, dtype=torch.int64)
+
+
 def _apply_torsion_deltas(pose_stack, requests, deltas, fold_forest=None):
     """Apply a set of torsion deltas to a PoseStack using inverse kinematics."""
     if fold_forest is None:
@@ -52,7 +71,7 @@ def _apply_torsion_deltas(pose_stack, requests, deltas, fold_forest=None):
         (kmd.forest.id.shape[0], 3), dtype=torch.float32, device=pose_stack.device
     )
     kincoords[1:] = pose_stack.coords.view(-1, 3)[kmd.forest.id[1:].to(torch.int64)]
-    dofs = inverse_kin(
+    dofs = _inverse_kin(
         kincoords,
         kmd.forest.parent,
         kmd.forest.frame_x,

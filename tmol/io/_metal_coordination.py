@@ -6,15 +6,15 @@ import attr
 import numpy
 import torch
 
-from tmol.database.chemical import site_connections, site_metal
-from tmol.io import CanonicalOrdering
-from tmol.io._pose_stack_construction import pose_stack_from_canonical_form
-from tmol.io._pose_stack_deconstruction import canonical_form_from_pose_stack
-from tmol.io.details._metal_geometry import unit
-from tmol.pose import PoseStack
+from tmol.database.chemical import _site_connections, _site_metal
+from tmol.io._canonical_ordering import CanonicalOrdering
+from tmol.io._pose_stack_construction import _pose_stack_from_canonical_form
+from tmol.io._pose_stack_deconstruction import _canonical_form_from_pose_stack
+from tmol.io.details._metal_geometry import _unit
+from tmol.pose._pose_stack import PoseStack
 
 
-def add_metal_coordination(
+def _add_metal_coordination(
     canonical_ordering: CanonicalOrdering,
     pose_stack: PoseStack,
     pose: int,
@@ -26,13 +26,13 @@ def add_metal_coordination(
     """Bond ``atom`` of ``donor`` to an open site of ``metal`` (by default the one whose
     virtual faces it best); the donor atom loses its hydrogens.
     """
-    cf = canonical_form_from_pose_stack(canonical_ordering, pose_stack)
+    cf = _canonical_form_from_pose_stack(canonical_ordering, pose_stack)
     rows = _rows(cf.metal_coordination)
     metal_bt = _block_type(pose_stack, pose, metal)
     if not metal_bt.metal_sites:
         raise ValueError(f"residue {metal} ({metal_bt.name}) is not a metal")
     filled = {site for p, m, site, _, _ in rows if (p, m) == (pose, metal)}
-    open_sites = [k for k in range(len(site_connections(metal_bt))) if k not in filled]
+    open_sites = [k for k in range(len(_site_connections(metal_bt))) if k not in filled]
     if site is None:
         if not open_sites:
             raise ValueError(f"{metal_bt.name} at residue {metal} has no open site")
@@ -61,7 +61,7 @@ def add_metal_coordination(
     return _rebuild(canonical_ordering, pose_stack, cf, rows)
 
 
-def remove_metal_coordination(
+def _remove_metal_coordination(
     canonical_ordering: CanonicalOrdering,
     pose_stack: PoseStack,
     pose: int,
@@ -69,7 +69,7 @@ def remove_metal_coordination(
     site: int,
 ) -> PoseStack:
     """Open one filled site of a metal; the donor keeps its hydrogens."""
-    cf = canonical_form_from_pose_stack(canonical_ordering, pose_stack)
+    cf = _canonical_form_from_pose_stack(canonical_ordering, pose_stack)
     rows = _rows(cf.metal_coordination)
     kept = [r for r in rows if r[:3] != (pose, metal, site)]
     if len(kept) == len(rows):
@@ -101,10 +101,10 @@ def _closest_open_site(pose_stack, pose, metal, donor, atom, open_sites):
     donor_xyz = xyz[donor_offset + donor_bt.atom_to_idx[atom]]
 
     def alignment(k):
-        site, local = site_metal(metal_bt, k)
+        site, local = _site_metal(metal_bt, k)
         metal_xyz = xyz[offset + metal_bt.atom_to_idx[site.metal_atom]]
         ray = xyz[offset + metal_bt.atom_to_idx[site.site_virts[local]]] - metal_xyz
-        return unit(ray) @ unit(donor_xyz - metal_xyz)
+        return _unit(ray) @ _unit(donor_xyz - metal_xyz)
 
     return max(open_sites, key=alignment)
 
@@ -117,11 +117,11 @@ def _rebuild(canonical_ordering, pose_stack, cf, rows):
         else None
     )
     cf = attr.evolve(cf, metal_coordination=coordination)
-    return pose_stack_from_canonical_form(
+    return _pose_stack_from_canonical_form(
         canonical_ordering,
         pose_stack.packed_block_types,
         *cf,
-        trust_hydrogen_names=True,
+        ligand_hydrogens="input",
         find_additional_disulfides=False,
         find_additional_cyclic_closures=False,
         find_additional_metal_coordination=False,

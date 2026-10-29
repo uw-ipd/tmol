@@ -5,12 +5,7 @@ import pytest
 import torch
 import zstandard
 
-from tmol.io import (
-    atom_array_from_file,
-    atom_array_from_mol2,
-    cif_from_atom_array,
-    pose_stack_from_biotite,
-)
+from tmol import atom_array_from_file, file_from_atom_array, pose_stack_from_atom_array
 from tmol.tests.data import data_path
 
 
@@ -28,7 +23,7 @@ def test_ring_delocalized_cations_localize(tmp_path):
         ("cyclic_acylguanidinium_3ge7.mol2.zst", 2),
         ("iminohydantoin_4djv.mol2.zst", 1),
     ):
-        ligand = atom_array_from_mol2(_unpacked(tmp_path, name))
+        ligand = atom_array_from_file(_unpacked(tmp_path, name))
         assert int(ligand.charge.sum()) == net
         assert set(ligand.element[ligand.charge != 0]) == {"N"}
 
@@ -50,14 +45,14 @@ def test_sdf_ligand_reads_like_its_mol2(tmp_path):
 def test_sdf_ligand_writes_params_like_its_mol2(tmp_path):
     """Parameters are written from 3GE7's SDF as from its MOL2: one residue with
     the MOL2's heavy atoms and net charge."""
-    from tmol.ligand._detect import nonstandard_residue_info_from_file
+    from tmol.ligand._detect import _nonstandard_residue_info_from_file
     from tmol.ligand import write_params_from_mol2
 
     infos = []
     for ext in ("mol2", "sdf"):
         path = _unpacked(tmp_path, f"cyclic_acylguanidinium_3ge7.{ext}.zst")
         write_params_from_mol2(path, tmp_path / f"{ext}.tmol", res_name="AFQ")
-        infos.append(nonstandard_residue_info_from_file(path, res_name="AFQ"))
+        infos.append(_nonstandard_residue_info_from_file(path, res_name="AFQ"))
         assert "AFQ" in (tmp_path / f"{ext}.tmol").read_text()
     mol2, sdf = (info.atom_array for info in infos)
     assert sorted(sdf.element[sdf.element != "H"]) == sorted(
@@ -71,9 +66,9 @@ def test_a_carboxyl_written_with_single_bonds_reads_as_a_carboxylate(tmp_path):
     bonds to O and OXT; the planar group is a carboxylate, not a geminal diol."""
     from rdkit import Chem
 
-    from tmol.ligand._structure_to_smiles import ligand_smiles_from_atom_array
+    from tmol.ligand import ligand_smiles_from_atom_array
 
-    ligand = atom_array_from_mol2(
+    ligand = atom_array_from_file(
         _unpacked(tmp_path, "single_bonded_carboxyl_2xej.mol2.zst")
     )
     carbon = int(list(ligand.atom_name).index("C")) + 1
@@ -88,7 +83,7 @@ def test_repeated_pdb_atom_names_take_the_mol2_names(tmp_path):
     pdb = atom_array_from_file(
         data_path("pdbbind_regressions", "repeated_names_ligand_10gs.pdb.zst")
     )
-    mol2 = atom_array_from_mol2(
+    mol2 = atom_array_from_file(
         _unpacked(tmp_path, "repeated_names_ligand_10gs.mol2.zst")
     )
     assert list(pdb.atom_name) == list(mol2.atom_name)
@@ -100,7 +95,9 @@ def test_pdb_charge_column_states_an_ion_charge():
     ion = atom_array_from_file(
         data_path("pdbbind_regressions", "chloride_charge_column_6tw5.pdb.zst")
     )
-    pose = pose_stack_from_biotite(ion, torch.device("cpu"), prepare_ligands=True)
+    pose = pose_stack_from_atom_array(
+        ion, torch.device("cpu"), prepare_ligands=True, no_optH=True
+    )
     assert int((pose.block_type_ind >= 0).sum()) == 1
 
 
@@ -113,8 +110,8 @@ def test_heavy_atom_sdf_ligands_are_prepared(tmp_path):
         "heavy_atom_indazole_6tw5.sdf.zst",
     ):
         ligand = atom_array_from_file(_unpacked(tmp_path, name))
-        pose = pose_stack_from_biotite(
-            ligand, torch.device("cpu"), prepare_ligands=True
+        pose = pose_stack_from_atom_array(
+            ligand, torch.device("cpu"), prepare_ligands=True, no_optH=True
         )
         assert int((pose.block_type_ind >= 0).sum()) == 1
 
@@ -125,7 +122,7 @@ def test_a_capped_chain_break_is_a_terminus():
     protein = atom_array_from_file(
         data_path("pdbbind_regressions", "capped_break_1err.pdb.zst")
     )
-    pose = pose_stack_from_biotite(protein, torch.device("cpu"))
+    pose = pose_stack_from_atom_array(protein, torch.device("cpu"), no_optH=True)
     bts = pose.packed_block_types.active_block_types
     labels = pose.pdb_info.residue_labels[0].tolist()
     block = pose.block_type_ind[0, labels.index(382)]
@@ -148,7 +145,7 @@ def test_pocket_is_one_chain_broken_at_its_gaps():
         data_path("pdbbind_regressions", "pocket_1gpk.pdb.zst")
     )
     assert set(pocket.chain_id) == {"A"}
-    pose = pose_stack_from_biotite(pocket, torch.device("cpu"))
+    pose = pose_stack_from_atom_array(pocket, torch.device("cpu"), no_optH=True)
     assert _bonded(pose, 118, 119) and not _bonded(pose, 119, 121)
 
 
@@ -158,10 +155,11 @@ def test_numbered_bond_across_a_gap_is_not_kept():
         data_path("pdbbind_regressions", "numbered_gap_3kgp.pdb.zst")
     )
     for threshold, bonded in ((2.4, False), (0.0, True)):
-        pose = pose_stack_from_biotite(
+        pose = pose_stack_from_atom_array(
             structure,
             torch.device("cpu"),
             missing_density_distance_threshold=threshold,
+            no_optH=True,
         )
         assert _bonded(pose, 37, 38) == bonded
 
@@ -202,8 +200,10 @@ def test_a_free_amino_acid_beside_its_chain_keeps_its_name(tmp_path):
 def test_a_mol2_ligand_is_a_non_polymer_whatever_its_name(tmp_path):
     """3URI's ligand, named PRO, reads and writes back as a non-polymer, not as the
     peptide-linking amino acid of that CCD entry."""
-    ligand = atom_array_from_mol2(
+    ligand = atom_array_from_file(
         _unpacked(tmp_path, "ligand_named_pro_3uri.mol2.zst"), res_name="PRO"
     )
-    back = atom_array_from_file(cif_from_atom_array(ligand, path=tmp_path / "l.cif"))
+    back = atom_array_from_file(
+        file_from_atom_array(ligand, path=tmp_path / "l.cif", format="cif")
+    )
     assert set(ligand.chem_comp_type) == set(back.chem_comp_type) == {"NON-POLYMER"}

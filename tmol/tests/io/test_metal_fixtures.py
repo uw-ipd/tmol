@@ -10,19 +10,22 @@ import torch
 from yaml import safe_load
 
 import tmol.io.details._metal_detection as metal_detection
-from tmol.io import (
-    add_metal_coordination,
-    atom_array_from_cif,
-    biotite_from_pose_stack,
-    canonical_form_from_pose_stack,
-    pose_stack_from_biotite,
-    pose_stack_from_canonical_form,
-    remove_metal_coordination,
-    write_pose_stack_pdb,
+from tmol.io._metal_coordination import (
+    _add_metal_coordination,
+    _remove_metal_coordination,
 )
-from tmol.database.chemical import site_connections
-from tmol.kinematics import EdgeType, FoldForest
-from tmol.pose import PoseStackBuilder
+from tmol import (
+    atom_array_from_file,
+    atom_array_from_pose_stack,
+    pose_stack_from_atom_array,
+    EdgeType,
+    FoldForest,
+    PoseStackBuilder,
+)
+from tmol.io._pose_stack_deconstruction import _canonical_form_from_pose_stack
+from tmol.io._pose_stack_construction import _pose_stack_from_canonical_form
+from tmol.io._write_pose_stack_pdb import _write_pose_stack_pdb
+from tmol.database.chemical import _site_connections
 from tmol.tests.data import data_path
 
 FIXTURE_DIR = data_path("metal_fixtures")
@@ -40,7 +43,7 @@ def built():
         if stem in cache:
             return cache[stem]
         captured = []
-        find = metal_detection.find_metal_geometries
+        find = metal_detection._find_metal_geometries
 
         def recording(canonical_ordering, chemical_db, res_types, coords, **kwargs):
             variants, assignments = find(
@@ -49,14 +52,14 @@ def built():
             captured.append((canonical_ordering, res_types, assignments))
             return variants, assignments
 
-        metal_detection.find_metal_geometries = recording
+        metal_detection._find_metal_geometries = recording
         try:
-            structure = atom_array_from_cif(FIXTURE_DIR / f"{stem}.cif.zst")
-            pose_stack = pose_stack_from_biotite(
-                structure, torch.device("cpu"), prepare_ligands=True
+            structure = atom_array_from_file(FIXTURE_DIR / f"{stem}.cif.zst")
+            pose_stack = pose_stack_from_atom_array(
+                structure, torch.device("cpu"), prepare_ligands=True, no_optH=True
             )
         finally:
-            metal_detection.find_metal_geometries = find
+            metal_detection._find_metal_geometries = find
         cache[stem] = (pose_stack, captured[-1])
         return cache[stem]
 
@@ -70,11 +73,13 @@ def residue_key(pose_stack, pose, res):
 
 @pytest.mark.parametrize("charge, name", [(2, "FE2"), (3, "FE")])
 def test_chelated_iron_keeps_its_stated_oxidation_state(charge, name):
-    structure = atom_array_from_cif(FIXTURE_DIR / "heme_myoglobin_5yce.cif.zst")
+    structure = atom_array_from_file(FIXTURE_DIR / "heme_myoglobin_5yce.cif.zst")
     iron = numpy.char.upper(structure.element.astype(str)) == "FE"
     assert iron.sum() == 1
     structure.charge[iron] = charge
-    pose = pose_stack_from_biotite(structure, torch.device("cpu"), prepare_ligands=True)
+    pose = pose_stack_from_atom_array(
+        structure, torch.device("cpu"), prepare_ligands=True, no_optH=True
+    )
     used = [
         pose.packed_block_types.active_block_types[i]
         for i in set(pose.block_type_ind64[0].tolist())
@@ -82,6 +87,20 @@ def test_chelated_iron_keeps_its_stated_oxidation_state(charge, name):
     ]
     ions = [bt.io_equiv_class for bt in used if bt.io_equiv_class in ("FE", "FE2")]
     assert ions == [name]
+
+
+def test_a_ligand_named_with_a_colon_coordinates_and_keeps_its_name():
+    # the reader names an unnamed ligand like L:0; ':' also separates patch names
+    structure = atom_array_from_file(FIXTURE_DIR / "heme_myoglobin_5yce.cif.zst")
+    structure.res_name[structure.res_name == "HEM"] = "L:0"
+    pose = pose_stack_from_atom_array(
+        structure, torch.device("cpu"), prepare_ligands=True, no_optH=True
+    )
+    types = pose.packed_block_types.active_block_types
+    heme = [types[i].name3 for i in pose.block_type_ind64[0].tolist()].index("L:0")
+    donors = {atom for d, atom in metal_bonds(pose).values() if d == heme}
+    assert donors == {"NA", "NB", "NC", "ND"}
+    assert "L:0" in set(atom_array_from_pose_stack(pose).res_name)
 
 
 @pytest.mark.parametrize("stem", EXPECTED)
@@ -157,7 +176,7 @@ def test_every_donor_is_connected_to_its_metal(built, stem):
     for (pose, metal), got in assignments:
         metal_bt = pbt.active_block_types[int(pose_stack.block_type_ind[pose, metal])]
         partners = set()
-        for name in site_connections(metal_bt):
+        for name in _site_connections(metal_bt):
             res, conn = irc[pose, metal, metal_bt.connection_to_cidx[name]].tolist()
             if res >= 0:
                 bt = pbt.active_block_types[int(pose_stack.block_type_ind[pose, res])]
@@ -218,12 +237,12 @@ def metal_bonds(pose_stack):
 @pytest.mark.parametrize("stem", EXPECTED)
 def test_round_trip_keeps_metal_coordination(built, stem):
     pose_stack, (co, _, _) = built(stem)
-    cf = canonical_form_from_pose_stack(co, pose_stack)
-    rebuilt = pose_stack_from_canonical_form(
+    cf = _canonical_form_from_pose_stack(co, pose_stack)
+    rebuilt = _pose_stack_from_canonical_form(
         co,
         pose_stack.packed_block_types,
         *cf,
-        trust_hydrogen_names=True,
+        ligand_hydrogens="input",
         find_additional_metal_coordination=False,
     )
     assert block_type_names(rebuilt) == block_type_names(pose_stack)
@@ -238,7 +257,7 @@ def test_remove_then_add_a_donor(built):
     bonds = metal_bonds(pose_stack)
     (site,) = [k for (m, k), d in bonds.items() if m == zn and d == (his, "ND1")]
 
-    opened = remove_metal_coordination(co, pose_stack, 0, zn, site)
+    opened = _remove_metal_coordination(co, pose_stack, 0, zn, site)
     assert (zn, site) not in metal_bonds(opened)
     assert len(metal_bonds(opened)) == len(bonds) - 1
     his_bt = opened.packed_block_types.active_block_types[
@@ -247,7 +266,7 @@ def test_remove_then_add_a_donor(built):
     assert all(c.kinematic for c in his_bt.connections), his_bt.name
 
     # the donor goes back to the site its virtual still points at
-    closed = add_metal_coordination(co, opened, 0, zn, his, "ND1")
+    closed = _add_metal_coordination(co, opened, 0, zn, his, "ND1")
     assert metal_bonds(closed) == bonds
     assert block_type_names(closed) == block_type_names(pose_stack)
 
@@ -260,8 +279,8 @@ def test_one_atom_bridges_two_metals(built):
     (site,) = [
         k for (m, k), d in metal_bonds(pose_stack).items() if d == (his118, "NE2")
     ]
-    opened = remove_metal_coordination(co, pose_stack, 0, cu, site)
-    bridged = add_metal_coordination(co, opened, 0, cu, his61, "ND1", site=site)
+    opened = _remove_metal_coordination(co, pose_stack, 0, cu, site)
+    bridged = _add_metal_coordination(co, opened, 0, cu, his61, "ND1", site=site)
 
     holders = [m for (m, _), d in metal_bonds(bridged).items() if d == (his61, "ND1")]
     assert sorted(holders) == sorted([cu, residue_index(pose_stack, "A", 203)])
@@ -275,8 +294,8 @@ def test_donor_forms_accumulate_and_stack():
     # built from the default context, the second structure's donors extend
     #    the first's packed set rather than starting a new one
     def build(stem):
-        structure = atom_array_from_cif(FIXTURE_DIR / f"{stem}.cif.zst")
-        return pose_stack_from_biotite(structure, torch.device("cpu"))
+        structure = atom_array_from_file(FIXTURE_DIR / f"{stem}.cif.zst")
+        return pose_stack_from_atom_array(structure, torch.device("cpu"), no_optH=True)
 
     zinc = build("zn_tetrahedral_3ks3")
     iron = build("fe_rubredoxin_30oh")
@@ -296,7 +315,7 @@ def test_donor_forms_accumulate_and_stack():
 
 
 def test_a_stated_thiol_hydrogen_keeps_the_cysteine_off_the_metal():
-    structure = atom_array_from_cif(FIXTURE_DIR / "fe_rubredoxin_30oh.cif.zst")
+    structure = atom_array_from_file(FIXTURE_DIR / "fe_rubredoxin_30oh.cif.zst")
     structure = structure[structure.element != "H"]
     residue = (structure.res_id == 6) & (structure.chain_id == "A")
     sg, cb, ca = (
@@ -318,7 +337,7 @@ def test_a_stated_thiol_hydrogen_keeps_the_cysteine_off_the_metal():
         len(with_hg), numpy.r_[bonds, [[sg, sg + 1, int(struc.BondType.SINGLE)]]]
     )
 
-    pose_stack = pose_stack_from_biotite(with_hg, torch.device("cpu"))
+    pose_stack = pose_stack_from_atom_array(with_hg, torch.device("cpu"), no_optH=True)
     cys = residue_index(pose_stack, "A", 6)
     names = block_type_names(pose_stack)
     assert names[cys] == "CYS"
@@ -365,7 +384,7 @@ def test_cluster_sites_face_their_donors_in_either_naming(
 def test_written_pdb_has_no_virtual_atoms(built, tmp_path):
     pose_stack, _ = built("zn_tetrahedral_3ks3")
     path = tmp_path / "out.pdb"
-    write_pose_stack_pdb(pose_stack, str(path))
+    _write_pose_stack_pdb(pose_stack, str(path))
     with open(path) as infile:
         zinc = [line[12:16].strip() for line in infile if line[17:20].strip() == "ZN"]
     assert zinc == ["ZN"]
@@ -373,26 +392,29 @@ def test_written_pdb_has_no_virtual_atoms(built, tmp_path):
 
 def test_exported_structure_rebuilds_the_same_coordination(built, tmp_path):
     pose_stack, (co, _, _) = built("zn_tetrahedral_3ks3")
-    structure = biotite_from_pose_stack(pose_stack, co)
+    structure = atom_array_from_pose_stack(pose_stack, co)
     assert list(structure.atom_name[structure.res_name == "ZN"]) == ["ZN"]
     cif = pdbx.CIFFile()
     pdbx.set_structure(cif, structure)
     cif.write(str(tmp_path / "out.cif"))
-    rebuilt = pose_stack_from_biotite(
-        atom_array_from_cif(str(tmp_path / "out.cif")),
+    rebuilt = pose_stack_from_atom_array(
+        atom_array_from_file(str(tmp_path / "out.cif")),
         torch.device("cpu"),
         prepare_ligands=True,
+        no_optH=True,
     )
     assert labeled_metal_bonds(rebuilt) == labeled_metal_bonds(pose_stack)
 
-    with_virtuals = biotite_from_pose_stack(pose_stack, co, include_virtual_atoms=True)
+    with_virtuals = atom_array_from_pose_stack(
+        pose_stack, co, include_virtual_atoms=True
+    )
     zinc = with_virtuals.atom_name[with_virtuals.res_name == "ZN"]
     assert list(zinc) == ["ZN", "V1", "V2", "V3", "V4"]
 
 
 def zinc_with_declared_bonds(donors, bond_type):
     """3KS3, with the zinc declared bonded to (res_id, res_name, atom) donors."""
-    structure = atom_array_from_cif(FIXTURE_DIR / "zn_tetrahedral_3ks3.cif.zst")
+    structure = atom_array_from_file(FIXTURE_DIR / "zn_tetrahedral_3ks3.cif.zst")
     (zinc,) = numpy.flatnonzero(structure.res_name == "ZN")
     # replace the file's own metalc declarations
     kept = structure.bonds.as_array()
@@ -425,11 +447,15 @@ def test_declared_metal_bonds_are_coordination(built, bond_type):
     # a PDB lists coordination in CONECT; a CIF's metalc reads as COORDINATION
     pose_stack, _ = built("zn_tetrahedral_3ks3")
     structure, _ = zinc_with_declared_bonds(EXPECTED_ZINC_DONORS, bond_type)
-    rebuilt, context = pose_stack_from_biotite(
-        structure, torch.device("cpu"), prepare_ligands=True, return_context=True
+    rebuilt, context = pose_stack_from_atom_array(
+        structure,
+        torch.device("cpu"),
+        prepare_ligands=True,
+        return_context=True,
+        no_optH=True,
     )
     assert labeled_metal_bonds(rebuilt) == labeled_metal_bonds(pose_stack)
-    cf = canonical_form_from_pose_stack(context.canonical_ordering, rebuilt)
+    cf = _canonical_form_from_pose_stack(context.canonical_ordering, rebuilt)
     assert cf.covalent_bonds is None
 
 
@@ -444,7 +470,7 @@ def test_declared_metal_bonds_are_coordination(built, bond_type):
 def test_metalc_rows_bind_the_conformer_they_name(path, metal, read, not_read):
     """A metalc row naming a conformer is read where the reader kept it (or the
     atom has none), not where it kept another (3P1O GLU A:86 names B, keeps A)."""
-    structure = atom_array_from_cif(data_path(f"{path}.cif.zst"))
+    structure = atom_array_from_file(data_path(f"{path}.cif.zst"))
     bonds = structure.bonds.as_array()
     bonds = bonds[bonds[:, 2] == struc.BondType.COORDINATION, :2]
     at = numpy.flatnonzero(
@@ -481,8 +507,8 @@ def test_declared_bond_beyond_cutoff_is_kept(built):
     far_donor = (int(structure.res_id[far]), str(structure.res_name[far]), "O")
     structure, _ = zinc_with_declared_bonds([far_donor], struc.BondType.ANY)
 
-    rebuilt = pose_stack_from_biotite(
-        structure, torch.device("cpu"), prepare_ligands=True
+    rebuilt = pose_stack_from_atom_array(
+        structure, torch.device("cpu"), prepare_ligands=True, no_optH=True
     )
     bonds = labeled_metal_bonds(rebuilt)
     assert (("A", 262), ("A", far_donor[0]), "O") in bonds
@@ -503,12 +529,13 @@ def test_a_declared_bond_to_a_hydroxide_ligand_is_kept():
     structure.set_annotation("charge", numpy.array([2, -1, 0]))
     structure.bonds = struc.BondList(3, numpy.array([(0, 1, 1), (1, 2, 1)]))
 
-    pose_stack = pose_stack_from_biotite(
+    pose_stack = pose_stack_from_atom_array(
         structure,
         torch.device("cpu"),
         prepare_ligands=True,
         ligand_seed=0,
         find_additional_metal_coordination=False,
+        no_optH=True,
     )
     assert labeled_metal_bonds(pose_stack) == {(("A", 1), ("A", 2), "O")}
 
@@ -517,11 +544,12 @@ def test_only_declared_bonds_without_detection(built):
     structure, _ = zinc_with_declared_bonds(
         EXPECTED_ZINC_DONORS[:2], struc.BondType.ANY
     )
-    rebuilt = pose_stack_from_biotite(
+    rebuilt = pose_stack_from_atom_array(
         structure,
         torch.device("cpu"),
         prepare_ligands=True,
         find_additional_metal_coordination=False,
+        no_optH=True,
     )
     donors = {(donor[1], atom) for _, donor, atom in labeled_metal_bonds(rebuilt)}
     assert donors == {(res, atom) for res, _, atom in EXPECTED_ZINC_DONORS[:2]}
@@ -532,11 +560,13 @@ def test_a_donor_whose_given_state_cannot_coordinate_is_left_uncoordinated(caplo
     #    the reader keeps conformer A, whose OG is 3.75 A away, so only O is
     #    bound. AtomWorks keeps TYR 45 neutral; only its phenolate can donate,
     #    so that bond is dropped
-    structure = atom_array_from_cif(
+    structure = atom_array_from_file(
         data_path("sweep_regressions", "metal_tyr_6yv5.cif.zst")
     )
     with caplog.at_level("WARNING"):
-        pose_stack = pose_stack_from_biotite(structure, torch.device("cpu"))
+        pose_stack = pose_stack_from_atom_array(
+            structure, torch.device("cpu"), no_optH=True
+        )
     types = pose_stack.packed_block_types.active_block_types
     assert [types[i].name for i in pose_stack.block_type_ind64[0]] == [
         "SER:nterm:metal_O",

@@ -1,5 +1,5 @@
-"""Join an input split across files (a PDB protein, a MOL2 ligand) into one CIF that
-carries its own component chemistry."""
+"""Read a MOL2/SDF molecule as its own component, and join an input split across
+files (a PDB protein, a MOL2 ligand) into one structure."""
 
 from __future__ import annotations
 
@@ -11,13 +11,12 @@ from atomworks.io.utils.atom_array_plus import (
     as_atom_array_plus,
     concatenate_atom_array_plus,
 )
-from atomworks.io.utils.io_utils import CIFWriteConfig, to_cif_string
 
 # Chain IDs to draw from when a part collides with one already taken.
 _CHAIN_ID_POOL = tuple("LMNOPQRSTUVWXYZABCDEFGHIJK")
 
 
-def atom_array_from_mol2(
+def _atom_array_from_small_molecule(
     mol2_path: str | Path,
     *,
     res_name: str | None = None,
@@ -36,16 +35,11 @@ def atom_array_from_mol2(
 
     Returns:
         A single-residue AtomArray with a populated bond list.
-
-    Examples:
-        >>> ligand = atom_array_from_mol2("ligand.mol2")
-        >>> ligand.bonds.get_bond_count() > 0
-        True
     """
     # tmol.ligand imports tmol.io
-    from tmol.ligand._detect import nonstandard_residue_info_from_file
+    from tmol.ligand._detect import _nonstandard_residue_info_from_file
 
-    info = nonstandard_residue_info_from_file(mol2_path, res_name=res_name)
+    info = _nonstandard_residue_info_from_file(mol2_path, res_name=res_name)
     atom_array = as_atom_array_plus(info.atom_array.copy())
     atom_array.chain_id[:] = chain_id
     atom_array.res_id[:] = res_id
@@ -123,7 +117,7 @@ def _with_unique_chain_ids(parts: list[struc.AtomArray]) -> list[struc.AtomArray
     return result
 
 
-def assemble_input(*parts: struc.AtomArray) -> struc.AtomArray:
+def _assemble_input(*parts: struc.AtomArray) -> struc.AtomArray:
     """Join separately-read parts with their bonds, annotations and templates; a chain
     ID claimed by an earlier part is moved to a free one.
 
@@ -145,39 +139,3 @@ def assemble_input(*parts: struc.AtomArray) -> struc.AtomArray:
         raise ValueError("assemble_input requires at least one structure")
     prepared = _harmonised(_with_unique_chain_ids(list(parts)))
     return concatenate_atom_array_plus(prepared)
-
-
-def cif_from_atom_array(
-    atom_array: struc.AtomArray,
-    *,
-    path: str | Path | None = None,
-    entry_id: str = "assembled",
-) -> str | Path:
-    """Write a structure as a CIF carrying its own component chemistry: known components
-    from the dictionary, others (a MOL2 ligand) from the structure itself.
-
-    Args:
-        atom_array: Structure to write.
-        path: Where to write. Returns the CIF text instead when None.
-        entry_id: Data block name.
-
-    Returns:
-        The written path, or the CIF text when ``path`` is None.
-
-    Examples:
-        >>> text = cif_from_atom_array(assemble_input(protein, ligand))
-        >>> "_chem_comp_bond" in text
-        True
-    """
-    config = CIFWriteConfig(
-        id=entry_id,
-        include_entity_categories=True,
-        chem_comp_source="ccd",
-        warn_on_ccd_without_registry=False,
-    )
-    text = to_cif_string(atom_array, config=config)
-    if path is None:
-        return text
-    path = Path(path)
-    path.write_text(text)
-    return path

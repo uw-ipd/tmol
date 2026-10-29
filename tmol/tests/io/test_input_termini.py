@@ -4,12 +4,11 @@ import numpy as np
 import pytest
 import torch
 
-from tmol.database import ParameterDatabase
-from tmol.io import atom_array_from_file, pose_stack_from_biotite
+from tmol import ParameterDatabase, atom_array_from_file, pose_stack_from_atom_array
 from tmol.io._input_termini import (
     EXPLICIT_TERMINI,
-    validate_connection_hydrogens,
-    with_stated_termini,
+    _validate_connection_hydrogens,
+    _with_stated_termini,
 )
 from tmol.tests.data import data_path
 from tmol.tests.io.test_protonation import _hydrogens_on
@@ -59,7 +58,7 @@ def test_declared_aldehyde_does_not_become_a_carboxylate(
         match=rf"Unsupported terminal hydrogen count at {chain}:{residue}:\w+/C: "
         "supplied 1, database forms support at most 0",
     ):
-        pose_stack_from_biotite(structure, torch.device("cpu"), no_optH=True)
+        pose_stack_from_atom_array(structure, torch.device("cpu"), no_optH=True)
     np.testing.assert_array_equal(structure.coord, original.coord)
     np.testing.assert_array_equal(structure.atom_name, original.atom_name)
     np.testing.assert_array_equal(structure.bonds.as_array(), original.bonds.as_array())
@@ -76,7 +75,7 @@ def test_supplied_neutral_terminus_breaks_a_short_gap(
         terminal_residue = 131
         structure.res_id[structure.res_id == 132] = terminal_residue
     original = structure.copy()
-    pose = pose_stack_from_biotite(structure, torch_device, no_optH=True)
+    pose = pose_stack_from_atom_array(structure, torch_device, no_optH=True)
     assert _hydrogens_on(pose, "A", terminal_residue)[2]["N"] == 2
     assert pose.inter_residue_connections[0, 0, :, 0].lt(0).all()
     assert pose.inter_residue_connections[0, 1, :, 0].lt(0).all()
@@ -107,7 +106,7 @@ def test_supplied_terminus_does_not_remove_an_explicit_covalent_bond():
     n = np.flatnonzero((structure.res_id == 132) & (structure.atom_name == "N"))[0]
     structure.bonds.add_bond(int(c), int(n), 1)
     with pytest.raises(ValueError, match="Stated terminus.*ALA/N -- A:130:SER/C"):
-        with_stated_termini(structure, ParameterDatabase.get_default().chemical)
+        _with_stated_termini(structure, ParameterDatabase.get_default().chemical)
 
 
 def test_nonterminal_hydrogens_do_not_close_polymer_connections():
@@ -115,7 +114,7 @@ def test_nonterminal_hydrogens_do_not_close_polymer_connections():
 
     structure = atom_array_from_ccd_code("SER")
     structure = structure[~np.isin(structure.atom_name, ("H2", "H3", "OXT", "HXT"))]
-    marked = with_stated_termini(structure, ParameterDatabase.get_default().chemical)
+    marked = _with_stated_termini(structure, ParameterDatabase.get_default().chemical)
     if EXPLICIT_TERMINI in marked.get_annotation_categories():
         assert not marked.get_annotation(EXPLICIT_TERMINI).any()
 
@@ -128,7 +127,7 @@ def test_stated_termini_use_database_residue_aliases(bonds_given):
     if not bonds_given:
         structure.bonds = None
     original = structure.copy()
-    marked = with_stated_termini(structure, ParameterDatabase.get_default().chemical)
+    marked = _with_stated_termini(structure, ParameterDatabase.get_default().chemical)
     assert (marked.get_annotation(EXPLICIT_TERMINI) == 3).all()
     np.testing.assert_array_equal(marked.res_name, original.res_name)
     np.testing.assert_array_equal(marked.coord, original.coord)
@@ -153,8 +152,8 @@ def test_pdb_reader_preserves_supplied_short_gap_termini(
     bonds = structure.bonds.as_array()
     assert (structure.res_id[bonds[:, 0]] == structure.res_id[bonds[:, 1]]).all()
     with pytest.raises(ValueError, match="Unsupported terminal hydrogen count"):
-        pose_stack_from_biotite(structure, torch_device, no_optH=True)
-    pose = pose_stack_from_biotite(terminal, torch_device, no_optH=True)
+        pose_stack_from_atom_array(structure, torch_device, no_optH=True)
+    pose = pose_stack_from_atom_array(terminal, torch_device, no_optH=True)
     assert _hydrogens_on(pose, "A", residue)[2]["N"] == 2
     assert pose.inter_residue_connections[0, :, :, 0].lt(0).all()
     block_type = pose.packed_block_types.active_block_types[
@@ -173,7 +172,9 @@ def test_connection_hydrogen_capacity_includes_charged_terminal_forms():
 
     structure = _short_gap()
     structure = structure[structure.res_id == 132]
-    structure = with_stated_termini(structure, ParameterDatabase.get_default().chemical)
+    structure = _with_stated_termini(
+        structure, ParameterDatabase.get_default().chemical
+    )
     n = int(np.flatnonzero(structure.atom_name == "N")[0])
     hydrogen = structure[structure.atom_name == "H1"].copy()
     for count in (3, 4):
@@ -181,14 +182,14 @@ def test_connection_hydrogen_capacity_includes_charged_terminal_forms():
         structure = struc.concatenate([structure, hydrogen])
         structure.bonds.add_bond(n, len(structure) - 1, struc.BondType.SINGLE)
         if count == 3:
-            validate_connection_hydrogens(
+            _validate_connection_hydrogens(
                 structure, ParameterDatabase.get_default().chemical
             )
         else:
             with pytest.raises(
                 ValueError, match="supplied 4, database forms support at most 3"
             ):
-                validate_connection_hydrogens(
+                _validate_connection_hydrogens(
                     structure, ParameterDatabase.get_default().chemical
                 )
 
@@ -206,7 +207,7 @@ def test_terminal_name_requires_chemical_identity(renamed):
     else:
         structure.atom_name[structure.atom_name == "OG"] = "OXT"
     original = structure.copy()
-    marked = with_stated_termini(structure, ParameterDatabase.get_default().chemical)
+    marked = _with_stated_termini(structure, ParameterDatabase.get_default().chemical)
     if EXPLICIT_TERMINI in marked.get_annotation_categories():
         assert not marked.get_annotation(EXPLICIT_TERMINI).any()
     np.testing.assert_array_equal(marked.coord, original.coord)
@@ -214,12 +215,12 @@ def test_terminal_name_requires_chemical_identity(renamed):
 
 
 def test_generated_polymer_terminal_names_respect_supplied_parents(torch_device):
-    from tmol.io import biotite_from_pose_stack
+    from tmol import atom_array_from_pose_stack
 
     structure = atom_array_from_file(
         data_path("sweep_regressions", "terminal_name_collision_1a8i.pdb")
     )
-    pose, context = pose_stack_from_biotite(
+    pose, context = pose_stack_from_atom_array(
         structure,
         torch_device,
         prepare_ligands=True,
@@ -230,7 +231,7 @@ def test_generated_polymer_terminal_names_respect_supplied_parents(torch_device)
     assert _hydrogens_on(pose, "A", 680)[2]["O3"] == 1
     assert _hydrogens_on(pose, "A", 680)[2]["N"] == 1
     assert (pose.inter_residue_connections[0, 1, :2, 0] >= 0).all()
-    actual = biotite_from_pose_stack(pose, context.canonical_ordering)
+    actual = atom_array_from_pose_stack(pose, context.canonical_ordering)
     for mode in ("given", "partial", "absent"):
         original = structure.copy()
         h = int(
@@ -243,7 +244,7 @@ def test_generated_polymer_terminal_names_respect_supplied_parents(torch_device)
             original.bonds.remove_bond(h, o)
         elif mode == "absent":
             original.bonds = None
-        marked = with_stated_termini(
+        marked = _with_stated_termini(
             original, context.parameter_database.chemical, context.canonical_ordering
         )
         if EXPLICIT_TERMINI in marked.get_annotation_categories():
@@ -256,10 +257,10 @@ def test_generated_polymer_terminal_names_respect_supplied_parents(torch_device)
     named = structure.copy()
     o3_h = (named.res_id == 680) & (named.atom_name == "H3")
     named.atom_name[o3_h] = "HO3"
-    retained = pose_stack_from_biotite(
-        named, torch_device, context=context, no_optH=True, trust_hydrogen_names=True
+    retained = pose_stack_from_atom_array(
+        named, torch_device, context=context, no_optH=True, ligand_hydrogens="input"
     )
-    retained_atoms = biotite_from_pose_stack(retained, context.canonical_ordering)
+    retained_atoms = atom_array_from_pose_stack(retained, context.canonical_ordering)
     actual_h = retained_atoms[
         (retained_atoms.res_id == 680) & (retained_atoms.atom_name == "HO3")
     ]
@@ -289,7 +290,7 @@ def test_terminal_oxygen_coordinated_to_metal_still_closes_port():
     structure = struc.concatenate([structure, metal])
     oxygen = int(np.flatnonzero(structure.atom_name == "OXT")[0])
     structure.bonds.add_bond(oxygen, len(structure) - 1, struc.BondType.COORDINATION)
-    marked = with_stated_termini(structure, ParameterDatabase.get_default().chemical)
+    marked = _with_stated_termini(structure, ParameterDatabase.get_default().chemical)
     assert (marked.get_annotation(EXPLICIT_TERMINI)[:-1] == 2).all()
     np.testing.assert_array_equal(marked.bonds.as_array(), structure.bonds.as_array())
 
@@ -319,7 +320,7 @@ def test_pocket_terminal_oxygen_survives_unrelated_hydrogen_name(torch_device):
     structure = atom_array_from_file(
         data_path("sweep_regressions", "terminal_pocket_2jdm.pdb")
     )
-    pose, context = pose_stack_from_biotite(
+    pose, context = pose_stack_from_atom_array(
         structure,
         torch_device,
         prepare_ligands=True,

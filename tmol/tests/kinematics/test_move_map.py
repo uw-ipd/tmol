@@ -1,15 +1,14 @@
 import torch
 import pytest
 
-from tmol.kinematics import (
-    MoveMap,
-    MinimizerMap,
+from tmol import MoveMap, PoseStack
+from tmol.kinematics._move_map import MinimizerMap
+from tmol.kinematics._datatypes import (
     KinematicModuleData,
     n_movable_jump_dof_types,
     n_movable_bond_dof_types,
-    construct_kin_module_data_for_pose,
 )
-from tmol.pose import PoseStack
+from tmol.kinematics._scan_ordering import _construct_kin_module_data_for_pose
 
 
 def kinatom_to_atom_name(
@@ -543,7 +542,7 @@ def test_minimizermap_construction_2_sixres_ubq_just_sc(
     pose_stack = stack_of_two_six_res_ubqs_no_term
     ff_edges_cpu = torch.tensor(ff_2ubq_6res_H)
 
-    kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
+    kmd = _construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
     mm = MoveMap.from_pose_stack(pose_stack)
     mm.move_all_sc = True
     minmap = MinimizerMap(pose_stack, kmd, mm)
@@ -584,7 +583,7 @@ def test_minimizermap_construction_2_sixres_ubq_just_bb(
     pose_stack = stack_of_two_six_res_ubqs_no_term
     ff_edges_cpu = torch.tensor(ff_2ubq_6res_H)
 
-    kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
+    kmd = _construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
     mm = MoveMap.from_pose_stack(pose_stack)
     mm.move_all_mc = True
     minmap = MinimizerMap(pose_stack, kmd, mm)
@@ -636,7 +635,7 @@ def test_minimizermap_construction_2_sixres_ubq(
     pose_stack = stack_of_two_six_res_ubqs_no_term
     ff_edges_cpu = torch.tensor(ff_2ubq_6res_H)
 
-    kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
+    kmd = _construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
     gold_pose_stack_atom_for_jump = torch.tensor(
         [
             [[4, 1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1]],
@@ -693,7 +692,7 @@ def test_minimizermap_construction_2_sixres_ubq_root_jump_min(
     pose_stack = stack_of_two_six_res_ubqs_no_term
     ff_edges_cpu = torch.from_numpy(ff_2ubq_6res_H).to(torch.int32)
 
-    kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
+    kmd = _construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
     mm = MoveMap.from_pose_stack(pose_stack)
     mm.move_all_jumps = True
     mm.move_all_root_jumps = True
@@ -729,7 +728,7 @@ def test_minimizermap_construction_jagged_465_ubq(
     pose_stack = jagged_stack_of_465_res_ubqs
     ff_edges_cpu = torch.tensor(ff_3_jagged_ubq_465res_H)
 
-    kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
+    kmd = _construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
     mm = MoveMap.from_pose_stack(pose_stack)
     mm.move_all_jumps = True
     mm.move_all_named_torsions = True
@@ -744,7 +743,7 @@ def test_minimizermap_construction_jagged_465_ubq_just_sc(
     pose_stack = jagged_stack_of_465_res_ubqs
     ff_edges_cpu = torch.tensor(ff_3_jagged_ubq_465res_H)
 
-    kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
+    kmd = _construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
     mm = MoveMap.from_pose_stack(pose_stack)
     mm.move_all_sc = True
     minmap = MinimizerMap(pose_stack, kmd, mm)
@@ -793,7 +792,7 @@ def test_minimizermap_construction_jagged_465_ubq_just_mc(
     pose_stack = jagged_stack_of_465_res_ubqs
     ff_edges_cpu = torch.tensor(ff_3_jagged_ubq_465res_H)
 
-    kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
+    kmd = _construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
     mm = MoveMap.from_pose_stack(pose_stack)
     mm.move_all_mc = True
     minmap = MinimizerMap(pose_stack, kmd, mm)
@@ -842,7 +841,7 @@ def test_minimizermap_construction_jagged_465_ubq_named_dofs(
     pose_stack = jagged_stack_of_465_res_ubqs
     ff_edges_cpu = torch.tensor(ff_3_jagged_ubq_465res_H)
 
-    kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
+    kmd = _construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
     mm = MoveMap.from_pose_stack(pose_stack)
     mm.move_all_named_torsions = True
     minmap = MinimizerMap(pose_stack, kmd, mm)

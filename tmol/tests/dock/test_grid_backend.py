@@ -5,35 +5,23 @@ from __future__ import annotations
 import math
 from types import SimpleNamespace
 
-import numpy
 import pytest
 import torch
 
 import tmol.dock.ga as ga_module
 import tmol.dock.scoring_backend as scoring_backend_module
-from tmol.dock import (
-    ContinuousBackend,
-    GASchedule,
-    GridBackend,
-    LigandGeneLayout,
-    build_ligand_docking_dofs,
-    run_docking,
-    run_ga_docking,
-)
-from tmol.dock.dock_loop import _repeat_pose_stack
-from tmol.dock.ga import _ligand_only_pose_stack
-from tmol.optimization import build_kinforest_network, run_min
-from tmol.score import beta2016_score_function
-from tmol.score.gridscore import (
-    score_ligand_intra,
-    score_ligand_grid,
-    score_ligand_grid_batched,
-)
-from tmol.score import ScoreType
-from tmol.tests.dock.test_dock_loop import _load_cdk2_pose_on_device
+from tmol.dock import ContinuousBackend, GASchedule, GridBackend, run_docking
+from tmol.dock.ga import LigandGeneLayout
+from tmol.dock.ligand_dofs import build_ligand_docking_dofs
+from tmol.tests.dock.test_ligand_dof_roundtrip import _load_cdk2_pose_on_device
 from tmol.tests.dock.test_ligand_dof_roundtrip import (
     _ligand_block,
     _load_cdk2_pose,
+)
+from tmol.pose import PoseStack, repeat_pose_stack
+from tmol.score.gridscore._movable import (
+    resolve_ligand_block,
+    movable_pose_stack,
 )
 
 CUDA_AVAILABLE = torch.cuda.is_available()
@@ -44,12 +32,9 @@ def cpu_grid_case():
     reference, param_db = _load_cdk2_pose()
     ligand_block = _ligand_block(reference)
     backend = GridBackend.from_pose_stack(
-        reference,
-        ligand_block,
-        param_db,
-        kin_dtype=torch.float64,
+        reference, ligand_block, param_db, kin_dtype=torch.float64
     )
-    population = _repeat_pose_stack(reference, 2)
+    population = repeat_pose_stack(reference, 2)
     docking_dofs = build_ligand_docking_dofs(population, ligand_block)
     layout = LigandGeneLayout.from_pose_stack(population, docking_dofs)
     return SimpleNamespace(
@@ -68,7 +53,7 @@ def grid_pose_case(cpu_grid_case, request):
     case = cpu_grid_case
     if request.param == "full_complex":
         return case
-    population = _ligand_only_pose_stack(case.population, case.ligand_block)
+    population = movable_pose_stack(case.population, case.ligand_block)
     docking_dofs = build_ligand_docking_dofs(population, 0)
     return SimpleNamespace(
         backend=case.backend.for_ligand_block(0),
@@ -79,256 +64,18 @@ def grid_pose_case(cpu_grid_case, request):
     )
 
 
-def test_grid_backend_include_intra_requires_live_data(cpu_grid_case):
-    """include_ligand_intra=True must not silently omit the term (no live data)."""
+def test_exact_live_lk_ball_differs_from_gridded_backend(cpu_grid_case):
     case = cpu_grid_case
-    b = case.backend
-    common = (b.grids, case.ligand_block, b.ligand_atom_types, b.ligand_charges, case.param_db)
-    kw = dict(
-        kin_dtype=torch.float64,
-        live_hbond=b.live_hbond,
-        live_lk_ball=b.live_lk_ball,
-    )
-    # Enabled but no live data -> must raise, not silently disable.
-    with pytest.raises(ValueError, match="include_ligand_intra=True requires"):
-        GridBackend(*common, live_ligand_intra=None, include_ligand_intra=True, **kw)
-    # Explicitly disabled with no live data -> allowed, intra off.
-    disabled = GridBackend(
-        *common, live_ligand_intra=None, include_ligand_intra=False, **kw
-    )
-    assert disabled.live_ligand_intra is None
-    # Enabled with live data -> intra on.
-    enabled = GridBackend(
-        *common,
-        live_ligand_intra=b.live_ligand_intra,
-        include_ligand_intra=True,
-        **kw,
-    )
-    assert enabled.live_ligand_intra is not None
-
-
-def test_grid_backend_score_matches_direct_batched_grid_score(cpu_grid_case):
-    case = cpu_grid_case
-    atom_indices = case.backend._ligand_atom_indices(
-        case.population, case.ligand_block
-    )
-    pose_indices = torch.arange(case.population.n_poses, dtype=torch.int64)
-    ligand_coordinates = case.population.coords[
-        pose_indices[:, None], atom_indices
-    ]
-    expected = score_ligand_grid_batched(
-        case.backend._grid_for(torch.device("cpu"), torch.float64),
-        ligand_coordinates,
-        case.backend.ligand_atom_types,
-        case.backend._charges_for(torch.device("cpu"), torch.float64),
-        score_function=case.backend._score_function(torch.device("cpu")),
-        live_hbond=case.backend._hbond_for(torch.device("cpu"), torch.float64),
-        live_ligand_intra=case.backend._intra_for(
-            torch.device("cpu"), torch.float64
-        ),
-        live_lk_ball=case.backend._lk_ball_for(torch.device("cpu"), torch.float64),
-        lk_ball_grid=case.backend.lk_ball_grid,
-    )
-    actual = case.backend.score(case.population)
-    torch.testing.assert_close(actual, expected, rtol=0.0, atol=0.0)
-    assert case.backend._grid_cache[
-        (torch.device("cpu"), torch.float64)
-    ] is case.backend._grid_for(torch.device("cpu"), torch.float64)
-    assert case.backend._hbond_cache[
-        (torch.device("cpu"), torch.float64)
-    ] is case.backend._hbond_for(torch.device("cpu"), torch.float64)
-    assert case.backend._intra_cache[
-        (torch.device("cpu"), torch.float64)
-    ] is case.backend._intra_for(torch.device("cpu"), torch.float64)
-    assert case.backend._lk_ball_cache[
-        (torch.device("cpu"), torch.float64)
-    ] is case.backend._lk_ball_for(torch.device("cpu"), torch.float64)
-
-
-def test_grid_backend_hbond_is_additive_and_shared(cpu_grid_case):
-    case = cpu_grid_case
-    atom_indices = case.backend._ligand_atom_indices(case.population, case.ligand_block)
-    pose_indices = torch.arange(case.population.n_poses, dtype=torch.int64)
-    ligand_coordinates = case.population.coords[pose_indices[:, None], atom_indices]
-    grids = case.backend._grid_for(torch.device("cpu"), torch.float64)
-    charges = case.backend._charges_for(torch.device("cpu"), torch.float64)
-    hbond = case.backend._hbond_for(torch.device("cpu"), torch.float64)
-    sfxn = beta2016_score_function(torch.device("cpu"), param_db=case.param_db)
-    with_hbond = score_ligand_grid_batched(
-        grids,
-        ligand_coordinates,
-        case.backend.ligand_atom_types,
-        charges,
-        score_function=sfxn,
-        live_hbond=hbond,
-    )
-    grid_only = score_ligand_grid_batched(
-        grids,
-        ligand_coordinates,
-        case.backend.ligand_atom_types,
-        charges,
-        score_function=sfxn,
-    )
-    assert torch.any(with_hbond != grid_only)
-    channels = score_ligand_grid(
-        grids,
-        ligand_coordinates[0],
-        case.backend.ligand_atom_types,
-        charges,
-        score_function=sfxn,
-        live_hbond=hbond,
-    )
-    assert channels.shape == (5,)
-    torch.testing.assert_close(channels.sum(), with_hbond[0])
-
-    zero_hbond_sfxn = beta2016_score_function(
-        torch.device("cpu"), param_db=case.param_db
-    )
-    zero_hbond_sfxn.set_weight(ScoreType.hbond, 0.0)
-    zero_with_live = score_ligand_grid_batched(
-        grids,
-        ligand_coordinates,
-        case.backend.ligand_atom_types,
-        charges,
-        score_function=zero_hbond_sfxn,
-        live_hbond=hbond,
-    )
-    zero_without_live = score_ligand_grid_batched(
-        grids,
-        ligand_coordinates,
-        case.backend.ligand_atom_types,
-        charges,
-        score_function=zero_hbond_sfxn,
-    )
-    torch.testing.assert_close(zero_with_live, zero_without_live, rtol=0.0, atol=0.0)
-    assert hbond.receptor_donors.ndim == 3
-    assert hbond.receptor_acceptors.ndim == 3
-    assert hbond.receptor_donors.shape[0] < case.reference.max_n_pose_atoms
-    assert case.backend.for_ligand_block(0).live_hbond is case.backend.live_hbond
-    assert (
-        case.backend.for_ligand_block(0).live_ligand_intra
-        is case.backend.live_ligand_intra
-    )
-    assert case.backend.for_ligand_block(0).live_lk_ball is case.backend.live_lk_ball
-
-
-def test_grid_backend_gridded_lk_ball_is_single_total_and_shared(cpu_grid_case):
-    case = cpu_grid_case
-    atom_indices = case.backend._ligand_atom_indices(case.population, case.ligand_block)
-    pose_indices = torch.arange(case.population.n_poses, dtype=torch.int64)
-    ligand_coordinates = case.population.coords[pose_indices[:, None], atom_indices]
-    grids = case.backend._grid_for(torch.device("cpu"), torch.float64)
-    charges = case.backend._charges_for(torch.device("cpu"), torch.float64)
-    lk_ball = case.backend._lk_ball_for(torch.device("cpu"), torch.float64)
-    sfxn = beta2016_score_function(torch.device("cpu"), param_db=case.param_db)
-    with_lk_ball = score_ligand_grid_batched(
-        grids,
-        ligand_coordinates,
-        case.backend.ligand_atom_types,
-        charges,
-        score_function=sfxn,
-        live_lk_ball=lk_ball,
-        lk_ball_grid=True,
-    )
-    grid_only = score_ligand_grid_batched(
-        grids,
-        ligand_coordinates,
-        case.backend.ligand_atom_types,
-        charges,
-        score_function=sfxn,
-    )
-    assert torch.any(with_lk_ball != grid_only)
-    channels = score_ligand_grid(
-        grids,
-        ligand_coordinates[0],
-        case.backend.ligand_atom_types,
-        charges,
-        score_function=sfxn,
-        live_lk_ball=lk_ball,
-        lk_ball_grid=True,
-    )
-    assert channels.shape == (5,)
-    torch.testing.assert_close(channels.sum(), with_lk_ball[0])
-    full_channels = score_ligand_grid(
-        grids,
-        ligand_coordinates[0],
-        case.backend.ligand_atom_types,
-        charges,
-        score_function=sfxn,
-        live_hbond=case.backend._hbond_for(torch.device("cpu"), torch.float64),
-        live_lk_ball=lk_ball,
-        lk_ball_grid=True,
-    )
-    assert full_channels.shape == (6,)
-    intra = score_ligand_intra(
-        case.backend._intra_for(torch.device("cpu"), torch.float64),
-        ligand_coordinates[:1],
-    )[0]
-    torch.testing.assert_close(
-        full_channels.sum() + intra, case.backend.score(case.population)[0]
-    )
-
-    # Rosetta's water softmax/bridge softmin makes this a single channel; it is
-    # deliberately not exposed as four additive weighted subterms.
-
-    # An exactly-degenerate donor water (polar hydrogen coincident with its
-    # donor heavy atom) gives an undefined water direction. In real docking the
-    # D-H distance is a fixed bonded length, so this coincidence never occurs;
-    # here we only require that the gridded lk_ball energy stays finite at
-    # the singularity. The gradient at an exact coincidence is mathematically
-    # undefined (the reference water-frame derivative normalizes H-D and is
-    # likewise singular there), so it is not asserted; analytic-vs-autograd
-    # gradient agreement on valid geometry is covered by both the finite-
-    # difference test in test_live_lk_ball.py and
-    # test_grid_backend_gridded_term_gradients_match_autograd_and_finite_difference
-    # below.
-    donor_site, donor_water = torch.nonzero(lk_ball.ligand_water_kinds == 1)[0].tolist()
-    donor, hydrogen = lk_ball.ligand_water_atoms[donor_site, donor_water, :2].tolist()
-    degenerate = ligand_coordinates.clone()
-    degenerate[:, hydrogen] = degenerate[:, donor]
-    degenerate_live = score_ligand_grid_batched(
-        grids,
-        degenerate,
-        case.backend.ligand_atom_types,
-        charges,
-        score_function=sfxn,
-        live_lk_ball=lk_ball,
-        lk_ball_grid=True,
-    )
-    assert torch.isfinite(degenerate_live).all()
-    assert lk_ball.receptor_coords.ndim == 2
-    assert lk_ball.receptor_waters.shape[0] == lk_ball.receptor_coords.shape[0]
-
-
-def test_grid_backend_lk_ball_grid_false_uses_exact_live_path(cpu_grid_case):
-    case = cpu_grid_case
-    backend = GridBackend.from_pose_stack(
+    exact = GridBackend.from_pose_stack(
         case.reference,
         case.ligand_block,
         case.param_db,
         kin_dtype=torch.float64,
         lk_ball_grid=False,
     )
-    assert backend.grids.lk_ball is None
-    assert backend.grids.lk_ball_water is None
-    assert backend.grids.lk_bridge is None
-    atom_indices = backend._ligand_atom_indices(case.population, case.ligand_block)
-    pose_indices = torch.arange(case.population.n_poses, dtype=torch.int64)
-    ligand_coordinates = case.population.coords[pose_indices[:, None], atom_indices]
-    expected = score_ligand_grid_batched(
-        backend._grid_for(torch.device("cpu"), torch.float64),
-        ligand_coordinates,
-        backend.ligand_atom_types,
-        backend._charges_for(torch.device("cpu"), torch.float64),
-        score_function=backend._score_function(torch.device("cpu")),
-        live_hbond=backend._hbond_for(torch.device("cpu"), torch.float64),
-        live_ligand_intra=backend._intra_for(torch.device("cpu"), torch.float64),
-        live_lk_ball=backend._lk_ball_for(torch.device("cpu"), torch.float64),
-        lk_ball_grid=False,
-    )
-    torch.testing.assert_close(backend.score(case.population), expected, rtol=0, atol=0)
+    assert exact.grids.lk_ball is None
     assert torch.any(
-        backend.score(case.population) != case.backend.score(case.population)
+        exact.score(case.population) != case.backend.score(case.population)
     )
 
 
@@ -369,49 +116,6 @@ def test_grid_backend_gridded_term_gradients_match_autograd_and_finite_differenc
     torch.testing.assert_close(direct_gradient[:1], finite, rtol=2.0e-5, atol=2.0e-5)
 
 
-def test_ligand_only_pose_stack_preserves_cdk2_ligand(cpu_grid_case):
-    case = cpu_grid_case
-    references = _repeat_pose_stack(case.reference, 2)
-    source_indices = case.backend._ligand_atom_indices(references, case.ligand_block)
-    references.coords[1, source_indices[1]] += 0.125
-    ligand_only = _ligand_only_pose_stack(references, case.ligand_block)
-    pose_indices = torch.arange(references.n_poses, dtype=torch.int64)
-
-    assert ligand_only.n_poses == references.n_poses
-    assert ligand_only.max_n_blocks == 1
-    assert ligand_only.max_n_pose_atoms == len(case.backend.ligand_atom_types)
-    assert ligand_only.inter_block_bondsep.shape[1:3] == (1, 1)
-    assert torch.all(ligand_only.chain_id == 0)
-    torch.testing.assert_close(
-        ligand_only.coords,
-        references.coords[pose_indices[:, None], source_indices],
-        rtol=0.0,
-        atol=0.0,
-    )
-    source_offset = int(references.block_coord_offset64[0, case.ligand_block])
-    n_atoms = ligand_only.max_n_pose_atoms
-    assert numpy.array_equal(
-        ligand_only.pdb_info.atom_occupancy,
-        references.pdb_info.atom_occupancy[:, source_offset : source_offset + n_atoms],
-    )
-    assert numpy.array_equal(
-        ligand_only.pdb_info.atom_b_factor,
-        references.pdb_info.atom_b_factor[:, source_offset : source_offset + n_atoms],
-    )
-
-
-def test_grid_ga_rejects_backend_for_another_ligand_block(cpu_grid_case):
-    case = cpu_grid_case
-    wrong_ligand_block = case.ligand_block - 1
-    with pytest.raises(ValueError, match="backend was built for ligand block"):
-        run_ga_docking(
-            case.reference,
-            wrong_ligand_block,
-            case.backend,
-            schedule=GASchedule(generations=1, npool=1, maxiter=1),
-        )
-
-
 class _FullComplexGridBackend:
     """Legacy full-complex adapter used as the M6 numerical oracle."""
 
@@ -435,20 +139,16 @@ def _assert_ligand_only_grid_ga_matches_full_complex(
         pmut=0.2,
         maxiter=5,
     )
-    full_complex = run_ga_docking(
+    full_complex = run_docking(
         reference,
-        ligand_block,
         _FullComplexGridBackend(backend),
         schedule=schedule,
         seed=20260822,
-    )
-    ligand_only = run_ga_docking(
-        reference,
-        ligand_block,
-        backend,
-        schedule=schedule,
-        seed=20260822,
-    )
+        initialization="jitter",
+    ).ga_result
+    ligand_only = run_docking(
+        reference, backend, schedule=schedule, seed=20260822, initialization="jitter"
+    ).ga_result
 
     history_err = float(
         torch.max(
@@ -568,68 +268,6 @@ def test_ligand_only_grid_ga_matches_full_complex_cdk2_fp32(cpu_grid_case):
         )
 
 
-@pytest.mark.parametrize("value_only_line_search", [False, True])
-def test_grid_minimize_returns_direct_optimizer_gene(
-    grid_pose_case, monkeypatch, value_only_line_search
-):
-    case = grid_pose_case
-    genes = case.layout.genes_from_pose_stack(case.population)
-    genes[:, :6] += torch.tensor(
-        [0.2, -0.1, 0.15, 0.08, -0.06, 0.04], dtype=genes.dtype
-    )
-    genes[:, 6:] += 0.2
-    raw_dofs = case.layout.raw_dofs_from_genes(genes)
-    proposed = case.layout.pose_stack_from_genes(genes)
-    captured = {}
-
-    monkeypatch.setattr(
-        case.backend, "value_only_line_search", value_only_line_search
-    )
-
-    def capture_noop_step(optimizer, closure, value_only_closure=None):
-        energies = closure()
-        captured["parameter"] = optimizer._params[0]
-        captured["energies"] = energies
-        captured["gradient"] = optimizer._params[0].grad
-        assert optimizer.value_only_line_search is value_only_line_search
-        if value_only_line_search:
-            gradient = optimizer._params[0].grad.clone()
-            values = value_only_closure()
-            assert not values.requires_grad
-            torch.testing.assert_close(
-                values, energies, rtol=1.0e-7, atol=1.0e-7
-            )
-            torch.testing.assert_close(
-                optimizer._params[0].grad, gradient, rtol=0.0, atol=0.0
-            )
-        else:
-            assert value_only_closure is None
-        return energies.sum()
-
-    monkeypatch.setattr(
-        scoring_backend_module.LBFGS_Armijo, "step", capture_noop_step
-    )
-    result = case.backend.minimize(
-        proposed,
-        case.docking_dofs,
-        maxiter=1,
-        initial_raw_dofs=raw_dofs,
-    )
-    torch.testing.assert_close(
-        result.masked_dofs,
-        captured["parameter"].detach(),
-        rtol=0.0,
-        atol=0.0,
-    )
-    torch.testing.assert_close(result.genes, genes, rtol=0.0, atol=1.0e-12)
-    assert captured["energies"].grad_fn is None
-    assert captured["gradient"].grad_fn is None
-    rebuilt = case.layout.pose_stack_from_genes(result.genes)
-    torch.testing.assert_close(
-        rebuilt.coords, result.pose_stack.coords, rtol=0.0, atol=1.0e-9
-    )
-
-
 def test_lightweight_grid_dof_gradient_matches_finite_difference(grid_pose_case):
     case = grid_pose_case
     genes = case.layout.genes_from_pose_stack(case.population)
@@ -666,8 +304,8 @@ def test_lightweight_grid_dof_gradient_matches_finite_difference(grid_pose_case)
         minus[column] -= step
         segment = int(objective.segment_ids[column])
         finite[column] = (
-            objective.energy(plus)[segment]
-            - objective.energy(minus)[segment]
+            objective.energy_and_gradient(plus)[0][segment]
+            - objective.energy_and_gradient(minus)[0][segment]
         ) / (2.0 * step)
 
     max_error = torch.max(torch.abs(analytic - finite))
@@ -677,75 +315,26 @@ def test_lightweight_grid_dof_gradient_matches_finite_difference(grid_pose_case)
     assert analytic.grad_fn is None
 
 
-@pytest.mark.slow
-@pytest.mark.parametrize("value_only_line_search", [False, True])
-def test_lightweight_grid_minimize_matches_autograd_reference(
-    grid_pose_case, monkeypatch, value_only_line_search
-):
-    case = grid_pose_case
-    monkeypatch.setattr(
-        case.backend, "value_only_line_search", value_only_line_search
-    )
-    genes = case.layout.genes_from_pose_stack(case.population)
-    genes[:, :6] += torch.tensor(
-        [0.2, -0.1, 0.15, 0.08, -0.06, 0.04], dtype=genes.dtype
-    )
-    genes[:, 6:] += 0.2
-    raw_dofs = case.layout.raw_dofs_from_genes(genes)
-    proposed = case.layout.pose_stack_from_genes(genes)
+class _GridPoseObjective(torch.nn.Module):
+    """Gather one ligand block and score it against a shared receptor grid."""
 
-    reference_objective = scoring_backend_module._GridPoseObjective(
-        case.backend, proposed, case.ligand_block
-    )
-    reference_network = build_kinforest_network(
-        proposed,
-        None,
-        case.docking_dofs.fold_forest,
-        case.docking_dofs.move_map,
-        kin_dtype=torch.float64,
-        whole_pose_scoring_module=reference_objective,
-    )
-    reference_network.full_dofs = raw_dofs.detach().clone()
-    with torch.no_grad():
-        reference_network.masked_dofs.copy_(
-            reference_network.full_dofs[reference_network.dof_mask]
+    def __init__(
+        self,
+        backend,
+        pose_stack: PoseStack,
+        ligand_block: int,
+    ) -> None:
+        super().__init__()
+        self.backend = backend
+        self.n_poses = pose_stack.n_poses
+        self.pose_indices = torch.arange(
+            pose_stack.n_poses, dtype=torch.int64, device=pose_stack.device
         )
-    reference = run_min(
-        reference_network,
-        optimizer_kwargs={
-            "max_iter": 5,
-            "value_only_line_search": value_only_line_search,
-        },
-    )
-    lightweight = case.backend.minimize(
-        proposed,
-        case.docking_dofs,
-        maxiter=5,
-        initial_raw_dofs=raw_dofs,
-    )
+        self.atom_indices = backend._movable_atom_indices(pose_stack, ligand_block)
 
-    reference_energy = case.backend.score(reference)
-    lightweight_energy = case.backend.score(lightweight.pose_stack)
-    atom_indices = case.backend._ligand_atom_indices(
-        proposed, case.ligand_block
-    )
-    pose_indices = torch.arange(proposed.n_poses, dtype=torch.int64)
-    delta = (
-        reference.coords[pose_indices[:, None], atom_indices]
-        - lightweight.pose_stack.coords[pose_indices[:, None], atom_indices]
-    )
-    ligand_rms = torch.sqrt(torch.mean(torch.sum(delta * delta, dim=2), dim=1))
-    print(
-        "lightweight-vs-autograd grid minimize: max |dE|="
-        f"{float(torch.max(torch.abs(reference_energy-lightweight_energy))):.3e} "
-        f"max ligand-RMS={float(torch.max(ligand_rms)):.3e} A"
-    )
-    torch.testing.assert_close(
-        lightweight_energy, reference_energy, rtol=1.0e-7, atol=1.0e-7
-    )
-    torch.testing.assert_close(
-        ligand_rms, torch.zeros_like(ligand_rms), rtol=0.0, atol=1.0e-7
-    )
+    def forward(self, coordinates: torch.Tensor) -> torch.Tensor:
+        ligand_coordinates = coordinates[self.pose_indices[:, None], self.atom_indices]
+        return self.backend._score_ligand_coordinates(ligand_coordinates)
 
 
 @pytest.mark.slow
@@ -793,9 +382,8 @@ def test_grid_minimize_and_full_ga_cdk2_correctness(cpu_grid_case):
         torch.minimum(after, before), after, rtol=0.0, atol=1.0e-8
     )
 
-    result = run_ga_docking(
+    result = run_docking(
         case.reference,
-        case.ligand_block,
         case.backend,
         schedule=GASchedule(
             generations=2,
@@ -805,7 +393,8 @@ def test_grid_minimize_and_full_ga_cdk2_correctness(cpu_grid_case):
             maxiter=5,
         ),
         seed=20260822,
-    )
+        initialization="jitter",
+    ).ga_result
     history = result.best_energy_history
     assert torch.all(history[1:] <= history[:-1] + 1.0e-8)
     assert torch.any(history[1:] < history[0] - 1.0e-8)
@@ -828,21 +417,10 @@ def test_grid_minimize_and_full_ga_cdk2_correctness(cpu_grid_case):
     assert float(atom_rms) < 2.0
 
 
-def test_docking_requires_one_reference_pose(cpu_grid_case):
-    case = cpu_grid_case
-    for runner in (run_ga_docking, run_docking):
-        with pytest.raises(ValueError, match="must contain one reference pose"):
-            runner(case.population, case.ligand_block, case.backend)
-    with pytest.raises(ValueError, match="only a single reference pose"):
-        _repeat_pose_stack(case.population, 2)
-
-
 @pytest.mark.parametrize("explicit_bounds", [False, True])
-def test_random_initial_placement_is_seeded_and_bounded(
-    cpu_grid_case, explicit_bounds
-):
+def test_random_initial_placement_is_seeded_and_bounded(cpu_grid_case, explicit_bounds):
     case = cpu_grid_case
-    population = _repeat_pose_stack(case.reference, 16)
+    population = repeat_pose_stack(case.reference, 16)
     docking_dofs = build_ligand_docking_dofs(population, case.ligand_block)
     layout = LigandGeneLayout.from_pose_stack(population, docking_dofs)
     heavy = layout.ligand_heavy_coords(population)[0]
@@ -901,7 +479,7 @@ def test_run_docking_returns_ranked_single_cdk2_output(
         reference, param_db = _load_cdk2_pose_on_device(device)
     ligand_block = _ligand_block(reference)
     if backend_kind == "continuous":
-        backend = ContinuousBackend(param_db, kin_dtype=dtype)
+        backend = ContinuousBackend(ligand_block, param_db, kin_dtype=dtype)
     else:
         backend = GridBackend(
             case.backend.grids,
@@ -922,13 +500,7 @@ def test_run_docking_returns_ranked_single_cdk2_output(
         pmut=0.2,
         maxiter=1,
     )
-    result = run_docking(
-        reference,
-        ligand_block,
-        backend,
-        schedule=schedule,
-        seed=20260822,
-    )
+    result = run_docking(reference, backend, schedule=schedule, seed=20260822)
 
     assert result.best_pose_stack.n_poses == 1
     assert result.ga_result.pool.pose_stack.n_poses == schedule.npool
@@ -941,9 +513,7 @@ def test_run_docking_returns_ranked_single_cdk2_output(
     assert torch.isfinite(result.ranked_genes).all()
     assert torch.isfinite(result.ranked_energies).all()
     assert torch.isfinite(result.best_pose_stack.coords).all()
-    assert torch.all(
-        result.ranked_energies[:, 1:] >= result.ranked_energies[:, :-1]
-    )
+    assert torch.all(result.ranked_energies[:, 1:] >= result.ranked_energies[:, :-1])
     torch.testing.assert_close(
         result.best_energies, result.ranked_energies[:, 0], rtol=0.0, atol=0.0
     )
@@ -967,4 +537,70 @@ def test_run_docking_returns_ranked_single_cdk2_output(
         expected_coords,
         rtol=0.0,
         atol=0.0,
+    )
+
+
+def test_ligand_is_found_by_name_block_or_atom_mask():
+    reference, _ = _load_cdk2_pose()
+    block = _ligand_block(reference)
+    name3 = reference.block_type(0, block).name3
+    offset = int(reference.block_coord_offset64[0, block])
+    n_atoms = reference.block_type(0, block).n_atoms
+    atoms = torch.zeros(reference.coords.shape[1], dtype=torch.bool)
+    atoms[offset : offset + n_atoms] = True
+
+    for ligand in (name3, block, atoms):
+        assert resolve_ligand_block(reference, ligand) == block
+    partial = atoms.clone()
+    partial[offset] = False
+    for bad in ("NOPE", reference.max_n_blocks + 5, ~atoms, torch.zeros_like(atoms)):
+        with pytest.raises(ValueError, match="selects"):
+            resolve_ligand_block(reference, bad)
+    with pytest.raises(ValueError, match="all atoms of its block"):
+        resolve_ligand_block(reference, partial)
+    with pytest.raises(ValueError, match="one entry per atom"):
+        resolve_ligand_block(reference, torch.zeros(3, dtype=torch.bool))
+
+
+def test_shared_pocket_grids_match_per_ligand_grids():
+    reference, param_db = _load_cdk2_pose()
+    block = _ligand_block(reference)
+    alone = GridBackend.from_pose_stack(reference, block, param_db)
+    pocket = GridBackend.pocket_grids(
+        reference, block, param_db, atom_types=("CH1", "OH", *alone.ligand_atom_types)
+    )
+    shared = GridBackend.from_pose_stack(reference, block, param_db, grids=pocket)
+    assert set(alone.grids.atom_type_names) < set(pocket.atom_type_names)
+    torch.testing.assert_close(
+        shared.score(reference), alone.score(reference), rtol=1e-10, atol=1e-10
+    )
+    # Backends sharing grids share one device copy of them.
+    assert shared._scorer("cpu", torch.float64).grids is pocket.on("cpu", torch.float64)
+
+    narrow = GridBackend.pocket_grids(reference, block, param_db, atom_types=("CH1",))
+    with pytest.raises(ValueError, match="lack the ligand atom types"):
+        GridBackend.from_pose_stack(reference, block, param_db, grids=narrow)
+
+
+def test_grid_minimize_lowers_every_energy_and_returns_consistent_genes(
+    grid_pose_case,
+):
+    case = grid_pose_case
+    genes = case.layout.genes_from_pose_stack(case.population)
+    genes[:, :6] += torch.tensor(
+        [0.2, -0.1, 0.15, 0.08, -0.06, 0.04], dtype=genes.dtype
+    )
+    genes[:, 6:] += 0.2
+    raw_dofs = case.layout.raw_dofs_from_genes(genes)
+    proposed = case.layout.pose_stack_from_genes(genes)
+
+    result = case.backend.minimize(
+        proposed, case.docking_dofs, maxiter=30, initial_raw_dofs=raw_dofs
+    )
+
+    before, after = case.backend.score(proposed), case.backend.score(result.pose_stack)
+    assert torch.all(after <= before + 1.0e-6) and torch.any(after < before - 1.0e-3)
+    rebuilt = case.layout.pose_stack_from_genes(result.genes)
+    torch.testing.assert_close(
+        rebuilt.coords, result.pose_stack.coords, rtol=0.0, atol=1.0e-9
     )

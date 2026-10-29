@@ -4,7 +4,7 @@ import math
 
 import numpy
 
-from tmol.score.common import add_to_hashtable
+from tmol.score.common._hash_util import _add_to_hashtable
 
 
 def _canonical_path(path):
@@ -82,7 +82,7 @@ def _validated_rows(record, first, second):
     return rows
 
 
-def compile_connection_parameters(records, packed_block_types, first_parameter):
+def _compile_connection_parameters(records, packed_block_types, first_parameter):
     """Sparse pair lookup plus compact local paths and ordinary harmonic rows.
 
     Both orientations share one path/parameter span. A negative span count
@@ -135,11 +135,11 @@ def compile_connection_parameters(records, packed_block_types, first_parameter):
                 (*path, *((0,) * (4 - len(path))), first_parameter + len(values))
             )
             values.append(value)
-        add_to_hashtable(hash_keys, spans, entry, key, (start, len(rows)))
+        _add_to_hashtable(hash_keys, spans, entry, key, (start, len(rows)))
         entry += 1
         reverse = (*key[2:], *key[:2])
         if reverse != key:
-            add_to_hashtable(hash_keys, spans, entry, reverse, (start, -len(rows)))
+            _add_to_hashtable(hash_keys, spans, entry, reverse, (start, -len(rows)))
             entry += 1
     return (
         hash_keys,

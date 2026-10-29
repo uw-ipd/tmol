@@ -4,39 +4,35 @@ import numpy
 
 from typing import Tuple
 
-from tmol.types import (
-    Tensor,
-    NDArray,
-    validate_args,
-)
-from tmol.score.dunbrack import DunbrackParamResolver
+from tmol.types._torch import Tensor
+from tmol.types._array import NDArray
+from tmol.types._functional import _validate_args
+from tmol.score.dunbrack._params import DunbrackParamResolver
 from tmol.score._annotation_cache import (
     AnnotationKey,
-    cached_annotation,
-    store_annotation,
+    _cached_annotation,
+    _store_annotation,
 )
 
-from tmol.pack.rotamer import (
-    ChiSampler,
-    sc_roots_for_chis,
-    construct_single_residue_kinforest,
+from tmol.pack.rotamer._chi_sampler import ChiSampler
+from tmol.pack.rotamer._conformer_sampler import _sc_roots_for_chis
+from tmol.pack.rotamer._single_residue_kinforest import (
+    _construct_single_residue_kinforest,
 )
 from tmol.pack._packer_task import DEFAULT_CHI_SAMPLE_LIMIT
 from tmol.pack.rotamer._chi_budget import (
-    apply_chi_sample_budget,
-    chi_depths,
-    sampler_for_task,
+    _apply_chi_sample_budget,
+    _chi_depths,
+    _sampler_for_task,
 )
 
 from tmol.database import ParameterDatabase
 
 # from tmol.pack.rotamer.dunbrack import _compiled  # noqa F401
-from tmol.pack import SetPackerTask
+from tmol.pack._packer_task import SetPackerTask
 from tmol.chemical import RefinedResidueType
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -132,7 +128,7 @@ class DunbrackChiSampler(ChiSampler):
         return self.dun_param_resolver.device
 
     @classmethod
-    @validate_args
+    @_validate_args
     def from_database(cls, param_resolver: DunbrackParamResolver):
         return cls(dun_param_resolver=param_resolver)
 
@@ -145,11 +141,10 @@ class DunbrackChiSampler(ChiSampler):
         self._annotation_key()
         return int(self._library_indices.get(lib_name, -1))
 
-    @validate_args
     def annotate_residue_type(self, restype: RefinedResidueType):  # noqa: C901
         """TEMP TEMP TEMP: assume the dihedrals we care about are phi and psi"""
         key = self._annotation_key()
-        cached = cached_annotation(restype, "_dun_sampler_annotation", key)
+        cached = _cached_annotation(restype, "_dun_sampler_annotation", key)
         if cached is not None:
             return cached
 
@@ -190,8 +185,8 @@ class DunbrackChiSampler(ChiSampler):
         n_chi = self._nchi_for_table[dun_lib_ind] if dun_lib_ind >= 0 else 0
         sampled = restype.chi_samples
         if sampled and self.defines_rotamers_for_rt(restype):
-            construct_single_residue_kinforest(restype)
-            depths = chi_depths(
+            _construct_single_residue_kinforest(restype)
+            depths = _chi_depths(
                 restype.residue_kinforest_data,
                 [restype.torsion_to_uaids[cs.chi_dihedral][2][0] for cs in sampled],
             )
@@ -201,7 +196,7 @@ class DunbrackChiSampler(ChiSampler):
             library_size = (
                 max(1, self._library_sizes[dun_lib_ind]) if dun_lib_ind >= 0 else 1
             )
-            sampled = apply_chi_sample_budget(
+            sampled = _apply_chi_sample_budget(
                 sampled,
                 depths,
                 max(1, self.chi_sample_expanded_limit // library_size),
@@ -324,7 +319,7 @@ class DunbrackChiSampler(ChiSampler):
         setattr(restype, "dun_sampler_cache", cache)
         # sample_chi_for_poses reads the alias, not the returned snapshot, so a
         # later cache hit has to restore it or one sampler reads another's tables.
-        return store_annotation(
+        return _store_annotation(
             restype,
             "_dun_sampler_annotation",
             key,
@@ -332,10 +327,9 @@ class DunbrackChiSampler(ChiSampler):
             fields=("dun_sampler_cache",),
         )
 
-    @validate_args
     def annotate_packed_block_types(self, packed_block_types: PackedBlockTypes):
         key = self._annotation_key()
-        cached = cached_annotation(packed_block_types, "_dun_sampler_annotation", key)
+        cached = _cached_annotation(packed_block_types, "_dun_sampler_annotation", key)
         if cached is not None:
             return cached
 
@@ -424,7 +418,7 @@ class DunbrackChiSampler(ChiSampler):
             ),
         )
         setattr(packed_block_types, "dun_sampler_cache", cache)
-        return store_annotation(
+        return _store_annotation(
             packed_block_types,
             "_dun_sampler_annotation",
             key,
@@ -445,7 +439,6 @@ class DunbrackChiSampler(ChiSampler):
             index = self._library_index(rt.dunbrack_reference)
         return int(index)
 
-    @validate_args
     def defines_rotamers_for_rt(self, rt: RefinedResidueType):
         """Whether a rotamer library reaches this residue type.
 
@@ -471,7 +464,6 @@ class DunbrackChiSampler(ChiSampler):
         self.annotate_packed_block_types(pbt)
         return pbt.dun_sampler_cache.defines_rotamers_for_bts[bt_inds]
 
-    @validate_args
     def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
         """The atom chi1 rotates, which is where the sidechain starts.
 
@@ -483,10 +475,9 @@ class DunbrackChiSampler(ChiSampler):
         # Explicit chi can start after an unsampled axis. Copy upstream input
         # geometry instead of treating the entire chi1 branch as rebuilt.
         if self._library_for_rt(rt) < 0:
-            return sc_roots_for_chis(rt, (cs.chi_dihedral for cs in rt.chi_samples))
+            return _sc_roots_for_chis(rt, (cs.chi_dihedral for cs in rt.chi_samples))
         return tuple(t.c.atom for t in rt.torsions if t.name == "chi1")
 
-    @validate_args
     def sample_chi_for_poses(
         self, pose_stack: PoseStack, task: SetPackerTask
     ) -> Tuple[
@@ -495,7 +486,7 @@ class DunbrackChiSampler(ChiSampler):
         Tensor[torch.int32][:, :],  # chi_defining_atom_for_rotamer
         Tensor[torch.float32][:, :],  # chi_for_rotamers
     ]:
-        configured, task = sampler_for_task(self, task)
+        configured, task = _sampler_for_task(self, task)
         if configured is not self:
             return configured.sample_chi_for_poses(pose_stack, task)
         assert self.device == pose_stack.coords.device
@@ -741,7 +732,6 @@ class DunbrackChiSampler(ChiSampler):
             sampled_chi,
         )
 
-    @validate_args
     def atom_indices_for_backbone_dihedral(
         self, pose_stack: PoseStack, bb_dihedral_ind: int
     ):
@@ -830,9 +820,9 @@ class DunbrackChiSampler(ChiSampler):
         nchi_for_buildable_restype,
         max_samples_per_restype=0,
     ):
-        from ._compiled import dun_sample_chi
+        from ._compiled import _dun_sample_chi
 
-        return dun_sample_chi(
+        return _dun_sample_chi(
             coords,
             self.dun_param_resolver.sampling_db.rotameric_prob_tables,
             self.dun_param_resolver.sampling_db.rotprob_table_sizes,
@@ -874,7 +864,6 @@ class DunbrackChiSampler(ChiSampler):
             max_samples_per_restype,
         )
 
-    @validate_args
     def package_samples_for_output(
         self,
         pbt: PackedBlockTypes,

@@ -2,29 +2,27 @@ import pytest
 import torch
 from tmol.tests import zero_padded_counts
 
+from tmol import ScoreFunction, beta2016_score_function
+
+from tmol import PoseStackBuilder, pose_stack_from_file
+from tmol.io._canonical_ordering import (
+    _default_canonical_ordering,
+    _default_packed_block_types,
+    _canonical_form_from_pdb,
+)
+from tmol.io._pose_stack_construction import _pose_stack_from_canonical_form
+
 from tmol.score import (
-    ScoreFunction,
-    beta2016_score_function,
+    CartBondedEnergyTerm,
+    DisulfideEnergyTerm,
+    DunbrackEnergyTerm,
+    ElecEnergyTerm,
+    HBondEnergyTerm,
+    LJLKEnergyTerm,
+    LKBallEnergyTerm,
+    BackboneTorsionEnergyTerm,
+    RefEnergyTerm,
 )
-
-from tmol.pose import PoseStackBuilder
-from tmol.io import (
-    pose_stack_from_pdb,
-    default_canonical_ordering,
-    default_packed_block_types,
-    canonical_form_from_pdb,
-    pose_stack_from_canonical_form,
-)
-
-from tmol.score.cartbonded import CartBondedEnergyTerm
-from tmol.score.disulfide import DisulfideEnergyTerm
-from tmol.score.dunbrack import DunbrackEnergyTerm
-from tmol.score.elec import ElecEnergyTerm
-from tmol.score.hbond import HBondEnergyTerm
-from tmol.score.ljlk import LJLKEnergyTerm
-from tmol.score.lk_ball import LKBallEnergyTerm
-from tmol.score.backbone_torsion import BackboneTorsionEnergyTerm
-from tmol.score.ref import RefEnergyTerm
 
 
 @pytest.mark.parametrize("energy_term", [LJLKEnergyTerm], ids=["ljlk"])
@@ -34,7 +32,9 @@ def dont_test_res_centric_score_benchmark_setup(
     benchmark, energy_term, n_poses, ubq_pdb, default_database, torch_device
 ):
     n_poses = int(n_poses)
-    pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device)
+    pose_stack1 = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
 
     pose_stack_n = PoseStackBuilder.from_poses([pose_stack1] * n_poses, torch_device)
     sfxn = ScoreFunction(default_database, torch_device)
@@ -88,7 +88,9 @@ def test_res_centric_score_benchmark(
     torch_device,
 ):
     n_poses = int(n_poses)
-    pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device)
+    pose_stack1 = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
     pose_stack_n = PoseStackBuilder.from_poses([pose_stack1] * n_poses, torch_device)
 
     sfxn = ScoreFunction(default_database, torch_device)
@@ -158,7 +160,9 @@ def test_combined_res_centric_score_benchmark(
     torch_device,
 ):
     n_poses = int(n_poses)
-    pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device)
+    pose_stack1 = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
     pose_stack_n = PoseStackBuilder.from_poses([pose_stack1] * n_poses, torch_device)
 
     sfxn = ScoreFunction(default_database, torch_device)
@@ -206,12 +210,12 @@ def test_build_posestack(
 ):
     @benchmark
     def setup():
-        co = default_canonical_ordering()
-        pbt = default_packed_block_types(torch_device)
-        canonical_form = canonical_form_from_pdb(
+        co = _default_canonical_ordering()
+        pbt = _default_packed_block_types(torch_device)
+        canonical_form = _canonical_form_from_pdb(
             co, systems_bysize[system_size], torch_device
         )
-        _ = pose_stack_from_canonical_form(co, pbt, *canonical_form)
+        _ = _pose_stack_from_canonical_form(co, pbt, *canonical_form)
 
     setup
 
@@ -221,12 +225,12 @@ def test_build_posestack(
 def test_render_module(
     benchmark, systems_bysize, system_size, default_database, torch_device
 ):
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(
+    co = _default_canonical_ordering()
+    pbt = _default_packed_block_types(torch_device)
+    canonical_form = _canonical_form_from_pdb(
         co, systems_bysize[system_size], torch_device
     )
-    pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
+    pose_stack = _pose_stack_from_canonical_form(co, pbt, *canonical_form)
 
     @benchmark
     def setup():
@@ -239,12 +243,12 @@ def test_render_module(
 @pytest.mark.benchmark(group="total_score_onepass")
 @pytest.mark.parametrize("system_size", [40, 75, 150, 300, 600])
 def test_full(benchmark, systems_bysize, system_size, torch_device):
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(
+    co = _default_canonical_ordering()
+    pbt = _default_packed_block_types(torch_device)
+    canonical_form = _canonical_form_from_pdb(
         co, systems_bysize[system_size], torch_device
     )
-    pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
+    pose_stack = _pose_stack_from_canonical_form(co, pbt, *canonical_form)
     pose_stack.coords.requires_grad_(True)
 
     sfxn = beta2016_score_function(torch_device)

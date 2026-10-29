@@ -9,11 +9,13 @@ import torch
 
 from tmol.database import ParameterDatabase
 from tmol.pose import PackedBlockTypes
-from tmol.pose import PoseStack
+from tmol.pose import PoseStack, repeat_pose_stack
 from tmol.score import beta2016_score_function
 from tmol.score import ScoreFunction
 from tmol.score import ScoreType
 
+from ._common import validate_ligand_coords
+from ._movable import movable_block_mapping, movable_pose_stack
 
 LigandIntraWeightProfile = Literal["search", "full"]
 
@@ -73,8 +75,7 @@ def _intra_score_function(
             if score_type == ScoreType.fa_ljrep:
                 weight = 0.01
             elif (
-                score_type == ScoreType.gen_torsions
-                or score_type in _CART_SCORE_TYPES
+                score_type == ScoreType.gen_torsions or score_type in _CART_SCORE_TYPES
             ):
                 weight = 0.1
         result.set_weight(score_type, weight)
@@ -131,9 +132,9 @@ def _ligand_pose_to(
     source_block_type_ind64 = pose_stack.block_type_ind64.to(device=device)
     block_type_ind64 = torch.full_like(source_block_type_ind64, -1)
     for source_type_index, target_type_index in type_mapping.items():
-        block_type_ind64[
-            source_block_type_ind64 == source_type_index
-        ] = target_type_index
+        block_type_ind64[source_block_type_ind64 == source_type_index] = (
+            target_type_index
+        )
     return PoseStack(
         packed_block_types=pbt,
         coords=pose_stack.coords.to(device=device, dtype=dtype).contiguous(),
@@ -176,8 +177,6 @@ class LiveLigandIntraData:
             raise ValueError("live ligand-intra data requires one movable pose")
         if pose_stack.max_n_pose_atoms < 1:
             raise ValueError("live ligand-intra data requires ligand atoms")
-        if pose_stack.coords.dtype not in (torch.float32, torch.float64):
-            raise TypeError("live ligand-intra coordinates must be float32 or float64")
         if pose_stack.device != pose_stack.coords.device:
             raise ValueError("live ligand-intra PoseStack device is inconsistent")
         if pose_stack.packed_block_types.device != pose_stack.device:
@@ -186,17 +185,11 @@ class LiveLigandIntraData:
             )
         if self.weight_profile not in ("search", "full"):
             raise ValueError("weight_profile must be 'search' or 'full'")
-        if not isinstance(self.include_cart_bonded, bool):
-            raise TypeError("include_cart_bonded must be bool")
         if any(
             block < 0 or block >= pose_stack.max_n_blocks
             for block in self.context_block_indices
         ):
             raise ValueError("context block index is out of range")
-        if len(set(self.context_block_indices)) != len(
-            self.context_block_indices
-        ):
-            raise ValueError("context block indices must be unique")
 
     @property
     def n_ligand_atoms(self) -> int:
@@ -206,9 +199,6 @@ class LiveLigandIntraData:
         self, device: torch.device | str, dtype: torch.dtype
     ) -> "LiveLigandIntraData":
         """Return ligand topology and scoring machinery on a device/dtype."""
-
-        if dtype not in (torch.float32, torch.float64):
-            raise TypeError("live ligand-intra dtype must be float32 or float64")
         device = torch.device(device)
         ligand_pose_stack = _ligand_pose_to(self.ligand_pose_stack, device, dtype)
         score_function = _intra_score_function(
@@ -248,27 +238,19 @@ def build_live_ligand_intra_data(
     if reference_pose_stack.device.type != "cpu":
         raise ValueError("live ligand-intra construction requires a CPU reference pose")
 
-    # Import locally to avoid a gridscore -> dock.scoring_backend -> gridscore
-    # import cycle. This helper preserves the grid scorer's block-local atom order.
-    from tmol.dock.ga import _movable_pose_stack
-
-    ligand_pose_stack = _movable_pose_stack(
+    ligand_pose_stack = movable_pose_stack(
         reference_pose_stack, ligand_block, sidechain_blocks
     )
     context_block_indices: tuple[int, ...] = ()
     if sidechain_blocks:
-        from tmol.dock.ga import _movable_block_mapping
-
-        _, _, context_block_indices = _movable_block_mapping(
+        _, _, context_block_indices = movable_block_mapping(
             reference_pose_stack, ligand_block, sidechain_blocks
         )
     ligand_pose_stack = _ligand_pose_to(
         ligand_pose_stack, torch.device("cpu"), reference_pose_stack.coords.dtype
     )
     include_cart_bonded = any(
-        any(
-            ligand_pose_stack.block_type(0, block).bond_to_ringness.values()
-        )
+        any(ligand_pose_stack.block_type(0, block).bond_to_ringness.values())
         for block in range(ligand_pose_stack.max_n_blocks)
     )
     score_function = _intra_score_function(
@@ -291,36 +273,19 @@ def build_live_ligand_intra_data(
 def _validate_ligand_coords(
     data: LiveLigandIntraData, ligand_coords: torch.Tensor
 ) -> None:
-    if ligand_coords.ndim != 3 or ligand_coords.shape[2] != 3:
-        raise ValueError("ligand_coords must have shape [n_poses, n_atoms, 3]")
-    if ligand_coords.shape[0] == 0:
-        raise ValueError("at least one ligand pose is required")
-    if ligand_coords.shape[1] != data.n_ligand_atoms:
-        raise ValueError("ligand atom count does not match live intra topology")
-    if ligand_coords.dtype not in (torch.float32, torch.float64):
-        raise TypeError("ligand_coords must be float32 or float64")
-    if ligand_coords.device != data.ligand_pose_stack.device:
-        raise ValueError("live ligand-intra data must match coordinate device")
-    if ligand_coords.dtype != data.ligand_pose_stack.coords.dtype:
-        raise TypeError("live ligand-intra data must match coordinate dtype")
+    validate_ligand_coords(
+        ligand_coords, data.n_ligand_atoms, data.ligand_pose_stack.coords, "intra"
+    )
 
 
 def _scorer_for(data: LiveLigandIntraData, n_poses: int):
     cached = data._scorer_cache.get(n_poses)
     if cached is None:
-        # Runtime-local import avoids importing dock.ga while scoring_backend is
-        # importing gridscore. Batch topology is built once per population size.
-        from tmol.dock.dock_loop import _repeat_pose_stack
-
-        pose_stack = _repeat_pose_stack(data.ligand_pose_stack, n_poses)
+        pose_stack = repeat_pose_stack(data.ligand_pose_stack, n_poses)
         if data.ligand_pose_stack.max_n_blocks > 1:
-            scorer = data.score_function.render_block_pair_scoring_module(
-                pose_stack
-            )
+            scorer = data.score_function.render_block_pair_scoring_module(pose_stack)
         else:
-            scorer = data.score_function.render_whole_pose_scoring_module(
-                pose_stack
-            )
+            scorer = data.score_function.render_whole_pose_scoring_module(pose_stack)
         cached = (pose_stack, scorer)
         data._scorer_cache[n_poses] = cached
     return cached[1]
@@ -352,9 +317,9 @@ def _weighted_movable_block_pairs(
                 diagonal_weights[score_types.index(score_type)] = weight
 
     n_blocks = unweighted.shape[2]
-    diagonal = torch.eye(
-        n_blocks, dtype=torch.bool, device=ligand_coords.device
-    )[None, None, :, :]
+    diagonal = torch.eye(n_blocks, dtype=torch.bool, device=ligand_coords.device)[
+        None, None, :, :
+    ]
     pair_weights = torch.where(
         diagonal,
         diagonal_weights[:, None, None, None],
@@ -385,9 +350,7 @@ def score_ligand_intra(
     _validate_ligand_coords(data, ligand_coords)
     scorer = _scorer_for(data, ligand_coords.shape[0])
     if data.ligand_pose_stack.max_n_blocks > 1:
-        energies = _weighted_movable_block_pairs(data, ligand_coords).sum(
-            dim=(0, 2, 3)
-        )
+        energies = _weighted_movable_block_pairs(data, ligand_coords).sum(dim=(0, 2, 3))
     else:
         energies = scorer(ligand_coords.contiguous())
     expected_shape = (ligand_coords.shape[0],)

@@ -1,9 +1,11 @@
 from ._util import LazyContentsMapping, LazyFileMapping  # noqa: F401
 
+import io
 import pytest
 import os
 import torch
 import biotite.structure.io
+import zstandard
 from pathlib import Path
 
 from . import pdb  # noqa: E402
@@ -19,6 +21,30 @@ def data_path(*parts: str) -> Path:
     in a test file, which breaks if the file's depth changes).
     """
     return Path(__file__).parent.joinpath(*parts)
+
+
+def read_text(path) -> str:
+    """Read a text fixture, transparently decompressing ``.zst`` files.
+
+    A ``.zst`` path falls back to the plain file when the repository keeps that
+    fixture uncompressed (the tutorials download a few as plain files).
+    """
+    path = Path(path)
+    if path.suffix == ".zst" and not path.exists():
+        path = path.with_suffix("")
+    raw = path.read_bytes()
+    if path.suffix == ".zst":
+        raw = zstandard.ZstdDecompressor().stream_reader(io.BytesIO(raw)).read()
+    return raw.decode()
+
+
+def load_cif_structure(path, **kwargs):
+    """First model of a (possibly ``.zst``-compressed) CIF as an ``AtomArray``."""
+    import biotite.structure.io.pdbx as pdbx
+
+    cif = pdbx.CIFFile.read(io.StringIO(read_text(path)))
+    structure = pdbx.get_structure(cif, model=1, **kwargs)
+    return structure
 
 
 def load_cif(pdb_code):
@@ -272,36 +298,36 @@ def biotite_1bl8():
 def cif_184l_with_i4b():
     """Lysozyme 184L with I4B ligand."""
     fname = os.path.join(__file__.rpartition("/")[0], "cif", "184l__1__1.A__1.E.cif")
-    from tmol.io import atom_array_from_cif
+    from tmol import atom_array_from_file
 
-    return atom_array_from_cif(fname)
+    return atom_array_from_file(fname)
 
 
 @pytest.fixture()
 def cif_155c_with_hem():
     """Cytochrome c 155C with HEM ligand."""
     fname = os.path.join(__file__.rpartition("/")[0], "cif", "155c__1__1.A__1.B.cif")
-    from tmol.io import atom_array_from_cif
+    from tmol import atom_array_from_file
 
-    return atom_array_from_cif(fname)
+    return atom_array_from_file(fname)
 
 
 @pytest.fixture()
 def cif_1a25_with_pse():
     """1A25 with PSE ligand (partial occupancy)."""
     fname = os.path.join(__file__.rpartition("/")[0], "cif", "1a25__1__1.B__1.I.cif")
-    from tmol.io import atom_array_from_cif
+    from tmol import atom_array_from_file
 
-    return atom_array_from_cif(fname)
+    return atom_array_from_file(fname)
 
 
 @pytest.fixture()
 def cif_1a0i_with_atp():
     """1A0I with ATP ligand (>32-atom tile edge case)."""
     fname = os.path.join(__file__.rpartition("/")[0], "cif", "1A0I.cif")
-    from tmol.io import atom_array_from_cif
+    from tmol import atom_array_from_file
 
-    return atom_array_from_cif(fname)
+    return atom_array_from_file(fname)
 
 
 @pytest.fixture()
@@ -319,7 +345,7 @@ def pdb_1a0i_with_atp():
 
 
 def no_termini_pose_stack_from_pdb(pdb, torch_device, residue_start, residue_end):
-    from tmol.io import pose_stack_from_pdb
+    from tmol import pose_stack_from_file
 
     n_res = residue_end - residue_start
     res_not_connected = torch.zeros(
@@ -327,10 +353,12 @@ def no_termini_pose_stack_from_pdb(pdb, torch_device, residue_start, residue_end
     )
     res_not_connected[0, 0, 0] = True
     res_not_connected[0, n_res - 1, 1] = True
-    return pose_stack_from_pdb(
+    return pose_stack_from_file(
         pdb,
         torch_device,
         residue_start=residue_start,
         residue_end=residue_end,
         res_not_connected=res_not_connected,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
     )

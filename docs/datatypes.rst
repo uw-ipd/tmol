@@ -38,8 +38,8 @@ Device and dtype
 ================
 
 All tensors participating in one operation must use compatible devices and
-dtypes. A :class:`~tmol.pose.PoseStack`, its
-:class:`~tmol.pose.PackedBlockTypes`, rendered scoring modules, and movement
+dtypes. A :class:`~tmol.PoseStack`, its
+:class:`~tmol.PackedBlockTypes`, rendered scoring modules, and movement
 data normally live on the same CPU or CUDA device.
 
 TMol APIs commonly accept a device-like value and normalize it through
@@ -60,7 +60,7 @@ through NumPy breaks PyTorch autograd.
 Public typing helpers
 =====================
 
-The :mod:`tmol.types` package provides runtime conversion, validation, tensor
+The ``tmol.types`` package provides runtime conversion, validation, tensor
 shape annotations, and ``TensorGroup`` helpers used throughout the codebase.
 The :mod:`tmol.utility` package contains device, cumulative-sum, units, and
 other implementation helpers. Most workflow users interact with the molecular

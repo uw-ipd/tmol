@@ -9,7 +9,7 @@ import numpy as np
 from atomworks.constants import HYDROGEN_LIKE_SYMBOLS
 from rdkit import Chem
 
-from tmol.ligand._icoor_tree import vertex_angle
+from tmol.ligand._icoor_tree import _vertex_angle
 
 logger = logging.getLogger(__name__)
 
@@ -172,7 +172,7 @@ def _sp2_angle_sum(
     if not np.all(np.isfinite(norms) & (norms > 0)):
         return None
     return sum(
-        np.degrees(vertex_angle(pos[i], pos[center], pos[j]))
+        np.degrees(_vertex_angle(pos[i], pos[center], pos[j]))
         for i, j in combinations(neighbors, 2)
     )
 
@@ -210,7 +210,7 @@ def _infer_carboxylate_bonds(rw: Chem.RWMol, conf: Chem.Conformer) -> int:
     return len(delocalized) // 2
 
 
-def localize_overvalent_centers(mol: Chem.Mol) -> None:
+def _localize_overvalent_centers(mol: Chem.Mol) -> None:
     """Localize the double bonds to terminal atoms that put a center past its valence.
 
     CCD R6R writes its nitro group N(=O)=O; the group becomes N(=O)[O-] with N+.
@@ -233,7 +233,7 @@ def localize_overvalent_centers(mol: Chem.Mol) -> None:
         _infer_oxyacid_bonds(mol, {}, delocalized)
 
 
-def correct_carboxylate_bond_orders(mol: Chem.Mol) -> Chem.Mol:
+def _correct_carboxylate_bond_orders(mol: Chem.Mol) -> Chem.Mol:
     """A sanitized copy with geometry-repaired carboxylates, else ``mol``."""
     if mol.GetNumConformers() == 0:
         return mol
@@ -243,7 +243,7 @@ def correct_carboxylate_bond_orders(mol: Chem.Mol) -> Chem.Mol:
     return _sanitized(rw, mol, "geometry bond correction failed to sanitize")
 
 
-def normalize_radical_oxygens(mol: Chem.Mol) -> Chem.Mol:
+def _normalize_radical_oxygens(mol: Chem.Mol) -> Chem.Mol:
     """Restore formal charge on bare radical oxygens (DUD-style ``[O]``)."""
     rw = Chem.RWMol(mol)
     changed = False
@@ -272,7 +272,7 @@ _INTEGER_BOND_ORDER = {
 }
 
 
-def deprotonate_overprotonated_oxyacids(
+def _deprotonate_overprotonated_oxyacids(
     atom_array: struc.AtomArray,
 ) -> tuple[struc.AtomArray, frozenset[frozenset[str]]]:
     """Strip the hydrogens of oxyacid groups drawn with more protons than any acid holds.
@@ -378,7 +378,7 @@ def _sanitized(rw: Chem.RWMol, mol: Chem.Mol, failure: str) -> Chem.Mol:
     return out
 
 
-def get_absent_substitution_leaving_groups(
+def _get_absent_substitution_leaving_groups(
     template: struc.AtomArray, residue: struc.AtomArray, connection_atoms: set[str]
 ) -> dict[str, tuple[str, ...]]:
     """{site: unobserved terminal O/N branch} an extra bond at a template carbonyl C or

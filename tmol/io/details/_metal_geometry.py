@@ -29,12 +29,12 @@ class GeometryFit:
         return self.n_sites - len(self.vertex_for_donor)
 
 
-def unit(v: numpy.ndarray) -> numpy.ndarray:
+def _unit(v: numpy.ndarray) -> numpy.ndarray:
     norm = numpy.linalg.norm(v, axis=-1, keepdims=True)
     return v / numpy.where(norm == 0, 1.0, norm)
 
 
-def best_rotation(donors: numpy.ndarray, targets: numpy.ndarray) -> numpy.ndarray:
+def _best_rotation(donors: numpy.ndarray, targets: numpy.ndarray) -> numpy.ndarray:
     """Rotation carrying ``donors`` onto ``targets``, both unit vectors (Kabsch)."""
     return _best_rotations(donors, targets[numpy.newaxis])[0]
 
@@ -62,7 +62,7 @@ def _rotation_group(verts: numpy.ndarray) -> numpy.ndarray:
     group = []
     for candidate in permutations(range(len(verts))):
         image = verts[list(candidate)]
-        rotation = best_rotation(verts, image)
+        rotation = _best_rotation(verts, image)
         if numpy.allclose(verts @ rotation, image, atol=1e-6):
             group.append(candidate)
     return numpy.array(group, dtype=int)
@@ -86,15 +86,15 @@ def _assignments(vertex_key: tuple, n_donors: int) -> numpy.ndarray:
     return numpy.array(keep, dtype=int)
 
 
-def fit_geometry(
+def _fit_geometry(
     donor_directions: numpy.ndarray,
     vertices: numpy.ndarray,
 ) -> Optional[GeometryFit]:
     """Best donor-to-vertex assignment over all rotations, found exhaustively (at most
     six vertices); None when there are more donors than vertices.
     """
-    donors = unit(numpy.asarray(donor_directions, dtype=numpy.float64))
-    verts = unit(numpy.asarray(vertices, dtype=numpy.float64))
+    donors = _unit(numpy.asarray(donor_directions, dtype=numpy.float64))
+    verts = _unit(numpy.asarray(vertices, dtype=numpy.float64))
     n_donors, n_sites = len(donors), len(verts)
     if n_donors == 0 or n_donors > n_sites:
         return None
@@ -118,7 +118,7 @@ def fit_geometry(
     )
 
 
-def choose_geometry(
+def _choose_geometry(
     donor_directions: numpy.ndarray,
     allowed: Sequence[str],
     vertices_for: dict,
@@ -131,7 +131,7 @@ def choose_geometry(
         verts = vertices_for[name]
         if not verts:  # untemplated: nothing to fit, and nothing to choose
             return None, "untemplated"
-        fit = fit_geometry(donor_directions, numpy.asarray(verts))
+        fit = _fit_geometry(donor_directions, numpy.asarray(verts))
         if fit is not None:
             fits.append(attr.evolve(fit, geometry=name))
     if not fits:

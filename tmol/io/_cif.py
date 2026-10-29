@@ -14,7 +14,6 @@ through the usual sidechain path rather than through anything new.
 """
 
 import logging
-from pathlib import Path
 
 import biotite.structure as struc
 import numpy as np
@@ -33,7 +32,7 @@ _BOND_ORDER_RANGE = (
 )
 
 
-def component_chemistry_from_cif(cif_path) -> dict:
+def _component_chemistry_from_cif(cif_path) -> dict:
     """The complete chemistry a CIF declares for each component it names.
 
     A structure records only the atoms it resolved, but it declares the whole
@@ -53,11 +52,11 @@ def component_chemistry_from_cif(cif_path) -> dict:
     cif = read_any(cif_path)
     entries: dict[str, struc.AtomArray] = {}
     for block in cif.values():
-        entries.update(component_chemistry_from_block(block))
+        entries.update(_component_chemistry_from_block(block))
     return entries
 
 
-def component_chemistry_from_block(block) -> dict:
+def _component_chemistry_from_block(block) -> dict:
     """Read authored chemistry, supplementing name-compatible CCD components."""
     from atomworks.io.utils.ccd import build_ccd_entries_from_cif_block
 
@@ -98,9 +97,9 @@ def _completion_templates(entries):
 
 def _element_from_name(name: str) -> str:
     """Element from a PDB atom name, for a file that declares no type_symbol."""
-    from tmol.chemical import get_element_from_atom_name
+    from tmol.chemical._restypes import _get_element_from_atom_name
 
-    return get_element_from_atom_name(name)
+    return _get_element_from_atom_name(name)
 
 
 def _component_dictionary_template(res_name: str):
@@ -116,13 +115,13 @@ def _component_dictionary_template(res_name: str):
     return component if component.bonds is not None else None
 
 
-def atom_array_from_cif(
+def _atom_array_from_pdbx(
     cif_path,
     *,
     model: int = 1,
     assembly_id: str | None = None,
 ):
-    """Read a PDB, CIF, compressed CIF, binary CIF, MOL2 or SDF into an AtomArray.
+    """Read a PDB, CIF, compressed CIF or binary CIF into an AtomArray.
 
     Preserve supplied names, coordinates, hydrogens and covalent connections.
     Declared unresolved heavy atoms have NaN coordinates. Chemistry the file
@@ -133,21 +132,13 @@ def atom_array_from_cif(
     preparing an unknown residue. Pose construction controls hydrogen optimization
     and whether to trust regenerated ligand hydrogen names.
     """
-    from tmol.io._atomworks_reader import read_structure
+    from tmol.io._atomworks_reader import _read_structure
 
-    if isinstance(cif_path, (str, Path)) and Path(cif_path).suffix.lower() in (
-        ".mol2",
-        ".sdf",
-        ".mol",
-    ):
-        from tmol.io._assemble import atom_array_from_mol2
-
-        return atom_array_from_mol2(cif_path)
     if assembly_id is not None and (
         not isinstance(assembly_id, str) or not assembly_id
     ):
         raise ValueError("assembly_id must be a nonempty string or None")
-    array, block = read_structure(cif_path, model=model, assembly_id=assembly_id)
+    array, block = _read_structure(cif_path, model=model, assembly_id=assembly_id)
     array = _with_polymer_entity_flag(array, block)
     array = _with_component_type_annotation(array, block)
     templates = _completion_templates(
@@ -229,7 +220,7 @@ def atom_array_from_cif(
         array.set_annotation(_FORMAL_CHARGE_SPECIFIED, charge_specified)
         if hasattr(array, "pdbx_formal_charge"):
             array.del_annotation("pdbx_formal_charge")
-        array = with_unresolved_atoms(array, templates)
+        array = _with_unresolved_atoms(array, templates)
         # Completion uses the unlinked component. At an established link, its
         # CCD-declared leaving groups must be displaced even if deposited with
         # coordinates (e.g. the PLM ester in 8TRB). AtomWorks 3 otherwise protects
@@ -380,7 +371,7 @@ def _with_polymer_entity_flag(atom_array, block):
     return atom_array
 
 
-def with_unresolved_atoms(atom_array, declared: dict):
+def _with_unresolved_atoms(atom_array, declared: dict):
     """``atom_array`` plus the declared atoms it does not resolve, at NaN.
 
     Declared leaving groups and unobserved carbonyl/phosphoryl substitution branches are
@@ -433,8 +424,8 @@ def _unresolved_heavy_atoms(
     ``chemistry`` caches heavy atoms and leaving groups; ``warned``, reported names."""
     from atomworks.io.utils.link_chemistry import get_leaving_atom_groups
 
-    from tmol.ligand._input_repair import get_absent_substitution_leaving_groups
-    from tmol.ligand._polymer_profile import completed_connection_atoms
+    from tmol.ligand._input_repair import _get_absent_substitution_leaving_groups
+    from tmol.ligand._polymer_profile import _completed_connection_atoms
 
     present = {str(n) for n in residue.atom_name}
     if res_name not in chemistry:
@@ -463,13 +454,13 @@ def _unresolved_heavy_atoms(
         return None
     # Endpoint valence is meaningful only on the complete component
     # topology, before unresolved heavy atoms are inserted below.
-    ends = completed_connection_atoms(template, linked)
+    ends = _completed_connection_atoms(template, linked)
     missing = set(heavy - present)
     for end in ends or ():
         for group in leaving.get(end, ()):
             if present.isdisjoint(group):
                 missing.difference_update(group)
-    for group in get_absent_substitution_leaving_groups(
+    for group in _get_absent_substitution_leaving_groups(
         template, residue, set(ends or ())
     ).values():
         missing.difference_update(group)
@@ -576,34 +567,3 @@ def _placeholder_atoms(atom_array, begin, missing, template):
             value = np.array([source[begin]] * len(missing), dtype=source.dtype)
         extra.set_annotation(field, value)
     return extra
-
-
-def pose_stack_from_cif(
-    cif_path,
-    device,
-    *,
-    model: int = 1,
-    assembly_id: str | None = None,
-    residue_start: int | None = None,
-    residue_end: int | None = None,
-    **kwargs,
-):
-    """Construct a PoseStack from a PDB, CIF or binary/compressed CIF structure.
-
-    Reads the structure with :func:`atom_array_from_cif`, so the residues carry
-    every atom their chemistry declares and the unresolved ones arrive at NaN
-    for pose construction to rebuild. Further keyword arguments are passed to
-    :func:`tmol.io.pose_stack_from_biotite`.
-    """
-    from tmol.io._pose_stack_from_biotite import pose_stack_from_biotite
-
-    array = atom_array_from_cif(cif_path, model=model, assembly_id=assembly_id)
-    if residue_start is not None or residue_end is not None:
-        boundaries = struc.get_residue_starts(array, add_exclusive_stop=True)
-        start, stop, _ = slice(residue_start, residue_end).indices(len(boundaries) - 1)
-        array = array[boundaries[start] : boundaries[stop]]
-    return pose_stack_from_biotite(array, device, **kwargs)
-
-
-atom_array_from_file = atom_array_from_cif
-pose_stack_from_file = pose_stack_from_cif

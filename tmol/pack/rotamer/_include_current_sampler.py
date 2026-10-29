@@ -3,17 +3,12 @@ import attr
 
 from typing import Tuple
 
-from tmol.types import (
-    Tensor,
-    validate_args,
-)
+from tmol.types._torch import Tensor
 from tmol.chemical import RefinedResidueType
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
-from tmol.kinematics import KinForest
-from tmol.pack.rotamer import ConformerSampler
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
+from tmol.kinematics._datatypes import KinForest
+from tmol.pack.rotamer._conformer_sampler import ConformerSampler
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -24,15 +19,12 @@ class IncludeCurrentSampler(ConformerSampler):
     def sampler_name(cls):
         return "IncludeCurrentSampler"
 
-    @validate_args
     def annotate_residue_type(self, rt: RefinedResidueType):
         pass
 
-    @validate_args
     def annotate_packed_block_types(self, packed_block_types: PackedBlockTypes):
         pass
 
-    @validate_args
     def defines_rotamers_for_rt(self, rt: RefinedResidueType):
         return True
 
@@ -41,7 +33,6 @@ class IncludeCurrentSampler(ConformerSampler):
     ) -> Tensor[torch.bool]:
         return torch.ones_like(bt_inds, dtype=torch.bool)
 
-    @validate_args
     def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
         return (rt.default_jump_connection_atom,)
 
@@ -100,7 +91,7 @@ class IncludeCurrentSampler(ConformerSampler):
             return
 
         dst, src = (
-            create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampler(
+            _create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampler(
                 pose_stack,
                 task,
                 gbt_for_conformer,
@@ -115,8 +106,7 @@ class IncludeCurrentSampler(ConformerSampler):
         conf_dofs_kto[dst + 1, :] = orig_dofs_kto[src + 1, :]
 
 
-# @validate_args
-def create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampler(
+def _create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampler(
     poses: PoseStack,
     task: "SetPackerTask",  # noqa F821
     gbt_for_rot: Tensor[torch.int64][:],  # max-n-rots

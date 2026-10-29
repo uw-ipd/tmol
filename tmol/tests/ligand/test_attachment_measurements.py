@@ -7,11 +7,10 @@ import numpy as np
 import pytest
 import torch
 
-from tmol.io import atom_array_from_cif, pose_stack_from_biotite
+from tmol import atom_array_from_file, pose_stack_from_atom_array, ParameterDatabase
 from tmol.ligand import prepare_ligands, load_params_file
 from tmol.ligand._preparation import _bond_lengths_by_site
-from tmol.ligand._registry import inject_ligand_preparations
-from tmol.database import ParameterDatabase
+from tmol.ligand._registry import _inject_ligand_preparations
 from tmol.tests.data import data_path
 
 
@@ -51,7 +50,7 @@ def test_unresolved_repeat_does_not_overwrite_measured_attachment(invalid):
 def test_unresolved_biotin_attachment_has_finite_exported_geometry(
     tmp_path, missing, torch_device
 ):
-    array = atom_array_from_cif(data_path("covalent_fixtures", "lys_biotin_1bdo.cif"))
+    array = atom_array_from_file(data_path("covalent_fixtures", "lys_biotin_1bdo.cif"))
     first, second = next(
         (int(a), int(b))
         for a, b, _ in array.bonds.as_array()
@@ -70,14 +69,16 @@ def test_unresolved_biotin_attachment_has_finite_exported_geometry(
                 rt.name,
                 ic,
             )
-    restored = inject_ligand_preparations(
+    restored = _inject_ligand_preparations(
         ParameterDatabase.get_default(), load_params_file(path)
     )
     assert database.chemical.residues == restored.chemical.residues
     # Re-injection must also accept the same finite patch metadata.
-    inject_ligand_preparations(database, load_params_file(path))
+    _inject_ligand_preparations(database, load_params_file(path))
     for db in (database, restored):
-        pose = pose_stack_from_biotite(array, torch_device, param_db=db, no_optH=True)
+        pose = pose_stack_from_atom_array(
+            array, torch_device, param_db=db, no_optH=True
+        )
         assert torch.isfinite(pose.coords).all()
         active = [
             pose.packed_block_types.active_block_types[t].name
@@ -85,7 +86,7 @@ def test_unresolved_biotin_attachment_has_finite_exported_geometry(
         ]
         assert any("conj_NZ" in name for name in active)
         assert any("BTN:conj_C11" == name for name in active)
-        from tmol.score import beta2016_score_function
+        from tmol import beta2016_score_function
 
         coords = pose.coords.detach().clone().requires_grad_()
         score = beta2016_score_function(torch_device, param_db=db)

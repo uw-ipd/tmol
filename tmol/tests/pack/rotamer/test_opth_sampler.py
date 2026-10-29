@@ -4,17 +4,23 @@ from types import SimpleNamespace
 
 import numpy
 import torch
-from tmol.pose import PoseStackBuilder
+from tmol import PoseStackBuilder
 
 # from tmol.score import ScoreFunction
-from tmol.pack import PackerTask, PackerPalette, SetPackerTask
-from tmol.pack.rotamer import (
+from tmol import (
+    PackerTask,
+    PackerPalette,
+    atom_array_from_file,
+    pose_stack_from_atom_array,
+    pose_stack_from_file,
+)
+from tmol.pack import (
+    SetPackerTask,
     build_rotamers,
     FixedAAChiSampler,
     IncludeCurrentSampler,
     OptHSampler,
 )
-from tmol.io import atom_array_from_cif, pose_stack_from_biotite, pose_stack_from_pdb
 from tmol.tests.data import data_path
 
 
@@ -68,7 +74,14 @@ def test_opth_builds_cartesian_product_for_multiple_proton_chis():
 
 def test_optH_rotamer_sampler_flipNHQ(ubq_pdb, torch_device):
     n_poses = 4
-    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
+    p = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=76,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     pose_stack = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     palette = PackerPalette()
     task = PackerTask(pose_stack, palette)
@@ -123,7 +136,7 @@ def test_optH_rotamer_sampler_flipNHQ(ubq_pdb, torch_device):
 
 def test_optH_flips_a_doubly_protonated_histidine_ring_back(torch_device):
     # 1YG0 ASN13-HIS14-CYS15; His14 is deposited with HD1 and HE2 (HIS_POS).
-    array = atom_array_from_cif(
+    array = atom_array_from_file(
         data_path("atomworks_regressions/his_pos_ring_1yg0.cif.zst")
     )
     his = array.res_id == 14
@@ -136,7 +149,7 @@ def test_optH_flips_a_doubly_protonated_histidine_ring_back(torch_device):
     flipped.coord[ring] = cg + 2 * numpy.outer(arm @ axis, axis) - arm
     rings = []
     for structure in (array, flipped):
-        pose = pose_stack_from_biotite(structure, torch_device, no_optH=False)
+        pose = pose_stack_from_atom_array(structure, torch_device, no_optH=False)
         bt = pose.packed_block_types.active_block_types[int(pose.block_type_ind[0, 1])]
         assert bt.name == "HIS_POS"
         start = int(pose.block_coord_offset[0, 1])
@@ -148,7 +161,14 @@ def test_optH_flips_a_doubly_protonated_histidine_ring_back(torch_device):
 
 def test_optH_rotamer_sampler_no_flipNHQ(ubq_pdb, torch_device):
     n_poses = 4
-    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
+    p = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=76,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     pose_stack = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     palette = PackerPalette()
     task = PackerTask(pose_stack, palette)

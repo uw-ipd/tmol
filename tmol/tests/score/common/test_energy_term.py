@@ -7,17 +7,16 @@ import pandas
 import torch
 import yaml
 
-from tmol.io import (
-    pose_stack_from_pdb,
-    canonical_form_from_atom_records,
-    default_canonical_ordering,
-    default_packed_block_types,
-    select_atom_records_res_subset,
-    parse_pdb,
-    pose_stack_from_canonical_form,
+from tmol import pose_stack_from_file, PoseStackBuilder
+from tmol.io._canonical_ordering import (
+    _default_canonical_ordering,
+    _default_packed_block_types,
+    _canonical_form_from_atom_records,
+    _select_atom_records_res_subset,
 )
-from tmol.pose import PoseStackBuilder
-from tmol.score.ref import RefEnergyTerm
+from tmol.io._pose_stack_construction import _pose_stack_from_canonical_form
+from tmol.io._pdb_parsing import _parse_pdb
+from tmol.score import RefEnergyTerm
 
 
 # monkeypatch function to give more sane output from torch gradcheck
@@ -103,15 +102,17 @@ def print_table(table):
 
 def pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums=None):
     if resnums is None:
-        return pose_stack_from_pdb(pdb, torch_device)
+        return pose_stack_from_file(
+            pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+        )
 
-    atom_records = parse_pdb(pdb)
+    atom_records = _parse_pdb(pdb)
     atom_subsets = pandas.concat(
-        [select_atom_records_res_subset(atom_records, i, j) for i, j in resnums]
+        [_select_atom_records_res_subset(atom_records, i, j) for i, j in resnums]
     )
-    canonical_ordering = default_canonical_ordering()
-    packed_block_types = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_atom_records(
+    canonical_ordering = _default_canonical_ordering()
+    packed_block_types = _default_packed_block_types(torch_device)
+    canonical_form = _canonical_form_from_atom_records(
         canonical_ordering, atom_subsets, torch_device
     )
 
@@ -131,7 +132,7 @@ def pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums=None):
         [res_not_connected], dtype=torch.bool, device=torch_device
     )
 
-    pose_stack = pose_stack_from_canonical_form(
+    pose_stack = _pose_stack_from_canonical_form(
         canonical_ordering, packed_block_types, *canonical_form
     )
     return pose_stack

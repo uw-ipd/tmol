@@ -4,7 +4,7 @@ PDB entries, zstd-compressed and edited only as noted below, each chosen for one
 coordination context.
 Expected coordination for every metal is in `expected.yaml`, seeded from the
 RCSB `struct_conn` metalc records and checked against the coordinates. Read
-them with `tmol.io.atom_array_from_cif`.
+them with `tmol.io.atom_array_from_file`.
 
 | file | entry | resolution | context |
 |------|-------|-----------:|---------|

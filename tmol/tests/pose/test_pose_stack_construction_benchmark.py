@@ -1,9 +1,8 @@
 import pytest
 
-from tmol.io import pose_stack_from_pdb
-from tmol.pose import PoseStackBuilder
+from tmol import pose_stack_from_file, PoseStackBuilder
 from tmol.tests import zero_padded_counts
-from tmol.chemical import three2one
+from tmol.chemical._restypes import _three2one
 
 
 @pytest.mark.parametrize("n_poses", zero_padded_counts([1, 3, 10, 30, 100]))
@@ -17,14 +16,16 @@ def test_pose_construction_from_sequence(
 ):
     n_poses = int(n_poses)
 
-    ubq_pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device)
+    ubq_pose_stack = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
     pbt = ubq_pose_stack.packed_block_types
     ubq_res = [
         pbt.active_block_types[ubq_pose_stack.block_type_ind64[0, i]]
         for i in range(ubq_pose_stack.max_n_blocks)
     ]
 
-    seq = [three2one(res.name3) for res in ubq_res]
+    seq = [_three2one(res.name3) for res in ubq_res]
     n_pose_seq = [seq] * n_poses
 
     @benchmark

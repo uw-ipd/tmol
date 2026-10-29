@@ -7,30 +7,28 @@ import yaml
 from attrs import evolve
 from functools import partial
 from toolz.curried import groupby
-from tmol.database.chemical import ChemicalDatabase, VariantType, normalize_bond_tuples
+from tmol.database.chemical import ChemicalDatabase, VariantType, _normalize_bond_tuples
 from tmol.chemical import RefinedResidueType, ResidueTypeSet
-from tmol.database import PatchedChemicalDatabase
-from tmol.io import (
-    canonical_form_from_pdb,
-    default_canonical_ordering,
-    default_packed_block_types,
+from tmol import (
+    PatchedChemicalDatabase,
     CanonicalOrdering,
-)
-from tmol.io.details import (
-    left_justify_canonical_form,
-    find_disulfides,
-    resolve_his_tautomerization,
-    assign_block_types,
-    take_block_type_atoms_from_canonical,
-    _annotate_packed_block_types_w_canonical_res_order,
-    CanonicalOrderingAnnotation,
-)
-from tmol.io.details._select_from_canonical import (
-    _assert_connections_are_well_formed,
-)
-from tmol.pose import (
     PoseStackBuilder,
     PackedBlockTypes,
+)
+from tmol.io._canonical_ordering import (
+    _canonical_form_from_pdb,
+    _default_canonical_ordering,
+    _default_packed_block_types,
+)
+from tmol.io.details._left_justify_canonical_form import _left_justify_canonical_form
+from tmol.io.details._disulfide_search import _find_disulfides
+from tmol.io.details._his_taut_resolution import _resolve_his_tautomerization
+from tmol.io.details._select_from_canonical import (
+    _assign_block_types,
+    _take_block_type_atoms_from_canonical,
+    _annotate_packed_block_types_w_canonical_res_order,
+    CanonicalOrderingAnnotation,
+    _assert_connections_are_well_formed,
 )
 from tmol.tests.io.details.test_left_justify_canonical_form import add_two_res_at_gap
 
@@ -84,19 +82,19 @@ def dslf_and_his_resolved_pose_stack_from_canonical_form(
         chain_labels,
         _occ,
         _bf,
-    ) = left_justify_canonical_form(
+    ) = _left_justify_canonical_form(
         ch_id, can_rts, coords, at_is_pres, chain_labels=chain_labels
     )
 
     # 2
-    found_disulfides, res_type_variants = find_disulfides(co, can_rts, coords)
+    found_disulfides, res_type_variants = _find_disulfides(co, can_rts, coords)
     # 3
     (
         his_taut,
         res_type_variants,
         resolved_coords,
         resolved_atom_is_present,
-    ) = resolve_his_tautomerization(co, can_rts, res_type_variants, coords, at_is_pres)
+    ) = _resolve_his_tautomerization(co, can_rts, res_type_variants, coords, at_is_pres)
 
     return (
         ch_id,
@@ -144,11 +142,11 @@ def test_annotate_pbt_w_canonical_res_order_caching(
 
 
 def test_assign_block_types(torch_device, ubq_pdb):
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
+    co = _default_canonical_ordering()
+    pbt = _default_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
-    cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
+    cf = _canonical_form_from_pdb(co, ubq_pdb, torch_device)
     ch_id, can_rts, coords, ch_lab = (
         cf.chain_id,
         cf.res_types,
@@ -176,7 +174,7 @@ def test_assign_block_types(torch_device, ubq_pdb):
         block_types,
         inter_residue_connections64,
         inter_block_bondsep64,
-    ) = assign_block_types(
+    ) = _assign_block_types(
         co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
     )
 
@@ -238,7 +236,7 @@ def test_assign_block_types_w_exotic_termini_options(
 
     def variant_from_yaml(yml_string):
         raw = yaml.safe_load(yml_string)
-        raw = normalize_bond_tuples(raw)
+        raw = _normalize_bond_tuples(raw)
         return tuple(cattr.structure(x, VariantType) for x in raw)
 
     floro_nterm_variant = variant_from_yaml(floro_nterm_patch)
@@ -278,7 +276,7 @@ def test_assign_block_types_w_exotic_termini_options(
 
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
-    cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
+    cf = _canonical_form_from_pdb(co, ubq_pdb, torch_device)
     ch_id, can_rts, coords, ch_lab = (
         cf.chain_id,
         cf.res_types,
@@ -306,7 +304,7 @@ def test_assign_block_types_w_exotic_termini_options(
         block_types,
         inter_residue_connections64,
         inter_block_bondsep64,
-    ) = assign_block_types(
+    ) = _assign_block_types(
         co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
     )
 
@@ -335,12 +333,12 @@ def test_assign_block_types_w_exotic_termini_options(
 
 
 def test_assign_block_types_jagged_poses(torch_device, ubq_pdb):
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
+    co = _default_canonical_ordering()
+    pbt = _default_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     # first 4 res
-    cf4 = canonical_form_from_pdb(co, ubq_pdb, torch_device, residue_end=4)
+    cf4 = _canonical_form_from_pdb(co, ubq_pdb, torch_device, residue_end=4)
     ch_id_4, can_rts_4, coords_4, ch_lab_4 = (
         cf4.chain_id,
         cf4.res_types,
@@ -349,7 +347,7 @@ def test_assign_block_types_jagged_poses(torch_device, ubq_pdb):
     )
     at_is_pres_4 = not_any_nancoord(coords_4)
     # first 6 res
-    cf6 = canonical_form_from_pdb(co, ubq_pdb, torch_device, residue_end=6)
+    cf6 = _canonical_form_from_pdb(co, ubq_pdb, torch_device, residue_end=6)
     ch_id_6, can_rts_6, coords_6, ch_lab_6 = (
         cf6.chain_id,
         cf6.res_types,
@@ -398,7 +396,7 @@ def test_assign_block_types_jagged_poses(torch_device, ubq_pdb):
         block_types,
         inter_residue_connections64,
         inter_block_bondsep64,
-    ) = assign_block_types(
+    ) = _assign_block_types(
         co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
     )
 
@@ -437,12 +435,12 @@ def test_assign_block_types_jagged_poses(torch_device, ubq_pdb):
 
 
 def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
+    co = _default_canonical_ordering()
+    pbt = _default_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     # take ten residues
-    cf = canonical_form_from_pdb(co, ubq_pdb, torch_device, residue_end=10)
+    cf = _canonical_form_from_pdb(co, ubq_pdb, torch_device, residue_end=10)
     ch_id, can_rts, coords, ch_lab = (
         cf.chain_id,
         cf.res_types,
@@ -480,7 +478,7 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
         block_types,
         inter_residue_connections64,
         inter_block_bondsep64,
-    ) = assign_block_types(
+    ) = _assign_block_types(
         co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
     )
 
@@ -520,12 +518,12 @@ def test_assign_block_types_with_same_chain_cterm_vrt(ubq_pdb, torch_device):
     # a particular chain. What we want to ensure happens is that
     # the non-virtual C-terminal residue is still labeled as a C-term type.
 
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
+    co = _default_canonical_ordering()
+    pbt = _default_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     # take ten residues
-    cf = canonical_form_from_pdb(co, ubq_pdb, torch_device, residue_end=10)
+    cf = _canonical_form_from_pdb(co, ubq_pdb, torch_device, residue_end=10)
 
     # Now let's add a virtual residue to the end of the chain
     vrt_co_ind = co.restype_io_equiv_classes.index("VRT")
@@ -609,7 +607,7 @@ def test_assign_block_types_with_same_chain_cterm_vrt(ubq_pdb, torch_device):
         block_types,
         inter_residue_connections64,
         inter_block_bondsep64,
-    ) = assign_block_types(
+    ) = _assign_block_types(
         co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
     )
 
@@ -621,16 +619,16 @@ def test_assign_block_types_with_same_chain_cterm_vrt(ubq_pdb, torch_device):
 def test_assign_block_types_for_pert_and_antigen(
     pertuzumab_and_nearby_erbb2_pdb_and_segments, torch_device
 ):
-    co = default_canonical_ordering()
+    co = _default_canonical_ordering()
     (
         pert_and_erbb2_lines,
         res_not_connected,
     ) = pertuzumab_and_nearby_erbb2_pdb_and_segments
 
-    pbt = default_packed_block_types(torch_device)
+    pbt = _default_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
-    cf = canonical_form_from_pdb(co, pert_and_erbb2_lines, torch_device)
+    cf = _canonical_form_from_pdb(co, pert_and_erbb2_lines, torch_device)
     ch_id, can_rts, coords, ch_lab = (
         cf.chain_id,
         cf.res_types,
@@ -661,7 +659,7 @@ def test_assign_block_types_for_pert_and_antigen(
         block_types,
         inter_residue_connections64,
         inter_block_bondsep64,
-    ) = assign_block_types(
+    ) = _assign_block_types(
         co,
         pbt,
         at_is_pres,
@@ -717,11 +715,11 @@ def test_assign_block_types_for_pert_and_antigen(
 
 
 def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
+    co = _default_canonical_ordering()
+    pbt = _default_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
-    cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
+    cf = _canonical_form_from_pdb(co, ubq_pdb, torch_device)
     ch_id, can_rts, coords, ch_lab = (
         cf.chain_id,
         cf.res_types,
@@ -749,7 +747,7 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
         block_types64,
         inter_residue_connections64,
         inter_block_bondsep64,
-    ) = assign_block_types(
+    ) = _assign_block_types(
         co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
     )
 
@@ -760,7 +758,7 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
         real_canonical_atom_inds,
         _occ,
         _bf,
-    ) = take_block_type_atoms_from_canonical(
+    ) = _take_block_type_atoms_from_canonical(
         pbt, block_types64, coords, at_is_pres, cf.atom_occupancy, cf.atom_b_factor
     )
 
@@ -832,14 +830,14 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
     numpy.testing.assert_equal(block_coords[0, 0], block_coords_res1_gold)
 
     # absent metadata stays absent; explicit values, including 0, are selected
-    *_, occupancy, b_factor = take_block_type_atoms_from_canonical(
+    *_, occupancy, b_factor = _take_block_type_atoms_from_canonical(
         pbt, block_types64, coords, at_is_pres
     )
     assert occupancy is None and b_factor is None
 
     canonical_occupancy = numpy.full(coords.shape[:3], 0.5, dtype=numpy.float32)
     canonical_occupancy[0, 0] = 0.0
-    *_, occupancy, b_factor = take_block_type_atoms_from_canonical(
+    *_, occupancy, b_factor = _take_block_type_atoms_from_canonical(
         pbt, block_types64, coords, at_is_pres, canonical_occupancy
     )
     real_atoms = real_atoms.cpu().numpy()
@@ -850,7 +848,7 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
 
 def variants_from_yaml(yml_string):
     raw = yaml.safe_load(yml_string)
-    raw = normalize_bond_tuples(raw)
+    raw = _normalize_bond_tuples(raw)
     return tuple(cattr.structure(x, VariantType) for x in raw)
 
 
@@ -909,7 +907,7 @@ def test_select_best_block_type_candidate_choosing_default_term(
     varnames = [var.display_name for var in new_pucd.variants]
     assert "fake_cterm" in varnames
 
-    cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
+    cf = _canonical_form_from_pdb(co, ubq_pdb, torch_device)
     ch_id, can_rts, coords, ch_lab = (
         cf.chain_id,
         cf.res_types,
@@ -937,7 +935,7 @@ def test_select_best_block_type_candidate_choosing_default_term(
         block_types,
         inter_residue_connections64,
         inter_block_bondsep64,
-    ) = assign_block_types(
+    ) = _assign_block_types(
         co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
     )
 
@@ -1033,7 +1031,7 @@ def test_select_best_block_type_candidate_w_mult_opts(
     assert "THR:phospho" in bt_names
     assert "THR:mospho" in bt_names
 
-    cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
+    cf = _canonical_form_from_pdb(co, ubq_pdb, torch_device)
     ch_id, can_rts, coords, ch_lab = (
         cf.chain_id,
         cf.res_types,
@@ -1065,7 +1063,7 @@ def test_select_best_block_type_candidate_w_mult_opts(
         block_types,
         inter_residue_connections64,
         inter_block_bondsep64,
-    ) = assign_block_types(
+    ) = _assign_block_types(
         co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
     )
 
@@ -1116,7 +1114,7 @@ def test_select_best_block_type_candidate_error_impossible_combo(
     assert "THR:phospho" in bt_names
     assert "THR:mospho" in bt_names
 
-    cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
+    cf = _canonical_form_from_pdb(co, ubq_pdb, torch_device)
     ch_id, can_rts, coords, ch_lab = (
         cf.chain_id,
         cf.res_types,
@@ -1172,7 +1170,7 @@ Best candidate exceeds failure threshold"""
             block_types,
             inter_residue_connections64,
             inter_block_bondsep64,
-        ) = assign_block_types(
+        ) = _assign_block_types(
             co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
         )
         assert False, "Call to assign_block_types should fail"
@@ -1181,10 +1179,10 @@ Best candidate exceeds failure threshold"""
 
 
 def test_select_best_block_type_candidate_accept_one_extraneous(torch_device, pdb_1r21):
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
+    co = _default_canonical_ordering()
+    pbt = _default_packed_block_types(torch_device)
 
-    cf = canonical_form_from_pdb(co, pdb_1r21, torch_device)
+    cf = _canonical_form_from_pdb(co, pdb_1r21, torch_device)
     ch_id, can_rts, coords, ch_lab = (
         cf.chain_id,
         cf.res_types,
@@ -1212,6 +1210,6 @@ def test_select_best_block_type_candidate_accept_one_extraneous(torch_device, pd
         block_types,
         inter_residue_connections64,
         inter_block_bondsep64,
-    ) = assign_block_types(
+    ) = _assign_block_types(
         co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
     )

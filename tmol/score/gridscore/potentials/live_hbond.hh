@@ -41,8 +41,7 @@ struct LiveHBondDispatch {
       TView<Int, 1, D> receptor_acceptor_cell_offsets,
       TView<Int, 1, D> receptor_acceptor_cell_indices,
       TView<hbond::potentials::HBondPairParams<Real>, 2, D> pair_params,
-      TView<hbond::potentials::HBondPolynomials<double>, 2, D>
-          pair_polynomials,
+      TView<hbond::potentials::HBondPolynomials<double>, 2, D> pair_polynomials,
       TView<hbond::potentials::HBondGlobalParams<Real>, 1, D> global_params)
       -> std::tuple<TPack<Real, 1, D>, TPack<HBVec<Real, 3>, 2, D>>;
 };

@@ -9,7 +9,7 @@ def resolve_device(device: torch.device) -> torch.device:
     return torch.device("cpu") if device.type == "cpu" else device
 
 
-def synchronize_device(device: torch.device) -> None:
+def _synchronize_device(device: torch.device) -> None:
     """Wait for queued CUDA work on ``device``; do nothing for CPU devices."""
     device = resolve_device(device)
     if device.type == "cuda":

@@ -2,15 +2,14 @@
 
 import pytest
 
-from tmol.io import (
-    default_canonical_ordering,
-    default_packed_block_types,
-    canonical_form_from_pdb,
-    pose_stack_from_canonical_form,
-    parse_pdb,
-    to_pdb,
-    atom_records_from_pose_stack,
+from tmol.io._canonical_ordering import (
+    _default_canonical_ordering,
+    _default_packed_block_types,
+    _canonical_form_from_pdb,
 )
+from tmol.io._pose_stack_construction import _pose_stack_from_canonical_form
+from tmol.io._pdb_parsing import _parse_pdb, _to_pdb
+from tmol.io._write_pose_stack_pdb import _atom_records_from_pose_stack
 
 DNA_NAME3S = ("DA", "DC", "DG", "DT")
 # RNA is the one case where the name3 and the block type name differ
@@ -20,10 +19,10 @@ NA_MAINCHAIN = ("P", "O5'", "C5'", "C4'", "C3'", "O3'")
 
 
 def _pose_stack(pdb_lines, torch_device):
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(co, pdb_lines, torch_device)
-    return pose_stack_from_canonical_form(co, pbt, *canonical_form)
+    co = _default_canonical_ordering()
+    pbt = _default_packed_block_types(torch_device)
+    canonical_form = _canonical_form_from_pdb(co, pdb_lines, torch_device)
+    return _pose_stack_from_canonical_form(co, pbt, *canonical_form)
 
 
 def _atom_set(co, pdb_lines):
@@ -33,7 +32,7 @@ def _atom_set(co, pdb_lines):
     (HB2, H1). Resolving both through the alias mapping compares atom identity
     rather than naming convention.
     """
-    records = parse_pdb(pdb_lines)
+    records = _parse_pdb(pdb_lines)
     out = set()
     for _, r in records.iterrows():
         resn, atomn = r["resn"], r["atomn"].strip()
@@ -45,7 +44,7 @@ def _atom_set(co, pdb_lines):
 
 @pytest.mark.parametrize("name3s", [DNA_NAME3S, RNA_NAME3S])
 def test_na_restypes_in_canonical_ordering(name3s):
-    co = default_canonical_ordering()
+    co = _default_canonical_ordering()
     for name3 in name3s:
         assert name3 in co.restype_io_equiv_classes
         assert co.restypes_mainchain_atoms[name3] == NA_MAINCHAIN
@@ -55,10 +54,10 @@ def test_na_restypes_in_canonical_ordering(name3s):
 @pytest.mark.parametrize("fixture", ["dna_pdb", "rna_pdb", "protein_dna_pdb"])
 def test_na_pose_stack_round_trip(fixture, request, torch_device):
     pdb_lines = request.getfixturevalue(fixture)
-    co = default_canonical_ordering()
+    co = _default_canonical_ordering()
     pose_stack = _pose_stack(pdb_lines, torch_device)
 
-    out = to_pdb(atom_records_from_pose_stack(pose_stack))
+    out = _to_pdb(_atom_records_from_pose_stack(pose_stack))
 
     before, after = _atom_set(co, pdb_lines), _atom_set(co, out)
 

@@ -4,7 +4,7 @@ import attr
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_cif
+from tmol import pose_stack_from_file
 from tmol.tests.data import data_path
 from tmol.tests.score.cartbonded.test_explicit_connection_parameters import scoring_term
 
@@ -13,18 +13,20 @@ from tmol.tests.score.cartbonded.test_explicit_connection_parameters import scor
 def test_gamma_junction_length_angle_energy_and_gradient(
     torch_device, tmp_path, junction
 ):
-    from tmol.database import ParameterDatabase, inject_residue_params
-    from tmol.database.scoring import LengthGroup
-    from tmol.io import create_pose_stack_from_sequences
-    from tmol.ligand import prepare_polymer_residue, write_params_file, load_params_file
+    from tmol import ParameterDatabase
+    from tmol.database import _inject_residue_params
+    from tmol.database.scoring._cartbonded import LengthGroup
+    from tmol.io._pose_stack_from_sequence import _create_pose_stack_from_sequences
+    from tmol.ligand._preparation import _prepare_polymer_residue
+    from tmol.ligand import write_params_file, load_params_file
     from tmol.ligand._registry import (
-        inject_ligand_preparations,
-        rebuild_canonical_ordering,
+        _inject_ligand_preparations,
+        _rebuild_canonical_ordering,
     )
     from tmol.tests.ligand.test_nonstandard_backbones import _residue
 
     if junction == "fixture":
-        pose, context = pose_stack_from_cif(
+        pose, context = pose_stack_from_file(
             data_path("ncaa_fixtures") / "gamma_peptide_1gac.cif",
             torch_device,
             prepare_ligands=True,
@@ -37,9 +39,9 @@ def test_gamma_junction_length_angle_energy_and_gradient(
         array = _residue("FGA")
         array.atom_name[array.atom_name == "N"] = "NX"
         database = ParameterDatabase.get_default()
-        prep = prepare_polymer_residue(
+        prep = _prepare_polymer_residue(
             array,
-            rebuild_canonical_ordering(database),
+            _rebuild_canonical_ordering(database),
             database,
             connection_atoms={"NX", "CD"},
             seed=20260909,
@@ -49,7 +51,7 @@ def test_gamma_junction_length_angle_energy_and_gradient(
         write_params_file(prep, path)
         loaded = load_params_file(path)
         assert loaded[0].residue_type.atoms == prep.residue_type.atoms
-        database = inject_ligand_preparations(database, loaded)
+        database = _inject_ligand_preparations(database, loaded)
         if junction == "supplied":
             rows = database.scoring.cartbonded.residue_params["FGA"]
             rows = attr.evolve(
@@ -59,10 +61,10 @@ def test_gamma_junction_length_angle_energy_and_gradient(
                     LengthGroup("CD", "+NX", x0=1.41, K=401.0),
                 ),
             )
-            database = inject_residue_params(
+            database = _inject_residue_params(
                 database, residue_types=[], cartbonded_params={"FGA": rows}
             )
-        pose = create_pose_stack_from_sequences(
+        pose = _create_pose_stack_from_sequences(
             "X[FGA]X[FGA]",
             param_db=database,
             device=torch_device,
@@ -114,15 +116,15 @@ def test_gamma_junction_length_angle_energy_and_gradient(
         # Full Cartesian term parity with the same chemistry under its original
         # names also covers proper/improper torsions and their multiplicities.
         original = ParameterDatabase.get_default()
-        prep = prepare_polymer_residue(
+        prep = _prepare_polymer_residue(
             _residue("FGA"),
-            rebuild_canonical_ordering(original),
+            _rebuild_canonical_ordering(original),
             original,
             connection_atoms={"N", "CD"},
             seed=20260909,
         )
-        original = inject_ligand_preparations(original, [prep])
-        reference = create_pose_stack_from_sequences(
+        original = _inject_ligand_preparations(original, [prep])
+        reference = _create_pose_stack_from_sequences(
             "X[FGA]X[FGA]",
             param_db=original,
             device=torch_device,
@@ -207,28 +209,33 @@ def test_gamma_junction_length_angle_energy_and_gradient(
 )
 def test_cap_junction_forces(torch_device, tmp_path, cap, connection, sequence):
     """Common caps and caps in 3EPC/1A1E/6Q9T retain peptide restoring forces."""
-    from tmol.database import ParameterDatabase
-    from tmol.database.scoring import AngleGroup, ConnectionCartRes, LengthGroup
-    from tmol.io import create_pose_stack_from_sequences
-    from tmol.ligand import prepare_polymer_residue, write_params_file, load_params_file
+    from tmol import ParameterDatabase
+    from tmol.database.scoring._cartbonded import (
+        AngleGroup,
+        ConnectionCartRes,
+        LengthGroup,
+    )
+    from tmol.io._pose_stack_from_sequence import _create_pose_stack_from_sequences
+    from tmol.ligand._preparation import _prepare_polymer_residue
+    from tmol.ligand import write_params_file, load_params_file
     from tmol.ligand._registry import (
-        inject_ligand_preparations,
-        rebuild_canonical_ordering,
+        _inject_ligand_preparations,
+        _rebuild_canonical_ordering,
     )
     from tmol.tests.ligand.test_nonstandard_backbones import _residue_bonded_only_at
-    from tmol.ligand._polymer_profile import cap_polymer_profile
+    from tmol.ligand._polymer_profile import _cap_polymer_profile
     from tmol.tests.score.cartbonded.test_explicit_connection_parameters import (
         harmonic_reference,
     )
 
     database = ParameterDatabase.get_default()
     source = _residue_bonded_only_at(cap, connection)
-    prep = prepare_polymer_residue(
+    prep = _prepare_polymer_residue(
         source,
-        rebuild_canonical_ordering(database),
+        _rebuild_canonical_ordering(database),
         database,
         connection_atoms={connection},
-        profile=cap_polymer_profile(source, connection, database.chemical),
+        profile=_cap_polymer_profile(source, connection, database.chemical),
         seed=20260909,
     )
     assert set(source.atom_name[source.element != "H"]) <= {
@@ -238,8 +245,8 @@ def test_cap_junction_forces(torch_device, tmp_path, cap, connection, sequence):
     write_params_file(prep, path)
     loaded = load_params_file(path)
     assert loaded[0].residue_type.atoms == prep.residue_type.atoms
-    database = inject_ligand_preparations(database, loaded)
-    pose = create_pose_stack_from_sequences(
+    database = _inject_ligand_preparations(database, loaded)
+    pose = _create_pose_stack_from_sequences(
         sequence, param_db=database, device=torch_device, termini=False
     )
     if cap == "NH2":
@@ -282,7 +289,7 @@ def test_cap_junction_forces(torch_device, tmp_path, cap, connection, sequence):
     coords = coords.to(device=torch_device, dtype=torch.float64).requires_grad_(True)
     module = scoring_term(pose, database).render_block_pair_scoring_module(pose)
     terms = module(coords)[:, 0, 0, 1]
-    assert float(terms[2].detach()) > 1e-6  # Cross-junction planarity stays active.
+    assert float(terms[3].detach()) > 1e-6  # Cross-junction planarity stays active.
     actual = terms[:2]
     expected = harmonic_reference(pose, coords, record)
     assert bool((expected > 0.01).all())

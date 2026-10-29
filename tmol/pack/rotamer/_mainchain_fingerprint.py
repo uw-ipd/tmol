@@ -6,25 +6,21 @@ import torch
 
 from typing import Tuple, Mapping, Union
 
-from tmol.types import (
-    NDArray,
-    Tensor,
-    validate_args,
-)
+from tmol.types._array import NDArray
+from tmol.types._torch import Tensor
+from tmol.types._functional import _validate_args
 from tmol.numeric._dihedrals import _numpy_coord_dihedrals
-from tmol.database import PatchedChemicalDatabase
+from tmol.database._patched_chemdb import PatchedChemicalDatabase
 from tmol.chemical import RefinedResidueType
-from tmol.pose import PackedBlockTypes
+from tmol.pose._packed_block_types import PackedBlockTypes
 from tmol.score._annotation_cache import (
     AnnotationKey,
-    cached_annotation,
-    store_annotation,
+    _cached_annotation,
+    _store_annotation,
 )
 
-from tmol.pack.rotamer import (
-    ChiSampler,
-    bfs_sidechain_atoms_jit,
-)
+from tmol.pack.rotamer._chi_sampler import ChiSampler
+from tmol.pack.rotamer._bfs_sidechain import _bfs_sidechain_atoms_jit
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -61,8 +57,8 @@ class MCFingerprints:
     source_fingerprint: Tensor[torch.int64][:]
 
 
-@validate_args
-def create_non_sidechain_fingerprint(  # noqa: C901
+@_validate_args
+def _create_non_sidechain_fingerprint(  # noqa: C901
     rt: RefinedResidueType,
     parents: NDArray[numpy.int32][:],
     sc_atoms: NDArray[numpy.int32][:],
@@ -257,12 +253,12 @@ def _mc_inds_for_chiral_mc_atom(rt, mc_atoms, mc_index):
     )
 
 
-@validate_args
-def create_mainchain_fingerprint(
+@_validate_args
+def _create_mainchain_fingerprint(
     rt: RefinedResidueType, sc_roots: Tuple[str, ...], chem_db: PatchedChemicalDatabase
 ):
     parents, sidechain_atoms = _mainchain_region(rt, sc_roots)
-    return create_non_sidechain_fingerprint(rt, parents, sidechain_atoms, chem_db)
+    return _create_non_sidechain_fingerprint(rt, parents, sidechain_atoms, chem_db)
 
 
 def _mainchain_region(rt, sc_roots):
@@ -273,13 +269,13 @@ def _mainchain_region(rt, sc_roots):
 
     sc_roots = tuple(rt.atom_to_idx[at] for at in sc_roots)
 
-    sidechain_atoms = bfs_sidechain_atoms_jit(
+    sidechain_atoms = _bfs_sidechain_atoms_jit(
         parents, numpy.array(sc_roots, dtype=numpy.int32)
     )
     return parents, sidechain_atoms
 
 
-def annotate_residue_type_with_sampler_fingerprints(
+def _annotate_residue_type_with_sampler_fingerprints(
     restype: RefinedResidueType,
     samplers: Tuple[ChiSampler, ...],
     chem_db: PatchedChemicalDatabase,
@@ -310,7 +306,9 @@ def annotate_residue_type_with_sampler_fingerprints(
                 # Atom descriptors do not depend on the selected roots. Compute
                 # them once for this call, then keep only each retained region.
                 if all_atom_fps is None:
-                    all_atom_fps = create_mainchain_fingerprint(restype, (), chem_db)[1]
+                    all_atom_fps = _create_mainchain_fingerprint(restype, (), chem_db)[
+                        1
+                    ]
                 _, sidechain_atoms = _mainchain_region(restype, roots)
                 mc_ats = numpy.nonzero(sidechain_atoms == 0)[0]
                 mc_at_fps = tuple(all_atom_fps[at] for at in mc_ats)
@@ -333,7 +331,7 @@ def annotate_residue_type_with_sampler_fingerprints(
     restype._mc_sampler_aliases = aliases
 
 
-def find_unique_fingerprints(pbt: PackedBlockTypes):
+def _find_unique_fingerprints(pbt: PackedBlockTypes):
     """Copy from the union of regions retained by the current samplers.
 
     Source regions need not be nested. Each destination sampler still copies
@@ -360,13 +358,13 @@ def find_unique_fingerprints(pbt: PackedBlockTypes):
             tuple(tuple(fp is not None for fp in row) for row in rows),
         ),
     )
-    cached = cached_annotation(pbt, "_mc_packed_annotation", key)
+    cached = _cached_annotation(pbt, "_mc_packed_annotation", key)
     if cached is not None:
         # New instances with identical ownership reuse the large tensor plan.
         if cached.sampler_mapping != sampler_mapping:
             cached = attr.evolve(cached, sampler_mapping=sampler_mapping)
         pbt.mc_fingerprints = cached
-        return store_annotation(pbt, "_mc_packed_annotation", key, cached)
+        return _store_annotation(pbt, "_mc_packed_annotation", key, cached)
 
     sources = []
     for row in rows:
@@ -414,4 +412,4 @@ def find_unique_fingerprints(pbt: PackedBlockTypes):
         source_fingerprint=to_device(source_fp_indices),
     )
     pbt.mc_fingerprints = fingerprints
-    return store_annotation(pbt, "_mc_packed_annotation", key, fingerprints)
+    return _store_annotation(pbt, "_mc_packed_annotation", key, fingerprints)

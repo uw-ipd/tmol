@@ -4,9 +4,9 @@ import attr
 import pytest
 import torch
 
-from tmol.database.scoring._mirrored_dunbrack import mirror_semi_rotameric_library
-from tmol.io import pose_stack_from_pdb
-from tmol.score.dunbrack import DunbrackEnergyTerm
+from tmol.database.scoring._mirrored_dunbrack import _mirror_semi_rotameric_library
+from tmol import pose_stack_from_file
+from tmol.score import DunbrackEnergyTerm
 from tmol.tests.score.dunbrack.test_parameter_identity import setup, render
 from tmol.tests.score.test_mirror_image_scoring import _pose, MIRROR_PAIR
 
@@ -79,7 +79,14 @@ def test_semirotameric_grid_reindexing_preserves_energies_and_gradients(
     source = phe_library(default_database.scoring.dun)
     shifted = shifted_origin(source)
     private = replace_libraries(default_database, {source.table_name: shifted})
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=12)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=12,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     results = []
     for database in (default_database, private):
         term = DunbrackEnergyTerm(database, torch_device)
@@ -113,7 +120,7 @@ def non_aligned_grid(library):
 
 def test_reflected_grid_points_have_exact_reflected_coordinates(default_database):
     source = non_aligned_grid(phe_library(default_database.scoring.dun))
-    mirrored = mirror_semi_rotameric_library(source)
+    mirrored = _mirror_semi_rotameric_library(source)
     starts = [*source.rotameric_data.backbone_dihedral_start, source.non_rot_chi_start]
     targets = [
         *mirrored.rotameric_data.backbone_dihedral_start,
@@ -138,7 +145,7 @@ def test_non_aligned_grid_mirrors_score_and_coordinate_gradients(
     default_database, torch_device, block_pairs
 ):
     source = non_aligned_grid(phe_library(default_database.scoring.dun))
-    mirrored = mirror_semi_rotameric_library(source)
+    mirrored = _mirror_semi_rotameric_library(source)
     database = replace_libraries(
         default_database.with_symmetric_gly(),
         {source.table_name: source, mirrored.table_name: mirrored},

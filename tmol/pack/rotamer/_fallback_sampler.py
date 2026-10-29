@@ -3,19 +3,12 @@ import attr
 
 from typing import ClassVar, Tuple
 
-from tmol.types import (
-    Tensor,
-    validate_args,
-)
+from tmol.types._torch import Tensor
 from tmol.chemical import RefinedResidueType
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
-from tmol.pack.rotamer import (
-    ConformerSampler,
-    IncludeCurrentSampler,
-)
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
+from tmol.pack.rotamer._conformer_sampler import ConformerSampler
+from tmol.pack.rotamer._include_current_sampler import IncludeCurrentSampler
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -46,19 +39,15 @@ class FallbackSampler(ConformerSampler):
     def sampler_name(cls):
         return "FallbackSampler"
 
-    @validate_args
     def annotate_residue_type(self, rt: RefinedResidueType):
         pass
 
-    @validate_args
     def annotate_packed_block_types(self, packed_block_types: PackedBlockTypes):
         pass
 
-    @validate_args
     def defines_rotamers_for_rt(self, rt: RefinedResidueType):
         return True
 
-    @validate_args
     def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
         return (rt.default_jump_connection_atom,)
 

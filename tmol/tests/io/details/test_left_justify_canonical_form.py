@@ -2,17 +2,15 @@ import torch
 import numpy
 
 from functools import partial
-from tmol.io import (
-    canonical_form_from_pdb,
-    default_packed_block_types,
-    default_canonical_ordering,
+from tmol.io._canonical_ordering import (
+    _canonical_form_from_pdb,
+    _default_packed_block_types,
+    _default_canonical_ordering,
 )
-from tmol.io.details import left_justify_canonical_form
+from tmol.io.details._left_justify_canonical_form import _left_justify_canonical_form
 
-from tmol.pose import (
-    PoseStackBuilder,
-    DEFAULT_ATOM_B_FACTOR,
-)
+from tmol import PoseStackBuilder
+from tmol.pose._pdb_info import DEFAULT_ATOM_B_FACTOR
 
 
 def get_add_two_fill_shape(x):
@@ -68,7 +66,7 @@ def add_two_res_at_end(x, fill_value):
 
 
 def cf_as_tuple_from_pdb_lines(co, pdblines, device):
-    cf = canonical_form_from_pdb(co, pdblines, device)
+    cf = _canonical_form_from_pdb(co, pdblines, device)
     # the leading fields, through covalent_bonds, that the tests unpack
     return tuple([*cf])[:12]
 
@@ -78,8 +76,8 @@ def not_any_nancoord(coords):
 
 
 def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
+    co = _default_canonical_ordering()
+    pbt = _default_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     # take ten residues
@@ -128,7 +126,7 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
         ch_lab,
         occ,
         bf,
-    ) = left_justify_canonical_form(
+    ) = _left_justify_canonical_form(
         ch_id,
         can_rts,
         coords,
@@ -164,8 +162,8 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
 
 
 def test_left_justify_can_form_with_gaps_in_dslf(pertuzumab_pdb, torch_device):
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
+    co = _default_canonical_ordering()
+    pbt = _default_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     (
@@ -218,7 +216,7 @@ def test_left_justify_can_form_with_gaps_in_dslf(pertuzumab_pdb, torch_device):
         ch_lab,
         _occ,
         _bf,
-    ) = left_justify_canonical_form(
+    ) = _left_justify_canonical_form(
         ch_id, can_rts, coords, at_is_pres, disulfides_shifted, chain_labels=ch_lab
     )
 
@@ -241,12 +239,12 @@ def test_left_justify_can_form_with_gaps_in_dslf(pertuzumab_pdb, torch_device):
 def test_assign_block_types_for_pert_and_antigen(
     pertuzumab_and_nearby_erbb2_pdb_and_segments, torch_device
 ):
-    co = default_canonical_ordering()
+    co = _default_canonical_ordering()
     (
         pert_and_erbb2_lines,
         res_not_connected,
     ) = pertuzumab_and_nearby_erbb2_pdb_and_segments
-    pbt = default_packed_block_types(torch_device)
+    pbt = _default_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     (
@@ -289,7 +287,7 @@ def test_assign_block_types_for_pert_and_antigen(
         lj_ch_lab,
         lj_occ,
         lj_bf,
-    ) = left_justify_canonical_form(
+    ) = _left_justify_canonical_form(
         ch_id,
         can_rts,
         coords,

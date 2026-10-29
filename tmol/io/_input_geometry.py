@@ -5,11 +5,11 @@ import warnings
 
 import torch
 
-from tmol.pose import PoseStack
+from tmol.pose._pose_stack import PoseStack
 from tmol.io.details._build_missing_leaf_atoms import _build_coords_from_icoors
 
 
-def rebuild_coincident_hydrogens(pose: PoseStack) -> PoseStack:
+def _rebuild_coincident_hydrogens(pose: PoseStack) -> PoseStack:
     """Rebuild hydrogens on their bonded parent; reject coincident heavy bonds.
 
     Chemistry has already been selected, so rebuilding coordinates preserves

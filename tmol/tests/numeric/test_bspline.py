@@ -1,7 +1,7 @@
 import torch
 import numpy
 import pytest
-from tmol.numeric import BSplineInterpolation
+from tmol.numeric._bspline import BSplineInterpolation
 
 
 @pytest.mark.parametrize("shape", [(5, 7), (3, 5, 7), (2, 3, 5, 7)])

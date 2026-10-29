@@ -1,18 +1,25 @@
 import pytest
 import torch
 
-from tmol.chemical import MAX_SIG_BOND_SEPARATION
-from tmol.io import pose_stack_from_pdb
+from tmol.chemical._constants import MAX_SIG_BOND_SEPARATION
+from tmol import pose_stack_from_file
 
-from tmol.pose import ConstraintSet, InterBlockBondsep, PoseStackBuilder
-from tmol.score.constraint import ConstraintEnergyTerm
+from tmol import ConstraintSet, PoseStackBuilder
+from tmol.pose._inter_block_bondsep import InterBlockBondsep
+from tmol.score import ConstraintEnergyTerm
 
 
 @pytest.mark.parametrize("target_on_cpu", [False, True])
 def test_concatenate_pose_stacks_moves_metadata(ubq_pdb, torch_device, target_on_cpu):
     target = torch.device("cpu") if target_on_cpu else torch_device
     inputs = [
-        pose_stack_from_pdb(ubq_pdb, device, residue_end=n_res)
+        pose_stack_from_file(
+            ubq_pdb,
+            device,
+            residue_end=n_res,
+            no_optH=True,
+            missing_density_distance_threshold=0.0,
+        )
         for device, n_res in [(torch_device, 3), (torch.device("cpu"), 2)]
     ]
     for pose in inputs:
@@ -51,8 +58,20 @@ def test_concatenate_pose_stacks_moves_metadata(ubq_pdb, torch_device, target_on
 
 
 def test_concatenate_pose_stacks_ctor(ubq_pdb, default_database, torch_device):
-    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=40)
-    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=60)
+    p1 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=40,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
+    p2 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=60,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     poses = PoseStackBuilder.from_poses([p1, p2], torch.device(torch_device.type))
     assert poses.block_type_ind.shape == (2, 60)
     assert poses.coords.shape == (2, 962, 3)  # fd 959->961 for nterm

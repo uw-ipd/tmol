@@ -3,12 +3,8 @@
 import numpy as np
 import pytest
 
-from tmol.io import (
-    assemble_input,
-    atom_array_from_file,
-    atom_array_from_mol2,
-    cif_from_atom_array,
-)
+from tmol.io._assemble import _assemble_input
+from tmol import atom_array_from_file, file_from_atom_array
 from tmol.tests.data import data_path
 
 LIGAND_RES_NAME = "LG1"
@@ -16,7 +12,7 @@ LIGAND_RES_NAME = "LG1"
 
 @pytest.fixture
 def ligand():
-    return atom_array_from_mol2(
+    return atom_array_from_file(
         data_path("protein_ligand_test") / "ace.lig.mol2",
         res_name=LIGAND_RES_NAME,
     )
@@ -38,7 +34,7 @@ def test_a_mol2_ligand_arrives_with_its_bond_orders(ligand):
 
 
 def test_joining_keeps_both_parts_whole(protein, ligand):
-    joined = assemble_input(protein, ligand)
+    joined = _assemble_input(protein, ligand)
 
     assert joined.array_length() == protein.array_length() + ligand.array_length()
     assert joined.bonds.get_bond_count() == (
@@ -59,9 +55,16 @@ def test_the_written_cif_parses_back_into_the_same_ligand(
     """The file carries the molecule read, not the dictionary's own "LG1" entry."""
     path = tmp_path / "complex.cif"
     if route == "text":
-        path.write_text(cif_from_atom_array(assemble_input(protein, ligand)))
+        path.write_text(
+            file_from_atom_array(_assemble_input(protein, ligand), format="cif")
+        )
     else:
-        assert cif_from_atom_array(assemble_input(protein, ligand), path=path) == path
+        assert (
+            file_from_atom_array(
+                _assemble_input(protein, ligand), path=path, format="cif"
+            )
+            == path
+        )
     reparsed = atom_array_from_file(path)
 
     restored = reparsed[reparsed.res_name == LIGAND_RES_NAME]

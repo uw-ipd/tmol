@@ -1,17 +1,21 @@
 from types import SimpleNamespace
 
+import attr
 import pytest
 import torch
 import biotite.structure as struc
 
-from tmol.ops import build_coord_mask_for_mask_and_nearby_blocks
-from tmol.io import (
-    pose_stack_from_biotite,
-    pose_stack_from_pdb,
-    biotite_from_pose_stack,
+from tmol.ops._score_utils import _build_coord_mask_for_mask_and_nearby_blocks
+from tmol.ops import select_blocks_from_pose_stack, select_from_pose_stack
+from tmol import (
+    extended_pose_stack_from_sequences,
+    pose_stack_from_atom_array,
+    pose_stack_from_file,
+    atom_array_from_pose_stack,
+    PoseStackBuilder,
+    run_cart_min,
+    beta2016_score_function,
 )
-from tmol.pose import PoseStackBuilder
-from tmol import run_cart_min, beta2016_score_function
 import tmol.ops._score_utils as score_utils
 
 
@@ -186,8 +190,13 @@ def test_calculate_ddg_retains_diagonal_terms_for_overlapping_masks(torch_device
 def test_interacting_coord_mask_matches_per_pose_reference(
     biotite_1ubq: struc.AtomArray, systems_bysize, torch_device
 ):
-    pose = pose_stack_from_biotite(biotite_1ubq, torch_device)
-    shorter_pose = pose_stack_from_pdb(systems_bysize[40], torch_device)
+    pose = pose_stack_from_atom_array(biotite_1ubq, torch_device, no_optH=True)
+    shorter_pose = pose_stack_from_file(
+        systems_bysize[40],
+        torch_device,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     poses = PoseStackBuilder.from_poses([pose, shorter_pose, pose], torch_device)
     block_mask = torch.zeros_like(poses.block_type_ind, dtype=torch.bool)
     block_mask[0, 0] = True
@@ -270,7 +279,7 @@ def test_build_coord_mask_and_minimize_for_first_residue(
     run cart_min on the masked atoms, and convert back to biotite."""
 
     # Convert biotite structure to a PoseStack
-    pose_stack = pose_stack_from_biotite(biotite_1ubq, torch_device)
+    pose_stack = pose_stack_from_atom_array(biotite_1ubq, torch_device, no_optH=True)
 
     # Build a mask: True for the first residue (block 0)
     mask = torch.zeros_like(
@@ -279,7 +288,7 @@ def test_build_coord_mask_and_minimize_for_first_residue(
     mask[:, 0] = True
 
     # Generate the coord_mask from the block mask
-    coord_mask = build_coord_mask_for_mask_and_nearby_blocks(pose_stack, mask)
+    coord_mask = _build_coord_mask_for_mask_and_nearby_blocks(pose_stack, mask)
 
     # Verify the coord_mask has been produced
     assert coord_mask.shape == pose_stack.coords.shape[:2], (
@@ -297,7 +306,7 @@ def test_build_coord_mask_and_minimize_for_first_residue(
     minimized_pose = run_cart_min(pose_stack, sfxn, coord_mask)
 
     # Convert the minimized pose back to a biotite structure
-    result_biotite = biotite_from_pose_stack(minimized_pose)
+    result_biotite = atom_array_from_pose_stack(minimized_pose)
 
     # Check that the output is a valid biotite AtomArray
     assert isinstance(
@@ -307,3 +316,189 @@ def test_build_coord_mask_and_minimize_for_first_residue(
     assert not torch.any(
         torch.isnan(minimized_pose.coords)
     ), "Minimized pose contains NaN coordinates"
+
+
+def test_block_masks_may_live_on_a_different_device_than_the_pose(torch_device):
+    """Tutorials build masks with ``torch.zeros(...)``, which defaults to the CPU."""
+    from tmol import extended_pose_stack_from_sequences
+
+    pose_stack = extended_pose_stack_from_sequences(["AGA", "AGA"], device=torch_device)
+    cpu_mask = torch.zeros((pose_stack.n_poses, pose_stack.max_n_blocks), dtype=bool)
+    cpu_mask[:, 1] = True
+
+    on_pose_device = score_utils.res_mask_to_coord_mask(
+        pose_stack, cpu_mask.to(torch_device)
+    )
+    from_cpu = score_utils.res_mask_to_coord_mask(pose_stack, cpu_mask)
+    assert from_cpu.device == on_pose_device.device
+    assert torch.equal(from_cpu, on_pose_device)
+
+    nearby = _build_coord_mask_for_mask_and_nearby_blocks(pose_stack, cpu_mask)
+    assert nearby.device == on_pose_device.device
+
+
+# ── select_blocks_from_pose_stack / select_from_pose_stack ───────────────────
+
+
+def _with_inserted_residue(pose_stack, pose, block, residue_number, insertion_code):
+    """Give one block a residue label shared with its predecessor, distinguished
+    only by an insertion code -- mimics a real PDB's "52, 52A" numbering."""
+    residue_labels = pose_stack.pdb_info.residue_labels.copy()
+    residue_labels[pose, block] = residue_number
+    insertion_codes = pose_stack.pdb_info.residue_insertion_codes.copy()
+    insertion_codes[pose, block] = insertion_code
+    pdb_info = attr.evolve(
+        pose_stack.pdb_info,
+        residue_labels=residue_labels,
+        residue_insertion_codes=insertion_codes,
+    )
+    return attr.evolve(pose_stack, pdb_info=pdb_info)
+
+
+def test_select_blocks_wildcard_selects_every_real_block(torch_device):
+    """ "[*,*,*]" selects exactly the real (non-padding) blocks of every pose."""
+    pose_stack = extended_pose_stack_from_sequences(
+        ["AAA:KKKKK", "AA"], device=torch_device
+    )
+    expected = pose_stack.block_type_ind64 >= 0
+    actual = select_blocks_from_pose_stack(pose_stack, "[*,*,*]")
+    torch.testing.assert_close(actual, expected)
+
+
+def test_select_blocks_single_chain(torch_device):
+    """A bare chain letter selects every real residue of that chain, every pose."""
+    pose_stack = extended_pose_stack_from_sequences(
+        ["AAA:KKKKK", "AA"], device=torch_device
+    )
+    real = pose_stack.block_type_ind64 >= 0
+    chain_a = (
+        torch.as_tensor(pose_stack.pdb_info.chain_labels == "A", device=torch_device)
+        & real
+    )
+    actual = select_blocks_from_pose_stack(pose_stack, "[*,A,*]")
+    torch.testing.assert_close(actual, chain_a)
+
+
+def test_select_blocks_negated_chain(torch_device):
+    """A "~" prefixed chain selects every other real residue."""
+    pose_stack = extended_pose_stack_from_sequences("AAA:KKKKK", device=torch_device)
+    real = pose_stack.block_type_ind64 >= 0
+    not_a = (
+        torch.as_tensor(pose_stack.pdb_info.chain_labels != "A", device=torch_device)
+        & real
+    )
+    actual = select_blocks_from_pose_stack(pose_stack, "[*,~A,*]")
+    torch.testing.assert_close(actual, not_a)
+
+
+def test_select_blocks_multiple_chains_concatenated(torch_device):
+    """Concatenated chain letters union those chains together."""
+    pose_stack = extended_pose_stack_from_sequences("AAA:KKK:GGG", device=torch_device)
+    chain_labels = pose_stack.pdb_info.chain_labels
+    expected = torch.as_tensor(
+        (chain_labels == "A") | (chain_labels == "C"), device=torch_device
+    )
+    actual = select_blocks_from_pose_stack(pose_stack, "[*,AC,*]")
+    torch.testing.assert_close(actual, expected)
+    # the middle chain (B) is excluded
+    assert not actual[0, 3:6].any()
+
+
+def test_select_blocks_single_residue(torch_device):
+    """A bare residue number selects just that residue, in every chain matched."""
+    pose_stack = extended_pose_stack_from_sequences("AAA:KKKKK", device=torch_device)
+    actual = select_blocks_from_pose_stack(pose_stack, "[*,A,2]")
+    assert actual.sum() == 1
+    assert actual[0, 1]
+
+
+def test_select_blocks_residue_range(torch_device):
+    """A dash-separated range selects every residue in [start, end]."""
+    pose_stack = extended_pose_stack_from_sequences("AAA:KKKKK", device=torch_device)
+    residue_labels = pose_stack.pdb_info.residue_labels
+    expected = torch.as_tensor(
+        (residue_labels >= 2) & (residue_labels <= 6), device=torch_device
+    )
+    actual = select_blocks_from_pose_stack(pose_stack, "[*,*,2-6]")
+    torch.testing.assert_close(actual, expected)
+
+
+def test_select_blocks_negated_residue_range(torch_device):
+    """A "~" prefixed range selects every residue outside it."""
+    pose_stack = extended_pose_stack_from_sequences("AAA:KKKKK", device=torch_device)
+    residue_labels = pose_stack.pdb_info.residue_labels
+    real = pose_stack.block_type_ind64 >= 0
+    in_range = (residue_labels >= 2) & (residue_labels <= 6)
+    expected = torch.as_tensor(~in_range, device=torch_device) & real
+    actual = select_blocks_from_pose_stack(pose_stack, "[*,*,~2-6]")
+    torch.testing.assert_close(actual, expected)
+
+
+def test_select_blocks_single_pose_index(torch_device):
+    """A single pose index restricts the selection to that pose only."""
+    pose_stack = extended_pose_stack_from_sequences(["AAA", "AAA"], device=torch_device)
+    actual = select_blocks_from_pose_stack(pose_stack, "[0,A,*]")
+    assert actual[0].any()
+    assert not actual[1].any()
+
+
+def test_select_blocks_negated_pose_index(torch_device):
+    """A "~" prefixed pose index excludes just that pose."""
+    pose_stack = extended_pose_stack_from_sequences(["AAA", "AAA"], device=torch_device)
+    actual = select_blocks_from_pose_stack(pose_stack, "[~0,A,*]")
+    assert not actual[0].any()
+    assert actual[1].any()
+
+
+def test_select_blocks_union_of_clauses(torch_device):
+    """Multiple comma-separated clauses union together."""
+    pose_stack = extended_pose_stack_from_sequences("AAA:KKK:GGG", device=torch_device)
+    actual = select_blocks_from_pose_stack(pose_stack, "[*,A,1],[*,C,9]")
+    assert actual.sum() == 2
+    assert actual[0, 0]
+    assert actual[0, 8]
+
+
+def test_select_blocks_distinguishes_insertion_codes(torch_device):
+    """A plain residue number and its inserted variant select different blocks."""
+    pose_stack = extended_pose_stack_from_sequences("AAA:KKKKK", device=torch_device)
+    pose_stack = _with_inserted_residue(pose_stack, 0, 1, 1, "A")
+
+    plain = select_blocks_from_pose_stack(pose_stack, "[*,A,1]")
+    inserted = select_blocks_from_pose_stack(pose_stack, "[*,A,1A]")
+
+    assert plain[0, 0].item() and not plain[0, 1].item()
+    assert inserted[0, 1].item() and not inserted[0, 0].item()
+
+
+def test_select_blocks_invalid_residue_field_raises(torch_device):
+    """A malformed residues field raises ValueError."""
+    pose_stack = extended_pose_stack_from_sequences("AAA", device=torch_device)
+    with pytest.raises(ValueError, match="invalid residues field"):
+        select_blocks_from_pose_stack(pose_stack, "[*,A,2-3-4]")
+
+
+def test_select_blocks_wrong_field_count_raises(torch_device):
+    """A clause without exactly 3 comma-separated fields raises ValueError."""
+    pose_stack = extended_pose_stack_from_sequences("AAA", device=torch_device)
+    with pytest.raises(ValueError, match="3 comma-separated fields"):
+        select_blocks_from_pose_stack(pose_stack, "[*,A]")
+
+
+def test_select_blocks_malformed_bracket_structure_raises(torch_device):
+    """A selection string that isn't well-formed bracketed clauses raises ValueError."""
+    pose_stack = extended_pose_stack_from_sequences("AAA", device=torch_device)
+    with pytest.raises(ValueError, match="invalid selection string"):
+        select_blocks_from_pose_stack(pose_stack, "A")
+
+
+def test_select_from_pose_stack_matches_res_mask_to_coord_mask(torch_device):
+    """The atom mask is exactly the block mask expanded to atoms."""
+    pose_stack = extended_pose_stack_from_sequences(
+        ["AAA:KKKKK", "AA"], device=torch_device
+    )
+    selection = "[*,A,*]"
+    block_mask = select_blocks_from_pose_stack(pose_stack, selection)
+    expected = score_utils.res_mask_to_coord_mask(pose_stack, block_mask)
+    actual = select_from_pose_stack(pose_stack, selection)
+    torch.testing.assert_close(actual, expected)

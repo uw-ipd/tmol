@@ -3,9 +3,8 @@
 import pytest
 import torch
 
-from tmol.pack import build_missing_sidechains
-from tmol.pose import PoseStackBuilder
-from tmol.score import beta2016_score_function
+from tmol.pack._build_missing_sidechains import _build_missing_sidechains
+from tmol import PoseStackBuilder, beta2016_score_function
 from tmol.tests.score.common import pose_stack_from_pdb_and_resnums
 
 
@@ -39,7 +38,7 @@ def test_build_missing_sidechains_benchmark(
             torch.cuda.synchronize(torch_device)
 
     def run():
-        result = build_missing_sidechains(
+        result = _build_missing_sidechains(
             pose_stack=pose_stack,
             sfxn=sfxn,
             dunbrack_sampler=dun_sampler,

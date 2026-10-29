@@ -14,16 +14,21 @@ import numpy
 import torch
 import pytest
 
-from tmol.io import pose_stack_from_cif, pose_stack_from_pdb
-from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-from tmol.pack.rotamer import (
+from tmol import (
+    pose_stack_from_file,
+    PackerPalette,
+    PackerTask,
+    FoldForest,
+    MoveMap,
+    fast_relax,
+)
+from tmol.pack import (
+    SetPackerTask,
     build_rotamers,
     FixedAAChiSampler,
     IncludeCurrentSampler,
 )
-from tmol.score.backbone_torsion import BackboneTorsionEnergyTerm
-from tmol.kinematics import FoldForest, MoveMap
-from tmol.relax import fast_relax
+from tmol.score import BackboneTorsionEnergyTerm
 from tmol.tests.data import data_path
 from tmol.tests.relax.test_fast_relax import get_relax_sfxn
 
@@ -39,11 +44,14 @@ MIN_RELAX_ENERGY_DROP = 1.0
 
 def cyclic_pose_stack(reader, torch_device):
     if reader == "cif":
-        return pose_stack_from_cif(
-            data_path("cif", "cyclic_peptide_1jbl.cif"), torch_device
+        return pose_stack_from_file(
+            data_path("cif", "cyclic_peptide_1jbl.cif"), torch_device, no_optH=True
         )
-    return pose_stack_from_pdb(
-        str(data_path("pdb", "cyclic_peptide_1jbl.pdb")), torch_device
+    return pose_stack_from_file(
+        str(data_path("pdb", "cyclic_peptide_1jbl.pdb")),
+        torch_device,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
     )
 
 

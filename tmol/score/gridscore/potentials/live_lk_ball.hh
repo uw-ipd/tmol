@@ -36,8 +36,7 @@ struct LiveLKBallDispatch {
       TView<LKBVec<Real, 3>, 2, D> ligand_water_params,
       TView<Int, 2, D> ligand_water_is_ring,
       TView<LKBVec<Real, 3>, 1, D> receptor_coords,
-      TView<lk_ball::potentials::LKBallTypeParams<Real>, 1, D>
-          receptor_params,
+      TView<lk_ball::potentials::LKBallTypeParams<Real>, 1, D> receptor_params,
       TView<LKBVec<Real, 3>, 2, D> receptor_waters,
       TView<Int, 1, D> receptor_polar_atoms,
       TView<Real, 1, D> cell_origin,

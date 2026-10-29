@@ -24,7 +24,7 @@ LINK_DISTANCE = 2.2
 OVERLAP_DISTANCE = 1.2
 
 
-def select_altlocs(atom_array):
+def _select_altlocs(atom_array):
     """Keep one alternate per linked group of residues (AtomWorks' rule, first letter).
 
     Residues with alternates are linked when they share a chain or when an
@@ -90,13 +90,13 @@ def select_altlocs(atom_array):
     return atom_array[~is_alt | (altloc_ids == pick[res])]
 
 
-def one_alternate(atoms):
+def _one_alternate(atoms):
     """``atoms``, read with every alternate, keeping one per linked group.
 
     Atoms without a letter at a microheterogeneity site take the kept residue's
     name, or are dropped where its CCD entry lacks them (1EJG A:22 PRO/SER).
     """
-    atoms = select_altlocs(atoms)
+    atoms = _select_altlocs(atoms)
     lettered = ~np.isin(atoms.altloc_id, ALTLOC_DEFAULT_IDS)
     _, residue = np.unique(
         np.rec.fromarrays([atoms.chain_id, atoms.res_id, atoms.ins_code]),
@@ -117,8 +117,8 @@ def one_alternate(atoms):
     return atoms[keep]
 
 
-def pdb_lines_with_one_alternate(lines, model):
-    """The PDB lines less the alternates ``one_alternate`` drops and their LINKs."""
+def _pdb_lines_with_one_alternate(lines, model):
+    """The PDB lines less the alternates ``_one_alternate`` drops and their LINKs."""
     atom = np.array([line.startswith(("ATOM  ", "HETATM")) for line in lines])
     if not any(lines[i][16:17].strip() for i in np.flatnonzero(atom)):
         return lines
@@ -126,7 +126,7 @@ def pdb_lines_with_one_alternate(lines, model):
     atoms = PDBFile.read(text).get_structure(model=model, altloc="all")
     in_model = np.cumsum([line.startswith("MODEL ") for line in lines]).clip(1) == model
     atoms.set_annotation("line", np.flatnonzero(in_model & atom))
-    kept = one_alternate(atoms)
+    kept = _one_alternate(atoms)
     edited = [
         None if a else line for line, a in zip(lines, in_model & atom, strict=True)
     ]
@@ -150,8 +150,8 @@ def pdb_lines_with_one_alternate(lines, model):
     return [line for line in edited if line is not None]
 
 
-def records_with_one_alternate(atom_records):
-    """``parse_pdb`` records keeping one alternate per linked group in each model.
+def _records_with_one_alternate(atom_records):
+    """``_parse_pdb`` records keeping one alternate per linked group in each model.
 
     Otherwise a later alternate overwrites an earlier one atom by atom (1EJG A:22).
     """
@@ -169,7 +169,7 @@ def records_with_one_alternate(atom_records):
     atoms.set_annotation("record", np.arange(len(atoms)))
     atoms = struc.concatenate(
         [
-            one_alternate(atoms[indices])
+            _one_alternate(atoms[indices])
             for indices in atom_records.groupby("modeli", sort=False).indices.values()
         ]
     )
@@ -182,7 +182,7 @@ def records_with_one_alternate(atom_records):
 ION_SITE = 2.0
 
 
-def one_residue_per_site(array):
+def _one_residue_per_site(array):
     """The array keeping one of the non-polymer residues occupying each site.
 
     Two residues occupy one site when half the heavy atoms of either lie within

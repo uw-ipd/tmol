@@ -1,11 +1,9 @@
 import numpy
 import torch
 
-from tmol.types import (
-    NDArray,
-    validate_args,
-    Tensor,
-)
+from tmol.types._array import NDArray
+from tmol.types._functional import _validate_args
+from tmol.types._torch import Tensor
 
 Coord64Array = Tensor[torch.double][:, 3]
 Angles = Tensor[float][:]
@@ -29,7 +27,7 @@ def _numpy_coord_dihedrals(
     return numpy.asarray(numpy.arctan2(y, x), dtype=numpy.float32)
 
 
-@validate_args
+@_validate_args
 def coord_dihedrals(
     a: Coord64Array, b: Coord64Array, c: Coord64Array, d: Coord64Array
 ) -> Angles:

@@ -1,78 +1,34 @@
 """Typed schemas and loaders for TMol scoring parameters."""
 
-from ._cartbonded import (  # noqa: F401
-    AngleGroup,
-    CartRes,
-    ConnectionCartRes,
-    HxlTorsionGroup,
-    ImproperGroup,
-    LengthGroup,
-    TorsionGroup,
-    CartBondedDatabase,
-)
-from ._disulfide import (  # noqa: F401
-    DisulfideGlobalParameters,
-    DisulfideDatabase,
-)
-from ._dunbrack_libraries import (  # noqa: F401
-    DunMappingParams,
-    RotamericAADunbrackLibrary,
-    RotamericDataForAA,
-    SemiRotamericAADunbrackLibrary,
-    DunbrackRotamerLibrary,
-)
-from ._elec import (  # noqa: F401
-    CountPairReps,
-    GlobalParams,
-    PartialCharges,
-    ElecDatabase,
-)
-from ._genbonded import (  # noqa: F401
-    GenBondedImproperEntry,
-    GenBondedTorsionEntry,
-    GenBondedDatabase,
-)
-from ._hbond import (  # noqa: F401
-    AcceptorAtomType,
-    AcceptorTypeParam,
-    DonorAtomType,
-    DonorTypeParam,
-    HBondDatabaseRaw,
-    PairParameters,
-    PolynomialParameters,
-    HBondDatabase,
-)
-from ._ljlk import (  # noqa: F401
-    LJLKAtomTypeParameters,
-    LJLKGlobalParameters,
-    LJLKDatabase,
-)
-from ._metal_coordination import (  # noqa: F401
-    MetalCoordinationGlobalParameters,
-    MetalIonWidths,
-    MetalWellDepth,
-    MetalCoordinationDatabase,
-)
-from ._na_torsion import (  # noqa: F401
-    NaTorsionGlobalParams,
-    NaTorsionWells,
-    NaTorsionDatabase,
-)
-from ._omega_bbdep import (  # noqa: F401
-    OmegaBBDepMappingParams,
-    OmegaBBDepTables,
-    OmegaBBDepDatabase,
-)
-from ._rama import (  # noqa: F401
-    RamaMappingParams,
-    RamaTables,
-    RamaDatabase,
-)
+from ._cartbonded import CartBondedDatabase  # noqa: F401
+from ._disulfide import DisulfideDatabase  # noqa: F401
+from ._dunbrack_libraries import DunbrackRotamerLibrary  # noqa: F401
+from ._elec import ElecDatabase  # noqa: F401
+from ._genbonded import GenBondedDatabase  # noqa: F401
+from ._hbond import HBondDatabase  # noqa: F401
+from ._ljlk import LJLKDatabase  # noqa: F401
+from ._metal_coordination import MetalCoordinationDatabase  # noqa: F401
+from ._na_torsion import NaTorsionDatabase  # noqa: F401
+from ._omega_bbdep import OmegaBBDepDatabase  # noqa: F401
+from ._rama import RamaDatabase  # noqa: F401
 
 import os
 import attr
 
 from ._ref import RefDatabase  # noqa: F401
+
+__all__ = [
+    "CartBondedDatabase",
+    "DunbrackRotamerLibrary",
+    "ElecDatabase",
+    "GenBondedDatabase",
+    "HBondDatabase",
+    "LJLKDatabase",
+    "MetalCoordinationDatabase",
+    "NaTorsionDatabase",
+    "OmegaBBDepDatabase",
+    "RamaDatabase",
+]
 
 # residue sets written by a support script, merged into the databases at load
 GENERATED_ELEC_FILES = (

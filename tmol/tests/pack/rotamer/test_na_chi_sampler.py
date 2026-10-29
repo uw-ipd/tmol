@@ -5,25 +5,23 @@ import pytest
 
 import tmol.pack.rotamer._na_chi_sampler as na_chi_sampler_module
 
-from tmol.io import (
-    default_canonical_ordering,
-    default_packed_block_types,
-    canonical_form_from_pdb,
-    pose_stack_from_canonical_form,
+from tmol.io._canonical_ordering import (
+    _default_canonical_ordering,
+    _default_packed_block_types,
+    _canonical_form_from_pdb,
 )
-from tmol.pack import PackerTask, SetPackerTask, PackerPalette
-from tmol.pack.rotamer import (
-    build_rotamers,
-    NaChiRotamerSampler,
-)
-from tmol.score.na_torsion import BASE_FOR_NAME3, SYN_MEAN, SYN_RANGE
+from tmol.io._pose_stack_construction import _pose_stack_from_canonical_form
+from tmol import PackerTask, PackerPalette
+from tmol.pack import SetPackerTask, build_rotamers, NaChiRotamerSampler
+from tmol.score.na_torsion._params import BASE_FOR_NAME3, SYN_MEAN
+from tmol.score.na_torsion import SYN_RANGE
 
 
 def _pose_stack(pdb_lines, torch_device):
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(co, pdb_lines, torch_device)
-    return pose_stack_from_canonical_form(co, pbt, *canonical_form)
+    co = _default_canonical_ordering()
+    pbt = _default_packed_block_types(torch_device)
+    canonical_form = _canonical_form_from_pdb(co, pdb_lines, torch_device)
+    return _pose_stack_from_canonical_form(co, pbt, *canonical_form)
 
 
 def _set_task(poses, sampler):
@@ -51,7 +49,7 @@ def test_na_sampler_builds_for_nucleotides_only(default_database, torch_device):
     )
     assert sampler.device == torch_device
     assert sampler.params.chi_means.device == torch_device
-    pbt = default_packed_block_types(torch_device)
+    pbt = _default_packed_block_types(torch_device)
     for bt in pbt.active_block_types:
         assert sampler.defines_rotamers_for_rt(bt) == (
             bt.name3 in BASE_FOR_NAME3
@@ -261,7 +259,7 @@ def test_na_sampler_ignores_sampling_work_for_non_nucleotides(
     import tmol.pack.rotamer._na_chi_sampler as implementation
 
     sampler = NaChiRotamerSampler.from_database(default_database, torch_device)
-    pbt = default_packed_block_types(torch_device)
+    pbt = _default_packed_block_types(torch_device)
     # TYR has real proton sampling, but is owned by a different sampler.
     source = next(bt for bt in pbt.active_block_types if bt.name == "TYR")
     rt = copy.copy(source)
@@ -273,7 +271,7 @@ def test_na_sampler_ignores_sampling_work_for_non_nucleotides(
         raise AssertionError("NA sampler must not construct a protein chi tree")
 
     monkeypatch.setattr(
-        implementation, "construct_single_residue_kinforest", unexpected_tree
+        implementation, "_construct_single_residue_kinforest", unexpected_tree
     )
     sampler.annotate_residue_type(rt)
     assert rt.na_chi_sampler_params["base"] == -1

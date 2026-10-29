@@ -7,15 +7,17 @@ import numpy as np
 import pytest
 import torch
 
-from tmol.io import (
+from tmol.io._pose_stack_from_biotite import (
     Atom37MappingError,
-    build_context_from_biotite,
-    canonical_form_from_biotite,
-    canonical_ordering_for_biotite,
-    pose_stack_from_atom37_and_topology,
-    pose_stack_from_biotite,
-    prepare_atom37_pose_builder,
+    _canonical_ordering_for_biotite,
 )
+from tmol.io import (
+    prepare_atom37_pose_builder,
+    build_context_from_atom_array,
+    canonical_form_from_biotite,
+    pose_stack_from_atom37_and_topology,
+)
+from tmol import pose_stack_from_atom_array
 from tmol.tests.data import data_path
 
 
@@ -71,7 +73,7 @@ def test_canonical_form_routes_batched_atom37_and_gradients(biotite_1ubq, torch_
     assert cf.coords.shape[0] == 2
     assert cf.atom_b_factor is not None
     assert cf.atom_b_factor.shape[0] == 2
-    co = canonical_ordering_for_biotite()
+    co = _canonical_ordering_for_biotite()
     n_index = co.restypes_atom_index_mapping[structure.res_name[0]]["N"]
     torch.testing.assert_close(cf.coords[:, 0, n_index], atom37[:, 0, 1])
 
@@ -96,7 +98,7 @@ def test_all_nan_atom37_coordinate_is_missing_not_reference_fallback(
         atom37_coords=atom37,
     )
 
-    co = canonical_ordering_for_biotite()
+    co = _canonical_ordering_for_biotite()
     oxygen_index = co.restypes_atom_index_mapping[structure.res_name[oxygen]]["O"]
     assert torch.isnan(cf.coords[0, 0, oxygen_index]).all()
     torch.nan_to_num(cf.coords).sum().backward()
@@ -116,7 +118,7 @@ def test_atom37_mapped_coordinates_are_reference_independent(
     biotite_1ubq, torch_device, adapter
 ):
     structure, atom37 = _atomized_atom37(_first_residues(biotite_1ubq, 1), torch_device)
-    context = build_context_from_biotite(structure, torch_device)
+    context = build_context_from_atom_array(structure, torch_device)
     unresolved_reference = structure.copy()
     unresolved_reference.coord[:] = np.nan
     atom37 = atom37.requires_grad_(True)
@@ -142,7 +144,7 @@ def test_atom37_rejects_malformed_mapped_triplets(
     biotite_1ubq, torch_device, adapter, triplet, message
 ):
     structure, atom37 = _atomized_atom37(_first_residues(biotite_1ubq, 1), torch_device)
-    context = build_context_from_biotite(structure, torch_device)
+    context = build_context_from_atom_array(structure, torch_device)
     atom37[0, 0, 1] = torch.tensor(triplet, device=torch_device)
 
     with pytest.raises(Atom37MappingError, match=message):
@@ -155,7 +157,7 @@ def test_atom37_required_mainchain_missing_from_both_sources_errors(
     biotite_1ubq, torch_device, adapter, reference_missing
 ):
     structure, atom37 = _atomized_atom37(_first_residues(biotite_1ubq, 1), torch_device)
-    context = build_context_from_biotite(structure, torch_device)
+    context = build_context_from_atom_array(structure, torch_device)
     nitrogen = int(np.flatnonzero(structure.atom_name == "N")[0])
     if reference_missing:
         structure.coord[nitrogen] = np.nan
@@ -174,7 +176,7 @@ def test_atom37_missing_leaf_completion_is_deterministic_and_differentiable(
     biotite_1ubq, torch_device, adapter, reference_missing
 ):
     structure, atom37 = _atomized_atom37(_first_residues(biotite_1ubq, 1), torch_device)
-    context = build_context_from_biotite(structure, torch_device)
+    context = build_context_from_atom_array(structure, torch_device)
     oxygen = int(np.flatnonzero(structure.atom_name == "O")[0])
     structure.coord[oxygen] = np.nan if reference_missing else [100.0, 100.0, 100.0]
     atom37[:, oxygen, 1] = torch.nan
@@ -205,7 +207,7 @@ def test_atom37_pose_supports_protein_dna_and_rna(filename, torch_device):
     )
     structure, atom37 = _atomized_atom37(structure, torch_device, n_poses=2)
     atom37.requires_grad_(True)
-    context = build_context_from_biotite(structure, torch_device)
+    context = build_context_from_atom_array(structure, torch_device)
 
     pose = pose_stack_from_atom37_and_topology(atom37, structure, context)
 
@@ -232,7 +234,7 @@ def test_prepared_atom37_builder_matches_direct_pose(filename, closed, torch_dev
             struc.BondType.SINGLE,
         )
     structure, atom37 = _atomized_atom37(structure, torch_device, n_poses=2)
-    context = build_context_from_biotite(structure, torch_device)
+    context = build_context_from_atom_array(structure, torch_device)
 
     expected = pose_stack_from_atom37_and_topology(
         atom37, structure, context, no_optH=True
@@ -257,7 +259,7 @@ def test_prepared_atom37_builder_is_reusable_and_differentiable(
     biotite_1ubq, torch_device
 ):
     structure, atom37 = _atomized_atom37(_first_residues(biotite_1ubq, 2), torch_device)
-    context = build_context_from_biotite(structure, torch_device)
+    context = build_context_from_atom_array(structure, torch_device)
     builder = prepare_atom37_pose_builder(structure, context)
 
     first_coords = atom37.detach().clone().requires_grad_(True)
@@ -367,7 +369,7 @@ def test_explicit_opth_flags_preserve_previous_results(
     assert nhq_name in structure.res_name
     structure = structure[structure.element != "H"]
     structure, atom37 = _atomized_atom37(structure, torch_device)
-    context = build_context_from_biotite(structure, torch_device)
+    context = build_context_from_atom_array(structure, torch_device)
     builder = prepare_atom37_pose_builder(structure, context)
     preserved = builder(atom37)
     coords = atom37.detach().requires_grad_(True)
@@ -396,7 +398,7 @@ def test_prepared_atom37_builder_replays_variable_leaf_presence(
     structure.coord[oxygen] = np.nan
     structure, atom37 = _atomized_atom37(structure, torch_device, n_poses=2)
     atom37.requires_grad_(True)
-    context = build_context_from_biotite(structure, torch_device)
+    context = build_context_from_atom_array(structure, torch_device)
     builder = prepare_atom37_pose_builder(structure, context)
 
     first = builder(atom37, opt_h=False)
@@ -440,7 +442,7 @@ def test_prepared_atom37_builder_falls_back_for_ambiguous_histidine_hydrogen(
     structure = biotite_1ubq[biotite_1ubq.res_name == "HIS"].copy()
     structure.atom_name[structure.atom_name == "HE2"] = "HN"
     structure, _ = _atomized_atom37(structure, torch_device)
-    context = build_context_from_biotite(structure, torch_device)
+    context = build_context_from_atom_array(structure, torch_device)
 
     builder = prepare_atom37_pose_builder(structure, context)
 
@@ -451,12 +453,12 @@ def test_prepared_atom37_builder_falls_back_for_ambiguous_histidine_hydrogen(
 def test_atom37_pose_uses_ligand_context(torch_device, prebuilt):
     cif_path = data_path("protein_ligand_test", "cif_inputs", "ace.ligand.cif.zst")
     params_path = data_path("protein_ligand_test", "ace.xtal-lig.mmff94.tmol")
-    from tmol.io import atom_array_from_cif
+    from tmol import atom_array_from_file
 
-    structure = atom_array_from_cif(cif_path)
+    structure = atom_array_from_file(cif_path)
     structure, atom37 = _atomized_atom37(structure, torch_device)
     atom37.requires_grad_(True)
-    context = build_context_from_biotite(
+    context = build_context_from_atom_array(
         structure,
         torch_device,
         prepare_ligands=True,
@@ -497,9 +499,9 @@ def test_atom37_pose_uses_ligand_context(torch_device, prebuilt):
 
 def test_pose_stack_from_biotite_accepts_atom37_directly(biotite_1ubq, torch_device):
     structure, atom37 = _atomized_atom37(_first_residues(biotite_1ubq, 1), torch_device)
-    context = build_context_from_biotite(structure, torch_device)
+    context = build_context_from_atom_array(structure, torch_device)
 
-    pose = pose_stack_from_biotite(
+    pose = pose_stack_from_atom_array(
         structure,
         torch_device,
         context=context,
@@ -513,7 +515,7 @@ def test_pose_stack_from_biotite_accepts_atom37_directly(biotite_1ubq, torch_dev
 
 def test_atom37_pose_can_return_atom_mapping(biotite_1ubq, torch_device):
     structure, atom37 = _atomized_atom37(_first_residues(biotite_1ubq, 1), torch_device)
-    context = build_context_from_biotite(structure, torch_device)
+    context = build_context_from_atom_array(structure, torch_device)
 
     pose, details = pose_stack_from_atom37_and_topology(
         atom37,
@@ -531,7 +533,7 @@ def test_atom37_pose_can_return_atom_mapping(biotite_1ubq, torch_device):
 def test_atom37_gradients_survive_hydrogen_optimization(biotite_1ubq, torch_device):
     structure, atom37 = _atomized_atom37(_first_residues(biotite_1ubq, 1), torch_device)
     atom37.requires_grad_(True)
-    context = build_context_from_biotite(structure, torch_device)
+    context = build_context_from_atom_array(structure, torch_device)
 
     pose = pose_stack_from_atom37_and_topology(
         atom37,
@@ -620,7 +622,7 @@ def test_geometric_gap_drops_bond_inferred_from_consecutive_numbering(
     _break_connections_for_missing_density flagged the gap but covalent_bonds_np
     kept the bond inferred from numbering.
     """
-    from tmol.io import atom_array_from_cif
+    from tmol import atom_array_from_file
 
     lines = []
     for line in data_path("pdb", "1ubq.pdb").read_text().splitlines():
@@ -635,7 +637,7 @@ def test_geometric_gap_drops_bond_inferred_from_consecutive_numbering(
     path = tmp_path / "ubq_gap.pdb"
     path.write_text("\n".join(lines + ["END"]) + "\n")
 
-    cf = canonical_form_from_biotite(atom_array_from_cif(path), torch_device)
+    cf = canonical_form_from_biotite(atom_array_from_file(path), torch_device)
 
     # residues 4 and 5 (0-based 3 and 4) are the old 4 and 6
     assert bool(cf.res_not_connected[0, 3, 1]) and bool(cf.res_not_connected[0, 4, 0])

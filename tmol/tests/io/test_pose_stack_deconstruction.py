@@ -1,13 +1,13 @@
 import torch
 import numpy
 
-from tmol.io import (
-    canonical_form_from_pose_stack,
-    default_canonical_ordering,
-    default_packed_block_types,
-    canonical_form_from_pdb,
-    pose_stack_from_canonical_form,
+from tmol.io._pose_stack_deconstruction import _canonical_form_from_pose_stack
+from tmol.io._canonical_ordering import (
+    _default_canonical_ordering,
+    _default_packed_block_types,
+    _canonical_form_from_pdb,
 )
+from tmol.io._pose_stack_construction import _pose_stack_from_canonical_form
 
 
 def not_any_nancoord(coords):
@@ -15,8 +15,8 @@ def not_any_nancoord(coords):
 
 
 def test_canonical_form_from_ubq_pose(ubq_pdb, torch_device):
-    co = default_canonical_ordering()
-    canonical_form = canonical_form_from_pdb(co, ubq_pdb, torch_device)
+    co = _default_canonical_ordering()
+    canonical_form = _canonical_form_from_pdb(co, ubq_pdb, torch_device)
     # unpack
     cf_orig_chain_id, cf_orig_res_types, cf_orig_coords, cf_orig_chain_labels = tuple(
         (
@@ -27,10 +27,10 @@ def test_canonical_form_from_ubq_pose(ubq_pdb, torch_device):
         for x in ["chain_id", "res_types", "coords", "chain_labels"]
     )
 
-    pbt = default_packed_block_types(torch_device)
-    pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
+    pbt = _default_packed_block_types(torch_device)
+    pose_stack = _pose_stack_from_canonical_form(co, pbt, *canonical_form)
 
-    restored_canonical_form = canonical_form_from_pose_stack(co, pose_stack)
+    restored_canonical_form = _canonical_form_from_pose_stack(co, pose_stack)
 
     # unpack
     (
@@ -101,9 +101,9 @@ def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
     ubq_lines4 = ubq_pdb[: 81 * 75]
     ubq_lines6 = ubq_pdb[: 81 * 113]
 
-    co = default_canonical_ordering()
+    co = _default_canonical_ordering()
     max_n_canonical_atoms = co.max_n_canonical_atoms
-    canonical_form4 = canonical_form_from_pdb(co, ubq_lines4, torch_device)
+    canonical_form4 = _canonical_form_from_pdb(co, ubq_lines4, torch_device)
     # unpack
     (
         cf_orig_chain_id4,
@@ -128,7 +128,7 @@ def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
         ]
     )
 
-    canonical_form6 = canonical_form_from_pdb(co, ubq_lines6, torch_device)
+    canonical_form6 = _canonical_form_from_pdb(co, ubq_lines6, torch_device)
     # unpack
     (
         cf_orig_chain_id6,
@@ -180,8 +180,8 @@ def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
     orig_chain_labels[0, :4] = cf_orig_chain_labels4
     orig_chain_labels[1, :6] = cf_orig_chain_labels6
 
-    pbt = default_packed_block_types(torch_device)
-    pose_stack = pose_stack_from_canonical_form(
+    pbt = _default_packed_block_types(torch_device)
+    pose_stack = _pose_stack_from_canonical_form(
         co,
         pbt,
         chain_id=orig_chain_id,
@@ -193,7 +193,7 @@ def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
         res_not_connected=orig_res_not_connected,
     )
 
-    restored_canonical_form = canonical_form_from_pose_stack(co, pose_stack)
+    restored_canonical_form = _canonical_form_from_pose_stack(co, pose_stack)
 
     (
         chain_id,
@@ -239,8 +239,8 @@ def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
 
 
 def test_canonical_form_from_pertuzumab_pose(pertuzumab_pdb, torch_device):
-    co = default_canonical_ordering()
-    canonical_form = canonical_form_from_pdb(co, pertuzumab_pdb, torch_device)
+    co = _default_canonical_ordering()
+    canonical_form = _canonical_form_from_pdb(co, pertuzumab_pdb, torch_device)
     # unpack and copy before pose stack construction
     cf_orig_chain_id, cf_orig_res_types, cf_orig_coords, cf_orig_chain_labels = tuple(
         (
@@ -252,10 +252,10 @@ def test_canonical_form_from_pertuzumab_pose(pertuzumab_pdb, torch_device):
     )
     cf_orig_at_is_pres = not_any_nancoord(cf_orig_coords)
 
-    pbt = default_packed_block_types(torch_device)
-    pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
+    pbt = _default_packed_block_types(torch_device)
+    pose_stack = _pose_stack_from_canonical_form(co, pbt, *canonical_form)
 
-    restored_canonical_form = canonical_form_from_pose_stack(co, pose_stack)
+    restored_canonical_form = _canonical_form_from_pose_stack(co, pose_stack)
 
     # unpack
     (
@@ -335,8 +335,8 @@ def test_canonical_form_from_pertuzumab_and_antigen_pose(
         pert_and_erbb2_lines,
         res_not_connected_orig_np,
     ) = pertuzumab_and_nearby_erbb2_pdb_and_segments
-    co = default_canonical_ordering()
-    canonical_form = canonical_form_from_pdb(co, pert_and_erbb2_lines, torch_device)
+    co = _default_canonical_ordering()
+    canonical_form = _canonical_form_from_pdb(co, pert_and_erbb2_lines, torch_device)
     res_not_connected_orig = torch.tensor(
         res_not_connected_orig_np, device=torch_device
     )
@@ -353,8 +353,8 @@ def test_canonical_form_from_pertuzumab_and_antigen_pose(
     cf_orig_at_is_pres = not_any_nancoord(cf_orig_coords)
     assert not torch.any(torch.isnan(cf_orig_coords[cf_orig_at_is_pres.to(torch.bool)]))
 
-    pbt = default_packed_block_types(torch_device)
-    pose_stack, opt_vals = pose_stack_from_canonical_form(
+    pbt = _default_packed_block_types(torch_device)
+    pose_stack, opt_vals = _pose_stack_from_canonical_form(
         co,
         pbt,
         *canonical_form,
@@ -362,7 +362,7 @@ def test_canonical_form_from_pertuzumab_and_antigen_pose(
     )
     chain_id_from_constr = opt_vals["chain_ind"]
 
-    restored_canonical_form = canonical_form_from_pose_stack(
+    restored_canonical_form = _canonical_form_from_pose_stack(
         co, pose_stack, chain_id_from_constr
     )
 
@@ -442,15 +442,15 @@ def test_canonical_form_from_pertuzumab_and_antigen_pose(
 
 
 def test_round_trip_deconstruction(ubq_pdb, torch_device):
-    co = default_canonical_ordering()
-    canonical_form = canonical_form_from_pdb(co, ubq_pdb, torch_device)
+    co = _default_canonical_ordering()
+    canonical_form = _canonical_form_from_pdb(co, ubq_pdb, torch_device)
     canonical_form.residue_insertion_codes[0, 0] = "A"
-    pbt = default_packed_block_types(torch_device)
-    pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
+    pbt = _default_packed_block_types(torch_device)
+    pose_stack = _pose_stack_from_canonical_form(co, pbt, *canonical_form)
 
-    restored_canonical_form = canonical_form_from_pose_stack(co, pose_stack)
+    restored_canonical_form = _canonical_form_from_pose_stack(co, pose_stack)
 
-    pose_stack_reconstructed = pose_stack_from_canonical_form(
+    pose_stack_reconstructed = _pose_stack_from_canonical_form(
         co, pbt, **restored_canonical_form.as_dict()
     )
 

@@ -17,10 +17,10 @@ import collections
 import pytest
 import torch
 
-from tmol.chemical import BondType, ResidueTypeSet
-from tmol.score.cartbonded._cartbonded_energy_term import CartBondedEnergyTerm
-from tmol.score.dunbrack._dunbrack_energy_term import DunbrackEnergyTerm
-from tmol.score.na_torsion import scored_torsion_bonds
+from tmol.chemical._restypes import BondType
+from tmol.chemical import ResidueTypeSet
+from tmol.score import CartBondedEnergyTerm, DunbrackEnergyTerm
+from tmol.score.na_torsion._params import _scored_torsion_bonds
 
 
 def _adjacency(block_type):
@@ -63,7 +63,7 @@ def claiming_terms(block_type, param_db, cartbonded, dunbrack):
     names = [a.name for a in block_type.atoms]
     types = [a.atom_type for a in block_type.atoms]
     torsions = _torsions(_adjacency(block_type))
-    na_bonds = scored_torsion_bonds(block_type, element_for_atom_type)
+    na_bonds = _scored_torsion_bonds(block_type, element_for_atom_type)
 
     # genbonded: its own two skip rules, then a hit in the generic database
     for i, j, k, l in torsions:
@@ -152,11 +152,13 @@ def test_amide_impropers_do_not_follow_omega(ubq_pdb, default_database, torch_de
     """
     import numpy
 
-    from tmol.io import pose_stack_from_pdb
-    from tmol.score import ScoreFunction
-    from tmol.score._score_types import ScoreType
+    from tmol import pose_stack_from_file
+    from tmol import ScoreFunction
+    from tmol import ScoreType
 
-    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device)
+    pose_stack = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
     sfxn = ScoreFunction(default_database, torch_device)
     for score_type in (ScoreType.cart_impropers, ScoreType.omega):
         sfxn.set_weight(score_type, 1.0)
@@ -220,9 +222,9 @@ def test_modified_nucleotide_chi_is_left_to_na_torsion(default_database, torch_d
     Its two atoms are mixed-typed -- the base nitrogen is ligand-typed and C1'
     is not -- so the atom-type rule alone would hand the bond to genbonded too.
     """
-    from tmol.io import atom_array_from_cif
+    from tmol import atom_array_from_file
     from tmol.ligand import prepare_ligands
-    from tmol.score.genbonded import GenBondedEnergyTerm
+    from tmol.score import GenBondedEnergyTerm
     from tmol.tests.data import data_path
 
     element_for_atom_type = {
@@ -236,10 +238,10 @@ def test_modified_nucleotide_chi_is_left_to_na_torsion(default_database, torch_d
     exercised = []
     for path in sorted(data_path("ncaa_fixtures").glob("na_*.cif")):
         prepared, _ = prepare_ligands(
-            atom_array_from_cif(path), param_db=default_database
+            atom_array_from_file(path), param_db=default_database
         )
         for block_type in ResidueTypeSet.from_database(prepared.chemical).residue_types:
-            na_bonds = scored_torsion_bonds(block_type, element_for_atom_type)
+            na_bonds = _scored_torsion_bonds(block_type, element_for_atom_type)
             types = [a.atom_type for a in block_type.atoms]
             mixed = {
                 bond

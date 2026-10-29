@@ -4,10 +4,10 @@ import attr
 import pytest
 import torch
 
-from tmol.database import inject_residue_params
-from tmol.io import extended_pose_stack_from_sequences
-from tmol.score._annotation_cache import cached_annotation
-from tmol.score.cartbonded import CartBondedEnergyTerm
+from tmol.database import _inject_residue_params
+from tmol import extended_pose_stack_from_sequences
+from tmol.score._annotation_cache import _cached_annotation
+from tmol.score import CartBondedEnergyTerm
 
 
 def setup(term, pose):
@@ -83,17 +83,17 @@ def test_connection_ownership_follows_term_and_module(
         torch.arange(coords.numel(), device=torch_device).reshape_as(coords)
     )
     coords.requires_grad_(True)
-    energies = {name: module(coords)[2, 0, 0, 1] for name, module in modules.items()}
+    energies = {name: module(coords)[3, 0, 0, 1] for name, module in modules.items()}
     assert energies["owned"].item() > 0.01
     assert energies["unowned"].item() == 0
     gradient = torch.autograd.grad(energies["unowned"], coords, retain_graph=True)[0]
     assert torch.count_nonzero(gradient) == 0
     for name, term in terms.items():
         assert (
-            term.render_block_pair_scoring_module(pose)(coords)[2, 0, 0, 1].item()
+            term.render_block_pair_scoring_module(pose)(coords)[3, 0, 0, 1].item()
             == energies[name].item()
         )
-        assert modules[name](coords)[2, 0, 0, 1].item() == energies[name].item()
+        assert modules[name](coords)[3, 0, 0, 1].item() == energies[name].item()
 
 
 def test_eviction_bounds_annotations_and_preserves_rendered_modules(
@@ -105,7 +105,7 @@ def test_eviction_bounds_annotations_and_preserves_rendered_modules(
     ownership_mask = None
     for i in range(5):
         row = attr.evolve(original.length_parameters[0], x0=1.0 + 0.2 * i)
-        changed = inject_residue_params(
+        changed = _inject_residue_params(
             default_database,
             [],
             cartbonded_params={
@@ -128,7 +128,7 @@ def test_eviction_bounds_annotations_and_preserves_rendered_modules(
     assert len(pbt._cartbonded_annotation) <= 2
     assert all(len(bt._cartbonded_annotation) <= 2 for bt in pbt.active_block_types)
     assert (
-        cached_annotation(
+        _cached_annotation(
             pbt, "_cartbonded_annotation", terms[0]._packed_annotation_key
         )
         is None

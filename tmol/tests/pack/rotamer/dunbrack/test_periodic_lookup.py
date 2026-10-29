@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from tmol.score.dunbrack import DunbrackParamResolver
+from tmol.score.dunbrack._params import DunbrackParamResolver
 from tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler import (
     _table_indices,
     get_compiled,

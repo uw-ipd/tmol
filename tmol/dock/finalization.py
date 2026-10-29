@@ -8,26 +8,25 @@ import attr
 import numpy
 import torch
 
-from tmol.dock.dock_loop import _repeat_pose_stack
 from tmol.dock.ga import (
     GAResult,
     LigandGeneLayout,
-    _ligand_only_pose_stack,
-    _movable_block_mapping,
     _place_ligand_in_reference,
-    _select_inter_block_bondsep,
-    _sidechain_context_blocks,
 )
 from tmol.dock.ligand_dofs import build_ligand_docking_dofs
 from tmol.optimization import run_cart_min, run_kin_min
 from tmol.pose import ConstraintSet
-from tmol.pose import PDBInfo
-from tmol.pose import PoseStack
+
+from tmol.pose import PoseStack, repeat_pose_stack, select_blocks
 from tmol.database import ParameterDatabase
 from tmol.score import beta2016_score_function
 from tmol.score.constraint import ConstraintEnergyTerm
 from tmol.score import ScoreType
-
+from tmol.score.gridscore._movable import (
+    movable_block_mapping,
+    movable_pose_stack,
+    sidechain_context_blocks,
+)
 
 # Rosetta dockflex "bbsc1" final refinement: one hard-rep Cartesian minimization
 # (fa_rep multiplier 1.0, MinMover tolerance 1e-5, up to 200 iterations). Used for
@@ -71,9 +70,12 @@ def _refine_fa_rep_scaled(base_fa_ljrep, param_db, device, rep_mult):
 
 
 def _soft_hard_refine(
-    promoted, coord_mask, *, param_db, device, exact_sfxn, schedule, cycles
+    promoted, minimize, *, param_db, device, exact_sfxn, schedule, cycles
 ):
-    """Run soft-to-hard cycles, accepting each pose's best exact-energy state."""
+    """Run soft-to-hard cycles, accepting each pose's best exact-energy state.
+
+    ``minimize(pose_stack, step_sfxn, tol, max_iter)`` runs one ramp step.
+    """
     # beta2016_score_function MEMOIZES when param_db is None, so a None db would
     # make the soft/hard/exact score functions ALIAS one object (set_weight on
     # "hard" would clobber "soft"). Resolve an explicit database so every stage
@@ -90,33 +92,23 @@ def _soft_hard_refine(
         for rep_mult, tol, max_iter in schedule
     ]
     best_coords = promoted.coords.clone()
-    best_energy = _score_pose_stack(promoted, exact_sfxn)
     # A non-finite pre-refine score (e.g. a severe clash scoring to +/-inf/NaN)
     # must not block accept-to-best: seed it to +inf so any finite refined-cycle
     # energy is accepted. A candidate that stays non-finite ranks last (dH/dG=inf)
     # rather than poisoning the sort with NaN.
+    best_energy = _score_pose_stack(promoted, exact_sfxn)
     best_energy = torch.where(
         torch.isfinite(best_energy),
         best_energy,
         torch.full_like(best_energy, float("inf")),
     )
     current = promoted
-    # Cartesian L-BFGS, not Rosetta torsion-space linmin; preserve the rep ramp
-    # and accept-to-best. Omit Rosetta's preliminary cycle and global optH.
     for _ in range(cycles):
         for step_sfxn, tol, max_iter in step_sfxns:
-            current = run_cart_min(
-                current,
-                step_sfxn,
-                coord_mask=coord_mask,
-                # LBFGS_Armijo accepts relative energy tolerance via rtol.
-                optimizer_kwargs={"max_iter": max_iter, "rtol": tol},
-            )
+            current = minimize(current, step_sfxn, tol, max_iter)
         energy = _score_pose_stack(current, exact_sfxn)
         improved = torch.isfinite(energy) & (energy < best_energy)
-        best_coords = torch.where(
-            improved[:, None, None], current.coords, best_coords
-        )
+        best_coords = torch.where(improved[:, None, None], current.coords, best_coords)
         best_energy = torch.where(improved, energy, best_energy)
         current = attr.evolve(current, coords=best_coords.clone())
     return attr.evolve(promoted, coords=best_coords), best_energy
@@ -132,61 +124,6 @@ def _ligand_cartmin(
         coord_mask=ligand_coord_mask,
         optimizer_kwargs={"max_iter": max_iter, "rtol": rtol},
     )
-
-
-def _torsion_soft_hard_refine(
-    promoted, ligand_block, *, param_db, device, exact_sfxn, schedule, cycles
-):
-    """Refine ligand jump and named torsions, accepting best exact energies."""
-    # An explicit database keeps the soft/hard score functions independent.
-    if param_db is None:
-        param_db = ParameterDatabase.get_default()
-    base_fa_ljrep = float(exact_sfxn.get_weight(ScoreType.fa_ljrep))
-    step_sfxns = [
-        (
-            _refine_fa_rep_scaled(base_fa_ljrep, param_db, device, rep_mult),
-            tol,
-            max_iter,
-        )
-        for rep_mult, tol, max_iter in schedule
-    ]
-    ldofs = build_ligand_docking_dofs(promoted, ligand_block, sidechain_blocks=())
-    ff, mm = ldofs.fold_forest, ldofs.move_map
-    best_coords = promoted.coords.clone()
-    best_energy = _score_pose_stack(promoted, exact_sfxn)
-    # Non-finite starting energies must not block accept-to-best.
-    best_energy = torch.where(
-        torch.isfinite(best_energy),
-        best_energy,
-        torch.full_like(best_energy, float("inf")),
-    )
-    current = promoted
-    # Fixed-hydrogen harness: omit whole-pose optH (including His/Asn/Gln
-    # flips) and its extra pre-optH torsional cycle. Ramp steps minimize only;
-    # ligand rotamer/proton-chi packing is not reproduced.
-    # Ignore ramp_repack_min's third (coordinate-constraint ramp) argument:
-    # Rosetta dockrigid defaults ramp_down_constraints to false, so it is inert.
-    for _ in range(cycles):
-        for step_sfxn, tol, max_iter in step_sfxns:
-            current = run_kin_min(
-                current,
-                step_sfxn,
-                ff,
-                mm,
-                # rtol maps Rosetta's fractional-energy tolerance. In float32,
-                # 1e-5 is below the optimizer's dtype floor (harmless warning);
-                # the hard step then stops by gradient/atol/max_iter.
-                optimizer_kwargs={"max_iter": max_iter, "rtol": tol},
-                kin_dtype=promoted.coords.dtype,
-            )
-        energy = _score_pose_stack(current, exact_sfxn)
-        improved = torch.isfinite(energy) & (energy < best_energy)
-        best_coords = torch.where(
-            improved[:, None, None], current.coords, best_coords
-        )
-        best_energy = torch.where(improved, energy, best_energy)
-        current = attr.evolve(current, coords=best_coords.clone())
-    return attr.evolve(promoted, coords=best_coords), best_energy
 
 
 def _ligand_atom_indices(pose_stack: PoseStack, ligand_block: int) -> torch.Tensor:
@@ -221,9 +158,9 @@ def _promote_top_candidates(
     flat = torch.argsort(ga_result.pool.energies)[:top_k]
 
     if sidechain_blocks:
-        promoted = _repeat_pose_stack(reference_pose_stack, top_k)
+        promoted = repeat_pose_stack(reference_pose_stack, top_k)
         selected_compact = attr.evolve(
-            _repeat_pose_stack(ga_result.pool.pose_stack.split(0), promoted.n_poses),
+            repeat_pose_stack(ga_result.pool.pose_stack.split(0), promoted.n_poses),
             coords=ga_result.pool.pose_stack.coords[flat].detach().clone(),
         )
         promoted = _place_ligand_in_reference(
@@ -246,7 +183,7 @@ def _promote_top_candidates(
     local_atoms = torch.arange(
         source_indices.shape[1], dtype=torch.int64, device=reference_pose_stack.device
     )
-    promoted = _repeat_pose_stack(reference_pose_stack, top_k)
+    promoted = repeat_pose_stack(reference_pose_stack, top_k)
     target_indices = promoted.block_coord_offset64[:, ligand_block, None] + local_atoms
     rows = torch.arange(promoted.n_poses, device=promoted.device)[:, None]
     coords = promoted.coords.clone()
@@ -280,12 +217,12 @@ def _flexible_sidechain_mapping(
     compact_pose_stack = compact_pose_stack.split(0)
     if getattr(backend, "ligand_block", ligand_block) != ligand_block:
         raise ValueError("finalization backend ligand block does not match reference")
-    context_blocks = _sidechain_context_blocks(
+    context_blocks = sidechain_context_blocks(
         reference_pose_stack, ligand_block, sidechain_blocks
     )
     if tuple(getattr(backend, "context_blocks", ())) != context_blocks:
         raise ValueError("finalization peptide context does not match backend")
-    source_blocks, compact_sidechain_blocks, _ = _movable_block_mapping(
+    source_blocks, compact_sidechain_blocks, _ = movable_block_mapping(
         reference_pose_stack, ligand_block, sidechain_blocks
     )
     if compact_pose_stack.max_n_blocks != len(source_blocks):
@@ -302,13 +239,11 @@ def _flexible_sidechain_mapping(
         raise ValueError("finalization requires identical sidechain atom mappings")
 
     block_local_atoms = []
-    for compact_block, source_block in zip(
-        compact_sidechain_blocks, sidechain_blocks
-    ):
+    for compact_block, source_block in zip(compact_sidechain_blocks, sidechain_blocks):
         compact_start = compact_pose_stack.block_coord_offset64[0, compact_block]
-        compact_end = compact_start + compact_pose_stack.block_type(
-            0, compact_block
-        ).n_atoms
+        compact_end = (
+            compact_start + compact_pose_stack.block_type(0, compact_block).n_atoms
+        )
         selected = compact_atoms[
             (compact_atoms >= compact_start) & (compact_atoms < compact_end)
         ]
@@ -345,96 +280,12 @@ def _mapped_atom_indices(
 def _receptor_only_pose_stack(pose_stack: PoseStack, ligand_block: int) -> PoseStack:
     """Delete one disconnected ligand block while preserving receptor topology."""
 
-    if getattr(pose_stack, "fragmented_ligand_mapping", None) is not None:
-        raise ValueError("finalization does not support fragmented ligand metadata")
-    if ligand_block < 0 or ligand_block >= pose_stack.max_n_blocks:
-        raise ValueError("ligand_block is out of range")
-    if bool(torch.any(pose_stack.block_type_ind64[:, ligand_block] < 0)):
-        raise ValueError("ligand block is absent from at least one pose")
-    if not bool(
-        torch.all(pose_stack.block_type_ind64 == pose_stack.block_type_ind64[0:1])
-    ):
-        raise ValueError("rigid-receptor finalization requires homogeneous topology")
     if bool(
         torch.any(pose_stack.inter_residue_connections64[:, ligand_block, :, 0] >= 0)
     ):
         raise ValueError("the finalized ligand must be disconnected from the receptor")
-
-    real_blocks = torch.nonzero(
-        pose_stack.block_type_ind64[0] >= 0, as_tuple=False
-    ).flatten()
-    keep_blocks = real_blocks[real_blocks != ligand_block]
-    if keep_blocks.numel() == 0:
-        raise ValueError("cannot construct an empty receptor")
-    old_to_new = torch.full(
-        (pose_stack.max_n_blocks,),
-        -1,
-        dtype=torch.int64,
-        device=pose_stack.device,
-    )
-    old_to_new[keep_blocks] = torch.arange(
-        keep_blocks.numel(), dtype=torch.int64, device=pose_stack.device
-    )
-
-    connections64 = pose_stack.inter_residue_connections64[:, keep_blocks].clone()
-    partner_blocks = connections64[..., 0]
-    real_partners = partner_blocks >= 0
-    if bool(torch.any(partner_blocks[real_partners] == ligand_block)):
-        raise ValueError("the finalized ligand must be disconnected from the receptor")
-    partner_blocks[real_partners] = old_to_new[partner_blocks[real_partners]]
-    if bool(torch.any(partner_blocks[real_partners] < 0)):
-        raise ValueError("receptor connection points reference an absent block")
-
-    block_type_ind64 = pose_stack.block_type_ind64[:, keep_blocks].clone()
-    pbt = pose_stack.packed_block_types
-    atom_counts = pbt.n_atoms[block_type_ind64[0]].to(torch.int64)
-    offsets64 = torch.zeros_like(block_type_ind64)
-    if keep_blocks.numel() > 1:
-        offsets64[:, 1:] = torch.cumsum(atom_counts[:-1], dim=0)[None, :]
-    n_source_atoms = int(torch.sum(pose_stack.n_ats_per_block[0]))
-    ligand_start = pose_stack.block_coord_offset64[0, ligand_block]
-    ligand_n_atoms = pbt.n_atoms[pose_stack.block_type_ind64[0, ligand_block]].to(
-        torch.int64
-    )
-    all_source_atoms = torch.arange(
-        n_source_atoms, dtype=torch.int64, device=pose_stack.device
-    )
-    source_atoms = all_source_atoms[
-        (all_source_atoms < ligand_start)
-        | (all_source_atoms >= ligand_start + ligand_n_atoms)
-    ]
-    coords = pose_stack.coords[:, source_atoms].clone()
-
-    keep_host = keep_blocks.detach().cpu().numpy()
-    source_host = source_atoms.detach().cpu().numpy()
-    pdb_info = PDBInfo(
-        residue_labels=pose_stack.pdb_info.residue_labels[:, keep_host].copy(),
-        residue_insertion_codes=(
-            pose_stack.pdb_info.residue_insertion_codes[:, keep_host].copy()
-        ),
-        chain_labels=pose_stack.pdb_info.chain_labels[:, keep_host].copy(),
-        atom_occupancy=pose_stack.pdb_info.atom_occupancy[:, source_host].copy(),
-        atom_b_factor=pose_stack.pdb_info.atom_b_factor[:, source_host].copy(),
-    )
-    inter_block_bondsep = _select_inter_block_bondsep(pose_stack, keep_blocks)
-    chain_id64 = pose_stack.chain_id64[:, keep_blocks].clone()
-
-    return PoseStack(
-        packed_block_types=pbt,
-        coords=coords,
-        block_coord_offset=offsets64.to(torch.int32),
-        block_coord_offset64=offsets64,
-        inter_residue_connections=connections64.to(torch.int32),
-        inter_residue_connections64=connections64,
-        inter_block_bondsep=inter_block_bondsep,
-        block_type_ind=block_type_ind64.to(torch.int32),
-        block_type_ind64=block_type_ind64,
-        chain_id=chain_id64.to(torch.int32),
-        chain_id64=chain_id64,
-        pdb_info=pdb_info,
-        constraint_set=None,
-        device=pose_stack.device,
-    )
+    real_blocks = torch.nonzero(pose_stack.block_type_ind64[0] >= 0).flatten().tolist()
+    return select_blocks(pose_stack, [b for b in real_blocks if b != ligand_block])
 
 
 def _with_coordinate_constraints(pose_stack: PoseStack) -> PoseStack:
@@ -489,9 +340,123 @@ def count_non_proton_ligand_chis(pose_stack: PoseStack, ligand_block: int) -> in
     return nchi
 
 
+def _refine_flexible(promoted, exact_sfxn, param_db, coord_mask):
+    """Rosetta dockflex "bbsc1": one hard-rep Cartesian minimization.
+
+    Ligand and flexible-sidechain atoms move in Cartesian space with
+    accept-to-best (L-BFGS, not Rosetta torsion-space linmin; no preliminary
+    cycle or optH), NOT a soft->hard ramp.
+    """
+
+    def cartesian_step(pose, step_sfxn, tol, max_iter):
+        return run_cart_min(
+            pose,
+            step_sfxn,
+            coord_mask=coord_mask,
+            optimizer_kwargs={"max_iter": max_iter, "rtol": tol},
+        )
+
+    return _soft_hard_refine(
+        promoted,
+        cartesian_step,
+        param_db=param_db,
+        device=promoted.device,
+        exact_sfxn=exact_sfxn,
+        schedule=_DOCKFLEX_SCHEDULE,
+        cycles=1,
+    )
+
+
+def _refine_rigid(
+    promoted,
+    reference,
+    exact_sfxn,
+    param_db,
+    ligand_block,
+    ligand_mask,
+    refine_schedule,
+    refine_cycles,
+):
+    """Torsion-space soft-to-hard refinement bracketed by ligand Cartesian min."""
+    promoted = _ligand_cartmin(promoted, exact_sfxn, ligand_mask)
+    ldofs = build_ligand_docking_dofs(promoted, ligand_block, sidechain_blocks=())
+
+    def torsion_step(pose, step_sfxn, tol, max_iter):
+        # Fixed-hydrogen harness: no whole-pose optH, ramp steps minimize only.
+        # rtol maps Rosetta's fractional-energy tolerance (in float32 1e-5 is
+        # below the dtype floor, so the hard step stops on gradient/atol/max_iter).
+        return run_kin_min(
+            pose,
+            step_sfxn,
+            ldofs.fold_forest,
+            ldofs.move_map,
+            optimizer_kwargs={"max_iter": max_iter, "rtol": tol},
+            kin_dtype=pose.coords.dtype,
+        )
+
+    promoted, _ = _soft_hard_refine(
+        promoted,
+        torsion_step,
+        param_db=param_db,
+        device=promoted.device,
+        exact_sfxn=exact_sfxn,
+        schedule=refine_schedule,
+        cycles=refine_cycles,
+    )
+    refined = _ligand_cartmin(promoted, exact_sfxn, ligand_mask)
+    # run_kin_min refolds the whole pose and float32 kinematics leave ~1e-3 A
+    # noise on the nominally fixed receptor; restore every non-ligand atom.
+    refined = attr.evolve(
+        refined,
+        coords=torch.where(
+            ligand_mask.unsqueeze(-1),
+            refined.coords,
+            reference.coords.expand(refined.n_poses, -1, -1),
+        ),
+    )
+    return refined, _score_pose_stack(refined, exact_sfxn)
+
+
+def _free_state_energies(
+    refined, reference, exact_sfxn, param_db, ligand_block, block_local_atoms
+):
+    """Energies of the relaxed free ligand and of the (flex-relaxed) receptor."""
+    constrained_sfxn = beta2016_score_function(refined.device, param_db=param_db)
+    constrained_sfxn.set_weight(ScoreType.constraint, 1.0)
+    relaxed_ligand = run_cart_min(
+        _with_coordinate_constraints(movable_pose_stack(refined, ligand_block)),
+        constrained_sfxn,
+        optimizer_kwargs={"max_iter": 30},
+    )
+    free_ligand_energy = _score_pose_stack(relaxed_ligand, exact_sfxn)
+
+    receptor = _receptor_only_pose_stack(reference, ligand_block)
+    if block_local_atoms:
+        kept = torch.nonzero(reference.block_type_ind64[0] >= 0).flatten().tolist()
+        kept = [block for block in kept if block != ligand_block]
+        receptor_block = {source: index for index, source in enumerate(kept)}
+        mask = torch.zeros(
+            receptor.coords.shape[:2], dtype=torch.bool, device=receptor.device
+        )
+        mask.scatter_(
+            1,
+            _mapped_atom_indices(
+                receptor,
+                tuple((receptor_block[b], atoms) for b, atoms in block_local_atoms),
+            ),
+            True,
+        )
+        receptor = run_cart_min(
+            receptor,
+            exact_sfxn,
+            coord_mask=mask,
+            optimizer_kwargs={"max_iter": 50},
+        )
+    return free_ligand_energy, _score_pose_stack(receptor, exact_sfxn)[0]
+
+
 def finalize_ga_docking(
     reference_pose_stack: PoseStack,
-    ligand_block: int,
     backend,
     ga_result: GAResult,
     *,
@@ -512,8 +477,6 @@ def finalize_ga_docking(
 
     if reference_pose_stack.n_poses != 1:
         raise ValueError("finalization requires one reference pose")
-    if not isinstance(top_k, int) or isinstance(top_k, bool) or top_k < 1:
-        raise ValueError("top_k must be a positive integer")
     if top_pose_metric not in ("dG", "score"):
         raise ValueError('top_pose_metric must be "dG" or "score"')
     npool = ga_result.ranked_energies.shape[1]
@@ -521,6 +484,7 @@ def finalize_ga_docking(
         raise ValueError(f"top_k ({top_k}) cannot exceed GA pool size ({npool})")
     if not hasattr(backend, "param_db"):
         raise TypeError("finalization requires a backend with a parameter database")
+    ligand_block = backend.ligand_block
 
     (
         sidechain_blocks,
@@ -551,95 +515,29 @@ def finalize_ga_docking(
     )
     coord_mask.scatter_(1, _ligand_atom_indices(promoted, ligand_block), True)
     if sidechain_blocks:
-        coord_mask.scatter_(
-            1, _mapped_atom_indices(promoted, block_local_atoms), True
-        )
-    if sidechain_blocks:
-        # FLEX: Rosetta dockflex uses a Cartesian "bbsc1" refinement = a single
-        # hard-rep minimization (repeat 1, fa_rep 1.0, tol 1e-5, <=200 iter), NOT
-        # a soft->hard ramp. Reproduce that here (ligand + flexible-sidechain atoms
-        # move in Cartesian space; accept-to-best as in Rosetta).
-        refined, complex_energy = _soft_hard_refine(
-            promoted,
-            coord_mask,
-            param_db=backend.param_db,
-            device=promoted.device,
-            exact_sfxn=exact_sfxn,
-            schedule=_DOCKFLEX_SCHEDULE,
-            cycles=1,
+        coord_mask.scatter_(1, _mapped_atom_indices(promoted, block_local_atoms), True)
+        refined, complex_energy = _refine_flexible(
+            promoted, exact_sfxn, backend.param_db, coord_mask
         )
     else:
-        # RIGID: bracket torsion-space soft-to-hard with ligand Cartesian min.
-        ligand_mask = coord_mask  # No flexible sidechains: ligand atoms only.
-        promoted = _ligand_cartmin(promoted, exact_sfxn, ligand_mask)
-        promoted, _ = _torsion_soft_hard_refine(
+        refined, complex_energy = _refine_rigid(
             promoted,
-            ligand_block,
-            param_db=backend.param_db,
-            device=promoted.device,
-            exact_sfxn=exact_sfxn,
-            schedule=refine_schedule,
-            cycles=refine_cycles,
-        )
-        refined = _ligand_cartmin(promoted, exact_sfxn, ligand_mask)
-        # Rigid docking fixes the receptor by construction, but run_kin_min
-        # refolds the whole pose from internal DOFs and float32 forward
-        # kinematics near the ligand root jump leaves ~1e-3 A noise on the
-        # nominally fixed receptor atoms. Restore every non-ligand atom to the
-        # reference so only the ligand is refined (ligand_mask marks the ligand).
-        keep_ligand = ligand_mask.unsqueeze(-1)
-        refined = attr.evolve(
-            refined,
-            coords=torch.where(
-                keep_ligand,
-                refined.coords,
-                reference_pose_stack.coords.expand(refined.n_poses, -1, -1),
-            ),
-        )
-        complex_energy = _score_pose_stack(refined, exact_sfxn)
-
-    ligand_only = _ligand_only_pose_stack(refined, ligand_block)
-    constrained_ligand = _with_coordinate_constraints(ligand_only)
-    constrained_sfxn = beta2016_score_function(
-        promoted.device, param_db=backend.param_db
-    )
-    constrained_sfxn.set_weight(ScoreType.constraint, 1.0)
-    relaxed_ligand = run_cart_min(
-        constrained_ligand,
-        constrained_sfxn,
-        optimizer_kwargs={"max_iter": 30},
-    )
-    free_ligand_energy = _score_pose_stack(relaxed_ligand, exact_sfxn)
-
-    receptor = _receptor_only_pose_stack(reference_pose_stack, ligand_block)
-    if sidechain_blocks:
-        real_blocks = torch.nonzero(
-            reference_pose_stack.block_type_ind64[0] >= 0, as_tuple=False
-        ).flatten()
-        keep_blocks = real_blocks[real_blocks != ligand_block].tolist()
-        source_to_receptor = {
-            source_block: receptor_block
-            for receptor_block, source_block in enumerate(keep_blocks)
-        }
-        receptor_block_local_atoms = tuple(
-            (source_to_receptor[source_block], local_atoms)
-            for source_block, local_atoms in block_local_atoms
-        )
-        receptor_coord_mask = torch.zeros(
-            receptor.coords.shape[:2], dtype=torch.bool, device=receptor.device
-        )
-        receptor_coord_mask.scatter_(
-            1,
-            _mapped_atom_indices(receptor, receptor_block_local_atoms),
-            True,
-        )
-        receptor = run_cart_min(
-            receptor,
+            reference_pose_stack,
             exact_sfxn,
-            coord_mask=receptor_coord_mask,
-            optimizer_kwargs={"max_iter": 50},
+            backend.param_db,
+            ligand_block,
+            coord_mask,
+            refine_schedule,
+            refine_cycles,
         )
-    free_receptor_energy = _score_pose_stack(receptor, exact_sfxn)[0]
+    free_ligand_energy, free_receptor_energy = _free_state_energies(
+        refined,
+        reference_pose_stack,
+        exact_sfxn,
+        backend.param_db,
+        ligand_block,
+        sidechain_blocks and block_local_atoms,
+    )
     free_receptor_energies = free_receptor_energy.expand_as(complex_energy)
 
     nchi_value = count_non_proton_ligand_chis(reference_pose_stack, ligand_block)
@@ -660,7 +558,9 @@ def finalize_ga_docking(
         matrix = values.reshape(1, top_k)
         return matrix.gather(1, sort_order)
 
-    ranked_genes = genes.gather(1, sort_order[:, :, None].expand(-1, -1, genes.shape[2]))
+    ranked_genes = genes.gather(
+        1, sort_order[:, :, None].expand(-1, -1, genes.shape[2])
+    )
     ranked_flat = sort_order.reshape(-1)
     ranked_pose_stack = attr.evolve(
         refined, coords=refined.coords[ranked_flat].detach().clone()

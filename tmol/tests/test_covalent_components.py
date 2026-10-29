@@ -10,18 +10,18 @@ import pytest
 import torch
 import biotite.structure as struc
 
-from tmol.database import ParameterDatabase
-from tmol.io import (
-    atom_array_from_cif,
-    default_canonical_ordering,
-    pose_stack_from_biotite,
+from tmol import (
+    ParameterDatabase,
+    atom_array_from_file,
+    pose_stack_from_atom_array,
+    beta2016_score_function,
 )
-from tmol.io._pose_stack_from_biotite import canonical_form_from_biotite
+from tmol.io._canonical_ordering import _default_canonical_ordering
+from tmol.io import canonical_form_from_biotite
 from tmol.ligand import prepare_ligands
 from tmol.ligand._conjugation_patches import _hydrogens_on
 from tmol.chemical import ResidueTypeSet
-from tmol.ligand._detect import detect_nonstandard_residues
-from tmol.score import beta2016_score_function
+from tmol.ligand._detect import _detect_nonstandard_residues
 from tmol.score.elec._params import ElecParamResolver
 from tmol.tests.data import data_path
 
@@ -90,7 +90,7 @@ EXPECTED_ATTACHMENTS = {
 
 
 def structure(stem):
-    return atom_array_from_cif(data_path("covalent_fixtures", stem + ".cif"))
+    return atom_array_from_file(data_path("covalent_fixtures", stem + ".cif"))
 
 
 # the atom pairs a polymer backbone link joins, in chain order
@@ -132,8 +132,8 @@ def test_attachment_atoms_are_detected(fixture):
     stem = FIXTURES[fixture]
     found = {
         lig.res_name: sorted(lig.connection_atom_names or [])
-        for lig in detect_nonstandard_residues(
-            structure(stem), default_canonical_ordering()
+        for lig in _detect_nonstandard_residues(
+            structure(stem), _default_canonical_ordering()
         )
     }
     for name, atoms in EXPECTED_ATTACHMENTS[stem].items():
@@ -207,8 +207,8 @@ def assert_canonical_bonds_match_source(atom_array, ordering):
 @pytest.mark.parametrize("stem", ["cyclic_peptide_1jbl", "1UBQ"])
 def test_backbone_and_disulfide_bonds_preserve_the_complete_source_graph(stem):
     """Preserve every declared edge, including 1JBL's nonsequential backbone."""
-    atom_array = atom_array_from_cif(data_path("cif", stem + ".cif"))
-    assert_canonical_bonds_match_source(atom_array, default_canonical_ordering())
+    atom_array = atom_array_from_file(data_path("cif", stem + ".cif"))
+    assert_canonical_bonds_match_source(atom_array, _default_canonical_ordering())
 
 
 @pytest.mark.parametrize("fixture", sorted(FIXTURES))
@@ -281,7 +281,7 @@ def test_attachment_matrix_h_geometry_score_and_gradient(fixture, torch_device):
     """Check glycan/ligand attachment H geometry through differentiable scoring."""
     stem = FIXTURES[fixture]
     atom_array = structure(stem)
-    pose, context = pose_stack_from_biotite(
+    pose, context = pose_stack_from_atom_array(
         atom_array,
         torch_device,
         prepare_ligands=True,

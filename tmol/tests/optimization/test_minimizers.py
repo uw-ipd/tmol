@@ -2,17 +2,20 @@ import torch
 import pytest
 import attrs
 
-from tmol import (
+from tmol.optimization._minimizers import (
     CartesianMinimizer,
+    _build_kinforest_network,
+    KinematicMinimizer,
+    _run_min,
+)
+from tmol import (
     PoseStack,
     run_cart_min,
     run_kin_min,
-    build_kinforest_network,
     beta2016_score_function,
     FoldForest,
     MoveMap,
 )
-from tmol.optimization import run_min
 
 
 @pytest.mark.parametrize("per_pose", [False, True])
@@ -20,9 +23,7 @@ def test_run_min_value_only_matches_standard(per_pose):
     class QuadraticNetwork(torch.nn.Module):
         def __init__(self):
             super().__init__()
-            self.x = torch.nn.Parameter(
-                torch.tensor([8.0, -3.0], dtype=torch.float64)
-            )
+            self.x = torch.nn.Parameter(torch.tensor([8.0, -3.0], dtype=torch.float64))
             self.segment_ids = torch.arange(2, dtype=torch.int64)
             self.grad_modes = []
 
@@ -36,7 +37,7 @@ def test_run_min_value_only_matches_standard(per_pose):
     results = []
     for value_only in (False, True):
         network = QuadraticNetwork()
-        result = run_min(
+        result = _run_min(
             network,
             optimizer_kwargs={
                 "value_only_line_search": value_only,
@@ -69,7 +70,7 @@ def test_build_kinforest_sfxn_network_smoke(
     mm.move_all_jumps = True
     mm.move_all_named_torsions = True
 
-    kf_sfxn_net = build_kinforest_network(pose_stack, sfxn, ff, mm)
+    kf_sfxn_net = _build_kinforest_network(pose_stack, sfxn, ff, mm)
     assert kf_sfxn_net is not None
 
 
@@ -163,3 +164,31 @@ def test_run_kin_min_torch_lbfgs(
     end_score = wpsm(minimized_pose_stack.coords)
 
     assert torch.all(end_score < start_score)
+
+
+def test_kinematic_minimizer_reuses_compatible_network(
+    jagged_stack_of_465_res_ubqs: PoseStack,
+    ff_3_jagged_ubq_465res_H: torch.Tensor,
+    torch_device,
+):
+    pose_stack = jagged_stack_of_465_res_ubqs
+    ff = FoldForest.from_edges(ff_3_jagged_ubq_465res_H)
+    sfxn = beta2016_score_function(torch_device)
+    mm = MoveMap.from_pose_stack(pose_stack)
+    mm.move_all_jumps = True
+    mm.move_all_named_torsions = True
+    minimizer = KinematicMinimizer(cuda_graph=torch_device.type == "cuda")
+    kwargs = {"max_iter": 3, "gradtol": 0.0, "atol": 0.0, "rtol": 0.0}
+
+    first = minimizer(pose_stack, sfxn, ff, mm, optimizer_kwargs=kwargs)
+    network = minimizer.network
+    optimizer = minimizer.optimizer
+    assert network is not None
+    assert optimizer is not None
+    second_input = attrs.evolve(pose_stack, coords=pose_stack.coords.clone())
+    second = minimizer(second_input, sfxn, ff, mm, optimizer_kwargs=kwargs)
+
+    assert minimizer.network is network
+    assert minimizer.optimizer is optimizer
+    assert minimizer.last_optimizer_reused
+    torch.testing.assert_close(second.coords, first.coords, atol=1e-4, rtol=1e-4)

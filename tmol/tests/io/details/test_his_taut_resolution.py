@@ -2,18 +2,17 @@ import numpy
 import torch
 import attr
 
-from tmol.io import (
-    default_canonical_ordering,
-    CanonicalOrdering,
-    canonical_form_from_pdb,
+from tmol.io._canonical_ordering import (
+    _default_canonical_ordering,
+    _canonical_form_from_pdb,
 )
-from tmol.io.details import (
+from tmol import CanonicalOrdering, PatchedChemicalDatabase
+from tmol.io.details._his_taut_resolution import (
     HisTautomerResolution,
-    resolve_his_tautomerization,
+    _resolve_his_tautomerization,
     his_taut_variant_NE2_protonated,
     his_taut_variant_ND1_protonated,
 )
-from tmol.database import PatchedChemicalDatabase
 
 
 def test_resolve_his_HD1_provided():
@@ -37,7 +36,7 @@ def test_resolve_his_HD1_provided():
     # ATOM      0  HE1 HIS L 209     -96.263  12.649   1.512  1.00 62.34           H   new
     # ATOM      0  HE2 HIS L 209     -95.990  11.326   3.453  1.00 62.20           H   new <-- skip this one
 
-    co = default_canonical_ordering()
+    co = _default_canonical_ordering()
     max_n_canonical_atoms = co.max_n_canonical_atoms
     coords = torch.zeros((1, 1, max_n_canonical_atoms, 3), dtype=torch.float32)
     atom_is_present = torch.zeros((1, 1, max_n_canonical_atoms), dtype=torch.bool)
@@ -92,7 +91,7 @@ def test_resolve_his_HD1_provided():
         res_type_variants,
         resolved_coords,
         resolved_atom_is_present,
-    ) = resolve_his_tautomerization(
+    ) = _resolve_his_tautomerization(
         co, res_types, res_type_variants, coords, atom_is_present
     )
 
@@ -138,7 +137,7 @@ def test_resolve_his_HE2_provided():
     # ATOM      0  HE1 HIS L 209     -96.263  12.649   1.512  1.00 62.34           H   new
     # ATOM      0  HE2 HIS L 209     -95.990  11.326   3.453  1.00 62.20           H   new
 
-    co = default_canonical_ordering()
+    co = _default_canonical_ordering()
     max_n_canonical_atoms = co.max_n_canonical_atoms
     coords = torch.zeros((1, 1, max_n_canonical_atoms, 3), dtype=torch.float32)
     atom_is_present = torch.zeros((1, 1, max_n_canonical_atoms), dtype=torch.bool)
@@ -193,7 +192,7 @@ def test_resolve_his_HE2_provided():
         res_type_variants,
         resolved_coords,
         resolved_atom_is_present,
-    ) = resolve_his_tautomerization(
+    ) = _resolve_his_tautomerization(
         co, res_types, res_type_variants, coords, atom_is_present
     )
 
@@ -219,7 +218,7 @@ def test_resolve_his_HE2_provided():
 
 
 def test_resolve_his_HD1_provided_as_HN():
-    co = default_canonical_ordering()
+    co = _default_canonical_ordering()
     max_n_canonical_atoms = co.max_n_canonical_atoms
     coords = torch.zeros((1, 1, max_n_canonical_atoms, 3), dtype=torch.float32)
     atom_is_present = torch.zeros((1, 1, max_n_canonical_atoms), dtype=torch.bool)
@@ -274,7 +273,7 @@ def test_resolve_his_HD1_provided_as_HN():
         res_type_variants,
         resolved_coords,
         resolved_atom_is_present,
-    ) = resolve_his_tautomerization(
+    ) = _resolve_his_tautomerization(
         co, res_types, res_type_variants, coords, atom_is_present
     )
 
@@ -302,7 +301,7 @@ def test_resolve_his_HD1_provided_as_HN():
 
 
 def test_resolve_his_HE2_provided_as_HN():
-    co = default_canonical_ordering()
+    co = _default_canonical_ordering()
     max_n_canonical_atoms = co.max_n_canonical_atoms
     coords = torch.zeros((1, 1, max_n_canonical_atoms, 3), dtype=torch.float32)
     atom_is_present = torch.zeros((1, 1, max_n_canonical_atoms), dtype=torch.bool)
@@ -357,7 +356,7 @@ def test_resolve_his_HE2_provided_as_HN():
         res_type_variants,
         resolved_coords,
         resolved_atom_is_present,
-    ) = resolve_his_tautomerization(
+    ) = _resolve_his_tautomerization(
         co, res_types, res_type_variants, coords, atom_is_present
     )
 
@@ -385,7 +384,7 @@ def test_resolve_his_HE2_provided_as_HN():
 
 
 def test_resolve_his_ND1_provided_as_NH():
-    co = default_canonical_ordering()
+    co = _default_canonical_ordering()
     max_n_canonical_atoms = co.max_n_canonical_atoms
     coords = torch.zeros((1, 1, max_n_canonical_atoms, 3), dtype=torch.float32)
     atom_is_present = torch.zeros((1, 1, max_n_canonical_atoms), dtype=torch.bool)
@@ -440,7 +439,7 @@ def test_resolve_his_ND1_provided_as_NH():
         res_type_variants,
         resolved_coords,
         resolved_atom_is_present,
-    ) = resolve_his_tautomerization(
+    ) = _resolve_his_tautomerization(
         co, res_types, res_type_variants, coords, atom_is_present
     )
 
@@ -472,7 +471,7 @@ def test_resolve_his_ND1_provided_as_NH():
 
 
 def test_resolve_his_NE2_provided_as_NH():
-    co = default_canonical_ordering()
+    co = _default_canonical_ordering()
     max_n_canonical_atoms = co.max_n_canonical_atoms
     coords = torch.zeros((1, 1, max_n_canonical_atoms, 3), dtype=torch.float32)
     atom_is_present = torch.zeros((1, 1, max_n_canonical_atoms), dtype=torch.bool)
@@ -527,7 +526,7 @@ def test_resolve_his_NE2_provided_as_NH():
         res_type_variants,
         resolved_coords,
         resolved_atom_is_present,
-    ) = resolve_his_tautomerization(
+    ) = _resolve_his_tautomerization(
         co, res_types, res_type_variants, coords, atom_is_present
     )
 
@@ -568,7 +567,7 @@ def test_resolve_his_taut_no_his_in_canonical_ordering(
     small_patched_chem_db = PatchedChemicalDatabase.from_chem_db(small_chem_db)
 
     small_co = CanonicalOrdering.from_chemdb(small_patched_chem_db)
-    cf = canonical_form_from_pdb(small_co, ubq_pdb, torch_device, residue_end=1)
+    cf = _canonical_form_from_pdb(small_co, ubq_pdb, torch_device, residue_end=1)
 
     res_types = cf.res_types
     coords = cf.coords
@@ -580,7 +579,7 @@ def test_resolve_his_taut_no_his_in_canonical_ordering(
         res_type_variants,
         resolved_coords,
         resolved_atom_is_present,
-    ) = resolve_his_tautomerization(
+    ) = _resolve_his_tautomerization(
         small_co, res_types, orig_res_type_variants, coords, atom_is_present
     )
     assert orig_res_type_variants is res_type_variants

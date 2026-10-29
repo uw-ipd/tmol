@@ -23,12 +23,6 @@ template <
     typename Real,
     typename Int>
 struct GridInterpDispatch {
-  static auto forward(
-      ContextManager& mgr,
-      TView<Real, 4, D> coefficients,
-      TView<Vec<Real, 3>, 1, D> indices,
-      TView<Int, 1, D> grid_indices) -> TPack<Real, 1, D>;
-
   static auto forward_with_derivatives(
       ContextManager& mgr,
       TView<Real, 4, D> coefficients,

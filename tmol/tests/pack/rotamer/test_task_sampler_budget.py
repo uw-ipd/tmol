@@ -2,10 +2,13 @@
 
 import pytest
 
-from tmol.io import pose_stack_from_pdb
-from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-from tmol.pack.rotamer import NaChiRotamerSampler, OptHSampler
-from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
+from tmol import pose_stack_from_file, PackerPalette, PackerTask
+from tmol.pack import (
+    SetPackerTask,
+    NaChiRotamerSampler,
+    OptHSampler,
+    create_dunbrack_sampler_from_database,
+)
 from tmol.tests.pack.rotamer.test_na_chi_sampler import _pose_stack
 
 
@@ -17,7 +20,14 @@ def test_task_limits_apply_when_a_sampler_is_reused(
     pose = (
         _pose_stack(rna_pdb, torch_device)
         if kind == "na"
-        else pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=12)
+        else pose_stack_from_file(
+            ubq_pdb,
+            torch_device,
+            residue_start=0,
+            residue_end=12,
+            no_optH=True,
+            missing_density_distance_threshold=0.0,
+        )
     )
     if kind == "opth":
         sampler = OptHSampler(flip_NHQ=False)
@@ -67,8 +77,13 @@ def test_task_limits_apply_when_a_sampler_is_reused(
 def test_budget_setter_rejects_noninteger_limits_without_partial_update(ubq_pdb):
     import torch
 
-    pose = pose_stack_from_pdb(
-        ubq_pdb, torch.device("cpu"), residue_start=0, residue_end=2
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch.device("cpu"),
+        residue_start=0,
+        residue_end=2,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
     )
     task = PackerTask(pose, PackerPalette())
     task.set_chi_sample_budget(10, 20)
@@ -83,10 +98,17 @@ def test_combined_task_limit_is_checked_before_merging(
     kind, ubq_pdb, default_database, torch_device, monkeypatch
 ):
     import importlib
-    from tmol.pack.rotamer import IncludeCurrentSampler, FixedAAChiSampler
+    from tmol.pack import IncludeCurrentSampler, FixedAAChiSampler
 
     builder = importlib.import_module("tmol.pack.rotamer._build_rotamers")
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=2)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=2,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     task = PackerTask(pose, PackerPalette())
     if kind == "samplers":
         task.restrict_to_repacking()
@@ -101,7 +123,7 @@ def test_combined_task_limit_is_checked_before_merging(
         raise AssertionError("The aggregate limit must be checked before merging rows")
 
     with monkeypatch.context() as scoped:
-        scoped.setattr(builder, "merge_conformer_samples", premature_merge)
+        scoped.setattr(builder, "_merge_conformer_samples", premature_merge)
         with pytest.raises(ValueError, match="combined rotamers at pose 0 block 0"):
             builder.build_rotamers(
                 pose, SetPackerTask.from_packer_task(task), default_database.chemical
@@ -119,7 +141,7 @@ def test_combined_task_limit_is_checked_before_merging(
 def test_combined_limit_is_per_residue_and_pose(torch_device):
     from types import SimpleNamespace
     import torch
-    from tmol.pack.rotamer._chi_budget import check_task_sample_budget
+    from tmol.pack.rotamer._chi_budget import _check_task_sample_budget
     from tmol.tests.pack.rotamer.test_merge_sample_plan import samples_from_counts
 
     task = SimpleNamespace(
@@ -129,9 +151,9 @@ def test_combined_limit_is_per_residue_and_pose(torch_device):
         cons_bt_block=torch.tensor([0, 0, 2, 0, 0], device=torch_device),
     )
     samples = samples_from_counts([[2, 3, 4, 1, 1], [1, 0, 1, 1, 2]], torch_device)
-    check_task_sample_budget(task, samples)
+    _check_task_sample_budget(task, samples)
     task.chi_sample_budget = (5, 5)
     with pytest.raises(ValueError, match="6 combined rotamers at pose 0 block 0"):
-        check_task_sample_budget(task, samples)
+        _check_task_sample_budget(task, samples)
     task.chi_sample_budget = None
-    check_task_sample_budget(task, samples)
+    _check_task_sample_budget(task, samples)

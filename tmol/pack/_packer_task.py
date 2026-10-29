@@ -3,12 +3,10 @@ from __future__ import annotations
 import torch
 import attr
 
-from tmol.types import Tensor
+from tmol.types._torch import Tensor
 from tmol.database.chemical import DEPROTONATED_STATE
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
 from typing import Collection, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -40,7 +38,7 @@ if TYPE_CHECKING:
 #   designed for L-AA redesign / repacking tasks.
 
 
-def set_compare(x, y):
+def _set_compare(x, y):
     """Treat the collections x and y as if they are sets. Return true if they
     contain the same elements and false otherwise
     """
@@ -68,8 +66,9 @@ class PackerPalette:
 
     Args:
         noncanonical_design: Also offer noncanonical residue types (such as AIB)
-            as replacements for other residues. Off by default, so a
-            noncanonical type is considered only where the input already has it.
+            and opposite-chirality amino acids (L <-> D) as replacements for
+            other residues. Off by default, so a noncanonical type is considered
+            only where the input already has it.
     """
 
     def __init__(self, noncanonical_design: bool = False):
@@ -168,7 +167,7 @@ class PackerPalette:
         other sampler are left to that sampler exclusively.
         Future versions of PackerPalette have the option to override this method.
         """
-        from tmol.pack.rotamer import FallbackSampler
+        from tmol.pack.rotamer._fallback_sampler import FallbackSampler
 
         return [FallbackSampler()]
 
@@ -218,11 +217,13 @@ def _exchangeable(orig_bt, alt_bt, orig_backbone, alt_backbone) -> bool:
         and alt_bt.connections == orig_bt.connections
         and alt_bt.conjugation_context == orig_bt.conjugation_context
         and orig_backbone == alt_backbone
-        and set_compare(
+        and _set_compare(
             alt_bt.properties.chemical_modifications,
             orig_bt.properties.chemical_modifications,
         )
-        and set_compare(alt_bt.properties.connectivity, orig_bt.properties.connectivity)
+        and _set_compare(
+            alt_bt.properties.connectivity, orig_bt.properties.connectivity
+        )
     )
 
 
@@ -312,6 +313,16 @@ def _annotate_packed_block_types_for_default_packer_palette(
                     # dangerous because this packer pallete will allow
                     # your d-caa to become glycine, and then later
                     # to an l-caa, but not the other way around
+                    allowed_block_types_for_block_type[i].append(j)
+                    allowed_block_is_orig[i].append(j == i)
+                    restrict_to_repacking_masks[i].append(
+                        j_allowed_for_restrict_to_repack
+                    )
+                elif (
+                    noncanonical_design
+                    and orig_bt.properties.polymer.polymer_type == "amino_acid"
+                ):
+                    # noncanonical design also crosses between l and d amino acids
                     allowed_block_types_for_block_type[i].append(j)
                     allowed_block_is_orig[i].append(j == i)
                     restrict_to_repacking_masks[i].append(

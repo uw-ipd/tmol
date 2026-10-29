@@ -16,10 +16,7 @@ import biotite.structure.io.pdbx as pdbx
 import pytest
 import torch
 
-from tmol.database import ParameterDatabase
-from tmol.io import pose_stack_from_biotite
-from tmol.score import ScoreFunction
-from tmol.score._score_types import ScoreType
+from tmol import ParameterDatabase, pose_stack_from_atom_array, ScoreFunction, ScoreType
 from tmol.tests.data import data_path
 
 HETEROCHIRAL_FIXTURE_ENERGY = -0.048889146701669
@@ -56,7 +53,7 @@ def pose_for(pair, device, reverse=False, mirror=False):
             residue.coord *= -1
     if reverse:
         residues.reverse()
-    pose = pose_stack_from_biotite(struc.concatenate(residues), device, no_optH=True)
+    pose = pose_stack_from_atom_array(struc.concatenate(residues), device, no_optH=True)
     return pose, scoring_atoms(pose)
 
 
@@ -123,7 +120,7 @@ def test_heterochiral_fixture_matches_rosetta_goldens(torch_device):
         model=1,
         include_bonds=True,
     )
-    pose = pose_stack_from_biotite(array, torch_device, no_optH=True)
+    pose = pose_stack_from_atom_array(array, torch_device, no_optH=True)
     block_types = [
         pose.packed_block_types.active_block_types[int(i)]
         for i in pose.block_type_ind[0]

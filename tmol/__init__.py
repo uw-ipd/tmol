@@ -10,7 +10,7 @@ from importlib import import_module as _import_module
 from importlib.metadata import PackageNotFoundError, version
 
 
-def include_paths():
+def _include_paths():
     """C++/CUDA include paths for tmol components.
 
     Defined before other imports because JIT extension loading
@@ -23,7 +23,7 @@ def include_paths():
 
 
 from tmol._cpp_lib import has_cuda
-from tmol._load_ext import ensure_compiled_or_jit as _ensure_compiled_or_jit
+from tmol._load_ext import _ensure_compiled_or_jit
 
 # Extensions may not be built yet (e.g. during sdist creation).
 # Individual compiled.py modules will raise a clear error if needed.
@@ -37,110 +37,119 @@ except PackageNotFoundError:
 
 __all__ = [
     "CanonicalOrdering",
-    "CartesianMinimizer",
     "CartesianMoveMap",
-    "ConstraintEnergyTerm",
     "ConstraintSet",
     "EdgeType",
     "FoldForest",
-    "KinematicModuleData",
+    "LigandFragmentDefinition",
     "MoveMap",
+    "PDBInfo",
     "PackedBlockTypes",
+    "PackerPalette",
+    "PackerTask",
     "ParameterDatabase",
+    "PatchedChemicalDatabase",
     "PoseStack",
+    "PoseStackBuilder",
     "ScoreFunction",
     "ScoreType",
-    "atom_records_from_pose_stack",
+    "atom_array_from_file",
+    "atom_array_from_pose_stack",
+    "atom_for_residue_label",
     "beta2016_score_function",
-    "build_kinforest_network",
-    "canonical_form_from_pdb",
-    "create_mainchain_coordinate_constraints",
-    "default_canonical_ordering",
-    "default_packed_block_types",
+    "block_for_residue_label",
+    "blocks_for_residue_labels",
+    "calculate_fragment_interactions",
+    "constraint_atoms_for_labels",
     "extended_pose_stack_from_sequences",
     "fast_relax",
-    "get_named_torsions",
+    "file_from_atom_array",
+    "file_from_pose_stack",
+    "get_ligand_mask",
+    "get_sequence",
     "get_torsion_names",
-    "include_paths",
     "has_cuda",
-    "one2three",
-    "pose_stack_from_canonical_form",
-    "pose_stack_from_pdb",
-    "pose_stack_to_pdb_string",
+    "mutate_residue",
+    "mutate_to_sequence",
+    "overlay_view",
+    "pack_rotamers",
+    "pose_stack_from_atom_array",
+    "pose_stack_from_file",
+    "recombine_fragmented_ligands",
     "run_cart_min",
     "run_kin_min",
-    "run_min",
     "selection_gallery",
-    "set_named_torsions",
     "switchable_view",
-    "three2one",
     "view",
-    "write_pose_stack_pdb",
 ]
 
 
 _LAZY_ATTRS = {}
 for _module, _names in (
-    ("tmol.chemical", ("one2three", "three2one")),
     ("tmol.database", ("ParameterDatabase",)),
+    ("tmol.database._patched_chemdb", ("PatchedChemicalDatabase",)),
+    ("tmol.io._canonical_ordering", ("CanonicalOrdering",)),
     (
-        "tmol.io",
+        "tmol.io._pose_stack_from_biotite",
         (
-            "CanonicalOrdering",
-            "atom_records_from_pose_stack",
-            "canonical_form_from_pdb",
-            "default_canonical_ordering",
-            "default_packed_block_types",
-            "extended_pose_stack_from_sequences",
-            "pose_stack_from_canonical_form",
-            "pose_stack_from_pdb",
-            "pose_stack_to_pdb_string",
+            "atom_array_from_pose_stack",
+            "pose_stack_from_atom_array",
+        ),
+    ),
+    ("tmol.io._pose_stack_from_sequence", ("extended_pose_stack_from_sequences",)),
+    (
+        "tmol.io._structure_io",
+        (
+            "atom_array_from_file",
+            "file_from_atom_array",
+            "file_from_pose_stack",
+            "pose_stack_from_file",
+        ),
+    ),
+    (
+        "tmol.io._visualize",
+        (
+            "overlay_view",
             "selection_gallery",
             "switchable_view",
             "view",
-            "write_pose_stack_pdb",
         ),
     ),
+    ("tmol.kinematics._fold_forest", ("EdgeType", "FoldForest")),
+    ("tmol.kinematics._move_map", ("CartesianMoveMap", "MoveMap")),
     (
-        "tmol.kinematics",
+        "tmol.ligand._fragmentation",
         (
-            "CartesianMoveMap",
-            "EdgeType",
-            "FoldForest",
-            "KinematicModuleData",
-            "MoveMap",
-            "set_named_torsions",
+            "LigandFragmentDefinition",
+            "recombine_fragmented_ligands",
         ),
     ),
+    ("tmol.optimization._minimizers", ("run_cart_min", "run_kin_min")),
+    ("tmol.pack._mutate", ("mutate_residue", "mutate_to_sequence")),
+    ("tmol.pack._pack_rotamers", ("pack_rotamers",)),
+    ("tmol.pack._packer_task", ("PackerPalette", "PackerTask")),
+    ("tmol.pose._constraint_set", ("ConstraintSet",)),
+    ("tmol.pose._packed_block_types", ("PackedBlockTypes",)),
+    ("tmol.pose._pdb_info", ("PDBInfo",)),
+    ("tmol.pose._pose_stack", ("PoseStack",)),
+    ("tmol.pose._pose_stack_builder", ("PoseStackBuilder",)),
     (
-        "tmol.optimization",
+        "tmol.pose._util",
         (
-            "CartesianMinimizer",
-            "build_kinforest_network",
-            "run_cart_min",
-            "run_kin_min",
-            "run_min",
-        ),
-    ),
-    (
-        "tmol.pose",
-        (
-            "ConstraintSet",
-            "PackedBlockTypes",
-            "PoseStack",
-            "get_named_torsions",
+            "atom_for_residue_label",
+            "block_for_residue_label",
+            "blocks_for_residue_labels",
+            "constraint_atoms_for_labels",
+            "get_ligand_mask",
+            "get_sequence",
             "get_torsion_names",
         ),
     ),
-    (
-        "tmol.score",
-        ("ScoreFunction", "ScoreType", "beta2016_score_function"),
-    ),
-    (
-        "tmol.score.constraint",
-        ("ConstraintEnergyTerm", "create_mainchain_coordinate_constraints"),
-    ),
-    ("tmol.relax", ("fast_relax",)),
+    ("tmol.relax._fast_relax", ("fast_relax",)),
+    ("tmol.score", ("beta2016_score_function",)),
+    ("tmol.score._fragment_interactions", ("calculate_fragment_interactions",)),
+    ("tmol.score._score_function", ("ScoreFunction",)),
+    ("tmol.score._score_types", ("ScoreType",)),
 ):
     _LAZY_ATTRS.update(dict.fromkeys(_names, _module))
 del _module, _names

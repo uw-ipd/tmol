@@ -21,9 +21,9 @@ import numpy as np
 from rdkit import Chem
 from rdkit.Chem import RWMol
 
-from tmol.io import CanonicalOrdering
-from tmol.ligand._input_repair import _infer_oxyacid_bonds, normalize_radical_oxygens
-from tmol.ligand._mol2_names import apply_disambiguated_mol2_names
+from tmol.io._canonical_ordering import CanonicalOrdering
+from tmol.ligand._input_repair import _infer_oxyacid_bonds, _normalize_radical_oxygens
+from tmol.ligand._mol2_names import _apply_disambiguated_mol2_names
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ class NonStandardResidueInfo:
             ``partial_charges`` on the mol2 / SMILES-via-mol2 path.
         original_single_bonds: Optional set of ``frozenset({name_a, name_b})``
             pairs that the source mol2 records as literal single (order ``'1'``)
-            bonds, keyed by disambiguated atom name. ``build_chi_topology`` uses
+            bonds, keyed by disambiguated atom name. ``_build_chi_topology`` uses
             these to honor the mol2 bond order (Rosetta-faithful) instead of
             RDKit's post-kekulization order. Only set on the mol2 / SMILES-via-
             mol2 paths; ``None`` elsewhere.
@@ -196,7 +196,7 @@ def _isolated_atom_charge_problem(
     )
 
 
-def get_chem_comp_type(
+def _get_chem_comp_type(
     res_name: str, chem_comp_types: Optional[dict] = None
 ) -> Optional[str]:
     """The chemical component type the input file declares for a residue.
@@ -215,7 +215,7 @@ def get_chem_comp_type(
     return declared.upper() if declared else None
 
 
-def chem_comp_types_from_cif(cif_path) -> dict:
+def _chem_comp_types_from_cif(cif_path) -> dict:
     """Read the _chem_comp.type of every component declared by a CIF file.
 
     A file that does not number its residues along a polymer sequence can still
@@ -453,25 +453,27 @@ def nonstandard_residue_info_from_mol2(
     partial charges, avoiding lossy rdkit<->biotite round-trips.
     """
     try:
-        return nonstandard_residue_info_from_mol2_block(
+        return _nonstandard_residue_info_from_mol2_block(
             Path(mol2_path).read_text(), res_name=res_name
         )
     except ValueError as error:
         raise ValueError(f"{mol2_path}: {error}") from error
 
 
-def nonstandard_residue_info_from_file(
+def _nonstandard_residue_info_from_file(
     path: str | Path, res_name: str | None = None
 ) -> NonStandardResidueInfo:
     """``NonStandardResidueInfo`` from a MOL2 or an SDF/MOL file (PDBbind 3GE7)."""
     sdf = Path(path).suffix.lower() in (".sdf", ".mol")
     read = (
-        nonstandard_residue_info_from_sdf if sdf else nonstandard_residue_info_from_mol2
+        _nonstandard_residue_info_from_sdf
+        if sdf
+        else nonstandard_residue_info_from_mol2
     )
     return read(path, res_name=res_name)
 
 
-def nonstandard_residue_info_from_sdf(
+def _nonstandard_residue_info_from_sdf(
     sdf_path: str | Path,
     res_name: str | None = None,
 ) -> NonStandardResidueInfo:
@@ -485,14 +487,14 @@ def nonstandard_residue_info_from_sdf(
 
     from tmol.ligand._rdkit_mol import (
         _SOURCE_KEKULE_PROP,
-        normalize_non_ring_aromatic_bonds,
+        _normalize_non_ring_aromatic_bonds,
     )
 
     mol = next(iter(Chem.SDMolSupplier(str(sdf_path), sanitize=False, removeHs=False)))
     if mol is None:
         raise ValueError(f"{sdf_path}: no readable molecule")
     explicit_h = any(atom.GetAtomicNum() == 1 for atom in mol.GetAtoms())
-    normalize_non_ring_aromatic_bonds(mol)
+    _normalize_non_ring_aromatic_bonds(mol)
     for atom in mol.GetAtoms():
         atom.SetNoImplicit(explicit_h)
     mol.UpdatePropertyCache(strict=False)
@@ -505,7 +507,7 @@ def nonstandard_residue_info_from_sdf(
     )
 
 
-def nonstandard_residue_info_from_mol2_block(
+def _nonstandard_residue_info_from_mol2_block(
     mol2_block: str,
     res_name: str | None = None,
 ) -> NonStandardResidueInfo:
@@ -518,7 +520,7 @@ def nonstandard_residue_info_from_mol2_block(
     """
     from tmol.ligand._openbabel_compat import (
         OpenBabelUnavailableError,
-        obabel_read_mol2_block,
+        _obabel_read_mol2_block,
     )
 
     if mol2_block.count("@<TRIPOS>MOLECULE") != 1:
@@ -531,7 +533,7 @@ def nonstandard_residue_info_from_mol2_block(
     )
     if mol is None:
         try:
-            mol = obabel_read_mol2_block(mol2_block)
+            mol = _obabel_read_mol2_block(mol2_block)
         except OpenBabelUnavailableError:
             mol = None
         if mol is None:
@@ -566,7 +568,7 @@ def nonstandard_residue_info_from_mol2_block(
     rewritten = not invalid and Chem.GetFormalCharge(probe) != expected_net
     if invalid or rewritten:
         try:
-            alternate = obabel_read_mol2_block(
+            alternate = _obabel_read_mol2_block(
                 mol2_block,
                 net_charge=prepared_net,
                 atom_charges={**declared_charges, **synthesized_charges},
@@ -634,12 +636,12 @@ def _nonstandard_residue_info_from_mol2_mol(
     these are mapped to disambiguated atom names and stored as
     ``original_single_bonds`` so the CHI classifier can honor the mol2 bond order.
     """
-    from tmol.ligand._atom_typing import sanitize_tolerant
+    from tmol.ligand._atom_typing import _sanitize_tolerant
 
-    sanitize_tolerant(mol)
+    _sanitize_tolerant(mol)
     if mol.GetNumConformers() == 0:
         raise ValueError(f"Mol2 input has no 3D coordinates: {source}")
-    disambiguated_names = apply_disambiguated_mol2_names(mol)
+    disambiguated_names = _apply_disambiguated_mol2_names(mol)
     conf = mol.GetConformer()
     n_atoms = mol.GetNumAtoms()
 
@@ -747,7 +749,7 @@ def _nonstandard_residue_info_from_mol2_mol(
     )
 
 
-def _normalize_radical_oxygens(smiles: str) -> str:
+def _normalize_radical_oxygens_in_smiles(smiles: str) -> str:
     """Restore the formal charge on bare radical oxygens (e.g. DUD ``[O]``).
 
     Some source databases write anionic oxygens (carboxylate, sulfonate,
@@ -763,7 +765,7 @@ def _normalize_radical_oxygens(smiles: str) -> str:
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return smiles
-    fixed = normalize_radical_oxygens(mol)
+    fixed = _normalize_radical_oxygens(mol)
     return smiles if fixed is mol else Chem.MolToSmiles(fixed)
 
 
@@ -802,7 +804,7 @@ def nonstandard_residue_info_from_smiles_via_mol2(
     1. optionally pKa-protonate the SMILES with Dimorphite-DL (``protonate``),
     2. generate a 3D mol2 with MMFF94 partial charges via OpenBabel (kept
        in memory as a string — no temp file), then
-    3. read that mol2 with :func:`nonstandard_residue_info_from_mol2_block`.
+    3. read that mol2 with :func:`_nonstandard_residue_info_from_mol2_block`.
 
     This never builds a biotite atom-array from an RDKit embedding and never
     recomputes MMFF on a reconstructed graph — the OpenBabel MMFF94 charges
@@ -824,14 +826,14 @@ def nonstandard_residue_info_from_smiles_via_mol2(
     """
     from tmol.ligand._openbabel_compat import (
         _build_charged_3d_mol2_mol,
-        source_atom_order_from_mapped_smiles,
+        _source_atom_order_from_mapped_smiles,
     )
 
-    smiles = _normalize_radical_oxygens(smiles)
+    smiles = _normalize_radical_oxygens_in_smiles(smiles)
     prep_smiles = _dimorphite_protonate_smiles(smiles, ph) if protonate else smiles
-    source_order = source_atom_order_from_mapped_smiles(prep_smiles)
+    source_order = _source_atom_order_from_mapped_smiles(prep_smiles)
     molecule = _build_charged_3d_mol2_mol(prep_smiles, seed=seed)
-    info = nonstandard_residue_info_from_mol2_block(
+    info = _nonstandard_residue_info_from_mol2_block(
         molecule.write("mol2"), res_name=res_name
     )
     # Mol2 preserves partial charges, but its atom types can lose formal charge
@@ -885,7 +887,7 @@ def _component_types_from_annotations(atom_array, explicit=None):
     return declared
 
 
-def detect_nonstandard_residues(
+def _detect_nonstandard_residues(
     atom_array: struc.AtomArray,
     canonical_ordering: CanonicalOrdering,
     chem_comp_types: Optional[dict] = None,
@@ -922,7 +924,7 @@ def detect_nonstandard_residues(
     )
     seen: set[str] = set()
     results: list[NonStandardResidueInfo] = []
-    polymer_names = polymer_entity_residues(atom_array)
+    polymer_names = _polymer_entity_residues(atom_array)
 
     cross_residue_atoms, cross_residue_partners = _cross_residue_bond_atoms(atom_array)
     covalently_linked_names = frozenset(
@@ -951,7 +953,7 @@ def detect_nonstandard_residues(
         sub = _representative_instance(
             atom_array, residue_starts, start, connections, heavy_counts
         )
-        component_type = get_chem_comp_type(res_name, chem_comp_types) or "UNKNOWN"
+        component_type = _get_chem_comp_type(res_name, chem_comp_types) or "UNKNOWN"
         covalently_linked = res_name in covalently_linked_names
 
         logger.info(
@@ -1036,7 +1038,7 @@ def _representative_instance(
     return atom_array[start : ends[np.searchsorted(residue_starts, start)]].copy()
 
 
-def with_resolved_coordinates(atom_array, res_name: str):
+def _with_resolved_coordinates(atom_array, res_name: str):
     """Resolve scratch geometry for parameter generation from declared chemistry.
 
     Input-scoped AtomWorks templates take precedence over the bundled CCD.
@@ -1078,7 +1080,7 @@ def with_resolved_coordinates(atom_array, res_name: str):
     return filled
 
 
-def is_polymer_linking_component_type(component_type: Optional[str]) -> bool:
+def _is_polymer_linking_component_type(component_type: Optional[str]) -> bool:
     """Whether a declared chemical-component type denotes a polymer residue.
 
     Returns True for modified amino acids, nucleotides, and saccharides
@@ -1091,13 +1093,13 @@ def is_polymer_linking_component_type(component_type: Optional[str]) -> bool:
     return "LINKING" in component_type or "SACCHARIDE" in component_type
 
 
-def polymer_entity_residues(atom_array: struc.AtomArray) -> Optional[frozenset[str]]:
+def _polymer_entity_residues(atom_array: struc.AtomArray) -> Optional[frozenset[str]]:
     """Names of the residues the input file places in a polymer entity.
 
     An mmCIF says which of its entities are polymers, and that is what
     separates a chain from a ligand, a glycan or solvent -- including for a
     terminal cap, which is typed NON-POLYMER despite being part of the chain.
-    :func:`tmol.io.atom_array_from_cif` records it per atom.
+    :func:`tmol.atom_array_from_file` records it per atom.
 
     Failing that, ``label_seq_id`` is read as a proxy: a polymer entity numbers
     its residues along its sequence. It is only a proxy -- a generated file may

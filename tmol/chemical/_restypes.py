@@ -13,17 +13,12 @@ import numpy
 import scipy.sparse
 import scipy.sparse.csgraph as csgraph
 
-from tmol.database import (
-    ParameterDatabase,
-    PatchedChemicalDatabase,
-)
-from tmol.database.chemical import RawResidueType, l_base_name  # noqa: F401
-from tmol.chemical import (
-    MAX_SIG_BOND_SEPARATION,
-    MAX_PATHS_FROM_CONNECTION,
-    build_coords_from_icoors,
-    bonds_and_bond_ranges,
-)
+from tmol.database import ParameterDatabase
+from tmol.database._patched_chemdb import PatchedChemicalDatabase
+from tmol.database.chemical import RawResidueType, _l_base_name  # noqa: F401
+from tmol.chemical._constants import MAX_SIG_BOND_SEPARATION, MAX_PATHS_FROM_CONNECTION
+from tmol.chemical._ideal_coords import _build_coords_from_icoors
+from tmol.chemical._all_bonds import _bonds_and_bond_ranges
 
 AtomIndex = NewType("AtomIndex", int)
 ConnectionIndex = NewType("ConnectionIndex", int)
@@ -91,21 +86,21 @@ _ONE_LETTER_CODE = {
 _THREE_LETTER_CODE = {one: three for three, one in _ONE_LETTER_CODE.items()}
 
 
-def three2one(three: str) -> Union[str, None]:
+def _three2one(three: str) -> Union[str, None]:
     """Return the one-letter amino acid code given its three letter code,
     or None if not a valid three-letter code
     """
     return _ONE_LETTER_CODE.get(three)
 
 
-def one2three(one: str) -> Union[str, None]:
+def _one2three(one: str) -> Union[str, None]:
     """Return the three-letter amino acid code given its one-letter code,
     or None if not a valid one-letter code.
     """
     return _THREE_LETTER_CODE.get(one)
 
 
-def get_element_from_atom_name(atom_name: str) -> str:
+def _get_element_from_atom_name(atom_name: str) -> str:
     """Parse a PDB atom name and return the element symbol.
 
     PDB columns 13-16: two-letter elements start at col 13, one-letter at col 14.
@@ -284,7 +279,7 @@ class RefinedResidueType(RawResidueType):
     # NOTE: this also creates self.atom_all_bond_ranges
     @all_bonds.default
     def _setup_all_bonds(self):
-        all_bonds, atom_all_bond_ranges = bonds_and_bond_ranges(
+        all_bonds, atom_all_bond_ranges = _bonds_and_bond_ranges(
             self.n_atoms, self.bond_indices, self.ordered_connection_atoms
         )
         self.atom_all_bond_ranges = atom_all_bond_ranges
@@ -621,7 +616,7 @@ class RefinedResidueType(RawResidueType):
 
     @ideal_coords.default
     def compute_ideal_coords(self):
-        return build_coords_from_icoors(self.icoors_ancestors, self.icoors_geom)
+        return _build_coords_from_icoors(self.icoors_ancestors, self.icoors_geom)
 
     default_jump_connection_atom_index: int = attr.ib()
 

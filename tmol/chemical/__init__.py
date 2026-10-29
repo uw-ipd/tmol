@@ -1,53 +1,12 @@
 """Chemical residue types, patches, and connectivity utilities."""
 
-from ._all_bonds import bonds_and_bond_ranges  # noqa: F401
-from ._constants import MAX_PATHS_FROM_CONNECTION, MAX_SIG_BOND_SEPARATION  # noqa: F401
-from ._ideal_coords import (  # noqa: F401
-    build_coords_from_icoors,
-    build_ideal_coords,
-    eye4,
-    frame_from_coords,
-    normalize,
-    rot_x,
-    rot_z,
-    trans_z,
-)  # noqa: F401
-from ._restypes import (  # noqa: F401
-    AtomIndex,
-    BOND_TYPE_FROM_STR,
-    BondCount,
-    BondType,
-    ConnectionIndex,
-    IcoorIndex,
-    RefinedResidueType,
-    ResName3,
-    ResidueTypeSet,
-    UnresolvedAtomID,
-    get_element_from_atom_name,
-    l_base_name,
-    one2three,
-    three2one,
-    uaid_t,
-)  # noqa: F401
+from . import _all_bonds  # noqa: F401
+from . import _constants  # noqa: F401
+from . import _ideal_coords  # noqa: F401
+from ._restypes import RefinedResidueType, ResidueTypeSet  # noqa: F401
+from . import _bond_orders  # noqa: F401
 
 __all__ = [
-    "AtomIndex",
-    "BOND_TYPE_FROM_STR",
-    "BondCount",
-    "BondType",
-    "ConnectionIndex",
-    "IcoorIndex",
-    "MAX_PATHS_FROM_CONNECTION",
-    "MAX_SIG_BOND_SEPARATION",
     "RefinedResidueType",
-    "ResName3",
     "ResidueTypeSet",
-    "UnresolvedAtomID",
-    "bonds_and_bond_ranges",
-    "build_coords_from_icoors",
-    "build_ideal_coords",
-    "frame_from_coords",
-    "one2three",
-    "three2one",
-    "uaid_t",
 ]

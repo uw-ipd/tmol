@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 env:
-  DOCS_BASE_URL: https://uw-ipd.github.io/tmol
+  DOCS_BASE_URL: https://rosettacommons.github.io/tmol
 
 jobs:
   docs:
@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
-      TMOL_DOCS_BASE_URL: https://uw-ipd.github.io/tmol/latest/
+      TMOL_DOCS_BASE_URL: https://rosettacommons.github.io/tmol/latest/
       CCACHE_DIR: ${{ github.workspace }}/.ccache
       CCACHE_COMPRESS: "true"
       CCACHE_MAXSIZE: 750M
@@ -123,7 +123,7 @@ jobs:
               <meta charset="utf-8">
               <meta name="viewport" content="width=device-width, initial-scale=1">
               <meta http-equiv="refresh" content="0; url=latest/">
-              <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/">
+              <link rel="canonical" href="https://rosettacommons.github.io/tmol/latest/">
               <title>TMol documentation</title>
               <script>window.location.replace("latest/" + window.location.search + window.location.hash);</script>
             </head>

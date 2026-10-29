@@ -1,14 +1,94 @@
 import torch
 import attrs
 
-from tmol.types import Tensor
+from tmol.types._torch import Tensor
 from tmol.pose._packed_block_types import PackedBlockTypes
 from tmol.pose._pose_stack import PoseStack
 from tmol.score._annotation_cache import (
     AnnotationKey,
-    cached_annotation,
-    store_annotation,
+    _cached_annotation,
+    _store_annotation,
 )
+
+
+def constrain_closest_interchain_ca_pair(
+    pose_stack: PoseStack, chain_a: str, chain_b: str, *, std_dev: float = 0.5
+) -> PoseStack:
+    """Restrain the closest CA-CA pair between two chains to its current distance.
+
+    For each pose independently, finds the residue of ``chain_a`` and the
+    residue of ``chain_b`` whose CA atoms are closest together, and adds a
+    harmonic distance constraint restraining that pair to its current
+    distance -- a common way to hold a protein-protein interface together
+    while the rest of a structure is sampled or minimized.
+
+    Raises ValueError for any pose where either chain has no residue with a
+    CA atom.
+    """
+    from tmol.ops import get_chain_mask
+    from tmol.pose._constraint_set import ConstraintSet
+    from tmol.score.constraint._constraint_energy_term import ConstraintEnergyTerm
+
+    constraint_set = pose_stack.constraint_set
+    device = pose_stack.device
+
+    chain_mask_a = get_chain_mask(pose_stack, chain_a)
+    chain_mask_b = get_chain_mask(pose_stack, chain_b)
+
+    cnstr_atoms = torch.zeros(
+        (pose_stack.n_poses, 2, 3), dtype=torch.int32, device=device
+    )
+    cnstr_params = torch.zeros(
+        (pose_stack.n_poses, 2), dtype=torch.float32, device=device
+    )
+
+    for pose_ind in range(pose_stack.n_poses):
+
+        def blocks_with_ca(chain_mask):
+            return [
+                block
+                for block in torch.nonzero(chain_mask[pose_ind]).flatten().tolist()
+                if "CA" in pose_stack.block_type(pose_ind, block).atom_to_idx
+            ]
+
+        blocks_a = blocks_with_ca(chain_mask_a)
+        blocks_b = blocks_with_ca(chain_mask_b)
+        if not blocks_a or not blocks_b:
+            raise ValueError(
+                f"pose {pose_ind}: chain {chain_a!r} or {chain_b!r} has no "
+                "residue with a CA atom"
+            )
+
+        def ca_coord(block):
+            block_type = pose_stack.block_type(pose_ind, block)
+            offset = int(pose_stack.block_coord_offset[pose_ind, block])
+            return pose_stack.coords[pose_ind, offset + block_type.atom_to_idx["CA"]]
+
+        ca_coords_a = torch.stack([ca_coord(block) for block in blocks_a])
+        ca_coords_b = torch.stack([ca_coord(block) for block in blocks_b])
+        pairwise_distance = torch.cdist(ca_coords_a, ca_coords_b)
+        closest = int(torch.argmin(pairwise_distance))
+        closest_a = blocks_a[closest // len(blocks_b)]
+        closest_b = blocks_b[closest % len(blocks_b)]
+
+        type_a = pose_stack.block_type(pose_ind, closest_a)
+        type_b = pose_stack.block_type(pose_ind, closest_b)
+        cnstr_atoms[pose_ind, 0] = torch.tensor(
+            [pose_ind, closest_a, type_a.atom_to_idx["CA"]]
+        )
+        cnstr_atoms[pose_ind, 1] = torch.tensor(
+            [pose_ind, closest_b, type_b.atom_to_idx["CA"]]
+        )
+        cnstr_params[pose_ind, 0] = float(pairwise_distance.min())
+        cnstr_params[pose_ind, 1] = std_dev
+
+    if constraint_set is None:
+        constraint_set = ConstraintSet.create_empty(device, pose_stack.n_poses)
+    constraint_set = constraint_set.add_constraints(
+        ConstraintEnergyTerm.harmonic, cnstr_atoms, cnstr_params
+    )
+
+    return attrs.evolve(pose_stack, constraint_set=constraint_set)
 
 
 def constrain_all_ca(pose_stack: PoseStack) -> PoseStack:
@@ -77,7 +157,7 @@ def _annotate_mainchain_atom_indices(
 ) -> MCAtomIndices:
     """Get the list of mainchain atoms for each block type and annotate their indices."""
     key = AnnotationKey.from_sources(settings=(packed_block_types.device,))
-    cached = cached_annotation(
+    cached = _cached_annotation(
         packed_block_types, "_mainchain_atom_indices_annotation", key
     )
     if cached is not None:
@@ -123,7 +203,7 @@ def _annotate_mainchain_atom_indices(
         is_real_mainchain_atom=is_real_mainchain_atom,
     )
     setattr(packed_block_types, "mainchain_atom_indices", mcatominds)
-    return store_annotation(
+    return _store_annotation(
         packed_block_types,
         "_mainchain_atom_indices_annotation",
         key,

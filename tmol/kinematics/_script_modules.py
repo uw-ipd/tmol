@@ -2,16 +2,16 @@ import torch
 
 
 from ._fold_forest import FoldForest
-from ._check_fold_forest import validate_fold_forest
+from ._check_fold_forest import _validate_fold_forest
 
-from tmol.pose import PoseStack
+from tmol.pose._pose_stack import PoseStack
 
-from tmol.kinematics import (
-    construct_kin_module_data_for_pose,
+from tmol.kinematics._scan_ordering import (
+    _construct_kin_module_data_for_pose,
     _annotate_packed_block_type_with_gen_scan_path_segs,
 )
 
-from tmol.kinematics.compiled import forward_kin_op
+from tmol.kinematics.compiled._compiled_ops import _forward_kin_op
 
 # Workaround for https://github.com/pytorch/pytorch/pull/15340
 # on torch<1.0.1
@@ -31,6 +31,9 @@ class PoseStackKinematicsModule(torch.nn.Module):
     or is redundant but this is not known by the kinematic module.
 
     See KinDOF for a description of the internal coordinate representation.
+
+    This class should not be altered after construction. Build it and use it and
+    throw it away. Do not update.
     """
 
     def __init__(self, pose_stack: PoseStack, fold_forest: FoldForest):
@@ -46,10 +49,10 @@ class PoseStackKinematicsModule(torch.nn.Module):
         _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
 
         n_blocks = torch.sum(ps.block_type_ind != -1, dim=1).cpu().numpy()
-        validate_fold_forest(n_blocks, ff.edges)
+        _validate_fold_forest(n_blocks, ff.edges)
 
         ff_edges_cpu = torch.from_numpy(ff.edges).to(torch.int32)
-        kmd = construct_kin_module_data_for_pose(ps, ff_edges_cpu)
+        kmd = _construct_kin_module_data_for_pose(ps, ff_edges_cpu)
 
         def _p(t):
             # NOTE: I don't think ANY of these should be treated as parameters
@@ -84,7 +87,7 @@ class PoseStackKinematicsModule(torch.nn.Module):
         self.gens_b = _p(kmd.scan_data_bw.gens)  # on cpu
 
     def forward(self, dofs):
-        return forward_kin_op(
+        return _forward_kin_op(
             dofs,
             self.nodes_f,
             self.scans_f,

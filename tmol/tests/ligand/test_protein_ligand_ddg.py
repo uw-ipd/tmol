@@ -1,6 +1,6 @@
 """Deterministic protein–ligand ddG regression from checked-in CIF + params fixtures.
 
-Each case loads a full complex from ``{target}.tmol.nomin.cif`` (protein + aligned
+Each case loads a full complex from ``{target}.tmol.nomin.cif.zst`` (protein + aligned
 ligand coordinates) and injects the matching golden ``{target}.xtal-lig.mmff94.tmol``
 params file. OpenBabel is **not** run at test time — chemistry and icoor geometry
 are frozen in the committed ``.tmol`` fixture (same pattern as the guanfeng
@@ -18,9 +18,11 @@ termini atoms (OXT, H1–H3) that standard tmol residue types do not model.
 
 from __future__ import annotations
 
-from tmol.tests.data import data_path
+from tmol.tests.data import data_path, read_text
 
 import numpy
+import io
+
 import pytest
 import torch
 
@@ -80,8 +82,8 @@ def _load_complex_cif(target: str):
     from biotite.structure.io.pdbx import CIFFile, get_structure
     from tmol.io._atomworks_reader import _mark_inferred_polymer_bonds
 
-    cif_path = PLI_DATA_DIR / f"{target}.tmol.nomin.cif"
-    file = CIFFile.read(cif_path)
+    cif_path = PLI_DATA_DIR / f"{target}.tmol.nomin.cif.zst"
+    file = CIFFile.read(io.StringIO(read_text(cif_path)))
     # These exports contain coordinates only: every bond is loader-inferred.
     assert set(file.block) == {"atom_site"}
     structure = get_structure(file, model=1, include_bonds=True)
@@ -122,15 +124,15 @@ def _ligand_block_mask(pose_stack, torch_device: torch.device) -> torch.Tensor:
 
 
 def _weighted_ddg_from_fixtures(target: str, torch_device: torch.device) -> float:
-    from tmol.database import ParameterDatabase
-    from tmol.io import pose_stack_from_biotite
-    from tmol.score import beta2016_score_function
+    from tmol import ParameterDatabase
+    from tmol import pose_stack_from_atom_array
+    from tmol import beta2016_score_function
     from tmol.ops import calculate_block_pair_ddg
 
     tmol_path = PLI_DATA_DIR / f"{target}.xtal-lig.mmff94.tmol"
     structure = _load_complex_cif(target)
 
-    pose_stack, context = pose_stack_from_biotite(
+    pose_stack, context = pose_stack_from_atom_array(
         structure,
         torch_device,
         prepare_ligands=True,

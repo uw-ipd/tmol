@@ -22,7 +22,7 @@ def test_cache_uses_identity_and_releases_database(monkeypatch):
         calls.append(db.label)
         return [object()]
 
-    monkeypatch.setattr(reference, "reference_profiles", profiles)
+    monkeypatch.setattr(reference, "_reference_profiles", profiles)
     first, second = Database("same"), Database("same")
     a = reference._cached_profiles(first, ["LYS", "PRO"])
     assert reference._cached_profiles(first, ["PRO", "LYS"]) is a
@@ -37,7 +37,7 @@ def test_cache_uses_identity_and_releases_database(monkeypatch):
 
 def test_cache_is_bounded_and_evicts_least_recently_used(monkeypatch):
     monkeypatch.setattr(reference, "_PROFILE_CACHE", reference.WeakIdentityLRU(2))
-    monkeypatch.setattr(reference, "reference_profiles", lambda *args: [object()])
+    monkeypatch.setattr(reference, "_reference_profiles", lambda *args: [object()])
     dbs = [Database(str(i)) for i in range(3)]
     a = reference._cached_profiles(dbs[0], ["PRO"])
     b = reference._cached_profiles(dbs[1], ["PRO"])
@@ -50,22 +50,22 @@ def test_cache_is_bounded_and_evicts_least_recently_used(monkeypatch):
 
 def test_polymer_profiles_release_real_database_and_remain_bounded(monkeypatch):
     import attr
-    from tmol.database import ParameterDatabase
+    from tmol import ParameterDatabase
     from tmol.ligand import _polymer_profile as polymer
 
     cache = reference.WeakIdentityLRU(3)
     monkeypatch.setattr(polymer, "_POLYMER_PROFILE_CACHE", cache)
     database = attr.evolve(ParameterDatabase.get_default().chemical)
-    alpha = polymer.alpha_profile(database)
-    dna = polymer.na_profile(database, "dna")
-    rna = polymer.na_profile(database, "rna")
-    assert alpha is polymer.alpha_profile(database)
-    assert dna is polymer.na_profile(database, "dna")
-    assert rna is polymer.na_profile(database, "rna")
+    alpha = polymer._alpha_profile(database)
+    dna = polymer._na_profile(database, "dna")
+    rna = polymer._na_profile(database, "rna")
+    assert alpha is polymer._alpha_profile(database)
+    assert dna is polymer._na_profile(database, "dna")
+    assert rna is polymer._na_profile(database, "rna")
     assert dna != rna
     assert len(cache) == 3
     second = attr.evolve(database)
-    assert polymer.alpha_profile(second) is not alpha
+    assert polymer._alpha_profile(second) is not alpha
     assert len(cache) == 3
     owner = weakref.ref(database)
     del database

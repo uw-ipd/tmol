@@ -6,7 +6,7 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Geometry import Point3D
 
-from tmol.ligand._input_repair import correct_carboxylate_bond_orders
+from tmol.ligand._input_repair import _correct_carboxylate_bond_orders
 
 
 def _diol_encoded_acetate(longer_oxygen: int) -> Chem.Mol:
@@ -38,7 +38,7 @@ def test_a_carboxylate_written_as_a_diol_takes_its_carbonyl_from_the_geometry(
 ):
     """Two single C-O bonds on a planar carbon are a carboxylate missing its double
     bond; the shorter one becomes the carbonyl whichever oxygen comes first."""
-    repaired = correct_carboxylate_bond_orders(_diol_encoded_acetate(longer_oxygen))
+    repaired = _correct_carboxylate_bond_orders(_diol_encoded_acetate(longer_oxygen))
 
     (carbonyl,) = [
         b for b in repaired.GetBonds() if b.GetBondType() == Chem.BondType.DOUBLE
@@ -55,8 +55,8 @@ def test_a_nitro_group_written_with_two_double_bonds_is_localized():
     delocalized group it takes one double bond, an O- and an N+."""
     from atomworks.io.utils.ccd import atom_array_from_ccd_code
 
-    from tmol.ligand._rdkit_mol import rdkit_mol_from_ligand_atom_array
+    from tmol.ligand._rdkit_mol import _rdkit_mol_from_ligand_atom_array
 
     component = atom_array_from_ccd_code("VYZ")
-    mol = rdkit_mol_from_ligand_atom_array(component[component.element != "H"])
+    mol = _rdkit_mol_from_ligand_atom_array(component[component.element != "H"])
     assert Chem.MolToSmiles(mol) == "CC(=O)Nc1ccc([N+](=O)[O-])cc1"

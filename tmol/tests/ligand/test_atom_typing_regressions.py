@@ -4,7 +4,7 @@ import math
 
 from rdkit import Chem
 
-from tmol.ligand import (
+from tmol.ligand._atom_typing import (
     AtomTypeAssignment,
     HYB_AROMATIC,
     HYB_SP2,
@@ -17,12 +17,12 @@ from tmol.ligand import (
     _classify_S,
     _correct_conjugated_single_bond_orders,
     _correct_ring_nitrogen,
-    assign_tmol_atom_types,
+    _assign_tmol_atom_types,
     _modify_polar_c,
     _get_hyb,
-    sanitize_tolerant,
-    build_residue_type,
+    _sanitize_tolerant,
 )
+from tmol.ligand._residue_builder import _build_residue_type
 
 
 def test_get_hyb_distinguishes_ar_vs_aro_subtypes() -> None:
@@ -467,7 +467,7 @@ def test_sanitize_tolerant_handles_nonring_aromatic_placeholders() -> None:
     rw.GetAtomWithIdx(1).SetIsAromatic(True)
     mol = rw.GetMol()
 
-    sanitize_tolerant(mol)
+    _sanitize_tolerant(mol)
     bond = mol.GetBondBetweenAtoms(0, 1)
     # sanitize_tolerant clears the stale aromatic perception flag on the bond
     # (the AROMATIC bond-order placeholder itself is preserved).
@@ -565,7 +565,7 @@ def test_large_ring_bonds_keep_ring_flag_in_residue_type() -> None:
         AtomTypeAssignment(atom_name=f"C{i + 1}", atom_type="CS3", element="C", index=i)
         for i in range(mol.GetNumAtoms())
     ]
-    restype = build_residue_type(
+    restype = _build_residue_type(
         mol, "LG1", atom_types, typing_state=_build_rosetta_typing_state(mol)
     )
     assert all(not b[3] for b in restype.bonds)
@@ -582,15 +582,15 @@ def test_sanitize_tolerant_preserves_existing_double_bond_without_aromatic_rewri
         if {b.GetBeginAtom().GetAtomicNum(), b.GetEndAtom().GetAtomicNum()} == {6, 8}
     )
     assert bond.GetBondType() == Chem.BondType.DOUBLE
-    sanitize_tolerant(mol)
+    _sanitize_tolerant(mol)
     assert bond.GetBondType() == Chem.BondType.DOUBLE
 
 
 def _typed_benzamide():
     """Benzamide typed and built as a residue: (mol, residue type, atom types by name)."""
     mol = Chem.AddHs(Chem.MolFromSmiles("NC(=O)c1ccccc1"))
-    atom_types, state = assign_tmol_atom_types(mol, return_state=True)
-    restype = build_residue_type(mol, "LG1", atom_types, typing_state=state)
+    atom_types, state = _assign_tmol_atom_types(mol, return_state=True)
+    restype = _build_residue_type(mol, "LG1", atom_types, typing_state=state)
     return mol, restype, {a.atom_name: a for a in atom_types}
 
 

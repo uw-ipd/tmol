@@ -12,7 +12,7 @@ import pytest
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.io import pose_stack_from_biotite
+from tmol.io import pose_stack_from_atom_array
 from tmol.score.gridscore import build_grid
 from tmol.score.ljlk import LJLKParamResolver
 from tmol.tests.data import data_path
@@ -20,7 +20,6 @@ from tmol.tests.ligand.test_protein_ligand_ddg import (
     LIGAND_RES_NAME,
     _load_complex_cif,
 )
-
 
 ROSETTA_GRID_DUMP = Path(
     os.environ.get(
@@ -42,13 +41,11 @@ PLI_DATA_DIR = data_path("protein_ligand_test")
 
 def _load_cdk2_pose():
     param_db = ParameterDatabase.get_default()
-    pose_stack, context = pose_stack_from_biotite(
+    pose_stack, context = pose_stack_from_atom_array(
         _load_complex_cif("cdk2"),
         torch.device("cpu"),
         prepare_ligands=True,
-        ligand_params_files=[
-            str(PLI_DATA_DIR / "cdk2.xtal-lig.mmff94.tmol")
-        ],
+        ligand_params_files=[str(PLI_DATA_DIR / "cdk2.xtal-lig.mmff94.tmol")],
         no_optH=True,
         param_db=param_db,
         return_context=True,

@@ -1,20 +1,20 @@
 import torch
 import numpy
 
-from tmol.io import (
-    CanonicalForm,
-    default_canonical_ordering,
-    default_packed_block_types,
-    canonical_form_from_pdb,
-    pose_stack_from_canonical_form,
+from tmol.io._canonical_form import CanonicalForm
+from tmol.io._canonical_ordering import (
+    _default_canonical_ordering,
+    _default_packed_block_types,
+    _canonical_form_from_pdb,
 )
+from tmol.io._pose_stack_construction import _pose_stack_from_canonical_form
 
 
 def test_build_pose_stack_from_canonical_form_ubq(torch_device, ubq_pdb):
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(co, ubq_pdb, torch_device)
-    pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
+    co = _default_canonical_ordering()
+    pbt = _default_packed_block_types(torch_device)
+    canonical_form = _canonical_form_from_pdb(co, ubq_pdb, torch_device)
+    pose_stack = _pose_stack_from_canonical_form(co, pbt, *canonical_form)
 
     assert pose_stack.packed_block_types.device == torch_device
     assert pose_stack.coords.device == torch_device
@@ -61,10 +61,10 @@ def test_build_pose_stack_from_canonical_form_ubq(torch_device, ubq_pdb):
 
 
 def test_build_pose_stack_from_canonical_form_pert(torch_device, pertuzumab_pdb):
-    co = default_canonical_ordering()
-    canonical_form = canonical_form_from_pdb(co, pertuzumab_pdb, torch_device)
-    pbt = default_packed_block_types(torch_device)
-    pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
+    co = _default_canonical_ordering()
+    canonical_form = _canonical_form_from_pdb(co, pertuzumab_pdb, torch_device)
+    pbt = _default_packed_block_types(torch_device)
+    pose_stack = _pose_stack_from_canonical_form(co, pbt, *canonical_form)
 
     assert pose_stack.packed_block_types.device == torch_device
     assert pose_stack.coords.device == torch_device
@@ -79,9 +79,9 @@ def test_build_pose_stack_from_canonical_form_pert(torch_device, pertuzumab_pdb)
 
 
 def test_build_pose_stack_from_canonical_form_pert_w_dslf(torch_device, pertuzumab_pdb):
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(co, pertuzumab_pdb, torch_device)
+    co = _default_canonical_ordering()
+    pbt = _default_packed_block_types(torch_device)
+    canonical_form = _canonical_form_from_pdb(co, pertuzumab_pdb, torch_device)
 
     canonical_form.disulfides = torch.tensor(
         [[0, 22, 87], [0, 213, 435], [0, 133, 193], [0, 235, 309], [0, 359, 415]],
@@ -89,7 +89,7 @@ def test_build_pose_stack_from_canonical_form_pert_w_dslf(torch_device, pertuzum
         device=torch_device,
     )
 
-    pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
+    pose_stack = _pose_stack_from_canonical_form(co, pbt, *canonical_form)
 
     assert pose_stack.packed_block_types.device == torch_device
     assert pose_stack.coords.device == torch_device
@@ -104,11 +104,11 @@ def test_build_pose_stack_from_canonical_form_pert_w_dslf(torch_device, pertuzum
 
 
 def test_build_pose_stack_from_canonical_form_1r21(torch_device, pdb_1r21):
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(co, pdb_1r21, torch_device)
+    co = _default_canonical_ordering()
+    pbt = _default_packed_block_types(torch_device)
+    canonical_form = _canonical_form_from_pdb(co, pdb_1r21, torch_device)
 
-    pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
+    pose_stack = _pose_stack_from_canonical_form(co, pbt, *canonical_form)
 
     assert pose_stack.packed_block_types.device == torch_device
     assert pose_stack.coords.device == torch_device
@@ -130,9 +130,9 @@ def test_build_pose_stack_w_disconn_segs(
         res_not_connected,
     ) = pertuzumab_and_nearby_erbb2_pdb_and_segments
 
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(co, pert_and_erbb2_lines, torch_device)
+    co = _default_canonical_ordering()
+    pbt = _default_packed_block_types(torch_device)
+    canonical_form = _canonical_form_from_pdb(co, pert_and_erbb2_lines, torch_device)
     canonical_form.res_not_connected = torch.tensor(
         res_not_connected, device=torch_device
     )
@@ -143,7 +143,7 @@ def test_build_pose_stack_w_disconn_segs(
         device=torch_device,
     )
 
-    pose_stack = pose_stack_from_canonical_form(
+    pose_stack = _pose_stack_from_canonical_form(
         co,
         pbt,
         *canonical_form,
@@ -169,9 +169,9 @@ def test_build_pose_stack_w_disconn_segs_and_insertions(
         pert_and_erbb2_lines,
         res_not_connected,
     ) = pertuzumab_and_nearby_erbb2_pdb_and_segments
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(co, pert_and_erbb2_lines, torch_device)
+    co = _default_canonical_ordering()
+    pbt = _default_packed_block_types(torch_device)
+    canonical_form = _canonical_form_from_pdb(co, pert_and_erbb2_lines, torch_device)
 
     def get_add_two_fill_shape(x):
         if len(x.shape) >= 3:
@@ -229,7 +229,7 @@ def test_build_pose_stack_w_disconn_segs_and_insertions(
         device=torch_device,
     )
 
-    pose_stack, opt_vals = pose_stack_from_canonical_form(
+    pose_stack, opt_vals = _pose_stack_from_canonical_form(
         co,
         pbt,
         *canonical_form,
@@ -253,10 +253,10 @@ def test_build_pose_stack_w_disconn_segs_and_insertions(
 
 
 def test_build_pose_stack_from_canonical_form_ubq_w_atom_mapping(torch_device, ubq_pdb):
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(co, ubq_pdb, torch_device)
-    pose_stack, opt_vals = pose_stack_from_canonical_form(
+    co = _default_canonical_ordering()
+    pbt = _default_packed_block_types(torch_device)
+    canonical_form = _canonical_form_from_pdb(co, ubq_pdb, torch_device)
+    pose_stack, opt_vals = _pose_stack_from_canonical_form(
         co, pbt, *canonical_form, return_atom_mapping=True
     )
     cf_map = opt_vals["can_atom_mapping"]
@@ -272,9 +272,9 @@ def test_build_pose_stack_from_canonical_form_ubq_w_atom_mapping(torch_device, u
 
 
 def test_build_pose_stack_with_masked_residues(torch_device, ubq_pdb):
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(co, ubq_pdb, torch_device)
+    co = _default_canonical_ordering()
+    pbt = _default_packed_block_types(torch_device)
+    canonical_form = _canonical_form_from_pdb(co, ubq_pdb, torch_device)
     # now let's "mask out" some residues by setting their res_types to -1
     canonical_form.chain_id[0, ::10] = -1
     canonical_form.res_types[0, ::10] = -1
@@ -284,7 +284,7 @@ def test_build_pose_stack_with_masked_residues(torch_device, ubq_pdb):
     )
     canonical_form.res_not_connected[0, 1::10, 0] = True
     canonical_form.res_not_connected[0, 9::10, 1] = True
-    pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
+    pose_stack = _pose_stack_from_canonical_form(co, pbt, *canonical_form)
 
     assert pose_stack.packed_block_types.device == torch_device
     assert pose_stack.coords.device == torch_device

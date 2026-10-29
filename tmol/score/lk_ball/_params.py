@@ -2,11 +2,9 @@ import attr
 import numpy
 import torch
 
-from tmol.types import (
-    ValidateAttrs,
-    NDArray,
-    Tensor,
-)
+from tmol.types._attrs import ValidateAttrs
+from tmol.types._array import NDArray
+from tmol.types._torch import Tensor
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)

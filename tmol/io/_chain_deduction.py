@@ -1,19 +1,15 @@
 import numpy
 import torch
 import scipy
-from tmol.pose import (
-    PoseStack,
-    PackedBlockTypes,
-)
-from tmol.types import (
-    validate_args,
-    NDArray,
-)
-from tmol.utility.ndarray import exclusive_cumsum1d
+from tmol.pose._pose_stack import PoseStack
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.types._functional import _validate_args
+from tmol.types._array import NDArray
+from tmol.utility.ndarray._common_operations import _exclusive_cumsum1d
 
 
-@validate_args
-def chain_inds_for_pose_stack(
+@_validate_args
+def _chain_inds_for_pose_stack(
     pose_stack: PoseStack,
 ) -> NDArray[numpy.int64][:, :]:
     """Label each residue by which chain it comes from, where "chain" is a group
@@ -23,7 +19,7 @@ def chain_inds_for_pose_stack(
     chain ID of -1.
     """
     pbt = pose_stack.packed_block_types
-    annotate_pbt_w_valid_connection_masks(pbt)
+    _annotate_pbt_w_valid_connection_masks(pbt)
 
     n_poses = pose_stack.n_poses
     max_n_blocks = pose_stack.max_n_blocks
@@ -104,7 +100,7 @@ def chain_inds_for_pose_stack(
 
     labels = labels.reshape(n_poses, max_n_blocks)
     n_ccs = numpy.amax(labels, axis=1) - numpy.amin(labels, axis=1) + 1
-    cc_offsets = exclusive_cumsum1d(n_ccs)
+    cc_offsets = _exclusive_cumsum1d(n_ccs)
     labels = labels - cc_offsets.reshape(n_poses, 1)
 
     # now re-label the gap residues with a chain ind of -1
@@ -113,7 +109,7 @@ def chain_inds_for_pose_stack(
     return labels
 
 
-def annotate_pbt_w_valid_connection_masks(pbt: PackedBlockTypes):
+def _annotate_pbt_w_valid_connection_masks(pbt: PackedBlockTypes):
     """We want to take the up-down polymeric connections between residues
     that have up-down connections and not other connections, unless
     otherwise instructed.

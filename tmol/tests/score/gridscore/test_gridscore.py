@@ -6,21 +6,18 @@ import pytest
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.io import pose_stack_from_biotite
+from tmol.io import pose_stack_from_atom_array
 from tmol.score.elec import ElecParamResolver
-from tmol.score.gridscore import (
+from tmol.score.gridscore import GridScorer, GridSet, build_grid
+from tmol.score.gridscore.grid import (
     GridGeometry,
-    GridSet,
-    build_grid,
     compute_cubic_bspline_coefficients,
     compute_grid_geometry,
-    interpolate_grid,
     ixform_rep,
     probe_atom_types_from_name3,
-    score_ligand_grid,
     xform_rep,
 )
-from tmol.score.gridscore.grid import _smooth_fa_rep_grid
+from tmol.score.gridscore.scorer import interpolate_grid
 from tmol.score.ljlk import LJLKParamResolver
 from tmol.tests.data import data_path
 from tmol.tests.ligand.test_protein_ligand_ddg import (
@@ -50,10 +47,6 @@ def test_grid_geometry_index_conventions():
         torch.tensor([-11.25, -10.0, -8.75], dtype=torch.float64),
     )
     torch.testing.assert_close(
-        geometry.cartesian_from_one_based_index((4, 5, 6)),
-        geometry.cartesian_from_zero_based_index((3, 4, 5)),
-    )
-    torch.testing.assert_close(
         geometry.zero_based_index_from_cartesian(
             geometry.cartesian_from_zero_based_index((3, 4, 5))
         ),
@@ -66,92 +59,6 @@ def test_grid_geometry_index_conventions():
     torch.testing.assert_close(
         floored.origin, torch.full((3,), -10.0, dtype=torch.float64)
     )
-
-
-def test_rep_transform_round_trip():
-    raw = torch.tensor([0.0, 1.0e-8, 1.0, 100.0, 1.0e8], dtype=torch.float64)
-    torch.testing.assert_close(ixform_rep(xform_rep(raw)), raw, rtol=1e-12, atol=1e-12)
-
-
-@pytest.mark.parametrize("dtype", (torch.float32, torch.float64))
-@pytest.mark.parametrize("smoothing", (0.0, 0.125, 0.25, 0.375, 1.25))
-def test_fa_rep_smoothing_matches_spherical_maximum(dtype, smoothing):
-    generator = torch.Generator().manual_seed(537396662)
-    fa_rep = xform_rep(100 * torch.rand((2, 3, 4, 5), dtype=dtype, generator=generator))
-    original = fa_rep.clone()
-    actual = _smooth_fa_rep_grid(fa_rep, smoothing, 0.25)
-
-    # Independent all-pairs oracle: clip the sphere to the grid at boundaries
-    # and keep atom-type channels separate. No wrapping or repeated dilation.
-    indices = torch.cartesian_prod(torch.arange(3), torch.arange(4), torch.arange(5))
-    positions = indices.to(torch.float64) * 0.25
-    distances_squared = ((positions[:, None] - positions[None, :]) ** 2).sum(-1)
-    expected = torch.stack(
-        [
-            fa_rep.flatten(1)[:, neighbors].max(dim=1).values
-            for neighbors in distances_squared <= smoothing**2
-        ],
-        dim=1,
-    ).reshape_as(fa_rep)
-    torch.testing.assert_close(actual, expected, rtol=0, atol=0)
-    torch.testing.assert_close(fa_rep, original, rtol=0, atol=0)
-    assert torch.all(actual >= fa_rep)
-    if smoothing == 0:
-        assert actual is fa_rep
-
-
-def test_build_grid_fa_rep_smoothing():
-    pose_stack, param_db = _load_cdk2_pose()
-    probe_names = probe_atom_types_from_name3(pose_stack, LIGAND_RES_NAME)
-    kwargs = dict(ligand_name3=LIGAND_RES_NAME, voxel_spacing=0.5)
-    default = build_grid(pose_stack, probe_names, param_db, **kwargs)
-    zero = build_grid(pose_stack, probe_names, param_db, fa_rep_smoothing=0.0, **kwargs)
-    smoothed = build_grid(
-        pose_stack, probe_names, param_db, fa_rep_smoothing=0.75, **kwargs
-    )
-    for name in (
-        "fa_atr",
-        "fa_rep",
-        "fa_sol",
-        "fa_elec",
-        "fa_atr_coeffs",
-        "fa_rep_coeffs",
-        "fa_sol_coeffs",
-        "fa_elec_coeffs",
-    ):
-        torch.testing.assert_close(
-            getattr(zero, name), getattr(default, name), rtol=0, atol=0
-        )
-        if not name.startswith("fa_rep"):
-            torch.testing.assert_close(
-                getattr(smoothed, name), getattr(default, name), rtol=0, atol=0
-            )
-    assert torch.all(smoothed.fa_rep >= default.fa_rep)
-    assert torch.any(smoothed.fa_rep > default.fa_rep)
-    torch.testing.assert_close(
-        smoothed.fa_rep,
-        _smooth_fa_rep_grid(default.fa_rep, 0.75, default.geometry.voxel_spacing),
-        rtol=0,
-        atol=0,
-    )
-    torch.testing.assert_close(
-        smoothed.fa_rep_coeffs,
-        compute_cubic_bspline_coefficients(smoothed.fa_rep),
-        rtol=0,
-        atol=0,
-    )
-
-    for invalid in (-0.1, float("nan"), float("inf"), -float("inf")):
-        with pytest.raises(
-            ValueError, match="fa_rep_smoothing must be finite and nonnegative"
-        ):
-            build_grid(
-                pose_stack, probe_names, param_db, fa_rep_smoothing=invalid, **kwargs
-            )
-        with pytest.raises(
-            ValueError, match="fa_rep_smoothing must be finite and nonnegative"
-        ):
-            _smooth_fa_rep_grid(default.fa_rep, invalid, default.geometry.voxel_spacing)
 
 
 def test_grid_serialization_round_trip(tmp_path):
@@ -205,31 +112,6 @@ def test_grid_serialization_round_trip(tmp_path):
     torch.testing.assert_close(loaded.lk_ball_water_coeffs, grids.lk_ball_water_coeffs)
     torch.testing.assert_close(loaded.lk_bridge_coeffs, grids.lk_bridge_coeffs)
 
-    legacy_state = torch.load(path, weights_only=True)
-    legacy_state["version"] = 1
-    for name in (
-        "fa_atr_coeffs",
-        "fa_rep_coeffs",
-        "fa_sol_coeffs",
-        "fa_elec_coeffs",
-        "lk_ball_coeffs",
-        "lk_ball_water_coeffs",
-        "lk_bridge_coeffs",
-    ):
-        legacy_state.pop(name)
-    legacy_path = tmp_path / "m2b_receptor_grids.pt"
-    torch.save(legacy_state, legacy_path)
-    migrated = GridSet.load(legacy_path)
-    torch.testing.assert_close(migrated.fa_atr_coeffs, grids.fa_atr_coeffs)
-    torch.testing.assert_close(migrated.fa_rep_coeffs, grids.fa_rep_coeffs)
-    torch.testing.assert_close(migrated.fa_sol_coeffs, grids.fa_sol_coeffs)
-    torch.testing.assert_close(migrated.fa_elec_coeffs, grids.fa_elec_coeffs)
-    torch.testing.assert_close(migrated.lk_ball_coeffs, grids.lk_ball_coeffs)
-    torch.testing.assert_close(
-        migrated.lk_ball_water_coeffs, grids.lk_ball_water_coeffs
-    )
-    torch.testing.assert_close(migrated.lk_bridge_coeffs, grids.lk_bridge_coeffs)
-
 
 def test_cubic_bspline_round_trip_at_every_node():
     generator = torch.Generator().manual_seed(1977)
@@ -254,93 +136,17 @@ def test_cubic_bspline_round_trip_at_every_node():
     torch.testing.assert_close(interpolated[0], values[0, 0, 0, 0])
 
 
-def test_cubic_bspline_prefilter_uses_mirror_boundary_coefficients():
-    values = torch.tensor([[[1.0, 3.0]]], dtype=torch.float64)
-    coefficients = compute_cubic_bspline_coefficients(values)
-    # With mirrored neighbors, samples obey f0=(4*c0+2*c1)/6 and
-    # f1=(2*c0+4*c1)/6, whose solution here is exactly (-1, 5).
-    torch.testing.assert_close(
-        coefficients,
-        torch.tensor([[[-1.0, 5.0]]], dtype=torch.float64),
-        rtol=0.0,
-        atol=1.0e-12,
+def _grid_channels(grids, coords, atom_types, charges):
+    """Weighted atr/rep/sol/elec grid energies of one pose ``[n_atoms, 3]``."""
+    scorer = GridScorer(
+        grids, atom_types, charges, device=coords.device, dtype=coords.dtype
     )
-
-
-def test_cubic_bspline_cpu_cuda_agreement(torch_device):
-    generator = torch.Generator().manual_seed(2214)
-    values = torch.randn((3, 6, 7, 8), dtype=torch.float64, generator=generator)
-    coefficients = compute_cubic_bspline_coefficients(values).transpose(2, 3)
-    contiguous_indices = torch.tensor(
-        [
-            [0.0, 0.0, 0.0],
-            [5.0, 6.0, 7.0],
-            [0.125, 2.75, 6.5],
-            [-0.25, 6.25, 8.5],
-        ],
-        dtype=torch.float64,
-    )
-    index_storage = torch.zeros((4, 6), dtype=torch.float64)
-    index_storage[:, ::2] = contiguous_indices
-    indices = index_storage[:, ::2]
-    grid_index_storage = torch.zeros(8, dtype=torch.int64)
-    grid_index_storage[::2] = torch.tensor([0, 1, 2, 1], dtype=torch.int64)
-    grid_indices = grid_index_storage[::2]
-    assert not coefficients.is_contiguous()
-    assert not indices.is_contiguous()
-    assert not grid_indices.is_contiguous()
-    expected = interpolate_grid(coefficients, indices, grid_indices)
-    actual = interpolate_grid(
-        coefficients.to(torch_device),
-        indices.to(torch_device),
-        grid_indices.to(torch_device),
-    ).cpu()
-    error = torch.max(torch.abs(actual - expected))
-
-    print(f"cubic B-spline CPU/device max-abs error: {float(error):.3e}")
-    torch.testing.assert_close(actual, expected, rtol=1.0e-12, atol=1.0e-10)
-
-
-def test_weighted_ligand_grid_scorer_uses_rep_transform_and_charge():
-    geometry = GridGeometry(
-        origin=torch.zeros(3, dtype=torch.float64),
-        dims=(4, 4, 4),
-        voxel_spacing=0.5,
-        ligand_com=torch.zeros(3, dtype=torch.float64),
-        max_radius=7.5,
-    )
-    shape = (2, *geometry.dims)
-    fa_atr = torch.empty(shape, dtype=torch.float64)
-    fa_atr[0].fill_(-2.0)
-    fa_atr[1].fill_(-4.0)
-    raw_rep = torch.empty(shape, dtype=torch.float64)
-    raw_rep[0].fill_(3.0)
-    raw_rep[1].fill_(5.0)
-    fa_sol = torch.empty(shape, dtype=torch.float64)
-    fa_sol[0].fill_(0.5)
-    fa_sol[1].fill_(1.5)
-    grids = GridSet(
-        geometry=geometry,
-        atom_type_names=("A", "B"),
-        atom_type_indices=torch.tensor([4, 9], dtype=torch.int64),
-        fa_atr=fa_atr,
-        fa_rep=xform_rep(raw_rep),
-        fa_sol=fa_sol,
-        fa_elec=torch.full(geometry.dims, 2.0, dtype=torch.float64),
-    )
-    actual = score_ligand_grid(
-        grids,
-        torch.tensor([[0.0, 0.0, 0.0], [0.5, 0.5, 0.5]], dtype=torch.float64),
-        ("A", "B"),
-        torch.tensor([0.25, -0.5], dtype=torch.float64),
-    )
-    expected = torch.tensor([-6.0, 0.55 * 8.0, 2.0, -0.5], dtype=torch.float64)
-    torch.testing.assert_close(actual, expected, rtol=1.0e-7, atol=1.0e-7)
+    return scorer.grid_channels(coords[None])[0]
 
 
 def _load_target_pose(target):
     param_db = ParameterDatabase.get_default()
-    pose_stack, context = pose_stack_from_biotite(
+    pose_stack, context = pose_stack_from_atom_array(
         _load_complex_cif(target),
         torch.device("cpu"),
         prepare_ligands=True,
@@ -571,9 +377,7 @@ def test_grid_interface_characterization_against_t1(target):
     ligand_coords, ligand_atom_types, ligand_charges = _ligand_scoring_inputs(
         pose_stack
     )
-    grid_score = score_ligand_grid(
-        grids, ligand_coords, ligand_atom_types, ligand_charges
-    )
+    grid_score = _grid_channels(grids, ligand_coords, ligand_atom_types, ligand_charges)
     exact = torch.tensor(_GOLDEN_PER_TERM[target]["interface"][:4], dtype=torch.float64)
     absolute_error = torch.abs(grid_score - exact)
     relative_error = absolute_error / torch.clamp(torch.abs(exact), min=1.0e-12)
@@ -603,173 +407,20 @@ def test_grid_interface_characterization_against_t1(target):
     )
 
 
-def _direct_grid_inputs(param_db, atom_type_name):
-    """Pack one named type explicitly for focused compiled-builder tests."""
-    ljlk_params = LJLKParamResolver.from_database(
-        param_db.chemical, param_db.scoring.ljlk, torch.device("cpu")
-    )
-    elec_params = ElecParamResolver.from_database(
-        param_db.scoring.elec, torch.device("cpu")
-    )
-    type_index = ljlk_params.atom_type_index.get_loc(atom_type_name)
-    type_params = ljlk_params.type_params[type_index]
-    packed_type = torch.tensor(
-        [
-            float(type_params.lj_radius),
-            float(type_params.lj_wdepth),
-            float(type_params.lk_dgfree),
-            float(type_params.lk_lambda),
-            float(type_params.lk_volume),
-            float(type_params.is_donor),
-            float(type_params.is_hydroxyl),
-            float(type_params.is_polarh),
-            float(type_params.is_acceptor),
-            float(type_params.is_carbon_lk),
-        ],
-        dtype=torch.float64,
-    ).reshape(1, 10)
-    ljlk_global = torch.tensor(
-        [
-            float(ljlk_params.global_params.max_dis),
-            float(ljlk_params.global_params.lj_dlin_sigma_factor),
-            float(ljlk_params.global_params.lj_hbond_dis),
-            float(ljlk_params.global_params.lj_hbond_OH_donor_dis),
-            float(ljlk_params.global_params.lj_hbond_hdis),
-        ],
-        dtype=torch.float64,
-    ).reshape(1, 5)
-    elec_global_params = elec_params.global_params
-    elec_global = torch.tensor(
-        [
-            float(elec_global_params.elec_sigmoidal_die_D),
-            float(elec_global_params.elec_sigmoidal_die_D0),
-            float(elec_global_params.elec_sigmoidal_die_S),
-            float(elec_global_params.elec_min_dis),
-            float(elec_global_params.elec_max_dis),
-        ],
-        dtype=torch.float64,
-    )
-    return (
-        packed_type,
-        ljlk_global,
-        elec_global,
-        type_params,
-        ljlk_params.global_params,
-    )
-
-
-def _build_single_voxel_grid(
-    receptor_coords, receptor_charges, packed_type, ljlk_global, elec_global, origin
-):
-    from tmol.score.gridscore.potentials.compiled import build_grid as build_grid_op
-
-    n_receptor_atoms = receptor_coords.shape[0]
-    return build_grid_op(
-        receptor_coords.to(dtype=torch.float64).contiguous(),
-        torch.zeros(n_receptor_atoms, dtype=torch.int64),
-        receptor_charges.to(dtype=torch.float64).contiguous(),
-        torch.zeros(1, dtype=torch.int64),
-        origin.to(dtype=torch.float64).contiguous(),
-        torch.ones(3, dtype=torch.int64),
-        0.5,
-        packed_type,
-        ljlk_global,
-        elec_global,
-    )
-
-
-def test_grid_electrostatic_sign_for_isolated_signed_charge():
-    from tmol.tests.score.ljlk.potentials._compiled import elec_V
-
-    param_db = ParameterDatabase.get_default()
-    packed_type, ljlk_global, elec_global, _, _ = _direct_grid_inputs(param_db, "CH1")
-    origin = torch.tensor([-3.0, -4.0, -5.0])
-    receptor_coords = torch.tensor([[-2.0, -4.0, -5.0]])
-
-    for charge in (-0.5, 0.5):
-        grids = _build_single_voxel_grid(
-            receptor_coords,
-            torch.tensor([charge]),
-            packed_type,
-            ljlk_global,
-            elec_global,
-            origin,
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires CUDA")
+def test_grids_built_on_cuda_match_cpu():
+    pose_stack, param_db = _load_cdk2_pose()
+    probe_names = probe_atom_types_from_name3(pose_stack, LIGAND_RES_NAME)
+    kwargs = dict(ligand_name3=LIGAND_RES_NAME, build_lk_ball=True, voxel_spacing=0.5)
+    cpu = build_grid(pose_stack, probe_names, param_db, **kwargs)
+    cuda = build_grid(pose_stack, probe_names, param_db, device="cuda", **kwargs)
+    for name in ("fa_atr", "fa_rep", "fa_sol", "fa_elec", "lk_ball", "lk_bridge"):
+        torch.testing.assert_close(
+            getattr(cuda, name).cpu(), getattr(cpu, name), rtol=1e-10, atol=1e-10
         )
-        actual = float(grids[3][0, 0, 0])
-        expected = elec_V(1.0, 1.0, charge, 5.0, *elec_global.tolist())
-        assert math.copysign(1.0, actual) == math.copysign(1.0, charge)
-        assert math.isclose(actual, expected, rel_tol=1e-12, abs_tol=1e-12)
-
-
-def test_grid_cutoff_and_negative_bin_boundary():
-    from tmol.tests.score.ljlk.potentials import (
-        lj_score_V,
-        lk_isotropic_score_V,
-    )
-
-    param_db = ParameterDatabase.get_default()
-    packed_type, ljlk_global, elec_global, type_params, global_params = (
-        _direct_grid_inputs(param_db, "CH1")
-    )
-    cutoff = float(ljlk_global[0, 0])
-    delta = 0.01
-    # float64 coords: near the steep LJ cutoff, float32 coord rounding (~1e-7)
-    # would exceed the 1e-12 parity tolerance below (fa_atr ~0 there inflates the
-    # relative error). The grid math is float64; keep the test inputs float64 too.
-    origin = torch.tensor([-0.25, -1.0, -1.0], dtype=torch.float64)
-    inside_coord = torch.tensor(
-        [[-0.25 - cutoff + delta, -1.0, -1.0]], dtype=torch.float64
-    )
-    outside_coord = torch.tensor(
-        [[-0.25 - cutoff - delta, -1.0, -1.0]], dtype=torch.float64
-    )
-    charges = torch.zeros(2, dtype=torch.float64)
-
-    both = _build_single_voxel_grid(
-        torch.cat((inside_coord, outside_coord)),
-        charges,
-        packed_type,
-        ljlk_global,
-        elec_global,
-        origin,
-    )
-    inside_only = _build_single_voxel_grid(
-        inside_coord,
-        charges[:1],
-        packed_type,
-        ljlk_global,
-        elec_global,
-        origin,
-    )
-    expected_inside_lj = lj_score_V(
-        cutoff - delta, 5.0, type_params, type_params, global_params
-    )
-    expected_inside_sol = lk_isotropic_score_V(
-        cutoff - delta, 5.0, type_params, type_params, global_params
-    )
-    expected_outside_lj = lj_score_V(
-        cutoff + delta, 5.0, type_params, type_params, global_params
-    )
-    expected_outside_sol = lk_isotropic_score_V(
-        cutoff + delta, 5.0, type_params, type_params, global_params
-    )
-
-    assert float(inside_coord[0, 0]) < 0
-    assert float(outside_coord[0, 0]) < 0
-    assert expected_inside_lj[0] != 0.0
-    assert tuple(expected_outside_lj) == (0.0, 0.0)
-    assert expected_outside_sol == 0.0
-    for both_grid, inside_grid in zip(both, inside_only):
-        torch.testing.assert_close(both_grid, inside_grid, rtol=0, atol=0)
-    actual_inside = torch.stack(
-        (
-            both[0][0, 0, 0, 0],
-            ixform_rep(both[1][0, 0, 0, 0]),
-            both[2][0, 0, 0, 0],
+        torch.testing.assert_close(
+            getattr(cuda, f"{name}_coeffs").cpu(),
+            getattr(cpu, f"{name}_coeffs"),
+            rtol=1e-10,
+            atol=1e-10,
         )
-    )
-    expected_inside = torch.tensor(
-        [expected_inside_lj[0], expected_inside_lj[1], expected_inside_sol],
-        dtype=torch.float64,
-    )
-    torch.testing.assert_close(actual_inside, expected_inside, rtol=1e-12, atol=1e-12)

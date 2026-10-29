@@ -6,13 +6,10 @@ import torch
 
 import toolz.functoolz
 
-from tmol.types import (
-    Tensor,
-    ValidateAttrs,
-    ConvertAttrs,
-    validate_args,
-)
-from tmol.numeric import BSplineInterpolation
+from tmol.types._torch import Tensor
+from tmol.types._attrs import ValidateAttrs, ConvertAttrs
+from tmol.types._functional import _validate_args
+from tmol.numeric._bspline import BSplineInterpolation
 
 from tmol.database.scoring import (
     RamaDatabase,
@@ -20,7 +17,7 @@ from tmol.database.scoring import (
 )
 
 
-def mirror_grid(table, bbstart, bbstep):
+def _mirror_grid(table, bbstart, bbstep):
     """Reflect a periodic 2-D torsion grid through the origin.
 
     Bin k covers start + k*step, so the bin holding -x is (c - k) modulo the
@@ -71,7 +68,7 @@ class BackboneTorsionParamResolver(ValidateAttrs):
     device: torch.device
 
     @classmethod
-    @validate_args
+    @_validate_args
     @toolz.functoolz.memoize(
         cache=_from_rama_db_cache,
         key=lambda args, kwargs: (
@@ -108,7 +105,7 @@ class BackboneTorsionParamResolver(ValidateAttrs):
             raw = t_i.table.detach().clone().to(dtype=torch.float)
             tables[i, ...] = BSplineInterpolation.from_coordinates(raw).coeffs
             tables[i + ntables, ...] = BSplineInterpolation.from_coordinates(
-                mirror_grid(raw, t_i.bbstart, t_i.bbstep)
+                _mirror_grid(raw, t_i.bbstart, t_i.bbstep)
             ).coeffs
 
         rama_params = PackedRamaDatabase(
@@ -151,10 +148,10 @@ class BackboneTorsionParamResolver(ValidateAttrs):
             tables[i, 0, ...] = BSplineInterpolation.from_coordinates(mu).coeffs
             tables[i, 1, ...] = BSplineInterpolation.from_coordinates(sigma).coeffs
             tables[i + ntables, 0, ...] = BSplineInterpolation.from_coordinates(
-                360.0 - mirror_grid(mu, t_i.bbstart, t_i.bbstep)
+                360.0 - _mirror_grid(mu, t_i.bbstart, t_i.bbstep)
             ).coeffs
             tables[i + ntables, 1, ...] = BSplineInterpolation.from_coordinates(
-                mirror_grid(sigma, t_i.bbstart, t_i.bbstep)
+                _mirror_grid(sigma, t_i.bbstart, t_i.bbstep)
             ).coeffs
 
         # assumes bbstep is the same for both tables
@@ -183,7 +180,7 @@ class BackboneTorsionParamResolver(ValidateAttrs):
         )
 
 
-def omega_connection(block_type):
+def _omega_connection(block_type):
     """The connection whose bond this block type's omega spans, or -1.
 
     A residue that names no reference reads no tables and so scores no omega;

@@ -6,18 +6,21 @@ import pytest
 import torch
 from yaml import safe_load
 
-from tmol.database.chemical import is_metal_cluster, site_connections
-from tmol.database.scoring import MetalWellDepth
-from tmol.io import (
-    add_metal_coordination,
-    atom_array_from_cif,
-    pose_stack_from_biotite,
-    pose_stack_from_pdb,
-    remove_metal_coordination,
+from tmol.database.chemical import _is_metal_cluster, _site_connections
+from tmol.database.scoring._metal_coordination import MetalWellDepth
+from tmol.io._metal_coordination import (
+    _add_metal_coordination,
+    _remove_metal_coordination,
 )
-from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-from tmol.pack.rotamer import build_rotamers
-from tmol.score import ScoreType
+from tmol import (
+    atom_array_from_file,
+    pose_stack_from_atom_array,
+    pose_stack_from_file,
+    PackerPalette,
+    PackerTask,
+    ScoreType,
+)
+from tmol.pack import SetPackerTask, build_rotamers
 from tmol.score.metal._metal_coordination_term import MetalCoordinationEnergyTerm
 from tmol.tests.data import data_path
 from tmol.tests.score.metal import metal_oracle
@@ -34,9 +37,9 @@ def built():
 
     def build(stem, device=torch.device("cpu")):
         if (stem, device) not in cache:
-            structure = atom_array_from_cif(FIXTURE_DIR / f"{stem}.cif.zst")
-            cache[stem, device] = pose_stack_from_biotite(
-                structure, device, prepare_ligands=True
+            structure = atom_array_from_file(FIXTURE_DIR / f"{stem}.cif.zst")
+            cache[stem, device] = pose_stack_from_atom_array(
+                structure, device, prepare_ligands=True, no_optH=True
             )
         return cache[stem, device]
 
@@ -161,7 +164,7 @@ def idealized(param_db, pose_stack):
     pbt = pose_stack.packed_block_types
     for pose, block in torch.nonzero(pose_stack.block_type_ind64 >= 0).tolist():
         bt = pbt.active_block_types[pose_stack.block_type_ind64[pose, block]]
-        if not is_metal_cluster(bt):
+        if not _is_metal_cluster(bt):
             continue
         start = int(pose_stack.block_coord_offset64[pose, block])
         ideal = torch.tensor(
@@ -326,9 +329,9 @@ def metal_atom(pose_stack, block):
 
 def bridged_sod(device):
     """3F7L with His61 ND1 bonded to both its zinc and the copper."""
-    structure = atom_array_from_cif(FIXTURE_DIR / "cu_zn_sod_3f7l.cif.zst")
-    pose_stack, context = pose_stack_from_biotite(
-        structure, device, prepare_ligands=True, return_context=True
+    structure = atom_array_from_file(FIXTURE_DIR / "cu_zn_sod_3f7l.cif.zst")
+    pose_stack, context = pose_stack_from_atom_array(
+        structure, device, prepare_ligands=True, return_context=True, no_optH=True
     )
     cu, zn, his61, his118 = (
         block_index(pose_stack, "A", r) for r in (201, 203, 61, 118)
@@ -339,12 +342,12 @@ def bridged_sod(device):
     irc = pose_stack.inter_residue_connections64[0, cu].cpu()
     (site,) = [
         k
-        for k, name in enumerate(site_connections(bt))
+        for k, name in enumerate(_site_connections(bt))
         if int(irc[bt.connection_to_cidx[name], 0]) == his118
     ]
     co = context.canonical_ordering
-    opened = remove_metal_coordination(co, pose_stack, 0, cu, site)
-    return add_metal_coordination(co, opened, 0, cu, his61, "ND1", site=site), cu, zn
+    opened = _remove_metal_coordination(co, pose_stack, 0, cu, site)
+    return _add_metal_coordination(co, opened, 0, cu, his61, "ND1", site=site), cu, zn
 
 
 def test_bridge_matches_oracle(default_database, torch_device):
@@ -540,14 +543,16 @@ def test_block_pair_sums_to_whole_pose(built, default_database, torch_device):
 
 
 def test_pose_without_metals_is_zero(ubq_pdb, default_database, torch_device):
-    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device)
+    pose_stack = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
     term = MetalCoordinationEnergyTerm(default_database, torch_device)
     render(term, pose_stack)
     assert term.pose_score_term_is_invariant_zero(pose_stack)
 
 
 def test_beta2016_includes_metal_coordination(torch_device):
-    from tmol.score import beta2016_score_function
+    from tmol import beta2016_score_function
 
     sfxn = beta2016_score_function(torch_device)
     assert float(sfxn.get_weight(ScoreType.metal_coordination)) == 1.0

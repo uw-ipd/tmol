@@ -5,9 +5,9 @@ import torch
 
 from ._rosetta import requires_rosetta_database
 
-from tmol.support.scoring import (
-    RosettaHBParams,
-    create_dunbrack_rotamer_library,
+from tmol.support.scoring._hbond_param_import import RosettaHBParams
+from tmol.support.scoring._rewrite_dunbrack_binary import (
+    _create_dunbrack_rotamer_library,
 )
 import tmol.support.scoring._rewrite_rama_binary as rewrite_rama_binary
 import tmol.support.scoring._rewrite_omega_bbdep_binary as rewrite_omega_bbdep_binary
@@ -32,7 +32,7 @@ def test_rama_table_read(rosetta_database, default_database):
     )
     r3_paa_dir = os.path.join(rosetta_database, "scoring/score_functions/P_AA_pp/")
 
-    r3_general, r3_prepro = rewrite_rama_binary.parse_all_tables(
+    r3_general, r3_prepro = rewrite_rama_binary._parse_all_tables(
         0.5, r3_rama_dir, 0.61, r3_paapp_dir, r3_paa_dir
     )
 
@@ -65,7 +65,7 @@ def test_rama_table_read(rosetta_database, default_database):
 def test_bbdep_omega_table_read(rosetta_database):
     r3_bbdepomega_dir = os.path.join(rosetta_database, "scoring/score_functions/omega/")
 
-    tables = rewrite_omega_bbdep_binary.parse_all_tables(r3_bbdepomega_dir)
+    tables = rewrite_omega_bbdep_binary._parse_all_tables(r3_bbdepomega_dir)
 
     assert len(tables) == 5
 
@@ -74,7 +74,7 @@ def test_bbdep_omega_table_read(rosetta_database):
 def test_dunbrack_table_read(rosetta_database, default_database):
     r3_beta16_dunbrack_dir = os.path.join(rosetta_database, "rotamer/beta_nov2016")
     r3_beta15_dunbrack_dir = os.path.join(rosetta_database, "rotamer/ExtendedOpt1-5")
-    fresh = create_dunbrack_rotamer_library(
+    fresh = _create_dunbrack_rotamer_library(
         r3_beta16_dunbrack_dir, r3_beta15_dunbrack_dir
     )
 

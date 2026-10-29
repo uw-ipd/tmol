@@ -1,13 +1,13 @@
 """Typed schemas for TMol chemical parameter data."""
 
 from typing import Any, NewType, Optional, Tuple
-from tmol.utility import BondAngle, DihedralAngle
+from tmol.utility._units import BondAngle, DihedralAngle
 
 import attr
 import cattr
 
 import os
-from tmol.database._yaml import safe_load
+from tmol.database._yaml import _safe_load
 
 AcceptorHybridization = NewType("AcceptorHybridization", str)
 _acceptor_hybridizations = {"sp2", "sp3", "ring"}
@@ -56,7 +56,7 @@ NEUTRAL_TERMINUS_VAR_BASE = METAL_GEOMETRY_VAR_BASE + len(GEOMETRY_NAMES)
 N_VARIANT_INDICES = NEUTRAL_TERMINUS_VAR_BASE + DEPROTONATED_VAR_IND + 1
 
 
-def metal_geometry_variant_index(geometry: str) -> int:
+def _metal_geometry_variant_index(geometry: str) -> int:
     """The res_type_variant index selecting this coordination geometry."""
     return METAL_GEOMETRY_VAR_BASE + GEOMETRY_NAMES.index(geometry)
 
@@ -64,7 +64,7 @@ def metal_geometry_variant_index(geometry: str) -> int:
 _METAL_TABLE = None
 
 
-def metal_table() -> dict:
+def _metal_table() -> dict:
     """The metal reference table in chemical/metals.yaml, loaded once."""
     global _METAL_TABLE
     if _METAL_TABLE is None:
@@ -72,11 +72,11 @@ def metal_table() -> dict:
             os.path.dirname(__file__), "..", "default", "chemical", "metals.yaml"
         )
         with open(path) as infile:
-            _METAL_TABLE = safe_load(infile)
+            _METAL_TABLE = _safe_load(infile)
     return _METAL_TABLE
 
 
-def ideal_distances(ion: dict, donor_radii: dict) -> dict:
+def _ideal_distances(ion: dict, donor_radii: dict) -> dict:
     """Measured metal-ligand distances, completed by ionic_radius + donor_radius."""
     out = dict(ion["distances"])
     for donor, radius in donor_radii.items():
@@ -93,7 +93,7 @@ def _parse_coordination_geometry(v, t):
 cattr.register_structure_hook(CoordinationGeometry, _parse_coordination_geometry)
 
 
-def normalize_bond_tuples(raw: Any) -> Any:  # noqa: C901
+def _normalize_bond_tuples(raw: Any) -> Any:  # noqa: C901
     """Normalize legacy 2-field bond entries to include bond order.
 
     Historically, some YAML snippets used ``[atom1, atom2]`` for bonds.
@@ -107,7 +107,7 @@ def normalize_bond_tuples(raw: Any) -> Any:  # noqa: C901
         for key in ("residues", "variants"):
             entries = raw.get(key)
             if isinstance(entries, list):
-                normalize_bond_tuples(entries)
+                _normalize_bond_tuples(entries)
         return raw
 
     if not isinstance(raw, list):
@@ -342,12 +342,18 @@ class MetalSite:
         return n_total - len(self.internal_satisfiers)
 
 
+def _no_patch_separator(instance, attribute, value):
+    """Type names split on ':' into base and patches, so a base cannot contain one."""
+    if ":" in value:
+        raise ValueError(f"residue base_name {value!r} contains ':'")
+
+
 @attr.s(auto_attribs=True)
 class RawResidueType:
     """Unpatched residue definition loaded from the chemical database."""
 
     name: str
-    base_name: str
+    base_name: str = attr.ib(validator=_no_patch_separator)
     name3: str
     io_equiv_class: str
     atoms: Tuple[Atom, ...]
@@ -458,7 +464,7 @@ class VariantType:
     applies_to: VariantScope = VariantScope()
 
 
-def l_base_name(restype) -> str:
+def _l_base_name(restype) -> str:
     """The L residue type a block type's base name corresponds to.
 
     A d-amino acid is named after the L form it mirrors. Tautomer and disulfide
@@ -471,19 +477,19 @@ def l_base_name(restype) -> str:
     return base
 
 
-def site_connections(restype) -> Tuple[str, ...]:
+def _site_connections(restype) -> Tuple[str, ...]:
     """Every free-site connection of a residue's metals; a site's index everywhere
     is its position here, so a cluster's sites run on across its metals."""
     return tuple(name for site in restype.metal_sites for name in site.site_connections)
 
 
-def is_metal_cluster(restype) -> bool:
+def _is_metal_cluster(restype) -> bool:
     """Whether a residue's metals are a cluster: several, or bonded in-residue."""
     sites = restype.metal_sites
     return len(sites) > 1 or any(site.internal_satisfiers for site in sites)
 
 
-def site_metal(restype, index: int) -> Tuple["MetalSite", int]:
+def _site_metal(restype, index: int) -> Tuple["MetalSite", int]:
     """The metal site owning a residue's ``index``-th free site, and its position."""
     for site in restype.metal_sites:
         if index < len(site.site_connections):
@@ -492,10 +498,10 @@ def site_metal(restype, index: int) -> Tuple["MetalSite", int]:
     raise IndexError(f"{restype.name} has no free site {index}")
 
 
-def special_case_variant_index(restype) -> int:
+def _special_case_variant_index(restype) -> int:
     """Where a residue type sits on the res_type_variant axis of its class."""
     if restype.metal_sites:
-        return metal_geometry_variant_index(restype.metal_sites[0].geometry)
+        return _metal_geometry_variant_index(restype.metal_sites[0].geometry)
     offset = (
         NEUTRAL_TERMINUS_VAR_BASE
         if NEUTRAL_TERMINUS in restype.name.split(":")[1:]
@@ -503,7 +509,7 @@ def special_case_variant_index(restype) -> int:
     )
     if restype.properties.protonation.protonation_state == DEPROTONATED_STATE:
         return offset + DEPROTONATED_VAR_IND
-    base = l_base_name(restype)
+    base = _l_base_name(restype)
     if base in ("CYD", "HIS_D"):
         return offset + 1
     if base == "HIS_POS":
@@ -543,7 +549,7 @@ class ChemicalDatabase:
     def from_file(cls, path: str | os.PathLike[str]) -> "ChemicalDatabase":
         """Load chemical definitions and their generated residue tables."""
         with open(os.path.join(path, "chemical.yaml"), "r") as infile:
-            raw = safe_load(infile)
+            raw = _safe_load(infile)
         # residue sets written by a support script live in their own files so
         #    regenerating one does not rewrite the hand-maintained database
         for generated in GENERATED_RESIDUE_FILES:
@@ -551,7 +557,7 @@ class ChemicalDatabase:
             if not os.path.exists(generated_path):
                 continue
             with open(generated_path, "r") as infile:
-                raw["residues"].extend(safe_load(infile)["residues"])
-        raw = normalize_bond_tuples(raw)
+                raw["residues"].extend(_safe_load(infile)["residues"])
+        raw = _normalize_bond_tuples(raw)
 
         return cattr.structure(raw, cls)

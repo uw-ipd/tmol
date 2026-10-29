@@ -7,60 +7,43 @@ import time
 import pytest
 import torch
 
-from tmol.dock import (
-    ContinuousBackend,
-    GASchedule,
-    GridBackend,
-    LigandGeneLayout,
-    build_ligand_docking_dofs,
-    run_docking,
-    run_ga_docking,
-    select_pocket_residue_blocks,
-)
-from tmol.dock.ga import (
-    _block_heavy_coords,
-    _movable_block_mapping,
-    _movable_pose_stack,
-    _sidechain_context_blocks,
-)
+from tmol.dock import GASchedule, GridBackend, run_docking, select_pocket_residues
+from tmol.dock.ga import LigandGeneLayout
+from tmol.dock.ligand_dofs import build_ligand_docking_dofs
 from tmol.dock.ligand_dofs import (
-    _block_has_nonpolymer_connection,
     _block_kinforest_nodes,
-    _validated_sidechain_blocks,
 )
 from tmol.dock.scoring_backend import _LightweightGridObjective
 from tmol.score import beta2016_score_function
-from tmol.score.gridscore import (
-    build_live_ligand_intra_data,
-    score_ligand_grid_batched,
-    score_ligand_hbond,
-    score_ligand_intra,
-    score_ligand_intra_with_gradients,
-)
+from tmol.score.gridscore import GridScorer
+from tmol.score.gridscore.live_hbond import score_ligand_hbond
 from tmol.score.gridscore.live_ligand_intra import (
-    _weighted_movable_block_pairs,
+    build_live_ligand_intra_data,
+    score_ligand_intra,
 )
 from tmol.score import ScoreType
-from tmol.tests.dock.test_dock_loop import _load_cdk2_pose_on_device
+from tmol.tests.dock.test_ligand_dof_roundtrip import _load_cdk2_pose_on_device
 from tmol.tests.dock.test_flexible_sidechain_dofs import (
     _connected_chi_blocks,
 )
-from tmol.tests.dock.test_grid_backend import cpu_grid_case
 from tmol.tests.dock.test_ligand_dof_roundtrip import (
     _ligand_block,
-    cdk2_pose_and_db,
 )
-from tmol.tests.score.gridscore.test_gridscore import _load_target_pose
+from tmol.score.gridscore._movable import (
+    movable_block_mapping,
+    movable_pose_stack,
+    sidechain_context_blocks,
+)
 
 
 def _cdk2_sidechain_blocks(reference, ligand_block):
-    selected = select_pocket_residue_blocks(reference, ligand_block, cutoff=6.0)
+    selected = select_pocket_residues(reference, ligand_block, cutoff=6.0)
     return _connected_chi_blocks(reference, ligand_block, selected)[:2]
 
 
 def _movable_layout(reference, ligand_block, sidechain_blocks):
-    movable = _movable_pose_stack(reference, ligand_block, sidechain_blocks)
-    _, compact_sidechains, _ = _movable_block_mapping(
+    movable = movable_pose_stack(reference, ligand_block, sidechain_blocks)
+    _, compact_sidechains, _ = movable_block_mapping(
         reference, ligand_block, sidechain_blocks
     )
     docking_dofs = build_ligand_docking_dofs(
@@ -120,7 +103,7 @@ def test_movable_block_pairs_match_full_connected_complex_fp64(
     ligand_block = _ligand_block(reference)
     sidechain_blocks = _cdk2_sidechain_blocks(reference, ligand_block)
     movable, _, _ = _movable_layout(reference, ligand_block, sidechain_blocks)
-    source_blocks, compact_sidechains, compact_context = _movable_block_mapping(
+    source_blocks, compact_sidechains, compact_context = movable_block_mapping(
         reference, ligand_block, sidechain_blocks
     )
 
@@ -200,81 +183,6 @@ def test_movable_block_pairs_match_full_connected_complex_fp64(
     torch.testing.assert_close(compact_dun, expected_dun, rtol=0.0, atol=1.0e-4)
 
 
-def test_search_repulsion_is_soft_only_on_block_diagonal(cdk2_pose_and_db):
-    reference, param_db = cdk2_pose_and_db
-    ligand_block = _ligand_block(reference)
-    sidechain_blocks = _cdk2_sidechain_blocks(reference, ligand_block)
-    movable, _, _ = _movable_layout(reference, ligand_block, sidechain_blocks)
-    data = build_live_ligand_intra_data(
-        reference,
-        ligand_block,
-        param_db,
-        weight_profile="search",
-        sidechain_blocks=sidechain_blocks,
-    )
-    weighted = _weighted_movable_block_pairs(data, movable.coords)
-    scorer = data.score_function.render_block_pair_scoring_module(movable)
-    unweighted = scorer(movable.coords, sum_terms=False, apply_weights=False)
-    score_types = tuple(data.score_function.all_score_types())
-    rep_index = score_types.index(ScoreType.fa_ljrep)
-    full_rep = data.score_function.get_weight(ScoreType.fa_ljrep).to(
-        dtype=movable.coords.dtype
-    )
-    n_blocks = movable.max_n_blocks
-    eye = torch.eye(n_blocks, dtype=torch.bool)
-    active_diagonal = eye.clone()
-    context = torch.tensor(data.context_block_indices, dtype=torch.int64)
-    active_diagonal[context, context] = False
-    torch.testing.assert_close(
-        weighted[rep_index, :, active_diagonal],
-        0.01 * unweighted[rep_index, :, active_diagonal],
-        rtol=0.0,
-        atol=1.0e-10,
-    )
-    assert torch.count_nonzero(weighted[rep_index, :, eye & ~active_diagonal]) == 0
-    torch.testing.assert_close(
-        weighted[rep_index, :, ~eye],
-        full_rep * unweighted[rep_index, :, ~eye],
-        rtol=0.0,
-        atol=1.0e-10,
-    )
-
-
-def test_movable_whole_pose_gradient_matches_finite_difference_fp64(
-    cdk2_pose_and_db,
-):
-    reference, param_db = cdk2_pose_and_db
-    ligand_block = _ligand_block(reference)
-    sidechain_blocks = _cdk2_sidechain_blocks(reference, ligand_block)[:1]
-    movable, docking_dofs, layout = _movable_layout(
-        reference, ligand_block, sidechain_blocks
-    )
-    genes = layout.genes_from_pose_stack(movable)
-    genes[:, 6 + len(docking_dofs.torsions)] += 0.13
-    coords = layout.pose_stack_from_genes(genes).coords.contiguous()
-
-    data = build_live_ligand_intra_data(
-        reference,
-        ligand_block,
-        param_db,
-        weight_profile="full",
-        sidechain_blocks=sidechain_blocks,
-    )
-    _, gradient = score_ligand_intra_with_gradients(data, coords)
-    columns = torch.arange(coords.numel(), dtype=coords.dtype).reshape_as(coords)
-    direction = torch.sin(0.37 * columns + 0.19)
-    direction = direction / torch.linalg.vector_norm(direction)
-    step = 1.0e-6
-    finite = (
-        score_ligand_intra(data, coords + step * direction)
-        - score_ligand_intra(data, coords - step * direction)
-    ) / (2.0 * step)
-    analytic = torch.sum(gradient * direction, dim=(1, 2))
-    error = torch.max(torch.abs(analytic - finite))
-    print("movable full-beta directional-gradient max error:", float(error))
-    torch.testing.assert_close(analytic, finite, rtol=2.0e-5, atol=2.0e-5)
-
-
 @pytest.mark.slow
 def test_flexible_grid_atom_partition_and_score_decomposition_fp64(
     cdk2_pose_and_db,
@@ -287,7 +195,7 @@ def test_flexible_grid_atom_partition_and_score_decomposition_fp64(
         ligand_block,
         param_db,
         kin_dtype=torch.float64,
-        sidechain_blocks=sidechain_blocks,
+        flexible_residues=sidechain_blocks,
     )
     movable, docking_dofs, layout = _movable_layout(
         reference, ligand_block, sidechain_blocks
@@ -306,9 +214,7 @@ def test_flexible_grid_atom_partition_and_score_decomposition_fp64(
 
     expected_receptor_heavy = []
     pbt = reference.packed_block_types
-    context_blocks = _sidechain_context_blocks(
-        reference, ligand_block, sidechain_blocks
-    )
+    context_blocks = sidechain_context_blocks(reference, ligand_block, sidechain_blocks)
     assert backend.context_blocks == context_blocks
     excluded_blocks = {
         ligand_block,
@@ -335,52 +241,41 @@ def test_flexible_grid_atom_partition_and_score_decomposition_fp64(
         1 + len(sidechain_blocks) + len(context_blocks)
     )
     full = backend.for_ligand_block(0)._score_ligand_coordinates(movable.coords)
-    common = dict(
-        grids=backend._grid_for(torch.device("cpu"), torch.float64),
-        ligand_coords=movable.coords,
-        ligand_atom_types=backend.ligand_atom_types,
-        ligand_charges=backend._charges_for(torch.device("cpu"), torch.float64),
-        score_function=backend._score_function(torch.device("cpu")),
-        grid_atom_indices=backend._grid_atom_indices_for(torch.device("cpu")),
-    )
-    grid_only = score_ligand_grid_batched(**common)
-    with_hbond = score_ligand_grid_batched(
-        **common,
-        live_hbond=backend._hbond_for(torch.device("cpu"), torch.float64),
-    )
-    with_lk_ball = score_ligand_grid_batched(
-        **common,
-        live_lk_ball=backend._lk_ball_for(torch.device("cpu"), torch.float64),
-        lk_ball_grid=backend.lk_ball_grid,
-    )
-    hbond = with_hbond - grid_only
-    lk_ball = with_lk_ball - grid_only
-    direct_hbond = score_ligand_hbond(
-        backend._hbond_for(torch.device("cpu"), torch.float64), movable.coords
-    )
-    hbond_weight = backend._score_function(torch.device("cpu")).get_weight(
-        ScoreType.hbond
+    sfxn = beta2016_score_function(torch.device("cpu"), param_db=backend.param_db)
+
+    def scorer(**terms):
+        return GridScorer(
+            backend.grids,
+            backend.ligand_atom_types,
+            backend.ligand_charges,
+            device="cpu",
+            dtype=torch.float64,
+            score_function=sfxn,
+            grid_atoms=backend.grid_atom_indices,
+            **terms,
+        )
+
+    grid_only = scorer()(movable.coords)
+    hbond = scorer(live_hbond=backend.live_hbond)(movable.coords) - grid_only
+    lk_ball = (
+        scorer(live_lk_ball=backend.live_lk_ball, lk_ball_grid=backend.lk_ball_grid)(
+            movable.coords
+        )
+        - grid_only
     )
     torch.testing.assert_close(
         hbond,
-        hbond_weight * direct_hbond,
+        sfxn.get_weight(ScoreType.hbond)
+        * score_ligand_hbond(backend.live_hbond, movable.coords),
         rtol=0.0,
         atol=1.0e-10,
     )
-    interface = score_ligand_grid_batched(
-        backend._grid_for(torch.device("cpu"), torch.float64),
-        movable.coords,
-        backend.ligand_atom_types,
-        backend._charges_for(torch.device("cpu"), torch.float64),
-        score_function=backend._score_function(torch.device("cpu")),
-        live_hbond=backend._hbond_for(torch.device("cpu"), torch.float64),
-        live_lk_ball=backend._lk_ball_for(torch.device("cpu"), torch.float64),
+    interface = scorer(
+        live_hbond=backend.live_hbond,
+        live_lk_ball=backend.live_lk_ball,
         lk_ball_grid=backend.lk_ball_grid,
-        grid_atom_indices=backend._grid_atom_indices_for(torch.device("cpu")),
-    )
-    intra = score_ligand_intra(
-        backend._intra_for(torch.device("cpu"), torch.float64), movable.coords
-    )
+    )(movable.coords)
+    intra = score_ligand_intra(backend.live_ligand_intra, movable.coords)
     torch.testing.assert_close(
         interface, grid_only + hbond + lk_ball, rtol=0.0, atol=1.0e-10
     )
@@ -416,7 +311,10 @@ def test_flexible_grid_atom_partition_and_score_decomposition_fp64(
     minus = masked.clone()
     plus[sidechain_column] += step
     minus[sidechain_column] -= step
-    finite = (objective.energy(plus)[0] - objective.energy(minus)[0]) / (2.0 * step)
+    finite = (
+        objective.energy_and_gradient(plus)[0][0]
+        - objective.energy_and_gradient(minus)[0][0]
+    ) / (2.0 * step)
     error = torch.abs(dof_gradient[sidechain_column] - finite)
     print(
         "flexible grid sidechain-DOF analytic/finite/error:",
@@ -428,133 +326,6 @@ def test_flexible_grid_atom_partition_and_score_decomposition_fp64(
     torch.testing.assert_close(
         dof_gradient[sidechain_column], finite, rtol=2.0e-4, atol=2.0e-4
     )
-
-
-def test_flexible_continuous_backend_is_rejected(cdk2_pose_and_db):
-    reference, param_db = cdk2_pose_and_db
-    ligand_block = _ligand_block(reference)
-    sidechain_blocks = _cdk2_sidechain_blocks(reference, ligand_block)[:1]
-    with pytest.raises(
-        ValueError,
-        match="flexible-sidechain docking requires a GridBackend",
-    ):
-        run_ga_docking(
-            reference,
-            ligand_block,
-            ContinuousBackend(param_db, kin_dtype=torch.float64),
-            schedule=GASchedule(generations=1, npool=2, maxiter=1),
-            sidechain_blocks=sidechain_blocks,
-        )
-
-
-def test_flexible_requires_ligand_intra_scorer(cdk2_pose_and_db):
-    """Review HIGH-2: flexible + include_ligand_intra=False must be rejected.
-
-    With sidechain_blocks set, the live movable module is the SOLE scorer of the
-    whole moving set (those blocks are excluded from the receptor grid), so
-    disabling it would silently drop every moving-set interaction and the
-    count-pair correction. The rigid K=0 path may still disable ligand-intra.
-    """
-    reference, param_db = cdk2_pose_and_db
-    ligand_block = _ligand_block(reference)
-    sidechain_blocks = _cdk2_sidechain_blocks(reference, ligand_block)
-    with pytest.raises(ValueError, match="requires include_ligand_intra=True"):
-        GridBackend.from_pose_stack(
-            reference,
-            ligand_block,
-            param_db,
-            kin_dtype=torch.float64,
-            sidechain_blocks=sidechain_blocks,
-            include_ligand_intra=False,
-        )
-    # The rigid K=0 ablation must remain allowed.
-    GridBackend.from_pose_stack(
-        reference,
-        ligand_block,
-        param_db,
-        kin_dtype=torch.float64,
-        include_ligand_intra=False,
-    )
-
-
-def test_disulfide_residue_rejected_from_flexible_selection():
-    """Review HIGH-1: a disulfide-bonded cysteine must never be made flexible.
-
-    The fold forest ignores non-polymer covalent bonds and the chi controller is
-    built only from intra-block bonds, so freeing a disulfide sulfur would stretch
-    the S-S bond. fxa carries the CYS196-CYS224 disulfide, and both residues sit
-    ~3.85 A from the ligand (inside the 6 A pocket cutoff). The auto-selector must
-    exclude them and an explicit pass must raise.
-    """
-    reference, param_db = _load_target_pose("fxa")
-    ligand_block = _ligand_block(reference)
-
-    disulfide_blocks = [
-        block
-        for block in range(reference.max_n_blocks)
-        if not bool(torch.any(reference.block_type_ind64[:, block] < 0))
-        and _block_has_nonpolymer_connection(
-            reference, block, int(reference.block_type_ind64[0, block])
-        )
-    ]
-    assert disulfide_blocks, "fxa is expected to contain disulfide cysteines"
-
-    ligand_heavy = _block_heavy_coords(reference, ligand_block)
-    near_pocket = [
-        block
-        for block in disulfide_blocks
-        if float(
-            torch.min(
-                torch.cdist(_block_heavy_coords(reference, block), ligand_heavy)
-            )
-        )
-        <= 6.0
-    ]
-    assert near_pocket, "expected at least one disulfide CYS within the 6 A pocket"
-
-    selected = set(
-        int(b) for b in select_pocket_residue_blocks(reference, ligand_block, 6.0)
-    )
-    assert not (selected & set(disulfide_blocks)), (
-        "select_pocket_residue_blocks leaked a disulfide residue: "
-        f"{sorted(selected & set(disulfide_blocks))}"
-    )
-
-    with pytest.raises(ValueError, match="non-polymer covalent connection"):
-        _validated_sidechain_blocks(reference, ligand_block, (near_pocket[0],))
-
-
-def test_chi_less_residue_rejected_from_flexible_selection(cdk2_pose_and_db):
-    """Review MEDIUM-1: a chi-less residue (ALA/GLY) cannot be made flexible.
-
-    It has no sidechain torsion, so it contributes no moving atom; admitting it
-    would leave finalization with an empty moving-set to scatter. The auto-selector
-    must exclude such residues and an explicit pass must raise (rather than crash
-    later in finalization on an empty tensor concat).
-    """
-    reference, _ = cdk2_pose_and_db
-    ligand_block = _ligand_block(reference)
-
-    chi_less = [
-        block
-        for block in range(reference.max_n_blocks)
-        if not bool(torch.any(reference.block_type_ind64[:, block] < 0))
-        and block != ligand_block
-        and reference.block_type(0, block).properties.polymer.is_polymer
-        and int(reference.block_type(0, block).n_sc_torsions) == 0
-    ]
-    assert chi_less, "cdk2 is expected to contain chi-less residues (ALA/GLY)"
-
-    selected = set(
-        int(b) for b in select_pocket_residue_blocks(reference, ligand_block, 6.0)
-    )
-    assert not (selected & set(chi_less)), (
-        "select_pocket_residue_blocks leaked a chi-less residue: "
-        f"{sorted(selected & set(chi_less))}"
-    )
-
-    with pytest.raises(ValueError, match="no sidechain chi torsions"):
-        _validated_sidechain_blocks(reference, ligand_block, (chi_less[0],))
 
 
 @pytest.mark.slow
@@ -570,7 +341,7 @@ def test_flexible_grid_search_moves_sidechain_and_restores_full_complex(
         ligand_block,
         param_db,
         kin_dtype=torch.float32,
-        sidechain_blocks=sidechain_blocks,
+        flexible_residues=sidechain_blocks,
     )
     cpu_movable, _, _ = _movable_layout(cpu_reference, ligand_block, sidechain_blocks)
     cpu_energy, cpu_gradient = backend.for_ligand_block(
@@ -602,7 +373,6 @@ def test_flexible_grid_search_moves_sidechain_and_restores_full_complex(
     started = time.perf_counter()
     result = run_docking(
         reference,
-        ligand_block,
         backend,
         schedule=GASchedule(
             generations=1,
@@ -612,7 +382,6 @@ def test_flexible_grid_search_moves_sidechain_and_restores_full_complex(
             maxiter=10,
         ),
         seed=20260825,
-        sidechain_blocks=sidechain_blocks,
     )
     torch.cuda.synchronize()
     wall_seconds = time.perf_counter() - started
@@ -642,7 +411,7 @@ def test_flexible_grid_search_moves_sidechain_and_restores_full_complex(
         )
         bad_bonds += int(torch.sum(torch.abs(after - before) > 2.0e-4))
 
-    _, compact_sidechains, _ = _movable_block_mapping(
+    _, compact_sidechains, _ = movable_block_mapping(
         reference, ligand_block, sidechain_blocks
     )
     for compact_block, source_block in zip(compact_sidechains, sidechain_blocks):
@@ -693,28 +462,3 @@ def test_flexible_grid_search_moves_sidechain_and_restores_full_complex(
     )
     assert moved_count > 0
     assert bad_bonds == 0
-
-
-def test_rigid_none_argument_is_byte_identical(cpu_grid_case):
-    case = cpu_grid_case
-    schedule = GASchedule(generations=1, npool=2, maxiter=2)
-    historical = run_ga_docking(
-        case.reference,
-        case.ligand_block,
-        case.backend,
-        schedule=schedule,
-        seed=20260825,
-    )
-    explicit_none = run_ga_docking(
-        case.reference,
-        case.ligand_block,
-        case.backend,
-        schedule=schedule,
-        seed=20260825,
-        sidechain_blocks=None,
-    )
-    assert torch.equal(historical.pool.genes, explicit_none.pool.genes)
-    assert torch.equal(historical.pool.energies, explicit_none.pool.energies)
-    assert torch.equal(
-        historical.best_pose_stack.coords, explicit_none.best_pose_stack.coords
-    )

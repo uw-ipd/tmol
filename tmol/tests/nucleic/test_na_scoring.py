@@ -11,14 +11,13 @@ DNA weights).
 import pytest
 import torch
 
-from tmol import beta2016_score_function
-from tmol.score import ScoreType
-from tmol.io import (
-    default_canonical_ordering,
-    default_packed_block_types,
-    canonical_form_from_pdb,
-    pose_stack_from_canonical_form,
+from tmol import beta2016_score_function, ScoreType
+from tmol.io._canonical_ordering import (
+    _default_canonical_ordering,
+    _default_packed_block_types,
+    _canonical_form_from_pdb,
 )
+from tmol.io._pose_stack_construction import _pose_stack_from_canonical_form
 
 # terms that must be non-zero on a nucleic-acid-only pose
 NA_ACTIVE_TERMS = (
@@ -50,10 +49,10 @@ NA_INACTIVE_TERMS = (
 
 
 def _pose_stack(pdb_lines, torch_device):
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(co, pdb_lines, torch_device)
-    return pose_stack_from_canonical_form(co, pbt, *canonical_form)
+    co = _default_canonical_ordering()
+    pbt = _default_packed_block_types(torch_device)
+    canonical_form = _canonical_form_from_pdb(co, pdb_lines, torch_device)
+    return _pose_stack_from_canonical_form(co, pbt, *canonical_form)
 
 
 def _unweighted(sfxn, pose_stack):
@@ -103,13 +102,13 @@ def test_beta2016_unparameterized_terms_are_zero_for_dna(dna_pdb, torch_device):
 def test_beta2016_protein_dna_is_more_than_parts(protein_dna_pdb, torch_device):
     """The complex must score differently from its isolated chains, i.e. the
     protein-DNA interface actually contributes."""
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
+    co = _default_canonical_ordering()
+    pbt = _default_packed_block_types(torch_device)
     sfxn = beta2016_score_function(torch_device)
 
     def total(lines):
-        cf = canonical_form_from_pdb(co, lines, torch_device)
-        ps = pose_stack_from_canonical_form(co, pbt, *cf)
+        cf = _canonical_form_from_pdb(co, lines, torch_device)
+        ps = _pose_stack_from_canonical_form(co, pbt, *cf)
         return sfxn.render_whole_pose_scoring_module(ps)(ps.coords).sum().item()
 
     lines = protein_dna_pdb.split("\n")

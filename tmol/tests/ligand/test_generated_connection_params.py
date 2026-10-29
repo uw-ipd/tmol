@@ -13,19 +13,20 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 
 from tmol.database.scoring import CartBondedDatabase
-from tmol.database import ParameterDatabase
-from tmol.io import pose_stack_from_biotite
+from tmol import ParameterDatabase, pose_stack_from_atom_array
 from tmol.ligand._connection_params import (
     MMFF_HARMONIC_CONVERSION,
-    generate_conjugate_connection_params,
+    _generate_conjugate_connection_params,
 )
-from tmol.ligand import _connection_params
-from tmol.ligand import prepare_ligands, load_params_file, write_params_file
-from tmol.ligand._registry import inject_ligand_preparations
+from tmol.ligand import (
+    _connection_params,
+    prepare_ligands,
+    load_params_file,
+    write_params_file,
+)
+from tmol.ligand._registry import _inject_ligand_preparations
 from tmol.tests.ligand import test_conjugate_model
-from tmol.tests.score.cartbonded.test_explicit_connection_parameters import (
-    scoring_term,
-)
+from tmol.tests.score.cartbonded.test_explicit_connection_parameters import scoring_term
 
 conjugate_input = test_conjugate_model.conjugate_input
 
@@ -86,7 +87,7 @@ def test_harmonic_units_against_rdkit_energy_and_force_curvature(smiles, term):
 
 def test_generated_records_ignore_coordinates_and_instance_numbering(conjugate_input):
     _, original, database = conjugate_input
-    expected = generate_conjugate_connection_params(original, database)
+    expected = _generate_conjugate_connection_params(original, database)
     assert expected
     second = original.copy()
     second.chain_id[:] = "ZZ"
@@ -101,8 +102,10 @@ def test_generated_records_ignore_coordinates_and_instance_numbering(conjugate_i
         [np.arange(b - 1, a - 1, -1) for a, b in zip(starts[:-1], starts[1:])]
     )
     second = second[indices]
-    assert generate_conjugate_connection_params(second, database) == expected
-    assert generate_conjugate_connection_params(original + second, database) == expected
+    assert _generate_conjugate_connection_params(second, database) == expected
+    assert (
+        _generate_conjugate_connection_params(original + second, database) == expected
+    )
     for record in expected:
         provenance = json.loads(record.provenance)
         assert provenance["method"] == "tmol-generator-ideals-cartbonded-v1"
@@ -138,7 +141,7 @@ def test_reused_residue_name_with_changed_attachment_chemistry_raises(conjugate_
     with pytest.raises(
         ValueError, match="Incompatible conjugate chemistry shares residue identity"
     ) as error:
-        generate_conjugate_connection_params(original + second, database)
+        _generate_conjugate_connection_params(original + second, database)
     assert "ZZ:" in str(error.value) and "differ at" in str(error.value)
 
 
@@ -162,7 +165,7 @@ def test_attachment_hydrogen_inventory_must_match_patched_type(conjugate_input):
         database, chemical=attr.evolve(database.chemical, residues=residues)
     )
     with pytest.raises(ValueError, match="Attachment neighborhood differs"):
-        generate_conjugate_connection_params(original, bad_database)
+        _generate_conjugate_connection_params(original, bad_database)
 
 
 def test_duplicate_groups_parameterized_once_per_call(conjugate_input, monkeypatch):
@@ -182,10 +185,10 @@ def test_duplicate_groups_parameterized_once_per_call(conjugate_input, monkeypat
 
     monkeypatch.setattr(_connection_params, "_parameterized_model", counted)
     count = 2 if fixture == "nglycan" else 1
-    generate_conjugate_connection_params(combined, database)
+    _generate_conjugate_connection_params(combined, database)
     assert calls == [7.4] * count
     # No cached molecule/assignment survives the call or a pH change.
-    generate_conjugate_connection_params(combined, database, ph=6.4)
+    _generate_conjugate_connection_params(combined, database, ph=6.4)
     assert calls == [7.4] * count + [6.4] * count
 
 
@@ -194,7 +197,7 @@ def test_generated_record_bundle_preserves_model_provenance(
 ):
     _, array, database = conjugate_input
     records = database.scoring.cartbonded.connection_params
-    generated = generate_conjugate_connection_params(array, database, seed=20250828)
+    generated = _generate_conjugate_connection_params(array, database, seed=20250828)
     assert tuple(attr.evolve(r, provenance="") for r in records) == tuple(
         attr.evolve(r, provenance="") for r in generated
     )
@@ -203,9 +206,9 @@ def test_generated_record_bundle_preserves_model_provenance(
     restored = load_params_file(path)
     assert restored[0].connection_params == records
     for base in (ParameterDatabase.get_default(), database):
-        enriched = inject_ligand_preparations(base, restored)
+        enriched = _inject_ligand_preparations(base, restored)
         assert enriched.scoring.cartbonded.connection_params == records
-        assert inject_ligand_preparations(enriched, restored) is enriched
+        assert _inject_ligand_preparations(enriched, restored) is enriched
 
     # Older bundles without attachment records acquire them on preparation.
     test_conjugate_model.prepare_uncorrected_conjugate(
@@ -256,7 +259,7 @@ def test_attachment_bond_order_must_match_patched_type(conjugate_input):
         database, chemical=attr.evolve(database.chemical, residues=residues)
     )
     with pytest.raises(ValueError, match="Attachment bond order differs"):
-        generate_conjugate_connection_params(array, bad_database)
+        _generate_conjugate_connection_params(array, bad_database)
 
 
 def _pose_record_paths(pose, records):
@@ -340,7 +343,9 @@ def test_generated_attachment_energy_and_gradients(
     fixture, array, database = conjugate_input
     records = database.scoring.cartbonded.connection_params
     assert records
-    pose = pose_stack_from_biotite(array, torch_device, param_db=database, no_optH=True)
+    pose = pose_stack_from_atom_array(
+        array, torch_device, param_db=database, no_optH=True
+    )
     # Isolate generated terms, so a legacy wildcard cannot mask missing rows.
     isolated = attr.evolve(
         database,

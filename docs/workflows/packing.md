@@ -6,13 +6,12 @@ Fixed-sequence repacking changes conformations while preserving block identities
 Create a `PackerTask`, restrict it to repacking, and attach samplers:
 
 ```python
-from tmol.pack import pack_rotamers
-from tmol.pack import PackerPalette, PackerTask
-from tmol.pack.rotamer.dunbrack import (
+from tmol import pack_rotamers, PackerPalette, PackerTask
+from tmol.pack import (
     create_dunbrack_sampler_from_database,
+    FixedAAChiSampler,
+    IncludeCurrentSampler,
 )
-from tmol.pack.rotamer import FixedAAChiSampler
-from tmol.pack.rotamer import IncludeCurrentSampler
 
 task = PackerTask(pose_stack, PackerPalette())
 task.restrict_to_repacking()
@@ -34,10 +33,10 @@ task.disable_packing_by_block_mask(fixed_block_mask)
 
 For mutation or design, construct a task with the allowed identities instead
 of calling `restrict_to_repacking()`. Construct the masks explicitly.
-See {doc}`FastRelax </tutorial/06_fast_relax>`
+See {ref}`FastRelax </tutorial/01_tmol_tutorial.ipynb#2.-scoring-and-optimization>`
 to combine packing with minimization, or {doc}`DNA/RNA <nucleic_acids>` for
 nucleic-acid samplers.
 
 ## Examples and reference
 
-{doc}`Packing tutorial </tutorial/04_packing_and_mutation_scan>` · {doc}`Packer extensions </tutorial/13_extending_the_packer>` · {doc}`Packing API </api/pack>`
+{ref}`Scoring and optimization tutorial </tutorial/01_tmol_tutorial.ipynb#2.-scoring-and-optimization>` · {ref}`Packer extensions </tutorial/01_tmol_tutorial.ipynb#8.-advanced-topics>` · {doc}`Packing API </api/pack>`

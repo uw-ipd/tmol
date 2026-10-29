@@ -4,8 +4,8 @@ import attr
 import pytest
 import torch
 
-from tmol.database import inject_residue_params
-from tmol.score.cartbonded import CartBondedEnergyTerm
+from tmol.database import _inject_residue_params
+from tmol.score import CartBondedEnergyTerm
 from tmol.tests.score.common import pose_stack_from_pdb_and_resnums
 
 
@@ -29,7 +29,7 @@ def test_injected_parameters_have_independent_scoring_annotations(
             new_bond if row is old_bond else row for row in original.length_parameters
         ),
     )
-    changed = inject_residue_params(
+    changed = _inject_residue_params(
         default_database, residue_types=[], cartbonded_params={"ALA": replacement}
     )
     databases = {"original": default_database, "changed": changed}

@@ -7,17 +7,20 @@ import pytest
 import torch
 import yaml
 
-from tmol.database import ParameterDatabase, inject_residue_params
-from tmol.io import pose_stack_from_biotite
-from tmol.ligand import load_params_file, prepare_ligands, write_params_file
-from tmol.ligand._local_conjugate_params import (
-    generate_conjugate_parameters,
-    install_conjugate_parameters,
+from tmol import ParameterDatabase, pose_stack_from_atom_array, beta2016_score_function
+from tmol.database import _inject_residue_params
+from tmol.ligand import (
+    load_params_file,
+    prepare_ligands,
+    write_params_file,
+    TMOL_FORMAT_VERSION,
 )
-from tmol.ligand._registry import LigandPreparation, inject_ligand_preparations
-from tmol.score import beta2016_score_function
+from tmol.ligand._local_conjugate_params import (
+    _generate_conjugate_parameters,
+    _install_conjugate_parameters,
+)
+from tmol.ligand._registry import LigandPreparation, _inject_ligand_preparations
 from tmol.tests.ligand import test_conjugate_model
-from tmol.ligand._params_file import TMOL_FORMAT_VERSION
 
 conjugate_input = test_conjugate_model.conjugate_input
 
@@ -32,8 +35,8 @@ def bundle(conjugate_input, tmp_path_factory):
     # The private MMFF-delta diagnostic starts from uncorrected chemistry.
     # Its harmonic records must not overwrite the default Frank-convention fit.
     additions = load_params_file(path)
-    baseline = inject_ligand_preparations(ParameterDatabase.get_default(), additions)
-    result = generate_conjugate_parameters(
+    baseline = _inject_ligand_preparations(ParameterDatabase.get_default(), additions)
+    result = _generate_conjugate_parameters(
         array, baseline, parameter_source="mmff94-harmonic"
     )
     corrections = [
@@ -82,18 +85,18 @@ def test_complete_bundle_fresh_prepared_and_repeated(bundle, tmp_path, reverse):
     write_params_file(preps, path)
     assert yaml.safe_load(path.read_text())["version"] == TMOL_FORMAT_VERSION
     loaded = load_params_file(path)
-    expected = install_conjugate_parameters(baseline, result)
+    expected = _install_conjugate_parameters(baseline, result)
     for database in (ParameterDatabase.get_default(), baseline, expected):
-        restored = inject_ligand_preparations(database, loaded)
+        restored = _inject_ligand_preparations(database, loaded)
         _assert_same(restored, expected)
-        assert inject_ligand_preparations(restored, loaded) is restored
+        assert _inject_ligand_preparations(restored, loaded) is restored
         if database is expected:
             assert restored is expected
     # Exercise the public preparation entry point, including its early return.
     restored, _ = prepare_ligands(array, params_files=[str(path)])
     _assert_same(restored, expected)
     # In-memory combined preparations obey the same contract.
-    _assert_same(inject_ligand_preparations(baseline, preps), expected)
+    _assert_same(_inject_ligand_preparations(baseline, preps), expected)
 
 
 def test_combined_bundle_does_not_hide_changed_baseline(bundle):
@@ -106,12 +109,12 @@ def test_combined_bundle_does_not_hide_changed_baseline(bundle):
         if name in targets
     )
     atom, charge = next(iter(charges.items()))
-    changed = inject_residue_params(
+    changed = _inject_residue_params(
         baseline, [], partial_charges={name: {atom: charge + 0.125}}
     )
     snapshot = changed.scoring.elec
     with pytest.raises(ValueError, match="baseline changed"):
-        inject_ligand_preparations(changed, additions + corrections)
+        _inject_ligand_preparations(changed, additions + corrections)
     assert changed.scoring.elec is snapshot
 
 
@@ -132,10 +135,10 @@ def test_explicit_baseline_bonded_records_survive_combined_export(bundle, tmp_pa
     write_params_file(additions + corrections, path)
     loaded = load_params_file(path)
     assert loaded[0].additional_cartbonded_params == old
-    expected = install_conjugate_parameters(baseline, result)
-    actual = inject_ligand_preparations(ParameterDatabase.get_default(), loaded)
+    expected = _install_conjugate_parameters(baseline, result)
+    actual = _inject_ligand_preparations(ParameterDatabase.get_default(), loaded)
     _assert_same(actual, expected)
-    assert inject_ligand_preparations(actual, loaded) is actual
+    assert _inject_ligand_preparations(actual, loaded) is actual
 
 
 def test_conflicting_connection_cannot_be_hidden_by_bundle(bundle):
@@ -149,9 +152,9 @@ def test_conflicting_connection_cannot_be_hidden_by_bundle(bundle):
             *record.length_parameters[1:],
         ),
     )
-    changed = inject_residue_params(baseline, [], connection_params=(incompatible,))
+    changed = _inject_residue_params(baseline, [], connection_params=(incompatible,))
     with pytest.raises(ValueError, match="Existing connection parameters differ"):
-        inject_ligand_preparations(changed, additions + corrections)
+        _inject_ligand_preparations(changed, additions + corrections)
     assert changed.scoring.cartbonded.connection_params == (incompatible,)
 
 
@@ -181,7 +184,7 @@ def test_invalid_replacement_is_atomic(bundle, damage):
         error = "Missing replacement baseline residue"
     snapshot = (baseline.chemical, baseline.scoring)
     with pytest.raises(ValueError, match=error):
-        inject_ligand_preparations(baseline, records)
+        _inject_ligand_preparations(baseline, records)
     assert baseline.chemical is snapshot[0]
     assert baseline.scoring is snapshot[1]
 
@@ -226,7 +229,8 @@ def test_native_replacement_bundle_scores_and_builds_identically(
         )
         _assert_same(reused, expected)
         _assert_same(
-            inject_ligand_preparations(baseline, load_params_file(local_path)), expected
+            _inject_ligand_preparations(baseline, load_params_file(local_path)),
+            expected,
         )
         reloaded = load_params_file(path)
         assert any(p.baseline_sha256 is not None for p in reloaded)
@@ -258,19 +262,21 @@ def test_native_replacement_bundle_scores_and_builds_identically(
                 for r in completed.scoring.cartbonded.connection_params
             } == {attr.evolve(r, provenance="") for r in records}
             _assert_same(
-                inject_ligand_preparations(partial, load_params_file(connection_path)),
+                _inject_ligand_preparations(partial, load_params_file(connection_path)),
                 completed,
             )
             break
     else:
         write_params_file(additions + corrections, path)
-        expected = install_conjugate_parameters(baseline, result)
+        expected = _install_conjugate_parameters(baseline, result)
     actual, _ = prepare_ligands(array, params_files=[str(path)])
     _assert_same(actual, expected)
     values, gradients, poses = [], [], []
     repeat_values, repeat_gradients = [], []
     for db in (expected, actual):
-        pose = pose_stack_from_biotite(array, torch_device, param_db=db, no_optH=True)
+        pose = pose_stack_from_atom_array(
+            array, torch_device, param_db=db, no_optH=True
+        )
         poses.append(pose)
         module = beta2016_score_function(
             torch_device, param_db=db

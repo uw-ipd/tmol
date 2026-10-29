@@ -5,31 +5,25 @@ import numpy
 import pytest
 import torch
 
-from tmol.relax import fast_relax
+from tmol import fast_relax
 import tmol.relax._fast_relax as fast_relax_module
+from tmol.relax import DefaultKinematicMinimizer
 from tmol.relax._fast_relax import _resolve_cuda_graph_mode
-from tmol.optimization import CartesianMinimizer
+from tmol.optimization._minimizers import CartesianMinimizer
 
-from tmol.pose import (
+from tmol import (
     PoseStack,
     PoseStackBuilder,
-)
-from tmol.score import (
     ScoreFunction,
     ScoreType,
-)
-from tmol.pack import PackerPalette
-from tmol.pack.rotamer import (
-    FixedAAChiSampler,
-    IncludeCurrentSampler,
-)
-from tmol.kinematics import (
+    PackerPalette,
     CartesianMoveMap,
     MoveMap,
     EdgeType,
     FoldForest,
+    pose_stack_from_file,
 )
-from tmol.io import pose_stack_from_pdb
+from tmol.pack import FixedAAChiSampler, IncludeCurrentSampler
 
 
 @pytest.mark.parametrize("grow", [False, True])
@@ -37,8 +31,8 @@ def test_accept_best_with_different_atom_counts(
     default_database, torch_device, monkeypatch, grow
 ):
     """Packing can change atom counts without changing every pose's winner."""
-    from tmol.io import extended_pose_stack_from_sequences
-    from tmol.relax import accept_best
+    from tmol import extended_pose_stack_from_sequences
+    from tmol.relax._fast_relax import _accept_best
 
     small = extended_pose_stack_from_sequences(["AGA", "AGA"], device=torch_device)
     large = extended_pose_stack_from_sequences(["AKA", "AKA"], device=torch_device)
@@ -53,10 +47,29 @@ def test_accept_best_with_different_atom_counts(
     )
     import attrs
 
-    small = attrs.evolve(small, coords=small.coords[:, :small_width])
+    small = attrs.evolve(
+        small,
+        coords=small.coords[:, :small_width],
+        pdb_info=attrs.evolve(
+            small.pdb_info,
+            atom_occupancy=small.pdb_info.atom_occupancy[:, :small_width],
+            atom_b_factor=small.pdb_info.atom_b_factor[:, :small_width],
+        ),
+    )
     assert small.coords.shape[1] < large.coords.shape[1]
     assert small.packed_block_types is large.packed_block_types
     best, candidate = (small, large) if grow else (large, small)
+    # distinct b-factors show which pose each row's pdb_info came from
+    best, candidate = (
+        attrs.evolve(
+            pose,
+            pdb_info=attrs.evolve(
+                pose.pdb_info,
+                atom_b_factor=numpy.full_like(pose.pdb_info.atom_b_factor, b_factor),
+            ),
+        )
+        for pose, b_factor in ((best, 1.0), (candidate, 2.0))
+    )
     original_best = best.coords.clone()
     original_candidate = candidate.coords.clone()
     sfxn = ScoreFunction(param_db=default_database, device=torch_device)
@@ -65,7 +78,7 @@ def test_accept_best_with_different_atom_counts(
         "render_whole_pose_scoring_module",
         lambda pose: lambda coords: coords.new_tensor([1.0, 3.0]),
     )
-    result, scores = accept_best(
+    result, scores = _accept_best(
         sfxn, best, best.coords.new_tensor([2.0, 2.0]), candidate
     )
     torch.testing.assert_close(scores, best.coords.new_tensor([1.0, 2.0]))
@@ -83,6 +96,12 @@ def test_accept_best_with_different_atom_counts(
             result.coords[row, : expected.coords.shape[1]], expected.coords[row]
         )
         assert not bool(result.coords[row, expected.coords.shape[1] :].any())
+        for name in ("atom_occupancy", "atom_b_factor"):
+            merged = getattr(result.pdb_info, name)
+            expected_info = getattr(expected.pdb_info, name)[row]
+            assert merged.shape[1] == result.coords.shape[1]
+            numpy.testing.assert_equal(merged[row, : len(expected_info)], expected_info)
+            assert not merged[row, len(expected_info) :].any()
     torch.testing.assert_close(best.coords, original_best)
     torch.testing.assert_close(candidate.coords, original_candidate)
 
@@ -125,7 +144,12 @@ def get_relax_sfxn(default_database, torch_device):
     ],
 )
 def test_fast_relax_automatic_graph_mode(request, pdb_fixture, expected, torch_device):
-    pose_stack = pose_stack_from_pdb(request.getfixturevalue(pdb_fixture), torch_device)
+    pose_stack = pose_stack_from_file(
+        request.getfixturevalue(pdb_fixture),
+        torch_device,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
 
     assert _resolve_cuda_graph_mode(pose_stack, None) == (
         expected and torch_device.type == "cuda"
@@ -139,7 +163,14 @@ def test_fast_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
     # if torch_device == torch.device("cpu"):
     #     return
 
-    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
+    p = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=76,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
 
     pose_stack = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     sfxn = get_relax_sfxn(default_database, torch_device)
@@ -187,6 +218,71 @@ def test_fast_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
 
 
 @pytest.mark.parametrize("n_poses", [1])
+def test_kin_fast_relax_ubq(
+    default_database, ubq_pdb, dun_sampler, torch_device, n_poses
+):
+    # if torch_device == torch.device("cpu"):
+    #     return
+
+    p = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=76,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+        ligand_hydrogens="input",
+    )
+
+    pose_stack = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
+    sfxn = get_relax_sfxn(default_database, torch_device)
+
+    mm = MoveMap.from_pose_stack(pose_stack)
+    mm.move_all_jumps = True
+    mm.move_all_named_torsions = True
+
+    palette = PackerPalette()
+    fold_forest = FoldForest.reasonable_fold_forest(pose_stack)
+
+    def task_op(task):
+        task.restrict_to_repacking()
+        task.or_bump_check(True)
+
+        fixed_sampler = FixedAAChiSampler()
+        task.add_conformer_sampler(dun_sampler)
+        task.add_conformer_sampler(fixed_sampler)
+        task.add_conformer_sampler(IncludeCurrentSampler())
+
+    start_time = time.perf_counter()
+
+    # Now let's run fast_relax
+    verbose = True
+    new_pose_stack = fast_relax(
+        pose_stack,
+        sfxn,
+        palette,
+        mm,
+        fold_forest,
+        task_operations=[task_op],
+        min_fn=DefaultKinematicMinimizer(
+            cuda_graph=torch_device == torch.device("cuda")
+        ),
+        num_repeats=1,
+        verbose=verbose,
+    )
+
+    if torch_device == torch.device("cuda"):
+        torch.cuda.synchronize()
+    stop_time = time.perf_counter()
+    assert new_pose_stack
+    assert isinstance(new_pose_stack, PoseStack)
+
+    elapsed_time = stop_time - start_time
+
+    print(f"1ubq {n_poses} FastRelax Execution time: {elapsed_time:.6f} seconds")
+
+
+@pytest.mark.parametrize("n_poses", [1])
 def test_cart_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_poses):
     """Cartesian fast-relax on ubiquitin using CartesianSfxnNetwork.
 
@@ -195,7 +291,14 @@ def test_cart_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
     if torch_device == torch.device("cpu"):
         pytest.skip("CUDA only test")
 
-    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
+    p = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=76,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
 
     pose_stack = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     sfxn = get_relax_sfxn(default_database, torch_device)
@@ -244,7 +347,14 @@ def test_fast_relax_releases_minimizer_state_between_packing_stages(
     default_database, ubq_pdb, dun_sampler, torch_device, monkeypatch
 ):
     """Preserve pack/min results while releasing prior minimization storage."""
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=8)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=8,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     palette = PackerPalette()
     move_map = CartesianMoveMap()
     fold_forest = FoldForest.reasonable_fold_forest(pose)
@@ -419,8 +529,12 @@ def test_fast_relax_pertuz(
     res_not_connected[0, 100, 1] = True
     res_not_connected[0, 101, 0] = True
 
-    p = pose_stack_from_pdb(
-        erbb2_and_pertuzumab_pdb, torch_device, res_not_connected=res_not_connected
+    p = pose_stack_from_file(
+        erbb2_and_pertuzumab_pdb,
+        torch_device,
+        res_not_connected=res_not_connected,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
     )
 
     pose_stack = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
@@ -499,14 +613,18 @@ def test_fast_relax_for_different_shapes(
     res_not_connected[0, 0, 0] = True
     res_not_connected[0, 39, 1] = True
 
-    p1 = pose_stack_from_pdb(
+    p1 = pose_stack_from_file(
         ubq_pdb,
         torch_device,
         residue_start=10,
         residue_end=50,
         res_not_connected=res_not_connected,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
     )
-    p2 = pose_stack_from_pdb(ubq_pdb, torch_device)
+    p2 = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
 
     res_not_connected3 = torch.zeros(
         (1, 564 - 9 + 214 + 216 + 6, 2), dtype=torch.bool, device=torch_device
@@ -514,8 +632,11 @@ def test_fast_relax_for_different_shapes(
     res_not_connected3[0, 100, 1] = True
     res_not_connected3[0, 101, 0] = True
 
-    p3 = pose_stack_from_pdb(
-        erbb2_and_pertuzumab_pdb, torch_device
+    p3 = pose_stack_from_file(
+        erbb2_and_pertuzumab_pdb,
+        torch_device,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
     )  # lets pretend residues 100 and 101 are connected.
 
     pose_stack = PoseStackBuilder.from_poses([p1, p2, p3], torch_device)

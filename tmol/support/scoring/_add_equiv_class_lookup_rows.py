@@ -20,15 +20,13 @@ import os
 import attr
 
 from tmol.database.chemical import ChemicalDatabase
-from tmol.database.scoring._omega_bbdep import (
-    OmegaBBDepDatabase,
-    OmegaBBDepMappingParams,
-)
-from tmol.database.scoring._rama import RamaDatabase, RamaMappingParams
-from tmol.support.scoring._add_symmetric_gly_tables import detach, save
+from tmol.database.scoring import OmegaBBDepDatabase, RamaDatabase
+from tmol.database.scoring._omega_bbdep import OmegaBBDepMappingParams
+from tmol.database.scoring._rama import RamaMappingParams
+from tmol.support.scoring._add_symmetric_gly_tables import _detach, _save
 
 
-def borrowers(chemdb: ChemicalDatabase, covered) -> list:
+def _borrowers(chemdb: ChemicalDatabase, covered) -> list:
     """(residue name, class name) for each type that must borrow its class's rows."""
     out = []
     for restype in chemdb.residues:
@@ -47,7 +45,7 @@ def borrowers(chemdb: ChemicalDatabase, covered) -> list:
     return out
 
 
-def add_rows(lookup, chemdb, make_row):
+def _add_rows(lookup, chemdb, make_row):
     """Copy each class's lookup rows onto the types that share its class."""
     covered = {row.res_middle for row in lookup}
     by_source = {}
@@ -55,14 +53,14 @@ def add_rows(lookup, chemdb, make_row):
         by_source.setdefault(row.res_middle, []).append(row)
 
     added = []
-    for name, equiv in borrowers(chemdb, covered):
+    for name, equiv in _borrowers(chemdb, covered):
         for row in by_source[equiv]:
             added.append(make_row(row, name))
             print(f"  {name} / {row.res_upper} -> {row.table_id} (from {equiv})")
     return (*lookup, *added)
 
 
-def main() -> None:
+def _main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--db_dir", default="tmol/database/default")
     args = parser.parse_args()
@@ -76,8 +74,8 @@ def main() -> None:
     rama = RamaDatabase.from_file(rama_path)
     rama = attr.evolve(
         rama,
-        rama_tables=tuple(detach(t, "table") for t in rama.rama_tables),
-        rama_lookup=add_rows(
+        rama_tables=tuple(_detach(t, "table") for t in rama.rama_tables),
+        rama_lookup=_add_rows(
             rama.rama_lookup,
             chemdb,
             lambda row, name: RamaMappingParams(
@@ -89,7 +87,7 @@ def main() -> None:
             ),
         ),
     )
-    save(rama, rama_path)
+    _save(rama, rama_path)
 
     omega_path = os.path.join(scoring_dir, "omega_bbdep.zip")
     print(f"omega_bbdep: {omega_path}")
@@ -97,9 +95,9 @@ def main() -> None:
     omega = attr.evolve(
         omega,
         bbdep_omega_tables=tuple(
-            detach(t, "mu", "sigma") for t in omega.bbdep_omega_tables
+            _detach(t, "mu", "sigma") for t in omega.bbdep_omega_tables
         ),
-        bbdep_omega_lookup=add_rows(
+        bbdep_omega_lookup=_add_rows(
             omega.bbdep_omega_lookup,
             chemdb,
             lambda row, name: OmegaBBDepMappingParams(
@@ -111,8 +109,8 @@ def main() -> None:
             ),
         ),
     )
-    save(omega, omega_path)
+    _save(omega, omega_path)
 
 
 if __name__ == "__main__":
-    main()
+    _main()
