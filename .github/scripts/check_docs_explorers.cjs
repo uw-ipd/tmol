@@ -41,6 +41,8 @@ const server = http.createServer((request, response) => {
       page.on("response", response => { if (response.status() >= 400) errors.push(`${response.status()} ${response.url()}`); });
       await page.route("**/*", route => {
         if (route.request().url().startsWith(base)) return route.continue();
+        // Analytics is the one expected third-party script; block it without failing.
+        if (new URL(route.request().url()).hostname.endsWith("simpleanalyticscdn.com")) return route.abort();
         errors.push(`External dependency: ${route.request().url()}`);
         return route.abort();
       });
