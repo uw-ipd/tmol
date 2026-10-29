@@ -161,3 +161,5 @@ tmol/tests/data/ligand_test/ligand_tmol_generated/
 # are committed; only ad-hoc pipeline outputs are ignored here.
 tmol/tests/data/protein_ligand_test/*.pipeline.nomin.cif
 tmol/tests/data/protein_ligand_test/*.packmin.cif
+
+.devcontainer
