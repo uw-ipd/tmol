@@ -62,4 +62,4 @@ Optionally set `TMOL_BROWSER_EXECUTABLE` to an existing Chromium executable.
 GitHub Actions builds documentation once per pull request. Same-repository pull
 requests publish under `previews/pr-<number>/`; pushes to `master` deploy the
 current documentation to `latest/`. The stable public URL
-<https://uw-ipd.github.io/tmol/> redirects to that deployment.
+<https://rosettacommons.github.io/tmol/> redirects to that deployment.

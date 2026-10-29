@@ -16,7 +16,7 @@ This document covers building, testing, and contributing to tmol.
 ## Local Setup
 
 ```bash
-git clone https://github.com/uw-ipd/tmol.git && cd tmol
+git clone https://github.com/RosettaCommons/tmol.git && cd tmol
 pip install -e ".[dev]"   # builds C++/CUDA extensions via CMake
 ```
 
@@ -150,7 +150,7 @@ parameter-generation parity is the guanfeng DUD-80 SMILES suite
 pip install "torch==2.10.*" --index-url https://download.pytorch.org/whl/cu128
 
 # Install a release wheel from GitHub
-pip install https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.10-cp312-cp312-manylinux_2_28_x86_64.whl
+pip install https://github.com/RosettaCommons/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.10-cp312-cp312-manylinux_2_28_x86_64.whl
 ```
 
 Release wheels omit tests and fixtures. Use the [Quickstart](docs/quickstart.md)
@@ -158,7 +158,7 @@ to check an installed wheel. The full test suite remains in source checkouts
 and source distributions; to test a release from source, use its matching tag:
 
 ```bash
-git clone --branch vX.Y.Z https://github.com/uw-ipd/tmol.git tmol-release
+git clone --branch vX.Y.Z https://github.com/RosettaCommons/tmol.git tmol-release
 cd tmol-release
 python -m pip install "scikit-build-core>=0.10" "cmake>=3.24,<4" pybind11 ninja packaging
 python -m pip install --no-build-isolation -e ".[dev]" -Ccmake.define.TMOL_BUILD_TESTS=ON
@@ -169,7 +169,7 @@ On Google Colab (Python 3.12 or 3.13, PyTorch 2.11, Turing T4), use the
 matching `+cu128torch2.11` wheel. This lane explicitly includes `sm_75`:
 
 ```bash
-pip install "https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.11-cp312-cp312-manylinux_2_28_x86_64.whl"
+pip install "https://github.com/RosettaCommons/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.11-cp312-cp312-manylinux_2_28_x86_64.whl"
 ```
 
 ## Containers
