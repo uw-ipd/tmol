@@ -1,6 +1,4 @@
 import importlib
-import subprocess
-import sys
 
 import pytest
 
@@ -89,24 +87,4 @@ def test_default_relax_minimizers_are_public():
     assert relax.DefaultKinematicMinimizer is DefaultKinematicMinimizer
     assert {"DefaultCartesianMinimizer", "DefaultKinematicMinimizer"} <= set(
         relax.__all__
-    )
-
-
-def test_extern_import_is_independent_of_vendored_tests():
-    # Check a fresh process: pytest may already have collected the vendored tests.
-    subprocess.run(
-        [
-            sys.executable,
-            "-c",
-            """
-import importlib, sys, unittest
-import tmol.extern
-assert 'tmol.extern.test_toposort' not in sys.modules
-assert list(tmol.extern.toposort({'a': set()})) == [{'a'}]
-tests = importlib.import_module('tmol.extern.test_toposort')
-result = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromModule(tests))
-raise SystemExit(not result.wasSuccessful())
-""",
-        ],
-        check=True,
     )

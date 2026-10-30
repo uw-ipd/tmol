@@ -1,6 +1,3 @@
-from .toposort import CircularDependencyError, toposort, toposort_flatten  # noqa: F401
-
-
 def include_paths():
     """Get -I compatible include dirs for external modules."""
 
