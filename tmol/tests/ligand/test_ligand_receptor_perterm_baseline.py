@@ -396,7 +396,7 @@ def _weighted_perterm_from_fixtures(
     target: str, torch_device: torch.device, dtype: torch.dtype
 ):
     from tmol.database import ParameterDatabase
-    from tmol.io import pose_stack_from_atom_array
+    from tmol.io._pose_stack_from_biotite import pose_stack_from_atom_array
     from tmol.score import beta2016_score_function
     from tmol.ops import calculate_block_pair_ddg
 
