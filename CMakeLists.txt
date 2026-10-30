@@ -353,6 +353,9 @@ endfunction()
 
 set(_C_SOURCES
   tmol/native.cpp
+  # dock
+  tmol/dock/lbfgs_compiled.ops.cpp
+  tmol/dock/lbfgs_compiled.cpu.cpp
   # optimization
   tmol/optimization/armijo_compiled.ops.cpp
   tmol/optimization/armijo_compiled.cpu.cpp
@@ -378,6 +381,13 @@ set(_C_SOURCES
   # score/genbonded
   tmol/score/genbonded/potentials/compiled.ops.cpp
   tmol/score/genbonded/potentials/genbonded_pose_score.cpu.cpp
+  # score/gridscore
+  tmol/score/gridscore/potentials/compiled.ops.cpp
+  tmol/score/gridscore/potentials/grid_interp_pose_score.cpu.cpp
+  tmol/score/gridscore/potentials/live_hbond.cpu.cpp
+  tmol/score/gridscore/potentials/live_lk_ball.cpu.cpp
+  tmol/score/gridscore/potentials/grid_score.cpu.cpp
+  tmol/score/gridscore/potentials/grid_build.cpu.cpp
   # score/constraint
   tmol/score/constraint/potentials/compiled.ops.cpp
   tmol/score/constraint/potentials/constraint_score.cpu.cpp
@@ -413,6 +423,7 @@ if(TMOL_HAS_CUDA)
   list(APPEND _C_SOURCES
     tmol/score/common/whole_pose_scoring.cuda.cu
     tmol/optimization/armijo_compiled.cuda.cu
+    tmol/dock/lbfgs_compiled.cuda.cu
     tmol/io/details/compiled/gen_pose_leaf_atoms.cuda.cu
     tmol/io/details/compiled/resolve_his_taut.cuda.cu
     tmol/kinematics/compiled/compiled.cuda.cu
@@ -420,6 +431,11 @@ if(TMOL_HAS_CUDA)
     tmol/pack/rotamer/dunbrack/compiled.cuda.cu
     tmol/score/backbone_torsion/potentials/backbone_torsion_pose_score.cuda.cu
     tmol/score/cartbonded/potentials/cartbonded_pose_score.cuda.cu
+    tmol/score/gridscore/potentials/grid_interp_pose_score.cuda.cu
+    tmol/score/gridscore/potentials/live_hbond.cuda.cu
+    tmol/score/gridscore/potentials/live_lk_ball.cuda.cu
+    tmol/score/gridscore/potentials/grid_score.cuda.cu
+    tmol/score/gridscore/potentials/grid_build.cuda.cu
     tmol/score/genbonded/potentials/genbonded_pose_score.cuda.cu
     tmol/score/constraint/potentials/constraint_score.cuda.cu
     tmol/score/disulfide/potentials/disulfide_pose_score.cuda.cu

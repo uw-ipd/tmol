@@ -25,11 +25,11 @@ alpha_aa:
   fa_elec: 8.6203
   fa_ljatr: -39.537
   fa_ljrep: 26.4398
-  fa_lk: 32.7035
+  fa_lk: 32.8006
   gen_torsions: 0.2883
   hbond: 0.0
   lk_ball: 10.7135
-  lk_ball_iso: 40.4749
+  lk_ball_iso: 40.4801
   lk_bridge: 0.0198
   lk_bridge_uncpl: 0.4034
   metal_coordination: 0.0

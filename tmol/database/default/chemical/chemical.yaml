@@ -4516,7 +4516,11 @@ variants:
     add_atom_aliases:
     - { name: O    , alt_name: OT1 }
     - { name: OXT  , alt_name: OT2 }
-    modify_atoms: []
+    modify_atoms:
+    # The C-terminal carboxylate carbon is a carboxylate carbon (COO), not the
+    # backbone-carbonyl type (CObb) it carries in the mid-chain residue. Rosetta's
+    # CtermProteinFull types it COO; retype it here so grid/continuous fa_sol match.
+    - { name: <C1> ,  atom_type: COO }
     add_connections: []
     add_bonds:
     - [   <C1>,    OXT, AROMATIC, false ]

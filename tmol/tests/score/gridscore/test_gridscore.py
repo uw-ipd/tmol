@@ -1,0 +1,426 @@
+from __future__ import annotations
+
+import math
+
+import pytest
+import torch
+
+from tmol.database import ParameterDatabase
+from tmol.io._pose_stack_from_biotite import pose_stack_from_atom_array
+from tmol.score.elec._params import ElecParamResolver
+from tmol.score.gridscore import GridScorer, GridSet, build_grid
+from tmol.score.gridscore.grid import (
+    GridGeometry,
+    compute_cubic_bspline_coefficients,
+    compute_grid_geometry,
+    ixform_rep,
+    probe_atom_types_from_name3,
+    xform_rep,
+)
+from tmol.score.gridscore.scorer import interpolate_grid
+from tmol.score.ljlk._params import LJLKParamResolver
+from tmol.tests.data import data_path
+from tmol.tests.ligand.test_protein_ligand_ddg import (
+    LIGAND_RES_NAME,
+    _load_complex_cif,
+)
+
+PLI_DATA_DIR = data_path("protein_ligand_test")
+
+
+def test_grid_geometry_index_conventions():
+    ligand_coords = torch.tensor(
+        [[-8.0, 1.0, 2.0], [8.0, 1.0, 2.0]], dtype=torch.float64
+    )
+    geometry = compute_grid_geometry(ligand_coords)
+
+    assert geometry.max_radius == 8.0
+    assert geometry.dims == (96, 96, 96)
+    torch.testing.assert_close(
+        geometry.ligand_com, torch.tensor([0.0, 1.0, 2.0], dtype=torch.float64)
+    )
+    torch.testing.assert_close(
+        geometry.origin, torch.tensor([-12.0, -11.0, -10.0], dtype=torch.float64)
+    )
+    torch.testing.assert_close(
+        geometry.cartesian_from_zero_based_index((3, 4, 5)),
+        torch.tensor([-11.25, -10.0, -8.75], dtype=torch.float64),
+    )
+    torch.testing.assert_close(
+        geometry.zero_based_index_from_cartesian(
+            geometry.cartesian_from_zero_based_index((3, 4, 5))
+        ),
+        torch.tensor([3.0, 4.0, 5.0], dtype=torch.float64),
+    )
+
+    floored = compute_grid_geometry(torch.zeros((2, 3), dtype=torch.float64))
+    assert floored.max_radius == 6.0
+    assert floored.dims == (80, 80, 80)
+    torch.testing.assert_close(
+        floored.origin, torch.full((3,), -10.0, dtype=torch.float64)
+    )
+
+
+def test_grid_serialization_round_trip(tmp_path):
+    geometry = GridGeometry(
+        origin=torch.tensor([1.0, 2.0, 3.0], dtype=torch.float64),
+        dims=(2, 3, 4),
+        voxel_spacing=0.5,
+        ligand_com=torch.tensor([2.0, 3.0, 4.0], dtype=torch.float64),
+        max_radius=7.5,
+    )
+    typed = torch.arange(48, dtype=torch.float64).reshape(2, 2, 3, 4)
+    shared = torch.arange(24, dtype=torch.float64).reshape(2, 3, 4)
+    grids = GridSet(
+        geometry=geometry,
+        atom_type_names=("CH1", "OOC"),
+        atom_type_indices=torch.tensor([1, 2], dtype=torch.int64),
+        fa_atr=typed,
+        fa_rep=typed + 1,
+        fa_sol=typed + 2,
+        fa_elec=shared,
+        lk_ball=typed + 3,
+        lk_ball_water=typed + 4,
+        lk_bridge=typed + 5,
+        lk_ball_enabled=True,
+        lk_bridge_enabled=True,
+    )
+
+    path = tmp_path / "receptor_grids.pt"
+    grids.save(path)
+    loaded = GridSet.load(path)
+
+    assert loaded.atom_type_names == grids.atom_type_names
+    assert loaded.atom_type_to_grid == {"CH1": 0, "OOC": 1}
+    assert loaded.geometry.dims == grids.geometry.dims
+    assert loaded.lk_ball_enabled
+    assert loaded.lk_bridge_enabled
+    torch.testing.assert_close(loaded.geometry.origin, grids.geometry.origin)
+    torch.testing.assert_close(loaded.atom_type_indices, grids.atom_type_indices)
+    torch.testing.assert_close(loaded.fa_atr, grids.fa_atr)
+    torch.testing.assert_close(loaded.fa_rep, grids.fa_rep)
+    torch.testing.assert_close(loaded.fa_lk, grids.fa_sol)
+    torch.testing.assert_close(loaded.fa_elec, grids.fa_elec)
+    torch.testing.assert_close(loaded.lk_ball, grids.lk_ball)
+    torch.testing.assert_close(loaded.lk_ball_water, grids.lk_ball_water)
+    torch.testing.assert_close(loaded.lk_bridge, grids.lk_bridge)
+    torch.testing.assert_close(loaded.fa_atr_coeffs, grids.fa_atr_coeffs)
+    torch.testing.assert_close(loaded.fa_rep_coeffs, grids.fa_rep_coeffs)
+    torch.testing.assert_close(loaded.fa_sol_coeffs, grids.fa_sol_coeffs)
+    torch.testing.assert_close(loaded.fa_elec_coeffs, grids.fa_elec_coeffs)
+    torch.testing.assert_close(loaded.lk_ball_coeffs, grids.lk_ball_coeffs)
+    torch.testing.assert_close(loaded.lk_ball_water_coeffs, grids.lk_ball_water_coeffs)
+    torch.testing.assert_close(loaded.lk_bridge_coeffs, grids.lk_bridge_coeffs)
+
+
+def test_cubic_bspline_round_trip_at_every_node():
+    generator = torch.Generator().manual_seed(1977)
+    values = torch.randn((2, 5, 6, 7), dtype=torch.float64, generator=generator)
+    coefficients = compute_cubic_bspline_coefficients(values)
+
+    node_indices = torch.cartesian_prod(
+        torch.arange(5, dtype=torch.float64),
+        torch.arange(6, dtype=torch.float64),
+        torch.arange(7, dtype=torch.float64),
+    )
+    all_indices = node_indices.repeat(2, 1)
+    grid_indices = torch.arange(2, dtype=torch.int64).repeat_interleave(
+        node_indices.shape[0]
+    )
+    interpolated = interpolate_grid(coefficients, all_indices, grid_indices)
+    error = torch.max(torch.abs(interpolated - values.reshape(-1)))
+
+    print(f"cubic B-spline all-node round-trip max-abs error: {float(error):.3e}")
+    torch.testing.assert_close(interpolated, values.reshape(-1), rtol=0.0, atol=1.0e-9)
+    # The Rosetta origin sentinel is intentionally absent: this value is data.
+    torch.testing.assert_close(interpolated[0], values[0, 0, 0, 0])
+
+
+def _grid_channels(grids, coords, atom_types, charges):
+    """Weighted atr/rep/sol/elec grid energies of one pose ``[n_atoms, 3]``."""
+    scorer = GridScorer(
+        grids, atom_types, charges, device=coords.device, dtype=coords.dtype
+    )
+    return scorer.grid_channels(coords[None])[0]
+
+
+def _load_target_pose(target):
+    param_db = ParameterDatabase.get_default()
+    pose_stack, context = pose_stack_from_atom_array(
+        _load_complex_cif(target),
+        torch.device("cpu"),
+        prepare_ligands=True,
+        ligand_params_files=[str(PLI_DATA_DIR / f"{target}.xtal-lig.mmff94.tmol")],
+        no_optH=True,
+        param_db=param_db,
+        return_context=True,
+    )
+    pose_stack.coords = pose_stack.coords.to(dtype=torch.float64)
+    return pose_stack, context.parameter_database
+
+
+def _load_cdk2_pose():
+    return _load_target_pose("cdk2")
+
+
+def _independent_receptor_extraction(pose_stack):
+    pbt = pose_stack.packed_block_types
+    coords = []
+    atom_type_names = []
+    charges = []
+    ligand_coords = []
+    for block_index, block_type_index_tensor in enumerate(pose_stack.block_type_ind[0]):
+        block_type_index = int(block_type_index_tensor)
+        if block_type_index < 0:
+            continue
+        block_type = pbt.active_block_types[block_type_index]
+        n_atoms = int(pbt.n_atoms[block_type_index])
+        offset = int(pose_stack.block_coord_offset64[0, block_index])
+        block_coords = pose_stack.coords[0, offset : offset + n_atoms]
+        if block_type.name3 == LIGAND_RES_NAME:
+            ligand_coords.append(block_coords)
+            continue
+        coords.append(block_coords)
+        atom_type_names.extend(atom.atom_type for atom in block_type.atoms[:n_atoms])
+        charges.append(pbt.elec_partial_charge[block_type_index, :n_atoms])
+    return (
+        torch.cat(coords).to(torch.float64).contiguous(),
+        tuple(atom_type_names),
+        torch.cat(charges).to(torch.float64).contiguous(),
+        torch.cat(ligand_coords).to(torch.float64).contiguous(),
+    )
+
+
+def _sample_voxel_indices(geometry, receptor_coords):
+    dims = torch.tensor(geometry.dims, dtype=torch.int64)
+    indices = {
+        (0, 0, 0),
+        tuple((dims // 2).tolist()),
+        tuple((dims - 1).tolist()),
+    }
+    continuous = geometry.zero_based_index_from_cartesian(receptor_coords)
+    for index in torch.round(continuous).to(torch.int64):
+        if bool(torch.all(index >= 0) and torch.all(index < dims)):
+            indices.add(tuple(index.tolist()))
+        if len(indices) >= 12:
+            break
+    return sorted(indices)
+
+
+def test_cdk2_grid_matches_independent_pair_sums(tmp_path):
+    from tmol.tests.score.ljlk.potentials._compiled import (
+        elec_V,
+        lj_score_V,
+        lk_isotropic_score_V,
+    )
+
+    pose_stack, param_db = _load_cdk2_pose()
+    probe_names = probe_atom_types_from_name3(pose_stack, LIGAND_RES_NAME)
+    grids = build_grid(
+        pose_stack,
+        probe_names,
+        param_db,
+        ligand_name3=LIGAND_RES_NAME,
+    )
+
+    receptor_coords, receptor_type_names, receptor_charges, ligand_coords = (
+        _independent_receptor_extraction(pose_stack)
+    )
+    expected_geometry = compute_grid_geometry(ligand_coords)
+    assert grids.geometry.dims == expected_geometry.dims
+    assert grids.geometry.voxel_spacing == 0.25
+    torch.testing.assert_close(grids.geometry.origin, expected_geometry.origin)
+
+    # This oracle deliberately resolves every atom type by name and calls the
+    # pre-existing test bindings for the production pair potentials. It does
+    # not share gridscore's type-index packing or its C++ pair evaluator.
+    ljlk_params = LJLKParamResolver.from_database(
+        param_db.chemical, param_db.scoring.ljlk, torch.device("cpu")
+    )
+    elec_params = ElecParamResolver.from_database(
+        param_db.scoring.elec, torch.device("cpu")
+    )
+    receptor_params = [
+        ljlk_params.type_params[ljlk_params.atom_type_index.get_loc(receptor_type_name)]
+        for receptor_type_name in receptor_type_names
+    ]
+    elec_global = elec_params.global_params
+
+    max_errors = {"fa_atr": 0.0, "fa_rep": 0.0, "fa_sol": 0.0, "fa_elec": 0.0}
+    sample_indices = _sample_voxel_indices(grids.geometry, receptor_coords)
+    for index in sample_indices:
+        xyz = grids.geometry.cartesian_from_zero_based_index(index)
+        distances = torch.linalg.vector_norm(receptor_coords - xyz, dim=1)
+        reference_elec = sum(
+            elec_V(
+                float(distance),
+                1.0,
+                float(charge),
+                5.0,
+                float(elec_global.elec_sigmoidal_die_D),
+                float(elec_global.elec_sigmoidal_die_D0),
+                float(elec_global.elec_sigmoidal_die_S),
+                float(elec_global.elec_min_dis),
+                float(elec_global.elec_max_dis),
+            )
+            for distance, charge in zip(distances, receptor_charges)
+        )
+        for probe_grid_index, probe_name in enumerate(grids.atom_type_names):
+            probe_params = ljlk_params.type_params[
+                ljlk_params.atom_type_index.get_loc(probe_name)
+            ]
+            reference_atr = 0.0
+            reference_rep = 0.0
+            reference_sol = 0.0
+            for distance, recept_params in zip(distances, receptor_params):
+                atr, rep = lj_score_V(
+                    float(distance),
+                    5.0,
+                    probe_params,
+                    recept_params,
+                    ljlk_params.global_params,
+                )
+                reference_atr += atr
+                reference_rep += rep
+                reference_sol += lk_isotropic_score_V(
+                    float(distance),
+                    5.0,
+                    probe_params,
+                    recept_params,
+                    ljlk_params.global_params,
+                )
+            reference = torch.tensor(
+                [reference_atr, reference_rep, reference_sol, reference_elec],
+                dtype=torch.float64,
+            )
+            actual = torch.stack(
+                [
+                    grids.fa_atr[probe_grid_index][index],
+                    ixform_rep(grids.fa_rep[probe_grid_index][index]),
+                    grids.fa_sol[probe_grid_index][index],
+                    grids.fa_elec[index],
+                ]
+            )
+            torch.testing.assert_close(
+                grids.fa_rep[probe_grid_index][index],
+                xform_rep(reference[1]),
+                rtol=1e-6,
+                atol=1e-6,
+            )
+            for term, error in zip(max_errors, torch.abs(actual - reference)):
+                max_errors[term] = max(max_errors[term], float(error))
+            torch.testing.assert_close(actual, reference, rtol=1e-6, atol=1e-6)
+
+    print(
+        "cdk2 grid max-abs errors: "
+        + ", ".join(f"{term}={error:.3e}" for term, error in max_errors.items())
+    )
+    assert torch.isfinite(grids.fa_atr).all()
+    assert torch.isfinite(grids.fa_rep).all()
+    assert torch.isfinite(grids.fa_sol).all()
+    assert torch.isfinite(grids.fa_elec).all()
+    assert float(grids.fa_atr.min()) < 0
+    assert float(ixform_rep(grids.fa_rep).max()) > 10
+    assert float(grids.fa_elec.min()) < 0 < float(grids.fa_elec.max())
+
+    serialized = tmp_path / "cdk2_grid.pt"
+    grids.save(serialized)
+    reloaded = GridSet.load(serialized)
+    assert reloaded.atom_type_to_grid == grids.atom_type_to_grid
+    torch.testing.assert_close(reloaded.fa_atr, grids.fa_atr)
+    torch.testing.assert_close(reloaded.fa_rep, grids.fa_rep)
+    torch.testing.assert_close(reloaded.fa_sol, grids.fa_sol)
+    torch.testing.assert_close(reloaded.fa_elec, grids.fa_elec)
+
+    assert math.isfinite(max(max_errors.values()))
+
+
+def _ligand_scoring_inputs(pose_stack):
+    pbt = pose_stack.packed_block_types
+    coords = []
+    atom_type_names = []
+    charges = []
+    for block_index, block_type_index_tensor in enumerate(pose_stack.block_type_ind[0]):
+        block_type_index = int(block_type_index_tensor)
+        if block_type_index < 0:
+            continue
+        block_type = pbt.active_block_types[block_type_index]
+        if block_type.name3 != LIGAND_RES_NAME:
+            continue
+        n_atoms = int(pbt.n_atoms[block_type_index])
+        offset = int(pose_stack.block_coord_offset64[0, block_index])
+        coords.append(pose_stack.coords[0, offset : offset + n_atoms])
+        atom_type_names.extend(atom.atom_type for atom in block_type.atoms[:n_atoms])
+        charges.append(pbt.elec_partial_charge[block_type_index, :n_atoms])
+    return (
+        torch.cat(coords).to(dtype=torch.float64).contiguous(),
+        tuple(atom_type_names),
+        torch.cat(charges).to(dtype=torch.float64).contiguous(),
+    )
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("target", ("cdk2", "ache"))
+def test_grid_interface_characterization_against_t1(target):
+    from tmol.tests.ligand.test_ligand_receptor_perterm_baseline import (
+        _GOLDEN_PER_TERM,
+    )
+
+    pose_stack, param_db = _load_target_pose(target)
+    probe_names = probe_atom_types_from_name3(pose_stack, LIGAND_RES_NAME)
+    grids = build_grid(
+        pose_stack,
+        probe_names,
+        param_db,
+        ligand_name3=LIGAND_RES_NAME,
+    )
+    ligand_coords, ligand_atom_types, ligand_charges = _ligand_scoring_inputs(
+        pose_stack
+    )
+    grid_score = _grid_channels(grids, ligand_coords, ligand_atom_types, ligand_charges)
+    exact = torch.tensor(_GOLDEN_PER_TERM[target]["interface"][:4], dtype=torch.float64)
+    absolute_error = torch.abs(grid_score - exact)
+    relative_error = absolute_error / torch.clamp(torch.abs(exact), min=1.0e-12)
+
+    term_names = ("fa_atr", "fa_rep", "fa_sol", "fa_elec")
+    print(
+        f"{target} grid-vs-T1: "
+        + ", ".join(
+            f"{name} abs={float(abs_err):.6g} rel={float(rel_err):.6g}"
+            for name, abs_err, rel_err in zip(
+                term_names, absolute_error, relative_error
+            )
+        )
+    )
+    assert torch.isfinite(grid_score).all()
+    assert torch.isfinite(absolute_error).all()
+    assert torch.isfinite(relative_error).all()
+    # Measurement-derived per-term regression bound (F11). The original 0.5 A
+    # characterization observed max-abs across cdk2+ache of fa_atr 0.022, fa_rep
+    # 0.253, fa_sol 0.022, and fa_elec 0.042 REU. These bounds are retained for
+    # the finer 0.25 A grid, whose interpolation error should be smaller
+    # (fa_rep remains the stiff outlier).
+    bound = torch.tensor([0.05, 0.50, 0.05, 0.10], dtype=torch.float64)
+    assert torch.all(absolute_error <= bound), (
+        f"{target} grid-vs-T1 per-term abs error {absolute_error.tolist()} "
+        f"exceeds bound {bound.tolist()}"
+    )
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires CUDA")
+def test_grids_built_on_cuda_match_cpu():
+    pose_stack, param_db = _load_cdk2_pose()
+    probe_names = probe_atom_types_from_name3(pose_stack, LIGAND_RES_NAME)
+    kwargs = dict(ligand_name3=LIGAND_RES_NAME, build_lk_ball=True, voxel_spacing=0.5)
+    cpu = build_grid(pose_stack, probe_names, param_db, **kwargs)
+    cuda = build_grid(pose_stack, probe_names, param_db, device="cuda", **kwargs)
+    for name in ("fa_atr", "fa_rep", "fa_sol", "fa_elec", "lk_ball", "lk_bridge"):
+        torch.testing.assert_close(
+            getattr(cuda, name).cpu(), getattr(cpu, name), rtol=1e-10, atol=1e-10
+        )
+        torch.testing.assert_close(
+            getattr(cuda, f"{name}_coeffs").cpu(),
+            getattr(cpu, f"{name}_coeffs"),
+            rtol=1e-10,
+            atol=1e-10,
+        )

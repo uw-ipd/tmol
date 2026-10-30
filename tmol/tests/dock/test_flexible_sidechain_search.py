@@ -1,0 +1,464 @@
+"""M13a-2 gates for flexible-sidechain grid search and restoration."""
+
+from __future__ import annotations
+
+import time
+
+import pytest
+import torch
+
+from tmol.dock import GASchedule, GridBackend, run_docking, select_pocket_residues
+from tmol.dock.ga import LigandGeneLayout
+from tmol.dock.ligand_dofs import build_ligand_docking_dofs
+from tmol.dock.ligand_dofs import (
+    _block_kinforest_nodes,
+)
+from tmol.dock.scoring_backend import _LightweightGridObjective
+from tmol.score import beta2016_score_function
+from tmol.score.gridscore import GridScorer
+from tmol.score.gridscore.live_hbond import score_ligand_hbond
+from tmol.score.gridscore.live_ligand_intra import (
+    build_live_ligand_intra_data,
+    score_ligand_intra,
+)
+from tmol.score._score_types import ScoreType
+from tmol.tests.dock.test_ligand_dof_roundtrip import _load_cdk2_pose_on_device
+from tmol.tests.dock.test_flexible_sidechain_dofs import (
+    _connected_chi_blocks,
+)
+from tmol.tests.dock.test_ligand_dof_roundtrip import (
+    _ligand_block,
+)
+from tmol.score.gridscore._movable import (
+    movable_block_mapping,
+    movable_pose_stack,
+    sidechain_context_blocks,
+)
+
+
+def _cdk2_sidechain_blocks(reference, ligand_block):
+    selected = select_pocket_residues(reference, ligand_block, cutoff=6.0)
+    return _connected_chi_blocks(reference, ligand_block, selected)[:2]
+
+
+def _movable_layout(reference, ligand_block, sidechain_blocks):
+    movable = movable_pose_stack(reference, ligand_block, sidechain_blocks)
+    _, compact_sidechains, _ = movable_block_mapping(
+        reference, ligand_block, sidechain_blocks
+    )
+    docking_dofs = build_ligand_docking_dofs(
+        movable, 0, sidechain_blocks=compact_sidechains
+    )
+    return (
+        movable,
+        docking_dofs,
+        LigandGeneLayout.from_pose_stack(movable, docking_dofs),
+    )
+
+
+def _exact_movable_oracle(movable, param_db, context_blocks=()):
+    sfxn = beta2016_score_function(torch.device("cpu"), param_db=param_db)
+    scorer = sfxn.render_block_pair_scoring_module(movable)
+    pairs = scorer(movable.coords)
+    if context_blocks:
+        context = torch.tensor(context_blocks, dtype=torch.int64)
+        pairs[:, context, context] = 0
+    return pairs.sum(dim=(1, 2))
+
+
+def test_movable_whole_pose_score_matches_exact_beta2016_fp64(
+    cdk2_pose_and_db,
+):
+    reference, param_db = cdk2_pose_and_db
+    ligand_block = _ligand_block(reference)
+    sidechain_blocks = _cdk2_sidechain_blocks(reference, ligand_block)
+    movable, docking_dofs, layout = _movable_layout(
+        reference, ligand_block, sidechain_blocks
+    )
+    genes = layout.genes_from_pose_stack(movable)
+    genes[:, 0] += 0.08
+    genes[:, 6] += 0.11
+    genes[:, 6 + len(docking_dofs.torsions)] -= 0.17
+    moved = layout.pose_stack_from_genes(genes)
+
+    data = build_live_ligand_intra_data(
+        reference,
+        ligand_block,
+        param_db,
+        weight_profile="full",
+        sidechain_blocks=sidechain_blocks,
+    )
+    actual = score_ligand_intra(data, moved.coords)
+    expected = _exact_movable_oracle(moved, param_db, data.context_block_indices)
+    error = torch.max(torch.abs(actual - expected))
+    print("movable full-beta score max error:", float(error))
+    torch.testing.assert_close(actual, expected, rtol=0.0, atol=1.0e-4)
+
+
+@pytest.mark.slow
+def test_movable_block_pairs_match_full_connected_complex_fp64(
+    cdk2_pose_and_db,
+):
+    reference, param_db = cdk2_pose_and_db
+    ligand_block = _ligand_block(reference)
+    sidechain_blocks = _cdk2_sidechain_blocks(reference, ligand_block)
+    movable, _, _ = _movable_layout(reference, ligand_block, sidechain_blocks)
+    source_blocks, compact_sidechains, compact_context = movable_block_mapping(
+        reference, ligand_block, sidechain_blocks
+    )
+
+    sfxn = beta2016_score_function(torch.device("cpu"), param_db=param_db)
+    compact_pairs = sfxn.render_block_pair_scoring_module(movable)(
+        movable.coords, sum_terms=False
+    )
+    full_pairs = sfxn.render_block_pair_scoring_module(reference)(
+        reference.coords, sum_terms=False
+    )
+    source_index = torch.tensor(source_blocks, dtype=torch.int64)
+    expected_pairs = full_pairs.index_select(2, source_index).index_select(
+        3, source_index
+    )
+
+    # The block-pair module stores each unordered pair's energy in exactly one
+    # triangle, keyed by (min block index, max block index); the transpose slot
+    # is zero. Compacting moves the ligand from the highest source block index to
+    # block 0, which flips which triangle holds every ligand<->receptor pair, so a
+    # positional comparison must first fold both tensors to a triangle-agnostic
+    # form. The total (sum over both block dims) is unaffected, which is why the
+    # whole-pose score already matches exactly.
+    compact_sym = compact_pairs + compact_pairs.transpose(2, 3)
+    expected_sym = expected_pairs + expected_pairs.transpose(2, 3)
+
+    # Immediate context is present to make selected-residue one-body terms and
+    # every retained pair exact. A context residue's own diagonal may depend on
+    # its next omitted peptide neighbor and is a fixed search constant.
+    compare_mask = torch.ones(
+        (len(source_blocks), len(source_blocks)), dtype=torch.bool
+    )
+    for compact_block in compact_context:
+        compare_mask[compact_block, compact_block] = False
+
+    # Backbone-dihedral energies (rama/omega/p_aa_pp) are functions of phi/psi/omega
+    # only. Flexible docking moves the ligand rigid body, ligand torsions, and
+    # sidechain chi; the protein BACKBONE is fixed, so these terms are constant
+    # across every pose and are outside the movable module's optimized score set
+    # (which is fa_ljatr/ljrep/lk/elec + gen_torsions + cart_* + live hbond/lk_ball,
+    # plus chi-dependent fa_dun). At the truncated context boundary (a context
+    # residue whose far peptide neighbor is omitted) they take a fixed value that
+    # differs from the full complex by a per-pose constant, which cannot bias search
+    # or dG ranking. Restrict the strict per-pair equality to the score types the
+    # flexible search actually optimizes over.
+    score_types = tuple(sfxn.all_score_types())
+    backbone_constant = {
+        name for name in ("rama", "omega", "p_aa_pp") if hasattr(ScoreType, name)
+    }
+    term_keep = torch.tensor(
+        [st.name not in backbone_constant for st in score_types],
+        dtype=torch.bool,
+    )
+    actual_selected = compact_sym[term_keep][:, :, compare_mask]
+    expected_selected = expected_sym[term_keep][:, :, compare_mask]
+    error = torch.max(torch.abs(actual_selected - expected_selected))
+    print("connected compact block-pair max error:", float(error))
+    torch.testing.assert_close(
+        actual_selected, expected_selected, rtol=0.0, atol=1.0e-4
+    )
+
+    # Explicit backbone-dependent Dunbrack (HIGH-2): the total rotamer energy
+    # attributed to each flexible residue must land in the correct phi/psi bin,
+    # which the included peptide context provides. Sum the three Dunbrack score
+    # types over each selected block's full symmetrized row so the check is robust
+    # to whether the term is stored on the diagonal or the (i, i-1) edge.
+    dun_types = (
+        ScoreType.dunbrack_rot,
+        ScoreType.dunbrack_rotdev,
+        ScoreType.dunbrack_semirot,
+    )
+    dun_index = torch.tensor(
+        [score_types.index(st) for st in dun_types], dtype=torch.int64
+    )
+    selected_compact = torch.tensor(compact_sidechains, dtype=torch.int64)
+    compact_dun = compact_sym[dun_index][:, :, selected_compact, :].sum(dim=(0, -1))
+    expected_dun = expected_sym[dun_index][:, :, selected_compact, :].sum(dim=(0, -1))
+    torch.testing.assert_close(compact_dun, expected_dun, rtol=0.0, atol=1.0e-4)
+
+
+@pytest.mark.slow
+def test_flexible_grid_atom_partition_and_score_decomposition_fp64(
+    cdk2_pose_and_db,
+):
+    reference, param_db = cdk2_pose_and_db
+    ligand_block = _ligand_block(reference)
+    sidechain_blocks = _cdk2_sidechain_blocks(reference, ligand_block)
+    backend = GridBackend.from_pose_stack(
+        reference,
+        ligand_block,
+        param_db,
+        kin_dtype=torch.float64,
+        flexible_residues=sidechain_blocks,
+    )
+    movable, docking_dofs, layout = _movable_layout(
+        reference, ligand_block, sidechain_blocks
+    )
+    ligand_n_atoms = movable.block_type(0, 0).n_atoms
+    expected_grid_atoms = torch.cat(
+        (
+            torch.arange(ligand_n_atoms, dtype=torch.int64),
+            layout.sidechain_atom_indices[0],
+        )
+    )
+    assert torch.equal(backend.grid_atom_indices, expected_grid_atoms)
+    assert backend.live_hbond.n_ligand_atoms == movable.max_n_pose_atoms
+    assert backend.live_lk_ball.n_ligand_atoms == movable.max_n_pose_atoms
+    assert backend.live_ligand_intra.n_ligand_atoms == movable.max_n_pose_atoms
+
+    expected_receptor_heavy = []
+    pbt = reference.packed_block_types
+    context_blocks = sidechain_context_blocks(reference, ligand_block, sidechain_blocks)
+    assert backend.context_blocks == context_blocks
+    excluded_blocks = {
+        ligand_block,
+        *sidechain_blocks,
+        *context_blocks,
+    }
+    for block in range(reference.max_n_blocks):
+        block_type_index = int(reference.block_type_ind64[0, block])
+        if block_type_index < 0 or block in excluded_blocks:
+            continue
+        block_type = pbt.active_block_types[block_type_index]
+        offset = int(reference.block_coord_offset64[0, block])
+        for atom in range(block_type.n_atoms):
+            if int(pbt.hbpbt_params.is_hydrogen[block_type_index, atom]) == 0:
+                expected_receptor_heavy.append(reference.coords[0, offset + atom])
+    expected_receptor_heavy = torch.stack(expected_receptor_heavy)
+    torch.testing.assert_close(
+        backend.live_lk_ball.receptor_coords,
+        expected_receptor_heavy,
+        rtol=0.0,
+        atol=0.0,
+    )
+    assert backend.live_ligand_intra.ligand_pose_stack.max_n_blocks == (
+        1 + len(sidechain_blocks) + len(context_blocks)
+    )
+    full = backend.for_ligand_block(0)._score_ligand_coordinates(movable.coords)
+    sfxn = beta2016_score_function(torch.device("cpu"), param_db=backend.param_db)
+
+    def scorer(**terms):
+        return GridScorer(
+            backend.grids,
+            backend.ligand_atom_types,
+            backend.ligand_charges,
+            device="cpu",
+            dtype=torch.float64,
+            score_function=sfxn,
+            grid_atoms=backend.grid_atom_indices,
+            **terms,
+        )
+
+    grid_only = scorer()(movable.coords)
+    hbond = scorer(live_hbond=backend.live_hbond)(movable.coords) - grid_only
+    lk_ball = (
+        scorer(live_lk_ball=backend.live_lk_ball, lk_ball_grid=backend.lk_ball_grid)(
+            movable.coords
+        )
+        - grid_only
+    )
+    torch.testing.assert_close(
+        hbond,
+        sfxn.get_weight(ScoreType.hbond)
+        * score_ligand_hbond(backend.live_hbond, movable.coords),
+        rtol=0.0,
+        atol=1.0e-10,
+    )
+    interface = scorer(
+        live_hbond=backend.live_hbond,
+        live_lk_ball=backend.live_lk_ball,
+        lk_ball_grid=backend.lk_ball_grid,
+    )(movable.coords)
+    intra = score_ligand_intra(backend.live_ligand_intra, movable.coords)
+    torch.testing.assert_close(
+        interface, grid_only + hbond + lk_ball, rtol=0.0, atol=1.0e-10
+    )
+    torch.testing.assert_close(
+        full, grid_only + hbond + lk_ball + intra, rtol=0.0, atol=1.0e-10
+    )
+
+    objective = _LightweightGridObjective(
+        backend.for_ligand_block(0),
+        movable,
+        docking_dofs,
+        torch.float64,
+        None,
+    )
+    masked = objective.initial_masked_dofs
+    _, dof_gradient = objective.energy_and_gradient(masked)
+    mapping = docking_dofs.sidechain_torsions[0]
+    block_nodes = _block_kinforest_nodes(
+        movable,
+        mapping.block,
+        movable.block_type(0, mapping.block).n_atoms,
+        objective.forest.id,
+    )
+    raw_node = block_nodes[0, mapping.raw_atom]
+    flat_key = raw_node * 9 + int(mapping.dof_type)
+    sidechain_column = torch.nonzero(
+        objective.dof_flat_idx == flat_key, as_tuple=False
+    ).flatten()
+    assert sidechain_column.numel() == 1
+    sidechain_column = int(sidechain_column[0])
+    step = 1.0e-6
+    plus = masked.clone()
+    minus = masked.clone()
+    plus[sidechain_column] += step
+    minus[sidechain_column] -= step
+    finite = (
+        objective.energy_and_gradient(plus)[0][0]
+        - objective.energy_and_gradient(minus)[0][0]
+    ) / (2.0 * step)
+    error = torch.abs(dof_gradient[sidechain_column] - finite)
+    print(
+        "flexible grid sidechain-DOF analytic/finite/error:",
+        float(dof_gradient[sidechain_column]),
+        float(finite),
+        float(error),
+    )
+    assert torch.abs(dof_gradient[sidechain_column]) > 1.0e-8
+    torch.testing.assert_close(
+        dof_gradient[sidechain_column], finite, rtol=2.0e-4, atol=2.0e-4
+    )
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires a CUDA device")
+def test_flexible_grid_search_moves_sidechain_and_restores_full_complex(
+    cdk2_pose_and_db,
+):
+    cpu_reference, param_db = cdk2_pose_and_db
+    ligand_block = _ligand_block(cpu_reference)
+    sidechain_blocks = _cdk2_sidechain_blocks(cpu_reference, ligand_block)
+    backend = GridBackend.from_pose_stack(
+        cpu_reference,
+        ligand_block,
+        param_db,
+        kin_dtype=torch.float32,
+        flexible_residues=sidechain_blocks,
+    )
+    cpu_movable, _, _ = _movable_layout(cpu_reference, ligand_block, sidechain_blocks)
+    cpu_energy, cpu_gradient = backend.for_ligand_block(
+        0
+    )._score_ligand_coordinates_with_gradients(cpu_movable.coords)
+    cuda_movable_coords = cpu_movable.coords.to(device="cuda")
+    cuda_energy, cuda_gradient = backend.for_ligand_block(
+        0
+    )._score_ligand_coordinates_with_gradients(cuda_movable_coords)
+    energy_error = torch.max(torch.abs(cuda_energy.cpu() - cpu_energy))
+    gradient_error = torch.max(torch.abs(cuda_gradient.cpu() - cpu_gradient))
+    print(
+        "flexible fp64 CPU/CUDA energy and gradient max errors:",
+        float(energy_error),
+        float(gradient_error),
+    )
+    torch.testing.assert_close(cuda_energy.cpu(), cpu_energy, rtol=1.0e-10, atol=1.0e-8)
+    # CUDA vs CPU fp64 gradients differ at the reduction floor (~1e-8); the
+    # gradient accumulates more reduction error than the energy, so use a
+    # slightly looser bound than the energy parity above.
+    torch.testing.assert_close(
+        cuda_gradient.cpu(), cpu_gradient, rtol=1.0e-6, atol=2.0e-7
+    )
+
+    reference, _ = _load_cdk2_pose_on_device(torch.device("cuda"))
+    movable, _, layout = _movable_layout(reference, ligand_block, sidechain_blocks)
+    native_score = backend.for_ligand_block(0).score(movable)[0]
+    torch.cuda.synchronize()
+    started = time.perf_counter()
+    result = run_docking(
+        reference,
+        backend,
+        schedule=GASchedule(
+            generations=1,
+            npool=8,
+            rmsdthreshold=0.0,
+            pmut=0.2,
+            maxiter=10,
+        ),
+        seed=20260825,
+    )
+    torch.cuda.synchronize()
+    wall_seconds = time.perf_counter() - started
+    assert torch.isfinite(result.best_energies).all()
+    assert result.best_energies[0] <= native_score + 1.0e-5
+
+    moved_count = 0
+    bad_bonds = 0
+    checked_blocks = (ligand_block,) + sidechain_blocks
+    for source_block in checked_blocks:
+        block_type = reference.block_type(0, source_block)
+        bond_indices = torch.tensor(
+            block_type.bond_indices[::2],
+            dtype=torch.int64,
+            device=reference.device,
+        )
+        source_offset = reference.block_coord_offset64[0, source_block]
+        before = torch.linalg.vector_norm(
+            reference.coords[0, source_offset + bond_indices[:, 0]]
+            - reference.coords[0, source_offset + bond_indices[:, 1]],
+            dim=1,
+        )
+        after = torch.linalg.vector_norm(
+            result.best_pose_stack.coords[0, source_offset + bond_indices[:, 0]]
+            - result.best_pose_stack.coords[0, source_offset + bond_indices[:, 1]],
+            dim=1,
+        )
+        bad_bonds += int(torch.sum(torch.abs(after - before) > 2.0e-4))
+
+    _, compact_sidechains, _ = movable_block_mapping(
+        reference, ligand_block, sidechain_blocks
+    )
+    for compact_block, source_block in zip(compact_sidechains, sidechain_blocks):
+        compact_start = int(movable.block_coord_offset64[0, compact_block])
+        block_type = reference.block_type(0, source_block)
+        compact_atoms = layout.sidechain_atom_indices[0]
+        local_atoms = (
+            compact_atoms[
+                (compact_atoms >= compact_start)
+                & (compact_atoms < compact_start + block_type.n_atoms)
+            ]
+            - compact_start
+        )
+        source_atoms = reference.block_coord_offset64[0, source_block] + local_atoms
+        displacement = torch.linalg.vector_norm(
+            result.best_pose_stack.coords[0, source_atoms]
+            - reference.coords[0, source_atoms],
+            dim=1,
+        )
+        moved_count += int(torch.sum(displacement > 1.0e-5))
+
+        backbone_local = torch.tensor(
+            [
+                atom_index
+                for atom_index, atom in enumerate(block_type.atoms)
+                if atom.name in {"N", "CA", "C", "O", "OXT"}
+            ],
+            dtype=torch.int64,
+            device=reference.device,
+        )
+        backbone_atoms = (
+            reference.block_coord_offset64[0, source_block] + backbone_local
+        )
+        torch.testing.assert_close(
+            result.best_pose_stack.coords[0, backbone_atoms],
+            reference.coords[0, backbone_atoms],
+            rtol=0.0,
+            atol=0.0,
+        )
+
+    print(
+        "flexible cdk2 native/best, moved atoms, bad bonds, wall_s:",
+        float(native_score),
+        float(result.best_energies[0]),
+        moved_count,
+        bad_bonds,
+        wall_seconds,
+    )
+    assert moved_count > 0
+    assert bad_bonds == 0

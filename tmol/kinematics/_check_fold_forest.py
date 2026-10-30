@@ -5,7 +5,7 @@ from tmol.types._array import NDArray
 from tmol.kinematics._fold_forest import EdgeType
 
 
-@numba.jit(nopython=True)
+@numba.jit(nopython=True, cache=True)
 def _mark_polymeric_bonds_in_foldforest_edges(
     n_poses: int,
     max_n_blocks: int,
@@ -44,7 +44,7 @@ def _mark_polymeric_bonds_in_foldforest_edges(
     return (polymeric_connection_in_edge, count_bad_for_pose, bad_edges)
 
 
-@numba.jit(nopython=True)
+@numba.jit(nopython=True, cache=True)
 def _bfs_proper_forest(  # noqa: C901
     roots: NDArray[numpy.int64][:, :],
     n_blocks: NDArray[numpy.int64][:],
@@ -96,7 +96,7 @@ def _bfs_proper_forest(  # noqa: C901
     return cycles_detected, missing
 
 
-@numba.jit(nopython=True)
+@numba.jit(nopython=True, cache=True)
 def _ensure_jumps_numbered_and_distinct(
     edges: NDArray[numpy.int64][:, :, 4],
 ):
@@ -137,7 +137,7 @@ def _ensure_jumps_numbered_and_distinct(
     return found_bad_jump, count_n_bad_jumps, bad_jump_numbers, count_n_jumps
 
 
-@numba.jit(nopython=True)
+@numba.jit(nopython=True, cache=True)
 def _validate_fold_forest_jit(  # noqa: C901
     n_blocks: NDArray[numpy.int64][:],
     edges: NDArray[numpy.int64][:, :, 4],

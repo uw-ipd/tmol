@@ -9,7 +9,6 @@ reproduces the ``prepare_ligands=True`` result and is stable across repeats.
 from pathlib import Path
 
 import biotite.structure as struc
-import biotite.structure.io
 import pytest
 import torch
 
@@ -22,7 +21,7 @@ from tmol import (
 from tmol.io import build_context_from_atom_array
 from tmol.ligand import LigandPreparationError
 from tmol.pack._build_missing_sidechains import _build_missing_sidechains
-from tmol.tests.data import data_path
+from tmol.tests.data import data_path, load_cif_structure
 
 PLI_DATA_DIR = Path(__file__).parent.parent / "data" / "protein_ligand_test"
 TARGET = "ace"
@@ -30,13 +29,9 @@ N_REPEATS = 3
 
 
 def _load_complex_cif(target: str) -> struc.AtomArray:
-    cif_path = PLI_DATA_DIR / f"{target}.tmol.nomin.cif"
-    structure = biotite.structure.io.load_structure(
-        str(cif_path), model=1, include_bonds=True
+    return load_cif_structure(
+        PLI_DATA_DIR / f"{target}.tmol.nomin.cif.zst", include_bonds=True
     )
-    if isinstance(structure, struc.AtomArrayStack):
-        structure = structure[0]
-    return structure
 
 
 def _params_files(target: str = TARGET) -> list[str]:
